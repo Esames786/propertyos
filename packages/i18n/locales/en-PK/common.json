@@ -1,0 +1,185 @@
+{
+  "app": {
+    "productName": "PropertyOS",
+    "codenameNote": "Working codename",
+    "prototypeBadge": "Prototype · fictional data",
+    "backoffice": "Backoffice",
+    "customerPortal": "Customer portal",
+    "pageTitle": "{{page}} · {{app}}"
+  },
+  "actions": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close",
+    "submit": "Submit",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "retry": "Try again",
+    "back": "Back",
+    "next": "Next",
+    "edit": "Edit",
+    "remove": "Remove",
+    "clear": "Clear",
+    "open": "Open",
+    "more": "More",
+    "viewAll": "View all",
+    "markAllRead": "Mark all as read",
+    "markRead": "Mark as read",
+    "copy": "Copy",
+    "copied": "Copied",
+    "goBack": "Go back",
+    "goToStart": "Go to start page",
+    "openMenu": "Open menu",
+    "collapseSidebar": "Collapse sidebar",
+    "expandSidebar": "Expand sidebar",
+    "related": "Related",
+    "showMore": "Show more",
+    "dismiss": "Dismiss",
+    "continue": "Continue",
+    "reset": "Reset"
+  },
+  "state": {
+    "loading": "Loading…",
+    "saving": "Saving…",
+    "searching": "Searching…",
+    "optional": "optional",
+    "required": "required",
+    "allProjects": "All projects",
+    "unread": "Unread",
+    "new": "New"
+  },
+  "persona": {
+    "manager": "Developer manager",
+    "sales": "Sales executive",
+    "finance": "Finance officer",
+    "resident": "Owner and resident"
+  },
+  "welcomeBenefit": {
+    "manager": "See every project, approve work and move anywhere quickly.",
+    "sales": "Find your customers, manage follow-ups and move anywhere quickly.",
+    "finance": "Track collections, review transfer proofs and move anywhere quickly.",
+    "resident": "Check payments, documents and services for your property in one place."
+  },
+  "demo": {
+    "signInTitle": "Choose a demo identity",
+    "signInIntro": "This prototype simulates sign-in. Each identity has different permissions, so menus, search results and actions change.",
+    "fictional": "All people, amounts, accounts and documents are fictional. Nothing here moves money or sends messages.",
+    "continueAs": "Continue as {{name}}",
+    "signedInAs": "Signed in as",
+    "switchIdentity": "Switch demo identity",
+    "resetOnboarding": "Reset demo onboarding",
+    "resetOnboardingDone": "Onboarding reset. The welcome will appear again for this identity.",
+    "signOut": "Sign out of demo",
+    "mockNetwork": "Simulated network",
+    "mockModes": {
+      "normal": "Normal",
+      "fast": "Instant",
+      "slow": "Slow",
+      "error": "Server error",
+      "offline": "Offline"
+    },
+    "scopeAll": "All projects",
+    "scopeOne": "Only {{project}}"
+  },
+  "unitType": {
+    "apartment_1bed": "1-bed apartment",
+    "apartment_2bed": "2-bed apartment",
+    "apartment_3bed": "3-bed apartment",
+    "penthouse": "Penthouse",
+    "villa": "Villa",
+    "plot": "Plot"
+  },
+  "entity": {
+    "party": "Customer",
+    "lead": "Lead",
+    "unit": "Unit",
+    "invoice": "Invoice",
+    "project": "Project"
+  },
+  "time": {
+    "today": "Today",
+    "yesterday": "Yesterday"
+  },
+  "badge": {
+    "demo": "DEMO",
+    "training": "TRAINING",
+    "planned": "Planned"
+  },
+  "notifications": {
+    "panelTitle": "Notifications",
+    "empty": "You're all caught up.",
+    "leadAssigned": {
+      "title": "New lead assigned",
+      "body": "{{ref}} was assigned to you. First contact is due today."
+    },
+    "holdExpiring": {
+      "title": "Hold expiring soon",
+      "body": "The hold on unit {{unit}} ends in 2 hours."
+    },
+    "proofSubmitted": {
+      "title": "Transfer proof submitted",
+      "body": "A customer uploaded proof for {{ref}}. It is awaiting verification, not paid."
+    },
+    "invoiceOverdue": {
+      "title": "Invoice overdue",
+      "body": "{{ref}} passed its due date with a balance outstanding."
+    },
+    "visitTomorrow": {
+      "title": "Site visit tomorrow",
+      "body": "Visit for {{ref}} is scheduled for tomorrow morning."
+    },
+    "prototype": {
+      "title": "Guided tours are available",
+      "body": "Replay the essentials tour or try practice mode from Help."
+    },
+    "installmentDue": {
+      "title": "Installment due soon",
+      "body": "{{ref}} is due this month."
+    }
+  },
+  "activity": {
+    "timelineLabel": "Activity",
+    "visitScheduled": "Scheduled a site visit for {{date}}",
+    "called": "Called the customer; asked for a 3-bed price list",
+    "assigned": "Assigned the lead to {{name}}",
+    "created": "Lead created from the {{source}} enquiry form"
+  },
+  "quickCreate": {
+    "label": "Quick create",
+    "practiceGroup": "Practice",
+    "practiceLead": "New lead (practice)",
+    "practiceLeadDescription": "Fictional data. Nothing is saved or sent.",
+    "plannedGroup": "Coming in Stage 2",
+    "availableStage2": "Available from Stage 2",
+    "newLead": "New lead",
+    "scheduleVisit": "Schedule site visit",
+    "holdUnit": "Hold a unit",
+    "receivePayment": "Receive payment",
+    "newExpense": "New expense"
+  },
+  "command": {
+    "title": "Search",
+    "inputLabel": "Search records, screens and actions",
+    "screens": "Screens",
+    "records": "Records",
+    "actions": "Actions",
+    "noResults": "No results for “{{query}}”.",
+    "hint": "Use the arrow keys to move and Enter to open. Esc closes.",
+    "minChars": "Type 2 or more characters to search records.",
+    "switchLanguage": "Switch language to {{language}}",
+    "startTour": "Start the essentials tour",
+    "openHelp": "Open help for this page",
+    "openPreferences": "Open preferences",
+    "practiceLead": "Practice: create a fictional lead",
+    "recordCount_one": "{{count}} record",
+    "recordCount_other": "{{count}} records"
+  },
+  "userMenu": {
+    "title": "Account",
+    "preferences": "Preferences",
+    "notifications": "Notifications"
+  },
+  "lang": {
+    "switchTo": "Switch to {{language}}"
+  }
+}

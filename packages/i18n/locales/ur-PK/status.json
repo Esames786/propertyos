@@ -1,0 +1,44 @@
+{
+  "unit": {
+    "draft": "مسودہ",
+    "available": "دستیاب",
+    "held": "ہولڈ پر",
+    "reserved": "ریزرو",
+    "booked": "بک شدہ",
+    "allocated": "الاٹ شدہ",
+    "handover_ready": "حوالگی کے لیے تیار",
+    "handed_over": "حوالے کر دیا گیا",
+    "occupied": "زیرِ رہائش",
+    "blocked": "بلاک",
+    "disputed": "متنازع",
+    "withdrawn": "واپس لیا گیا"
+  },
+  "lead": {
+    "new": "نئی",
+    "assigned": "تفویض شدہ",
+    "contacted": "رابطہ ہو گیا",
+    "qualified": "اہل",
+    "converted": "کسٹمر بن گئی",
+    "dormant": "غیر فعال",
+    "lost": "ہاتھ سے نکل گئی",
+    "unqualified": "نااہل"
+  },
+  "settlement": {
+    "unpaid": "غیر ادا شدہ",
+    "partially_paid": "جزوی ادا شدہ",
+    "paid": "ادا شدہ"
+  },
+  "evidence": {
+    "none": "کوئی ثبوت جمع نہیں",
+    "submitted": "ثبوت جمع ہو گیا",
+    "under_review": "تصدیق کا انتظار",
+    "needs_information": "مزید معلومات درکار",
+    "rejected": "ثبوت مسترد",
+    "verified": "تصدیق شدہ"
+  },
+  "screen": {
+    "planned": "منصوبہ بند",
+    "partial": "جزوی طور پر تیار",
+    "implemented": "تیار"
+  }
+}

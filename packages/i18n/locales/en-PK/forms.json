@@ -1,0 +1,125 @@
+{
+  "errors": {
+    "required": "This field is required.",
+    "phoneInvalid": "Enter a Pakistani phone number, for example 0300 1234567.",
+    "cnicInvalid": "Enter all 13 CNIC digits, for example 12345-1234567-1.",
+    "emailInvalid": "Enter an email address like name@example.com.",
+    "amountInvalid": "Enter an amount with up to 2 decimal places.",
+    "amountPositive": "Enter an amount greater than zero.",
+    "dateRequired": "Choose a date.",
+    "datePast": "Choose today or a later date.",
+    "selectOne": "Choose an option.",
+    "selectAtLeastOne": "Choose at least one option.",
+    "fileType": "{{name}} isn't accepted. Use JPG, PNG or PDF.",
+    "fileSize": "{{name}} is larger than {{max}}.",
+    "fileRequired": "Attach a file.",
+    "unitUnavailable": "This unit is {{status}}, so it can't be chosen.",
+    "consentRequired": "Confirm that the customer agreed to be contacted."
+  },
+  "summary": {
+    "title_one": "Fix {{count}} problem to continue",
+    "title_other": "Fix {{count}} problems to continue",
+    "intro": "Select a problem to go to that field. Everything you entered is kept."
+  },
+  "fields": {
+    "fullName": "Full name",
+    "phone": "Mobile number",
+    "cnic": "CNIC",
+    "email": "Email",
+    "customer": "Existing customer",
+    "project": "Project",
+    "tower": "Tower",
+    "floor": "Floor",
+    "block": "Phase",
+    "unit": "Unit",
+    "budget": "Budget",
+    "visitDate": "Preferred visit date",
+    "source": "Lead source",
+    "interests": "Interested in",
+    "notes": "Notes",
+    "attachment": "Supporting document",
+    "contactConsent": "The customer agreed to be contacted by phone and WhatsApp",
+    "preferredContact": "Preferred contact method"
+  },
+  "hints": {
+    "fullName": "As written on the CNIC. Urdu or English script is fine.",
+    "phone": "Pakistani mobile or landline. We store it in international format.",
+    "cnic": "13 digits. Dashes are added for you.",
+    "customer": "Search by name, phone, CNIC or customer number.",
+    "budget": "Amount in PKR. Up to 2 decimal places.",
+    "visitDate": "The sales team confirms the time by phone.",
+    "interests": "Choose all that apply.",
+    "attachment": "JPG, PNG or PDF, up to 5 MB. You can use your camera on a phone.",
+    "notes": "Visible to your team only."
+  },
+  "sources": {
+    "website": "Website",
+    "walk_in": "Walk-in",
+    "referral": "Referral",
+    "social": "Social media",
+    "broker": "Broker",
+    "phone": "Phone call"
+  },
+  "contactMethods": {
+    "phone": "Phone call",
+    "whatsapp": "WhatsApp",
+    "email": "Email"
+  },
+  "asyncSelect": {
+    "typeToSearch": "Type at least 2 characters to search.",
+    "noResults": "No matches for “{{query}}”.",
+    "results_one": "{{count}} match",
+    "results_other": "{{count}} matches",
+    "selected": "{{name}} selected"
+  },
+  "multiSelect": {
+    "add": "Add an option",
+    "selectedLabel": "Selected",
+    "removeItem": "Remove {{item}}",
+    "noneSelected": "Nothing selected yet."
+  },
+  "unitPicker": {
+    "legend": "Unit",
+    "chooseProjectFirst": "Choose a project first.",
+    "chooseTowerFirst": "Choose a tower first.",
+    "chooseFloorFirst": "Choose a floor first.",
+    "chooseBlockFirst": "Choose a phase first.",
+    "noTowers": "This project has plots and villas, so there is no tower or floor.",
+    "floorLabel": "Floor {{level}}",
+    "unitOption": "{{ref}}, {{type}}, {{area}}, {{price}}",
+    "onlyAvailable": "Only available units can be chosen. Other units show their status.",
+    "childCleared": "{{field}} was cleared because {{parent}} changed.",
+    "unitsShown_one": "{{count}} unit on this floor",
+    "unitsShown_other": "{{count}} units on this floor"
+  },
+  "upload": {
+    "choose": "Choose file",
+    "chooseAnother": "Add another file",
+    "dropHere": "Or drop files here",
+    "removeFile": "Remove {{name}}",
+    "fileAdded": "{{name}} added",
+    "fileRemoved": "{{name}} removed",
+    "preview": "Preview of {{name}}",
+    "noFiles": "No file chosen."
+  },
+  "currency": {
+    "inWords": "Amount shown exactly as entered; it does not change with language."
+  },
+  "draft": {
+    "restored": "Your unsaved entries were restored.",
+    "discard": "Discard draft",
+    "unsavedTitle": "Leave without saving?",
+    "unsavedBody": "You have unsaved entries on this page. They will be kept until you close the tab, so you can come back to them.",
+    "stay": "Stay on this page",
+    "leave": "Leave page"
+  },
+  "newLead": {
+    "title": "New lead (practice)",
+    "intro": "A practice version of the New lead form. Submitting creates a training record only.",
+    "submit": "Create practice lead",
+    "created": "Practice lead {{ref}} created. Nothing was saved to real records.",
+    "sectionContact": "Contact",
+    "sectionInterest": "Interest"
+  },
+  "selectPlaceholder": "Choose…"
+}

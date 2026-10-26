@@ -115,7 +115,7 @@ The customer app keeps React Router permanently (it is an API-driven SPA), so fo
 | Fonts (self-hosted) | @fontsource-variable/inter, @fontsource-variable/noto-naskh-arabic | 5.3.0 | No third-party font CDN (privacy, offline PWA) |
 | Unit/component tests | vitest + @testing-library/react + jsdom | **4.1.12** / 16.3.3 / **26.1.0** | Vitest 5 and jsdom 30 need Node ≥ 22 |
 | E2E + a11y | @playwright/test + @axe-core/playwright | 1.64.1 / **4.13.0** | WCAG 2.0/2.1/2.2 A+AA rule tags; 4.14 needs Node ≥ 22.12 |
-| Lint | eslint + typescript-eslint + eslint-plugin-jsx-a11y + eslint-plugin-i18next | **9.39.5** / 8.72.0 / 6.10.2 / 6.1.5 | ESLint 9 because jsx-a11y does not support ESLint 10 yet; `no-literal-string` in JSX enforces "no hard-coded English" |
+| Lint | eslint + typescript-eslint + eslint-plugin-react-hooks + eslint-plugin-i18next | 10.13.0 / 8.72.0 / 7.1.1 / 6.1.5 | `no-literal-string` in JSX enforces "no hard-coded English". `eslint-plugin-jsx-a11y` 6.10.2 is left out: it supports only ESLint ≤ 9, and ESLint 9 is out of support. Accessibility is checked by axe in E2E and by component tests. |
 | PWA (Stage 4 only) | vite-plugin-pwa | 2.0.0 | |
 
 ### 2.5 Why React Aria Components rather than Radix/shadcn, MUI or Headless UI

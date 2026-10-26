@@ -1,0 +1,260 @@
+/*
+ * Design tokens (single source of truth for colour, radius, type and motion).
+ * Consumed through Tailwind v4: every token below becomes a CSS custom property on :root
+ * and a utility (bg-panel, text-muted, border-control, rounded-card ...).
+ * Contrast pairs are verified by src/contrast.test.ts, which parses this file.
+ * Physical left/right is never used; layout relies on logical properties so RTL mirrors.
+ */
+
+@theme {
+  --color-*: initial;
+
+  /* Surfaces */
+  --color-bg: #f8fafc;
+  --color-panel: #ffffff;
+  --color-sunken: #f1f5f9;
+  --color-overlay: rgb(15 23 42 / 0.45);
+  --color-scrim: rgb(15 23 42 / 0.55);
+
+  /* Text */
+  --color-text: #111827;
+  --color-muted: #475569;
+  --color-subtle: #5b6779;
+  --color-inverse: #ffffff;
+
+  /* Lines: decorative dividers vs. boundaries of interactive controls (WCAG 1.4.11 needs >= 3:1) */
+  --color-border: #cbd5e1;
+  --color-border-control: #64748b;
+
+  /* Brand accent (tenant-configurable later; must keep these contrast pairs) */
+  --color-primary: #1d4ed8;
+  --color-primary-hover: #1e40af;
+  --color-primary-soft: #eff6ff;
+  --color-on-primary: #ffffff;
+
+  /* Focus ring: drawn with an offset gap in the page background so it also shows on primary fills */
+  --color-focus: #1d4ed8;
+
+  /* Semantic states: always paired with an icon and text, never colour alone */
+  --color-success: #166534;
+  --color-success-soft: #f0fdf4;
+  --color-warning: #92400e;
+  --color-warning-soft: #fffbeb;
+  --color-error: #b91c1c;
+  --color-error-soft: #fef2f2;
+  --color-info: #1e40af;
+  --color-info-soft: #eff6ff;
+
+  /* Prototype / training markers */
+  --color-demo: #6d28d9;
+  --color-demo-soft: #f5f3ff;
+
+  --radius-sm: 6px;
+  --radius-control: 8px;
+  --radius-card: 12px;
+  --radius-pill: 999px;
+
+  --font-sans: 'Inter Variable', 'Noto Naskh Arabic Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-urdu: 'Noto Naskh Arabic Variable', serif;
+
+  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.06), 0 1px 3px rgb(15 23 42 / 0.08);
+  --shadow-overlay: 0 10px 30px rgb(15 23 42 / 0.18), 0 2px 6px rgb(15 23 42 / 0.08);
+
+  --breakpoint-xs: 22.5rem;
+
+  --animate-overlay-in: overlay-in var(--motion-regular) var(--ease-standard);
+  --animate-overlay-out: overlay-in var(--motion-fast) var(--ease-standard) reverse;
+  --animate-sheet-in: sheet-in var(--motion-regular) var(--ease-standard);
+  --animate-sheet-out: sheet-in var(--motion-fast) var(--ease-standard) reverse;
+  --animate-tour-pulse: tour-pulse 1.6s ease-in-out 3;
+}
+
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    translate: 0 0.75rem;
+  }
+}
+
+/* Restrained: three pulses, then still (doc 09 §4: no endless flashing). */
+@keyframes tour-pulse {
+  50% {
+    box-shadow: 0 0 0 6px rgb(29 78 216 / 0.25);
+  }
+}
+
+:root {
+  --motion-fast: 120ms;
+  --motion-regular: 200ms;
+  --motion-tour: 280ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  --header-height: 4rem;
+  --sidebar-width: 16rem;
+  --sidebar-collapsed-width: 4.5rem;
+  --bottom-nav-height: 4rem;
+
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+  --tour-ring-width: 3px;
+
+  --body-size: 0.875rem;
+  --body-leading: 1.5;
+  color-scheme: light;
+}
+
+/* Users who ask for more contrast (OS setting or in-app preference) */
+:root[data-contrast='more'] {
+  --color-muted: #334155;
+  --color-subtle: #334155;
+  --color-border: #64748b;
+  --color-border-control: #334155;
+  --color-scrim: rgb(15 23 42 / 0.65);
+  --tour-ring-width: 4px;
+}
+
+@media (prefers-contrast: more) {
+  :root:not([data-contrast='standard']) {
+    --color-muted: #334155;
+    --color-subtle: #334155;
+    --color-border: #64748b;
+    --color-border-control: #334155;
+    --color-scrim: rgb(15 23 42 / 0.65);
+    --tour-ring-width: 4px;
+  }
+}
+
+/* Reduced motion (OS setting or in-app preference): durations collapse, content stays */
+:root[data-motion='reduce'] {
+  --motion-fast: 0ms;
+  --motion-regular: 0ms;
+  --motion-tour: 0ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion='full']) {
+    --motion-fast: 0ms;
+    --motion-regular: 0ms;
+    --motion-tour: 0ms;
+  }
+}
+
+/* Urdu: Naskh needs more vertical room than Latin; metrics tuned on Urdu specimens, not copied */
+:root:lang(ur) {
+  --body-leading: 1.9;
+  --text-xs--line-height: 1.8;
+  --text-sm--line-height: 1.9;
+  --text-base--line-height: 1.9;
+  --text-lg--line-height: 1.85;
+  --text-xl--line-height: 1.8;
+  --text-2xl--line-height: 1.7;
+  --text-3xl--line-height: 1.6;
+}
+
+@layer base {
+  html {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    font-size: var(--body-size);
+    line-height: var(--body-leading);
+    font-feature-settings: 'cv11', 'ss01';
+    min-block-size: 100dvh;
+  }
+
+  :lang(ur) body {
+    font-size: calc(var(--body-size) * 1.08);
+  }
+
+  /* Latin references embedded in Urdu stay in Inter with tabular figures */
+  .ltr-ref {
+    direction: ltr;
+    unicode-bidi: isolate;
+    font-family: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /*
+   * logical-exception: inputs holding Latin data (phone, CNIC, amount, IBAN, email) are always
+   * dir=ltr so digits never reorder, but they align with the page's reading edge.
+   */
+  .ltr-input {
+    direction: ltr;
+    text-align: left;
+    font-variant-numeric: tabular-nums;
+  }
+
+  :root[dir='rtl'] .ltr-input {
+    text-align: right;
+  }
+
+  :focus-visible {
+    outline: var(--focus-ring-width) solid var(--color-focus);
+    outline-offset: var(--focus-ring-offset);
+  }
+
+  [data-focus-visible] {
+    outline: var(--focus-ring-width) solid var(--color-focus);
+    outline-offset: var(--focus-ring-offset);
+  }
+
+  /* On filled primary surfaces add an inner light ring so focus never blends in */
+  .on-primary:focus-visible,
+  .on-primary[data-focus-visible] {
+    box-shadow: inset 0 0 0 2px var(--color-on-primary);
+  }
+
+  /* Target of an inline tour step or of the text guide's "Show me" */
+  [data-tour-active] {
+    outline: var(--tour-ring-width) solid var(--color-focus);
+    outline-offset: 4px;
+    border-radius: var(--radius-control);
+  }
+
+  ::selection {
+    background: #bfdbfe;
+    color: var(--color-text);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+}
+
+@layer utilities {
+  /*
+   * Screen-reader-only text without the conventional -1px margin: in RTL an absolutely positioned
+   * element at the end edge plus a negative margin pushes 1px past the viewport (320px reflow).
+   */
+  .sr-only {
+    margin: 0;
+    inset-inline-start: 0;
+  }
+}
+
+/*
+ * React Aria renders a visually hidden native <select> (for form autofill) with an inline
+ * `position: fixed; left: 0; margin: -1px`. In RTL that 1px sits left of the scroll origin and
+ * creates horizontal scrolling at 320px. Its margin is neutralised; it stays visually hidden.
+ */
+[data-testid='hidden-select-container'] {
+  margin: 0 !important;
+}

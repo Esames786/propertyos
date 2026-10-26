@@ -1,0 +1,41 @@
+{
+  "preferences": {
+    "title": "Accessibility",
+    "intro": "These settings apply immediately and are remembered on this device.",
+    "motion": "Motion",
+    "motionSystem": "Follow my device setting",
+    "motionReduce": "Reduce motion",
+    "motionFull": "Allow motion",
+    "motionHint": "Reduced motion removes animated movement but keeps all content and highlights.",
+    "contrast": "Contrast",
+    "contrastSystem": "Follow my device setting",
+    "contrastStandard": "Standard",
+    "contrastMore": "More contrast",
+    "sound": "Sound feedback",
+    "soundHint": "Play a quiet tone for success and errors. A visible message is always shown too.",
+    "soundTest": "Play test tone"
+  },
+  "language": {
+    "title": "Language",
+    "intro": "The layout switches direction with the language. Your entries and the open screen are kept.",
+    "changed": "Language changed to {{language}}."
+  },
+  "announce": {
+    "pageLoaded": "{{title}}, page loaded",
+    "loading": "Loading {{what}}",
+    "loaded": "{{what}} loaded",
+    "sidebarCollapsed": "Sidebar collapsed",
+    "sidebarExpanded": "Sidebar expanded",
+    "identityChanged": "Signed in as {{name}}, {{role}}",
+    "projectChanged": "Project changed to {{project}}"
+  },
+  "landmarks": {
+    "header": "Top bar",
+    "main": "Main content",
+    "sidebar": "Sidebar",
+    "toasts": "Messages"
+  },
+  "external": "opens in a new tab",
+  "currentPage": "current page",
+  "scrollRegion": "{{label}}, scrollable"
+}

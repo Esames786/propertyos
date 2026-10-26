@@ -1,0 +1,147 @@
+{
+  "welcome": {
+    "title": "Welcome, {{name}}",
+    "intro": "Would you like a short tour? It takes about 2 minutes, and you can stop at any time.",
+    "start": "Start 2-minute tour",
+    "explore": "Explore on my own",
+    "dontOffer": "Don't offer tours automatically",
+    "laterHint": "You can always start a tour from Help → Take a tour."
+  },
+  "controls": {
+    "back": "Back",
+    "next": "Next",
+    "finish": "Finish",
+    "skip": "Skip tour",
+    "close": "Close tour",
+    "progress": "Step {{current}} of {{total}}",
+    "showTarget": "Go to the highlighted control",
+    "tryThis": "Try it",
+    "resume": "Resume tour",
+    "restart": "Restart",
+    "start": "Start",
+    "replay": "Replay",
+    "textVersion": "Text version",
+    "showMe": "Show me",
+    "lookingForTarget": "Looking for this control…",
+    "targetUnavailable": "This control isn't on your screen right now, so here is a description instead.",
+    "stepAnnouncement": "Step {{current}} of {{total}}: {{title}}",
+    "paused": "Tour paused. Resume it from Help → Guided tours.",
+    "completedAnnouncement": "Tour complete."
+  },
+  "completion": {
+    "title": "You're ready",
+    "body": "Replay this tour whenever you like from Help → Take a tour.",
+    "practice": "Try a practice task",
+    "openHelp": "Open Help",
+    "goToStart": "Go to start page"
+  },
+  "status": {
+    "notStarted": "Not started",
+    "inProgress": "In progress, step {{current}} of {{total}}",
+    "paused": "Paused at step {{current}} of {{total}}",
+    "completed": "Completed",
+    "dismissed": "Skipped"
+  },
+  "library": {
+    "title": "Guided tours",
+    "intro": "Short, optional walkthroughs. Each one has a text version, and none of them is required to use the system.",
+    "steps_one": "{{count}} step",
+    "steps_other": "{{count}} steps",
+    "version": "Version {{version}}",
+    "practiceTitle": "Practice mode",
+    "practiceBody": "Try real steps with fictional data. Nothing is saved, sent or charged.",
+    "openPractice": "Open practice mode",
+    "noTours": "There are no tours for your role in this app yet."
+  },
+  "moduleOffer": {
+    "title": "New here?",
+    "body": "A {{count}}-step tour of {{module}} is available.",
+    "start": "Take the tour",
+    "notNow": "Not now"
+  },
+  "practice": {
+    "banner": "TRAINING / DEMO: no real transaction. Practice data is discarded when you finish.",
+    "end": "End practice",
+    "ended": "Practice ended. Training records were discarded.",
+    "title": "Practice mode",
+    "intro": "Practice uses the same screens as real work, but every action is simulated with fictional data. No message, booking or payment can be created.",
+    "tasksTitle": "Practice tasks",
+    "leadTask": "Create a fictional lead",
+    "leadTaskBody": "Open Quick Create, fill in the practice lead form and submit it.",
+    "startTask": "Start guided practice",
+    "doItYourself": "Open the practice form",
+    "trainingRecords_one": "{{count}} training record this session",
+    "trainingRecords_other": "{{count}} training records this session",
+    "comingLater": "Sales, inventory, finance and maintenance practice tasks arrive with their screens in Stage 3."
+  },
+  "preferences": {
+    "title": "Guided tours",
+    "autoOffer": "Offer tours automatically",
+    "autoOfferHint": "Offer a short tour the first time you open an area. Tours never start without your choice.",
+    "textOnly": "Use the text guide instead of the spotlight",
+    "textOnlyHint": "Opens each tour as a numbered list with links to the real controls.",
+    "reset": "Reset tour progress",
+    "resetConfirmTitle": "Reset tour progress?",
+    "resetConfirmBody": "All tours for this identity will show as not started, and the welcome will be offered again. Nothing else changes.",
+    "resetDone": "Tour progress reset."
+  },
+  "tours": {
+    "GLOBAL-TOUR-001": {
+      "name": "Backoffice essentials",
+      "summary": "The five controls you'll use every day.",
+      "welcome": {
+        "title": "Welcome to your workspace",
+        "body": "Your work areas, tasks and connected records are in one place. This tour shows the five controls you'll use every day."
+      },
+      "sidebar": {
+        "title": "Main areas",
+        "body": "Switch between major work areas here. You only see the areas your role includes.",
+        "bodyMobile": "On a phone, open this menu to switch between work areas."
+      },
+      "project": {
+        "title": "Current project",
+        "body": "Filter your work to a particular project. You can switch back to all your projects at any time."
+      },
+      "search": {
+        "title": "Search anything",
+        "body": "Press Ctrl+K or select Search to find a customer, unit, invoice, screen or action. Try it now, or choose Next.",
+        "bodyMobile": "Tap Search to find a customer, unit, invoice, screen or action. Try it now, or choose Next."
+      },
+      "quickCreate": {
+        "title": "Quick create",
+        "body": "Start a lead, a visit or another task you're allowed to do, without leaving your current screen."
+      },
+      "help": {
+        "title": "Related records and help",
+        "body": "Each record links to its related records. Replay this guide, or read help for the current page, from Help."
+      }
+    },
+    "LAB-TOUR-001": {
+      "name": "Practice: create a fictional lead",
+      "summary": "Try Quick Create and a real form with training data.",
+      "intro": {
+        "title": "What practice mode is",
+        "body": "You'll use real controls with fictional data. Nothing is saved, sent or charged, and a TRAINING banner stays visible."
+      },
+      "openQuickCreate": {
+        "title": "Open Quick Create",
+        "body": "Open Quick Create and choose “New lead (practice)”. The tour continues when the form opens."
+      },
+      "fillForm": {
+        "title": "Fill in the practice lead",
+        "body": "Enter a name and mobile number, choose a project and unit, then submit. The tour continues when the practice lead is created."
+      },
+      "financeReview": {
+        "title": "Transfer proof review",
+        "body": "Finance officers verify bank-transfer proofs in Finance. An uploaded proof is never treated as payment until it is verified."
+      },
+      "replay": {
+        "title": "Replay any time",
+        "body": "Find this tour and the essentials tour in Help → Guided tours."
+      }
+    }
+  },
+  "modules": {
+    "lab": "the design system lab"
+  }
+}

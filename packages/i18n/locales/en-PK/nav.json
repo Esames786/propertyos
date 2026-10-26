@@ -1,0 +1,62 @@
+{
+  "primaryLabel": "Main navigation",
+  "items": {
+    "home": "Home",
+    "sales": "Sales",
+    "projects": "Projects",
+    "customers": "Customers",
+    "finance": "Finance",
+    "procurement": "Procurement",
+    "hr": "HR",
+    "operations": "Operations",
+    "residents": "Residents",
+    "reports": "Reports",
+    "administration": "Administration",
+    "lab": "Design system lab",
+    "help": "Help and tours"
+  },
+  "header": {
+    "search": "Search",
+    "searchPlaceholder": "Search records, screens and actions",
+    "searchShortcut": "Ctrl K",
+    "quickCreate": "Quick create",
+    "notifications": "Notifications",
+    "notificationsUnread_one": "Notifications, {{count}} unread",
+    "notificationsUnread_other": "Notifications, {{count}} unread",
+    "help": "Help",
+    "language": "Language",
+    "switchLanguageTo": "Switch language to {{language}}",
+    "accountMenu": "Account menu for {{name}}",
+    "project": "Project",
+    "projectFor": "Project: {{project}}",
+    "organisation": "Organisation"
+  },
+  "skipToContent": "Skip to main content",
+  "breadcrumb": "Breadcrumb",
+  "mobileMenuTitle": "Menu",
+  "customer": {
+    "nav": "Portal navigation",
+    "home": "Home",
+    "property": "Property",
+    "payments": "Payments",
+    "services": "Services",
+    "profile": "Profile"
+  },
+  "pages": {
+    "lab": "Design system lab",
+    "labTokens": "Tokens and typography",
+    "labComponents": "Components",
+    "labForms": "Forms",
+    "labWorkspace": "Workspace pattern",
+    "labStates": "Loading, empty and error states",
+    "tourLibrary": "Guided tours",
+    "textGuide": "{{tour}}: text version",
+    "practice": "Practice mode",
+    "preferences": "Preferences",
+    "planned": "Planned screen",
+    "notFound": "Page not found",
+    "customerLab": "Customer portal preview",
+    "accessibility": "Accessibility preferences",
+    "signIn": "Demo sign-in"
+  }
+}

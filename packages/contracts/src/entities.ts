@@ -1,0 +1,157 @@
+import type { Money } from './money';
+
+/**
+ * Prototype entity shapes for Stage 1. Statuses mirror blueprint 01 §9 exactly and are stored as
+ * codes; labels come from the `status` translation namespace. Fixtures display these states;
+ * they do not implement transitions (the backend owns state machines).
+ */
+
+export interface Tenant {
+  id: string;
+  name: string;
+}
+
+export type ProjectKind = 'towers' | 'plots';
+
+export interface Project {
+  id: string;
+  ref: string;
+  name: string;
+  city: string;
+  kind: ProjectKind;
+}
+
+export interface Tower {
+  id: string;
+  projectId: string;
+  name: string;
+  floorCount: number;
+}
+
+export interface Floor {
+  id: string;
+  towerId: string;
+  level: number;
+}
+
+export const UNIT_STATUSES = [
+  'draft',
+  'available',
+  'held',
+  'reserved',
+  'booked',
+  'allocated',
+  'handover_ready',
+  'handed_over',
+  'occupied',
+  'blocked',
+  'disputed',
+  'withdrawn',
+] as const;
+export type UnitStatus = (typeof UNIT_STATUSES)[number];
+
+export type UnitType =
+  | 'apartment_1bed'
+  | 'apartment_2bed'
+  | 'apartment_3bed'
+  | 'penthouse'
+  | 'villa'
+  | 'plot';
+
+export interface Unit {
+  id: string;
+  ref: string;
+  projectId: string;
+  towerId?: string;
+  floorId?: string;
+  /** Phase/block label for projects without towers. */
+  block?: string;
+  type: UnitType;
+  areaSqft: number;
+  price: Money;
+  status: UnitStatus;
+}
+
+export type PartyKind = 'individual' | 'company';
+
+export interface Party {
+  id: string;
+  ref: string;
+  kind: PartyKind;
+  /** As entered; may be Latin or Urdu script. */
+  displayName: string;
+  phone: string;
+  email: string;
+  cnic?: string;
+  city: string;
+}
+
+export const LEAD_STATUSES = [
+  'new',
+  'assigned',
+  'contacted',
+  'qualified',
+  'converted',
+  'dormant',
+  'lost',
+  'unqualified',
+] as const;
+export type LeadStatus = (typeof LEAD_STATUSES)[number];
+
+export type LeadSource = 'website' | 'walk_in' | 'referral' | 'social' | 'broker' | 'phone';
+
+export interface Lead {
+  id: string;
+  ref: string;
+  partyId: string;
+  projectId: string;
+  status: LeadStatus;
+  source: LeadSource;
+  ownerPersonaId: string;
+  budget: Money;
+  createdAt: string;
+  nextFollowUp?: string;
+}
+
+export type InvoiceIssuance = 'draft' | 'issued' | 'cancelled';
+export type InvoiceSettlement = 'unpaid' | 'partially_paid' | 'paid';
+/** Manual proof lifecycle (05 §Manual proof). Evidence never marks an invoice paid by itself. */
+export type EvidenceStatus = 'none' | 'submitted' | 'under_review' | 'needs_information' | 'rejected' | 'verified';
+
+export interface Invoice {
+  id: string;
+  ref: string;
+  partyId: string;
+  unitId: string;
+  projectId: string;
+  kind: 'installment' | 'down_payment' | 'maintenance' | 'parking';
+  total: Money;
+  paid: Money;
+  dueDate: string;
+  issuance: InvoiceIssuance;
+  settlement: InvoiceSettlement;
+  evidence: EvidenceStatus;
+}
+
+export interface AppNotification {
+  id: string;
+  /** Translation key + params; notifications are system text, so they translate. */
+  titleKey: string;
+  bodyKey: string;
+  params: Record<string, string>;
+  createdAt: string;
+  read: boolean;
+  href: string;
+  /** Permission needed to receive it (demo persona scoping). */
+  audience: string;
+}
+
+export interface ActivityEvent {
+  id: string;
+  at: string;
+  actorName: string;
+  /** Translation key describing what happened. */
+  messageKey: string;
+  params: Record<string, string>;
+  kind: 'note' | 'call' | 'visit' | 'status' | 'document' | 'payment' | 'system';
+}

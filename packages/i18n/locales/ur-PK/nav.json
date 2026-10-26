@@ -1,0 +1,62 @@
+{
+  "primaryLabel": "مرکزی نیویگیشن",
+  "items": {
+    "home": "مرکزی صفحہ",
+    "sales": "سیلز",
+    "projects": "پروجیکٹس",
+    "customers": "کسٹمرز",
+    "finance": "مالیات",
+    "procurement": "خریداری",
+    "hr": "انسانی وسائل",
+    "operations": "آپریشنز",
+    "residents": "رہائشی",
+    "reports": "رپورٹس",
+    "administration": "انتظامیہ",
+    "lab": "ڈیزائن سسٹم لیب",
+    "help": "مدد اور ٹورز"
+  },
+  "header": {
+    "search": "تلاش",
+    "searchPlaceholder": "ریکارڈ، اسکرینز اور کارروائیاں تلاش کریں",
+    "searchShortcut": "Ctrl K",
+    "quickCreate": "فوری اندراج",
+    "notifications": "اطلاعات",
+    "notificationsUnread_one": "اطلاعات، {{count}} نہ پڑھی ہوئی",
+    "notificationsUnread_other": "اطلاعات، {{count}} نہ پڑھی ہوئی",
+    "help": "مدد",
+    "language": "زبان",
+    "switchLanguageTo": "زبان {{language}} میں تبدیل کریں",
+    "accountMenu": "{{name}} کا اکاؤنٹ مینو",
+    "project": "پروجیکٹ",
+    "projectFor": "پروجیکٹ: {{project}}",
+    "organisation": "ادارہ"
+  },
+  "skipToContent": "مرکزی مواد پر جائیں",
+  "breadcrumb": "صفحے کا راستہ",
+  "mobileMenuTitle": "مینو",
+  "customer": {
+    "nav": "پورٹل نیویگیشن",
+    "home": "مرکزی",
+    "property": "پراپرٹی",
+    "payments": "ادائیگیاں",
+    "services": "خدمات",
+    "profile": "پروفائل"
+  },
+  "pages": {
+    "lab": "ڈیزائن سسٹم لیب",
+    "labTokens": "رنگ اور تحریر",
+    "labComponents": "اجزاء",
+    "labForms": "فارم",
+    "labWorkspace": "ورک اسپیس کا نمونہ",
+    "labStates": "لوڈنگ، خالی اور خرابی کی حالتیں",
+    "tourLibrary": "گائیڈڈ ٹورز",
+    "textGuide": "{{tour}}: تحریری ورژن",
+    "practice": "مشق موڈ",
+    "preferences": "ترجیحات",
+    "planned": "منصوبہ بند اسکرین",
+    "notFound": "صفحہ نہیں ملا",
+    "customerLab": "کسٹمر پورٹل کی جھلک",
+    "accessibility": "رسائی کی ترجیحات",
+    "signIn": "ڈیمو سائن اِن"
+  }
+}

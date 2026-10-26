@@ -1,0 +1,44 @@
+{
+  "unit": {
+    "draft": "Draft",
+    "available": "Available",
+    "held": "On hold",
+    "reserved": "Reserved",
+    "booked": "Booked",
+    "allocated": "Allocated",
+    "handover_ready": "Ready for handover",
+    "handed_over": "Handed over",
+    "occupied": "Occupied",
+    "blocked": "Blocked",
+    "disputed": "Disputed",
+    "withdrawn": "Withdrawn"
+  },
+  "lead": {
+    "new": "New",
+    "assigned": "Assigned",
+    "contacted": "Contacted",
+    "qualified": "Qualified",
+    "converted": "Converted",
+    "dormant": "Dormant",
+    "lost": "Lost",
+    "unqualified": "Unqualified"
+  },
+  "settlement": {
+    "unpaid": "Unpaid",
+    "partially_paid": "Partly paid",
+    "paid": "Paid"
+  },
+  "evidence": {
+    "none": "No proof submitted",
+    "submitted": "Proof submitted",
+    "under_review": "Awaiting verification",
+    "needs_information": "More information needed",
+    "rejected": "Proof rejected",
+    "verified": "Verified"
+  },
+  "screen": {
+    "planned": "Planned",
+    "partial": "Partly built",
+    "implemented": "Built"
+  }
+}

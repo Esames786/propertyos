@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en-PK" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light" />
+    <meta name="robots" content="noindex" />
+    <title>Backoffice · PropertyOS (prototype)</title>
+    <script>
+      /* Set language, direction and accessibility preferences before first paint (no LTR flash for Urdu users). */
+      (function () {
+        try {
+          var d = document.documentElement;
+          var l = localStorage.getItem('pref:locale');
+          if (l !== 'ur-PK' && l !== 'en-PK') l = 'en-PK';
+          d.lang = l;
+          d.dir = l === 'ur-PK' ? 'rtl' : 'ltr';
+          var p = JSON.parse(localStorage.getItem('pref:a11y') || '{}');
+          if (p.motion && p.motion !== 'system') d.dataset.motion = p.motion;
+          if (p.contrast && p.contrast !== 'system') d.dataset.contrast = p.contrast;
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <noscript>This prototype needs JavaScript.</noscript>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

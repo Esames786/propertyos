@@ -70,7 +70,7 @@ The repository is empty apart from the blueprint, so there is nothing to migrate
 
 | # | Conflict | Resolution |
 |---|---|---|
-| C19 | Node 20.20.1 is EOL and below the minimums of react-router 8.5.0 (≥ 22.22), vitest 5 (≥ 22.12) and @axe-core/playwright 4.14 (≥ 22.12) | **Owner decision:** use Laragon's Node 20.20.1. Use the newest versions that support Node 20: react-router 7.18.4, vitest 4.1.12, @axe-core/playwright 4.13.0, ESLint 9.39.5, jsdom 26.1.0. |
+| C19 | Node 20.20.1 is EOL and below the minimums of react-router 8.5.0 (≥ 22.22), vitest 5 (≥ 22.12) and @axe-core/playwright 4.14 (≥ 22.12) | **Owner decision:** use Laragon's Node 20.20.1. Use the newest versions that support Node 20: react-router 7.18.4, vitest 4.1.12, @axe-core/playwright 4.13.0, jsdom 26.1.0. ESLint stays on 10, so `eslint-plugin-jsx-a11y` is not used (ADR-0001 §2.4). |
 | C20 | TypeScript 7.0.2 is current, but typescript-eslint 8.72 supports `<6.1.0` | Pin TypeScript 6.0.3. |
 | C21 | 09 §8 suggests Driver.js | ADR-0002: own engine (evidence there). |
 | C22 | 09 §8 puts tour strings in `packages/ui/src/onboarding/locales/en.json`; 01 §3 organizes translations by namespace and uses `en-PK`/`ur-PK` | `onboarding` namespace in `@repo/i18n/locales/{en-PK,ur-PK}/`. One dictionary system, one parity check. |

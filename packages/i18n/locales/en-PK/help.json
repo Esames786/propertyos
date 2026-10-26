@@ -1,0 +1,48 @@
+{
+  "drawerTitle": "Help",
+  "thisPage": "About this page",
+  "menu": {
+    "aboutPage": "Help for this page",
+    "takeTour": "Take a tour",
+    "showMeHow": "Show me how (text guide)",
+    "tourLibrary": "All guided tours",
+    "shortcuts": "Keyboard shortcuts"
+  },
+  "pages": {
+    "default": {
+      "title": "Getting around",
+      "body": "Use the sidebar to switch areas, the project selector to focus on one project, and Search (Ctrl+K) to jump to any record, screen or action you're allowed to use."
+    },
+    "lab": {
+      "title": "Design system lab",
+      "body": "These pages show every Stage 1 building block in English and Urdu so they can be reviewed and tested before business screens are built on them."
+    },
+    "forms": {
+      "title": "Forms",
+      "body": "Labels stay visible, hints explain the format, and errors appear under the field and in a summary. Your entries survive language changes and going back and forward."
+    },
+    "tours": {
+      "title": "Guided tours",
+      "body": "Start, resume or replay a tour. Every tour also has a text version that works without the spotlight."
+    },
+    "preferences": {
+      "title": "Preferences",
+      "body": "Change language, motion, contrast, sound and how guided tours are offered. Changes apply immediately."
+    },
+    "planned": {
+      "title": "Planned screens",
+      "body": "This address belongs to a screen in the register that is scheduled for a later stage. It is listed so that links never lead to a dead end."
+    }
+  },
+  "shortcuts": {
+    "title": "Keyboard shortcuts",
+    "search": "Open search",
+    "close": "Close a dialog, drawer or menu",
+    "tabs": "Move between tabs",
+    "skip": "Jump to main content (first Tab on a page)"
+  },
+  "related": {
+    "title": "Related records",
+    "intro": "Records connected to {{name}}. Each link opens its own workspace."
+  }
+}

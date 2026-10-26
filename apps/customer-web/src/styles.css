@@ -1,0 +1,10 @@
+@import 'tailwindcss';
+@import '@repo/tokens/fonts.css';
+@import '@repo/tokens/theme.css';
+
+/* Shared UI package lives outside this app; scan it for classes. */
+@source '../../../packages/ui/src';
+
+:root {
+  --body-size: 1rem;
+}
