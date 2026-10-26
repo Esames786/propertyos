@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Direction C · Nocturne</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400..700&family=Manrope:wght@300..700&family=Noto+Nastaliq+Urdu:wght@400..700&family=Noto+Naskh+Arabic:wght@400..700&display=swap" />
+<style>
+  :root {
+    --canvas: #0c0e11; --surface: #16191e; --raised: #1d2128; --ink: #f1ece2; --muted: #a8a196; --hair: #2a2f37; --control: #6e737b;
+    --gold: #d6b884; --gold-soft: rgba(214,184,132,.14); --teal: #63b7aa; --teal-soft: rgba(99,183,170,.14); --rose: #e3828f; --rose-soft: rgba(227,130,143,.14);
+    --serif: 'Bodoni Moda', Didot, serif; --sans: 'Manrope', system-ui, sans-serif; --nastaliq: 'Noto Nastaliq Urdu', serif; --urdu: 'Noto Naskh Arabic', serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #07080a; font-family: var(--sans); color: var(--ink); -webkit-font-smoothing: antialiased; }
+  h1, h2, h3, p { margin: 0; }
+  .board { width: 1440px; padding: 56px; display: grid; gap: 40px; }
+  .eyebrow { font: 600 12px/1 var(--sans); letter-spacing: .22em; text-transform: uppercase; color: var(--gold); }
+  .title { font: 400 68px/1 var(--serif); letter-spacing: -.01em; }
+  .lede { font: 400 18px/1.6 var(--sans); color: var(--muted); max-width: 780px; }
+  .card { background: var(--surface); border: 1px solid var(--hair); border-radius: 18px; }
+  .glass { background: rgba(22,25,30,.62); backdrop-filter: blur(14px); border: 1px solid rgba(241,236,226,.12); border-radius: 18px; }
+  .label { font: 600 11px/1 var(--sans); letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+  .row { display: grid; gap: 24px; }
+  .swatches { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; padding: 20px; }
+  .sw { border-radius: 12px; overflow: hidden; border: 1px solid var(--hair); }
+  .sw div { height: 64px; } .sw p { padding: 8px 10px; font: 500 12px/1.4 var(--sans); } .sw span { display: block; font: 400 11px var(--sans); color: var(--muted); }
+  .frame { position: relative; border-radius: 24px; overflow: hidden; border: 1px solid var(--hair); min-height: 840px; box-shadow: 0 40px 90px rgba(0,0,0,.6); }
+  .frame > svg { position: absolute; inset: 0; width: 100%; height: 470px; }
+  .frame .fade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(12,14,17,.2) 0, rgba(12,14,17,.55) 30%, var(--canvas) 52%); }
+  .app { position: relative; display: grid; grid-template-columns: 220px 1fr; min-height: 840px; }
+  .side { padding: 24px 18px; display: grid; align-content: start; gap: 4px; border-inline-end: 1px solid rgba(241,236,226,.08); background: rgba(12,14,17,.45); backdrop-filter: blur(10px); }
+  .side .b { font: 500 22px var(--serif); padding: 6px 10px 22px; }
+  .side div { padding: 10px 12px; border-radius: 10px; font: 500 14px var(--sans); color: var(--muted); }
+  .side .on { color: var(--canvas); background: var(--gold); }
+  .main { padding: 26px 30px; display: grid; gap: 22px; align-content: start; }
+  .head { display: flex; align-items: end; justify-content: space-between; padding-top: 90px; }
+  .head h2 { font: 400 52px/1 var(--serif); }
+  .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .kpi { padding: 20px; display: grid; gap: 10px; }
+  .kpi .v { font: 400 40px/1 var(--serif); }
+  .up { font: 600 12px var(--sans); color: var(--teal); }
+  .two { display: grid; grid-template-columns: 1.4fr 1fr; gap: 14px; }
+  .panel { padding: 20px; display: grid; gap: 12px; align-content: start; }
+  .panel h3 { font: 600 15px var(--sans); }
+  .chip { display: inline-flex; gap: 6px; align-items: center; padding: 4px 10px; border-radius: 999px; font: 600 12px var(--sans); }
+  .act { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--hair); font: 400 13px var(--sans); }
+  .lower { display: grid; grid-template-columns: 420px 1fr; gap: 32px; align-items: start; }
+  .phone { width: 390px; height: 820px; border-radius: 48px; background: var(--canvas); border: 10px solid #23262c; overflow: hidden; position: relative; }
+  .phone .img { position: absolute; inset: 0 0 auto; height: 360px; }
+  .phone .img svg { width: 100%; height: 100%; }
+  .phone .in { position: relative; padding: 230px 18px 110px; display: grid; gap: 14px; }
+  .bnav { position: absolute; inset-inline: 18px; bottom: 18px; height: 64px; border-radius: 22px; display: flex; justify-content: space-around; align-items: center; font: 600 10px var(--sans); color: var(--muted); }
+  .bnav div { display: grid; justify-items: center; gap: 4px; } .bnav i { width: 20px; height: 20px; border: 1.6px solid currentColor; border-radius: 6px; } .bnav .on { color: var(--gold); }
+  .site { position: relative; height: 560px; border-radius: 24px; overflow: hidden; }
+  .site svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .site .copy { position: absolute; inset-inline: 0; bottom: 70px; text-align: center; display: grid; gap: 18px; justify-items: center; }
+  .site h2 { font: 400 80px/0.95 var(--serif); }
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 22px; border-radius: 999px; font: 600 14px var(--sans); }
+  .comp { padding: 22px; display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+  .field { display: grid; gap: 6px; width: 250px; } .field div { padding: 11px 14px; border-radius: 12px; border: 1px solid var(--control); background: var(--raised); font: 400 14px var(--sans); }
+  .rtl { direction: rtl; padding: 22px; display: grid; gap: 4px; }
+  .note { padding: 18px 20px; border-radius: 14px; border: 1px dashed var(--gold); color: var(--ink); font: 400 14px/1.6 var(--sans); }
+</style>
+</head>
+<body>
+<div class="board">
+  <header style="display:grid; gap:14px">
+    <span class="eyebrow">Stage 1.5 · Art direction C</span>
+    <h1 class="title">Nocturne</h1>
+    <p class="lede">Cinematic dark prestige. Obsidian surfaces, champagne gold, a high-contrast Didone display face and night-time architectural renders. Dramatic for marketing and the 3D explorer; a light companion theme would be required for long working days in the backoffice.</p>
+  </header>
+
+  <section class="row" style="grid-template-columns: 1.15fr 1fr;">
+    <div class="card">
+      <div style="padding:20px 20px 0" class="label">Palette · measured contrast</div>
+      <div class="swatches">
+        <div class="sw"><div style="background:var(--canvas)"></div><p>Obsidian<span>#0C0E11</span></p></div>
+        <div class="sw"><div style="background:var(--ink)"></div><p>Ivory · 16.4:1<span>#F1ECE2</span></p></div>
+        <div class="sw"><div style="background:var(--gold)"></div><p>Champagne · 10.2:1<span>#D6B884</span></p></div>
+        <div class="sw"><div style="background:var(--muted)"></div><p>Muted · 7.6:1<span>#A8A196</span></p></div>
+        <div class="sw"><div style="background:var(--teal)"></div><p>Teal · 8.2:1<span>#63B7AA</span></p></div>
+        <div class="sw"><div style="background:var(--surface)"></div><p>Surface<span>#16191E</span></p></div>
+        <div class="sw"><div style="background:var(--raised)"></div><p>Raised<span>#1D2128</span></p></div>
+        <div class="sw"><div style="background:var(--control)"></div><p>Control · 3.7:1<span>#6E737B</span></p></div>
+        <div class="sw"><div style="background:var(--rose)"></div><p>Rose<span>#E3828F</span></p></div>
+        <div class="sw"><div style="background:#faf8f4"></div><p>Light theme base<span>#FAF8F4</span></p></div>
+      </div>
+    </div>
+    <div class="card" style="padding:24px; display:grid; gap:12px">
+      <span class="label">Typography</span>
+      <div style="font:400 56px/1 var(--serif)">Larkspur Heights</div>
+      <div style="font:400 15px/1.6 var(--sans); color:var(--muted)">Bodoni Moda for display · Manrope for interface</div>
+      <div style="font:400 44px var(--serif)">Rs 412.6M <span class="up" style="font-size:14px">▲ 8.4%</span></div>
+      <div style="direction:rtl; font:400 30px/2.3 var(--nastaliq); color:var(--gold)">لارکسپر ہائٹس — شب کی روشنی میں</div>
+      <div style="direction:rtl; font:400 15px/1.9 var(--urdu); color:var(--muted)">سرخیاں نوٹو نستعلیق، متن نوٹو نسخ</div>
+    </div>
+  </section>
+
+  <section class="frame">
+    <svg id="hero" data-w="1328" data-h="470"></svg>
+    <div class="fade"></div>
+    <div class="app">
+      <aside class="side"><div class="b">Larkspur</div><div class="on">Home</div><div>Sales</div><div>Projects</div><div>Customers</div><div>Finance</div><div>Operations</div><div>Reports</div></aside>
+      <main class="main">
+        <div class="head"><div><span class="eyebrow">Monday 26 October</span><h2>Good evening, Nadia</h2></div><div class="glass" style="padding:10px 16px; font:500 14px var(--sans); color:var(--muted)">Search · Ctrl K</div></div>
+        <div class="kpis">
+          <div class="glass kpi"><span class="label">Collected this month</span><span class="v">Rs 412.6M</span><span class="up">▲ 8.4% vs plan</span></div>
+          <div class="glass kpi"><span class="label">Available units</span><span class="v">258</span><span style="font:400 12px var(--sans); color:var(--muted)">of 496 · 64 on hold</span></div>
+          <div class="glass kpi"><span class="label">Construction</span><span class="v">68%</span><span style="font:400 12px var(--sans); color:var(--muted)">Tower B · floor 14 of 18</span></div>
+        </div>
+        <div class="two">
+          <div class="card panel"><h3>Bookings · last 10 months</h3><svg id="area" data-w="620" data-h="180" style="width:100%; height:180px"></svg></div>
+          <div class="card panel"><h3>Tonight</h3>
+            <div class="act"><span>Transfer proof · <span style="color:var(--muted)">INV-2026-001220</span></span><span class="chip" style="background:var(--gold-soft); color:var(--gold)">Verify</span></div>
+            <div class="act"><span>Hold expiring · <span style="color:var(--muted)">LH-A-1204</span></span><span class="chip" style="background:var(--rose-soft); color:var(--rose)">2 h</span></div>
+            <div class="act"><span>Visit tomorrow · <span style="color:var(--muted)">LD-2026-00042</span></span><span class="chip" style="background:var(--teal-soft); color:var(--teal)">Confirmed</span></div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </section>
+
+  <section class="lower">
+    <div class="phone">
+      <div class="img"><svg id="phoneHero" data-w="370" data-h="360"></svg></div>
+      <div style="position:absolute; inset:0 0 auto; height:360px; background:linear-gradient(180deg, transparent 40%, var(--canvas))"></div>
+      <div class="in">
+        <div><span class="eyebrow">Your residence</span><div style="font:400 34px/1.1 var(--serif); margin-top:8px">Larkspur Heights</div><div style="font:400 13px var(--sans); color:var(--muted)">LH-A-0308 · 3-bed · Tower A</div></div>
+        <div class="card" style="padding:18px; display:grid; grid-template-columns:90px 1fr; gap:14px; align-items:center"><svg id="ring" data-w="90" style="width:90px;height:90px"></svg><div><span class="label">Paid</span><div style="font:400 28px var(--serif)">Rs 9.4M</div><div style="font:400 12px var(--sans); color:var(--muted)">of Rs 15.2M · 62%</div></div></div>
+        <div class="card" style="padding:18px; display:grid; gap:8px"><div style="display:flex; justify-content:space-between"><span class="label">Next installment</span><span class="chip" style="background:var(--gold-soft); color:var(--gold)">◷ Verifying</span></div><div style="font:400 28px var(--serif)">Rs 1,531,850.00</div><div style="font:400 12px var(--sans); color:var(--muted)">Due 5 Nov 2026</div></div>
+      </div>
+      <nav class="bnav glass"><div class="on"><i></i>Home</div><div><i></i>Property</div><div><i></i>Payments</div><div><i></i>Services</div><div><i></i>Profile</div></nav>
+    </div>
+    <div style="display:grid; gap:24px">
+      <div class="site">
+        <svg id="site" data-w="960" data-h="560"></svg>
+        <div style="position:absolute; inset:0; background:linear-gradient(180deg, rgba(12,14,17,.1), rgba(12,14,17,.75))"></div>
+        <div style="position:absolute; inset-inline:40px; top:28px; display:flex; gap:28px; font:600 13px var(--sans); letter-spacing:.12em; text-transform:uppercase"><span style="font:400 22px var(--serif); text-transform:none; letter-spacing:0">Larkspur</span><span style="margin-inline-start:auto">Residences</span><span>Amenities</span><span>Location</span><span style="color:var(--gold)">Book a visit</span></div>
+        <div class="copy"><span class="eyebrow">Gulberg · Lahore</span><h2>After dark, it glows.</h2><div style="display:flex; gap:12px"><span class="btn" style="background:var(--gold); color:var(--canvas)">Explore the towers</span><span class="btn glass">Watch the film</span></div></div>
+      </div>
+      <div class="row" style="grid-template-columns: 1fr 1fr">
+        <div class="card comp"><span class="btn" style="background:var(--gold); color:var(--canvas)">Receive payment</span><span class="btn" style="border:1px solid var(--control)">Schedule visit</span><span class="chip" style="background:var(--teal-soft); color:var(--teal)">✓ Available</span><span class="chip" style="background:var(--gold-soft); color:var(--gold)">◷ Held</span><div class="field"><span style="font:600 13px var(--sans)">Mobile number</span><div>+92 300 1234567</div></div></div>
+        <div class="card rtl"><span class="label" style="font-family:var(--urdu); letter-spacing:0">اس ماہ کی وصولی</span><bdi dir="ltr" style="font:400 38px var(--serif)">Rs 412.6M</bdi><div style="font:400 24px/2.2 var(--nastaliq); color:var(--gold)">منصوبے سے آگے</div></div>
+      </div>
+      <div class="note">Trade-off: dark-first maximises drama for the public site and 3D explorer but strains long data-entry sessions and needs a complete light theme for the backoffice, roughly doubling visual QA.</div>
+    </div>
+  </section>
+</div>
+<script src="shared.js"></script>
+<script>
+  const night = { sky: ['#06080c', '#0d1420', '#1a2433'], stars: true, far: '#121925', floorLine: '#2b323d', fin: '#3a3f47', ground: '#07090c', trees: '#0b1210', horizon: 0.84, windows: { color: '#f2cf8e', p: 0.45 }, water: '#0f1722' };
+  Board.scene(document.getElementById('hero'), { id: 'h', ...night, towers: [{ x: 0.55, w: 0.07, h: 0.62, floors: 18, cols: 6, body: ['#1c222b', '#12161c'] }, { x: 0.64, w: 0.09, h: 0.82, floors: 24, cols: 7, body: ['#222a34', '#141920'], crown: '#d6b884' }, { x: 0.76, w: 0.06, h: 0.5, floors: 14, cols: 5, body: ['#1c222b', '#12161c'] }], seed: 11 });
+  Board.scene(document.getElementById('phoneHero'), { id: 'p', ...night, towers: [{ x: 0.22, w: 0.22, h: 0.7, floors: 18, cols: 6, body: ['#222a34', '#141920'], crown: '#d6b884' }, { x: 0.52, w: 0.18, h: 0.52, floors: 14, cols: 5, body: ['#1c222b', '#12161c'] }], seed: 13 });
+  Board.scene(document.getElementById('site'), { id: 's', ...night, towers: [{ x: 0.33, w: 0.09, h: 0.6, floors: 18, cols: 6, body: ['#1c222b', '#12161c'] }, { x: 0.45, w: 0.11, h: 0.82, floors: 24, cols: 7, body: ['#222a34', '#141920'], crown: '#d6b884' }, { x: 0.59, w: 0.08, h: 0.48, floors: 14, cols: 5, body: ['#1c222b', '#12161c'] }], seed: 17 });
+  Board.area(document.getElementById('area'), [12, 15, 14, 19, 22, 21, 27, 30, 29, 35], { id: 'ag', color: '#d6b884', grid: '#2a2f37', fillOpacity: 0.25 });
+  Board.ring(document.getElementById('ring'), 0.62, { width: 9, color: '#d6b884', track: '#2a2f37' });
+</script>
+</body>
+</html>

@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Direction A · Limestone & Evergreen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,300..600&family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&family=Gulzar&family=Noto+Naskh+Arabic:wght@400..700&display=swap" />
+<style>
+  :root {
+    --canvas: #f6f3ee; --surface: #ffffff; --raised: #fbfaf7; --sunken: #efeae2;
+    --ink: #17211e; --muted: #58625d; --hair: #e4ddd2; --control: #878c84;
+    --ever: #1e4d42; --ever-soft: #e3ece8; --bronze: #7a5221; --brass: #b58a47;
+    --sage: #6f9585; --clay: #b4583a; --amber: #8a5300; --amber-soft: #f6ead7; --slate: #4f5d78; --slate-soft: #e7eaf1;
+    --serif: 'Newsreader', Georgia, serif; --sans: 'Geist', system-ui, sans-serif; --mono: 'Geist Mono', ui-monospace, monospace;
+    --urdu-display: 'Gulzar', 'Noto Naskh Arabic', serif; --urdu: 'Noto Naskh Arabic', serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #e9e4dc; font-family: var(--sans); color: var(--ink); -webkit-font-smoothing: antialiased; }
+  .board { width: 1440px; padding: 56px; display: grid; gap: 40px; }
+  h1, h2, h3, p { margin: 0; }
+  .eyebrow { font: 500 12px/1 var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--bronze); }
+  .title { font: 400 64px/1.02 var(--serif); letter-spacing: -.02em; }
+  .lede { font: 400 18px/1.55 var(--sans); color: var(--muted); max-width: 760px; }
+  .tag { display: inline-flex; gap: 8px; align-items: center; padding: 6px 12px; border-radius: 999px; background: var(--ever); color: #fff; font: 500 13px var(--sans); }
+  .row { display: grid; gap: 24px; }
+  .card { background: var(--surface); border-radius: 20px; box-shadow: 0 1px 2px rgba(23,33,30,.05), 0 8px 28px rgba(23,33,30,.06); }
+  .label { font: 500 11px/1 var(--sans); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  /* Foundations */
+  .swatches { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; padding: 24px; }
+  .sw { border-radius: 14px; overflow: hidden; border: 1px solid var(--hair); }
+  .sw div { height: 72px; }
+  .sw p { padding: 10px 12px; font: 500 12px/1.4 var(--sans); }
+  .sw span { display: block; font: 400 11px var(--mono); color: var(--muted); }
+  .type { padding: 28px; display: grid; gap: 14px; }
+  .spec-serif { font: 400 56px/1 var(--serif); letter-spacing: -.02em; }
+  .spec-num { font: 300 44px/1 var(--serif); font-variant-numeric: lining-nums tabular-nums; }
+  .ur { direction: rtl; font-family: var(--urdu); }
+  .ur-display { font: 400 40px/1.9 var(--urdu-display); direction: rtl; color: var(--ever); }
+  /* App frame */
+  .frame { border-radius: 24px; overflow: hidden; background: var(--canvas); border: 1px solid var(--hair); box-shadow: 0 30px 80px rgba(23,33,30,.18); }
+  .app { display: grid; grid-template-columns: 232px 1fr; min-height: 820px; }
+  .rail { padding: 22px 16px; display: flex; flex-direction: column; gap: 6px; }
+  .brand { display: flex; gap: 10px; align-items: center; padding: 6px 10px 22px; }
+  .mark { width: 34px; height: 34px; border-radius: 10px; background: var(--ever); display: grid; place-items: center; color: #fff; font: 500 18px var(--serif); }
+  .nav { display: flex; gap: 12px; align-items: center; padding: 10px 12px; border-radius: 12px; font: 450 14px var(--sans); color: var(--muted); }
+  .nav i { width: 18px; height: 18px; border: 1.6px solid currentColor; border-radius: 5px; display: inline-block; }
+  .nav.on { background: var(--surface); color: var(--ever); box-shadow: 0 1px 2px rgba(0,0,0,.05); font-weight: 600; position: relative; }
+  .nav.on::before { content: ''; position: absolute; inset-inline-start: -16px; top: 10px; bottom: 10px; width: 3px; border-radius: 3px; background: var(--ever); }
+  .rail .ctx { margin-top: auto; padding: 14px; border-radius: 16px; background: var(--surface); border: 1px solid var(--hair); }
+  .main { padding: 22px 28px 28px 8px; display: grid; gap: 22px; align-content: start; }
+  .top { display: flex; align-items: center; gap: 16px; }
+  .search { margin-inline-start: auto; width: 340px; padding: 11px 16px; border-radius: 999px; background: var(--surface); border: 1px solid var(--hair); font: 400 14px var(--sans); color: var(--muted); display: flex; justify-content: space-between; }
+  .kbd { font: 500 11px var(--mono); padding: 2px 6px; border: 1px solid var(--hair); border-radius: 6px; }
+  .greet { font: 400 38px/1.1 var(--serif); letter-spacing: -.015em; }
+  .hero { display: grid; grid-template-columns: 1.45fr 1fr; gap: 20px; }
+  .project { position: relative; border-radius: 22px; overflow: hidden; min-height: 330px; color: #fff; }
+  .project svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .project .veil { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10,20,17,0) 35%, rgba(10,20,17,.72) 100%); }
+  .project .cap { position: absolute; inset-inline: 26px; bottom: 24px; display: grid; gap: 12px; }
+  .pill { display: inline-flex; gap: 6px; align-items: center; padding: 5px 10px; border-radius: 999px; font: 500 12px var(--sans); }
+  .glass { background: rgba(255,255,255,.16); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,.28); color: #fff; }
+  .prog { height: 6px; border-radius: 6px; background: rgba(255,255,255,.25); overflow: hidden; }
+  .prog b { display: block; height: 100%; width: 68%; background: #e9d3a7; }
+  .kpis { display: grid; gap: 14px; }
+  .kpi { padding: 20px 22px; display: grid; gap: 8px; }
+  .kpi .v { font: 300 40px/1 var(--serif); letter-spacing: -.01em; font-variant-numeric: lining-nums; }
+  .delta { font: 500 12px var(--sans); color: var(--ever); background: var(--ever-soft); padding: 3px 8px; border-radius: 999px; }
+  .seg { display: flex; height: 10px; border-radius: 10px; overflow: hidden; gap: 3px; }
+  .legend { display: flex; gap: 14px; font: 400 12px var(--sans); color: var(--muted); }
+  .legend i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; margin-inline-end: 6px; }
+  .grid3 { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 20px; }
+  .panel { padding: 22px; display: grid; gap: 14px; align-content: start; }
+  .panel h3 { font: 500 15px var(--sans); }
+  .matrix { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; }
+  .matrix span { aspect-ratio: 1.4; border-radius: 4px; }
+  .act { display: grid; grid-template-columns: 32px 1fr auto; gap: 10px; align-items: center; font: 400 13px/1.4 var(--sans); }
+  .av { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font: 600 12px var(--sans); background: var(--sunken); color: var(--ever); }
+  .ref { font: 500 11px var(--mono); color: var(--muted); }
+  /* Lower row */
+  .lower { display: grid; grid-template-columns: 420px 1fr; gap: 32px; align-items: start; }
+  .phone { width: 390px; height: 820px; border-radius: 48px; background: var(--canvas); border: 10px solid #17211e; overflow: hidden; position: relative; box-shadow: 0 30px 70px rgba(23,33,30,.25); }
+  .phone .in { padding: 22px 18px 110px; display: grid; gap: 16px; }
+  .pcard { position: relative; height: 230px; border-radius: 24px; overflow: hidden; color: #fff; }
+  .pcard svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .bnav { position: absolute; inset-inline: 18px; bottom: 18px; height: 64px; border-radius: 22px; background: #17211e; display: flex; justify-content: space-around; align-items: center; color: #b9c3be; font: 500 10px var(--sans); }
+  .bnav div { display: grid; justify-items: center; gap: 4px; }
+  .bnav i { width: 20px; height: 20px; border: 1.6px solid currentColor; border-radius: 6px; }
+  .bnav .on { color: #fff; }
+  .svc { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .svc div { background: var(--surface); border-radius: 18px; padding: 14px 6px; display: grid; justify-items: center; gap: 8px; font: 500 11px var(--sans); }
+  .svc i { width: 34px; height: 34px; border-radius: 12px; background: var(--ever-soft); }
+  .site { position: relative; height: 560px; border-radius: 24px; overflow: hidden; color: #fff; }
+  .site svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .site .nav2 { position: absolute; inset-inline: 40px; top: 28px; display: flex; gap: 28px; align-items: center; font: 450 14px var(--sans); }
+  .site .copy { position: absolute; inset-inline-start: 56px; bottom: 64px; max-width: 620px; display: grid; gap: 18px; }
+  .site h2 { font: 300 72px/0.98 var(--serif); letter-spacing: -.025em; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 999px; font: 500 14px var(--sans); }
+  .comp { padding: 26px; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
+  .chip { display: inline-flex; gap: 6px; align-items: center; padding: 6px 12px; border-radius: 999px; font: 500 12px var(--sans); }
+  .field { display: grid; gap: 6px; width: 260px; }
+  .field div { padding: 11px 14px; border-radius: 12px; border: 1px solid var(--control); background: #fff; font: 400 14px var(--sans); }
+  .tabs { display: flex; gap: 22px; border-bottom: 1px solid var(--hair); font: 500 14px var(--sans); color: var(--muted); }
+  .tabs span { padding-bottom: 10px; }
+  .tabs .on { color: var(--ever); box-shadow: inset 0 -2px 0 var(--ever); }
+  .rtl-card { direction: rtl; font-family: var(--urdu); padding: 22px 24px; display: grid; gap: 6px; }
+</style>
+</head>
+<body>
+<div class="board">
+  <header class="row" style="grid-template-columns: 1fr auto; align-items: end;">
+    <div style="display:grid; gap:14px">
+      <span class="eyebrow">Stage 1.5 · Art direction A</span>
+      <h1 class="title">Limestone &amp; Evergreen</h1>
+      <p class="lede">Quiet luxury with architectural restraint. Warm stone neutrals, a deep evergreen anchor and bronze detailing; an editorial serif for numbers and headlines, a precise grotesk for work. Imagery leads, chrome recedes.</p>
+    </div>
+    <span class="tag">Recommended</span>
+  </header>
+
+  <section class="row" style="grid-template-columns: 1.15fr 1fr;">
+    <div class="card">
+      <div style="padding:24px 24px 0" class="label">Palette · measured contrast</div>
+      <div class="swatches">
+        <div class="sw"><div style="background:var(--canvas)"></div><p>Limestone canvas<span>#F6F3EE</span></p></div>
+        <div class="sw"><div style="background:var(--ink)"></div><p>Ink · 14.9:1<span>#17211E</span></p></div>
+        <div class="sw"><div style="background:var(--ever)"></div><p>Evergreen · 8.6:1<span>#1E4D42</span></p></div>
+        <div class="sw"><div style="background:var(--bronze)"></div><p>Bronze text · 6.2:1<span>#7A5221</span></p></div>
+        <div class="sw"><div style="background:var(--brass)"></div><p>Brass · decor only<span>#B58A47</span></p></div>
+        <div class="sw"><div style="background:var(--muted)"></div><p>Muted · 5.7:1<span>#58625D</span></p></div>
+        <div class="sw"><div style="background:var(--control)"></div><p>Control edge · 3.4:1<span>#878C84</span></p></div>
+        <div class="sw"><div style="background:var(--sage)"></div><p>Sage data<span>#6F9585</span></p></div>
+        <div class="sw"><div style="background:var(--clay)"></div><p>Clay data<span>#B4583A</span></p></div>
+        <div class="sw"><div style="background:var(--slate)"></div><p>Slate data<span>#4F5D78</span></p></div>
+      </div>
+    </div>
+    <div class="card type">
+      <span class="label">Typography</span>
+      <div class="spec-serif">Larkspur Heights</div>
+      <div style="font:400 16px/1.6 var(--sans); color:var(--muted)">Newsreader for headlines and figures · Geist for interface · Geist Mono for references</div>
+      <div style="display:flex; gap:28px; align-items:baseline"><span class="spec-num">Rs 412.6M</span><span style="font:500 13px var(--mono); color:var(--muted)">INV-2026-001284 · LH-A-1204</span></div>
+      <div class="ur-display">لارکسپر ہائٹس — سکون، بلندی پر</div>
+      <div class="ur" style="font-size:16px; line-height:1.9; color:var(--muted)">اردو سرخیوں کے لیے گلزار (نستعلیق انداز)، اور اسکرین کے متن کے لیے نوٹو نسخ — <bdi dir="ltr" style="font-family:var(--mono)">Rs 1,531,850.00</bdi></div>
+    </div>
+  </section>
+
+  <section class="frame">
+    <div class="app">
+      <aside class="rail">
+        <div class="brand"><div class="mark">L</div><div><div style="font:600 14px var(--sans)">Larkspur Estates</div><div style="font:400 12px var(--sans); color:var(--muted)">Backoffice</div></div></div>
+        <div class="nav on"><i></i>Home</div>
+        <div class="nav"><i></i>Sales</div>
+        <div class="nav"><i></i>Projects</div>
+        <div class="nav"><i></i>Customers</div>
+        <div class="nav"><i></i>Finance</div>
+        <div class="nav"><i></i>Operations</div>
+        <div class="nav"><i></i>Reports</div>
+        <div class="ctx"><div class="label" style="margin-bottom:8px">Project</div><div style="font:500 14px var(--sans)">Larkspur Heights</div><div style="font:400 12px var(--sans); color:var(--muted)">Lahore · 3 towers</div></div>
+      </aside>
+      <main class="main">
+        <div class="top">
+          <div><div class="label">Monday 26 October</div><div class="greet">Good morning, Nadia</div></div>
+          <div class="search">Search customers, units, invoices <span class="kbd">Ctrl K</span></div>
+          <span class="btn" style="background:var(--ever); color:#fff">+ Quick create</span>
+        </div>
+        <div class="hero">
+          <div class="project">
+            <svg id="hero" data-w="760" data-h="340"></svg>
+            <div class="veil"></div>
+            <div class="cap">
+              <div style="display:flex; gap:8px"><span class="pill glass">Phase 2 · Tower B</span><span class="pill glass">On schedule</span></div>
+              <div style="font:300 40px/1 var(--serif)">Larkspur Heights</div>
+              <div style="display:flex; justify-content:space-between; font:400 13px var(--sans); opacity:.9"><span>Structure 14 of 18 floors</span><span>68% complete</span></div>
+              <div class="prog"><b></b></div>
+            </div>
+          </div>
+          <div class="kpis">
+            <div class="card kpi"><span class="label">Collected this month</span><div style="display:flex; align-items:baseline; gap:10px"><span class="v">Rs 412.6M</span><span class="delta">+8.4%</span></div><span style="font:400 12px var(--sans); color:var(--muted)">of Rs 520M scheduled · 12 transfers awaiting verification</span></div>
+            <div class="card kpi"><span class="label">Inventory · 496 units</span><div class="seg"><b style="flex:52;background:var(--ever)"></b><b style="flex:13;background:var(--brass)"></b><b style="flex:28;background:var(--slate)"></b><b style="flex:7;background:var(--sunken)"></b></div><div class="legend"><span><i style="background:var(--ever)"></i>Available 258</span><span><i style="background:var(--brass)"></i>On hold 64</span><span><i style="background:var(--slate)"></i>Booked 139</span></div></div>
+          </div>
+        </div>
+        <div class="grid3">
+          <div class="card panel"><div style="display:flex; justify-content:space-between"><h3>Sales vs target</h3><span class="legend"><span><i style="background:var(--ever)"></i>Booked</span><span><i style="background:var(--brass)"></i>Target</span></span></div><svg id="sales" data-w="420" data-h="150" style="width:100%; height:150px"></svg></div>
+          <div class="card panel"><h3>Tower B · floors 9–14</h3><div class="matrix" id="matrix"></div><div class="legend"><span><i style="background:var(--ever-soft); outline:1px solid var(--ever)"></i>Available</span><span><i style="background:var(--amber-soft); outline:1px solid var(--amber)"></i>Held</span><span><i style="background:var(--slate)"></i>Booked</span></div></div>
+          <div class="card panel"><h3>Today</h3>
+            <div class="act"><div class="av">BA</div><div>Site visit confirmed<div class="ref">LD-2026-00042 · 11:30</div></div><span class="chip" style="background:var(--ever-soft); color:var(--ever)">Visit</span></div>
+            <div class="act"><div class="av">FJ</div><div>Transfer proof received<div class="ref">INV-2026-001220</div></div><span class="chip" style="background:var(--amber-soft); color:var(--amber)">Verify</span></div>
+            <div class="act"><div class="av">NR</div><div>Hold expires in 2 h<div class="ref">LH-A-1204</div></div><span class="chip" style="background:var(--slate-soft); color:var(--slate)">Hold</span></div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </section>
+
+  <section class="lower">
+    <div class="phone">
+      <div class="in">
+        <div style="display:flex; justify-content:space-between; align-items:center"><div><div class="label">Owner</div><div style="font:400 26px/1.1 var(--serif)">Hello, Usman</div></div><div class="av" style="width:40px;height:40px">UT</div></div>
+        <div class="pcard"><svg id="phoneHero" data-w="354" data-h="230"></svg><div style="position:absolute; inset:0; background:linear-gradient(180deg,transparent 40%,rgba(10,20,17,.7))"></div><div style="position:absolute; inset-inline:18px; bottom:16px"><span class="pill glass">LH-A-0308 · 3-bed</span><div style="font:300 26px/1.1 var(--serif); margin-top:8px">Larkspur Heights</div></div></div>
+        <div class="card" style="padding:18px; display:grid; grid-template-columns:96px 1fr; gap:16px; align-items:center"><svg id="ring" data-w="96" style="width:96px;height:96px"></svg><div><div class="label">Paid so far</div><div style="font:300 26px/1.1 var(--serif)">Rs 9.4M</div><div style="font:400 12px var(--sans); color:var(--muted)">of Rs 15.2M · 62%</div></div></div>
+        <div class="card" style="padding:18px; display:grid; gap:10px"><div style="display:flex; justify-content:space-between"><span class="label">Next installment</span><span class="chip" style="background:var(--amber-soft); color:var(--amber)">◷ Awaiting verification</span></div><div style="font:300 28px/1 var(--serif)">Rs 1,531,850.00</div><div style="font:400 12px var(--sans); color:var(--muted)">Due 5 Nov 2026 · INV-2026-001220</div></div>
+        <div class="svc"><div><i></i>Repairs</div><div><i></i>Visitors</div><div><i></i>Parking</div><div><i></i>Docs</div></div>
+      </div>
+      <nav class="bnav"><div class="on"><i></i>Home</div><div><i></i>Property</div><div><i></i>Payments</div><div><i></i>Services</div><div><i></i>Profile</div></nav>
+    </div>
+    <div style="display:grid; gap:24px">
+      <div class="site">
+        <svg id="site" data-w="960" data-h="560"></svg>
+        <div style="position:absolute; inset:0; background:linear-gradient(90deg, rgba(12,22,19,.72), rgba(12,22,19,.1) 60%)"></div>
+        <div class="nav2"><span style="font:500 22px var(--serif)">Larkspur</span><span style="margin-inline-start:auto">Residences</span><span>Amenities</span><span>Location</span><span>Progress</span><span class="btn" style="background:#fff; color:var(--ink); padding:9px 16px">Book a visit</span></div>
+        <div class="copy">
+          <span class="eyebrow" style="color:#e9d3a7">Gulberg, Lahore · Completion 2028</span>
+          <h2>Light, measured in storeys.</h2>
+          <p style="font:400 17px/1.55 var(--sans); opacity:.9">Three slender towers with 496 residences, a sky garden on the 18th floor and quiet courtyards at ground.</p>
+          <div style="display:flex; gap:12px"><span class="btn" style="background:#e9d3a7; color:#17211e">Explore residences</span><span class="btn glass">Payment plans</span></div>
+        </div>
+      </div>
+      <div class="row" style="grid-template-columns: 1fr 1fr">
+        <div class="card comp">
+          <span class="btn" style="background:var(--ever); color:#fff">Receive payment</span>
+          <span class="btn" style="border:1px solid var(--control)">Schedule visit</span>
+          <span class="btn" style="color:var(--ever)">View related</span>
+          <span class="chip" style="background:var(--ever-soft); color:var(--ever)">✓ Available</span>
+          <span class="chip" style="background:var(--amber-soft); color:var(--amber)">◷ On hold</span>
+          <span class="chip" style="background:var(--slate-soft); color:var(--slate)">● Booked</span>
+          <div class="field"><span style="font:500 13px var(--sans)">Mobile number</span><div>+92 300 1234567</div></div>
+          <div class="tabs"><span class="on">Overview</span><span>Payments</span><span>Documents</span><span>Activity</span></div>
+        </div>
+        <div class="card rtl-card">
+          <span class="label" style="font-family:var(--urdu); letter-spacing:0">اس ماہ کی وصولی</span>
+          <div style="display:flex; gap:10px; align-items:baseline"><bdi dir="ltr" style="font:300 38px var(--serif)">Rs 412.6M</bdi><bdi dir="ltr" class="delta">+8.4%</bdi></div>
+          <div style="font:400 15px/1.9 var(--urdu); color:var(--muted)">طے شدہ <bdi dir="ltr">Rs 520M</bdi> میں سے · 12 ٹرانسفر تصدیق کے منتظر</div>
+          <div class="ur-display" style="font-size:30px">اگلا قدم: تصدیق مکمل کریں</div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+<script src="shared.js"></script>
+<script>
+  const dusk = { sky: ['#f2d9b8', '#e9b98f', '#c98e6c', '#6e7a74'], sun: { x: 0.78, y: 0.52, r: 46, color: '#fbe6c2' }, far: '#a9a49a', floorLine: '#f6efe2', fin: '#efe2c9', ground: '#2c3b35', trees: '#30473f', horizon: 0.8 };
+  const towers = [
+    { x: 0.18, w: 0.12, h: 0.62, floors: 18, body: ['#d9cbb6', '#b9a68c'], fins: 6 },
+    { x: 0.34, w: 0.14, h: 0.74, floors: 22, body: ['#e6dac7', '#c2ad91'], fins: 7, crown: '#cfbf9f' },
+    { x: 0.52, w: 0.1, h: 0.5, floors: 14, body: ['#d2c3ad', '#ad9a80'], fins: 5 },
+  ];
+  Board.scene(document.getElementById('hero'), { id: 'h', ...dusk, towers, seed: 3 });
+  Board.scene(document.getElementById('phoneHero'), { id: 'p', ...dusk, towers: [{ x: 0.2, w: 0.22, h: 0.7, floors: 18, body: ['#e6dac7', '#c2ad91'], fins: 6 }, { x: 0.5, w: 0.18, h: 0.55, floors: 14, body: ['#d9cbb6', '#b9a68c'], fins: 5 }], seed: 5 });
+  Board.scene(document.getElementById('site'), { id: 's', ...dusk, sun: { x: 0.7, y: 0.5, r: 70, color: '#fbe6c2' }, towers: [{ x: 0.5, w: 0.09, h: 0.62, floors: 18, body: ['#d9cbb6', '#b9a68c'], fins: 6 }, { x: 0.61, w: 0.11, h: 0.8, floors: 22, body: ['#e6dac7', '#c2ad91'], fins: 7, crown: '#cfbf9f' }, { x: 0.75, w: 0.08, h: 0.5, floors: 14, body: ['#d2c3ad', '#ad9a80'], fins: 5 }], seed: 9 });
+  Board.area(document.getElementById('sales'), [18, 22, 21, 27, 31, 29, 36, 41, 39, 46], { id: 'a1', color: '#1e4d42', compare: [20, 22, 24, 26, 28, 30, 32, 34, 36, 38], compareColor: '#b58a47', grid: '#ece6dc' });
+  Board.ring(document.getElementById('ring'), 0.62, { width: 10, color: '#1e4d42', track: '#e3ece8' });
+  const m = document.getElementById('matrix');
+  const st = ['var(--ever-soft)', 'var(--ever-soft)', 'var(--slate)', 'var(--amber-soft)', 'var(--ever-soft)', 'var(--slate)'];
+  for (let i = 0; i < 48; i++) { const s = document.createElement('span'); const k = (i * 7 + (i % 5)) % 6; s.style.background = st[k]; s.style.outline = k === 3 ? '1px solid #8a5300' : k < 2 || k === 4 ? '1px solid #1e4d42' : 'none'; if (i === 19) s.style.boxShadow = '0 0 0 3px #b58a47'; m.appendChild(s); }
+</script>
+</body>
+</html>
