@@ -182,3 +182,38 @@ Urdu gets its own line-height via `:lang(ur)`, tuned on real Urdu specimens in S
 ## 5. Approval
 
 Approved by the owner on 2026-10-26, with the change to use Laragon's existing Node 20.20.1 instead of installing Node 24.
+
+## 6. Amendment (Stage 1.5, 2026-10-26)
+
+The Limestone & Evergreen design system (owner-approved Direction A) changes the font rows of §2 and adds animation and charting dependencies. Everything else in this ADR still stands.
+
+### Fonts
+
+The rows in §2 that name Inter are replaced. See `docs/design/stage-1.5/DESIGN_SYSTEM_V2.md` §3.
+
+| Role | Font |
+|---|---|
+| Interface | **Geist Variable** (Fontsource 5.3.0) |
+| References | **Geist Mono Variable** |
+| Display | **Newsreader Variable** (optical sizes) |
+| Urdu display | **Gulzar** |
+
+Two things are unchanged:
+- **Urdu interface text** stays on Noto Naskh Arabic.
+- **The Latin-first stack principle** holds: Geist and Newsreader have no Arabic glyphs, so Urdu falls through to Naskh or Gulzar while Latin IDs inside Urdu keep Latin faces.
+
+`@fontsource-variable/inter` was removed.
+
+### New dependencies
+
+All are exact-pinned and Node 20 compatible.
+
+| Package | Version | Purpose |
+|---|---|---|
+| `motion` | 14.6.0 | Microinteractions; respects the reduced-motion preference |
+| `d3-scale`, `d3-shape` | 4.0.2, 3.2.0 | SVG chart kit; no charting library, so we control RTL and accessibility |
+| `@repo/assets` (workspace) | — | Typed registry of CC0 photography; the human-readable list is `docs/design/ASSET_REGISTRY.md` |
+
+### Public site
+
+The "not decided here" item for the public site is now decided by ADR-0003: Next.js.

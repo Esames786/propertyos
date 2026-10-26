@@ -25,7 +25,7 @@ SAAS-007,saas,SAAS,Domains,page,index,/saas/saas/domains,TBD per role/scope,Mock
 SAAS-008,saas,SAAS,Platform roles/users,page,index,/saas/saas/platform-roles-users,TBD per role/scope,Mock first; authoritative later,planned,2,index,/saas/saas/platform-roles-users,
 SAAS-009,saas,SAAS,Support/audit,page,index,/saas/saas/support-audit,TBD per role/scope,Mock first; authoritative later,planned,2,index,/saas/saas/support-audit,
 SAAS-010,saas,SAAS,Usage and limits,page,index,/saas/saas/usage-and-limits,TBD per role/scope,Mock first; authoritative later,planned,2,index,/saas/saas/usage-and-limits,
-HOME-001,backoffice,HOME,Role-aware dashboard,page,index,/backoffice/home/role-aware-dashboard,TBD per role/scope,Mock first; authoritative later,planned,2,dashboard,/backoffice/home/role-aware-dashboard,
+HOME-001,backoffice,HOME,Role-aware dashboard,page,index,/backoffice/home/role-aware-dashboard,TBD per role/scope,Mock first; authoritative later,implemented,1.5,dashboard,/backoffice/home/role-aware-dashboard,Stage 1.5 reference screen 1: management dashboard composed by role (fixtures); start page
 HOME-002,backoffice,HOME,My tasks,page,index,/backoffice/home/my-tasks,TBD per role/scope,Mock first; authoritative later,planned,2,index,/backoffice/home/my-tasks,
 HOME-003,backoffice,HOME,My approvals,page,index,/backoffice/home/my-approvals,TBD per role/scope,Mock first; authoritative later,planned,2,approval,/backoffice/home/my-approvals,
 HOME-004,backoffice,HOME,Work queue,page,index,/backoffice/home/work-queue,TBD per role/scope,Mock first; authoritative later,planned,2,index,/backoffice/home/work-queue,

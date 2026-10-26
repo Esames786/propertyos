@@ -35,7 +35,7 @@ export function LocaleToggle({ className, compact = false }: { className?: strin
       aria-label={t('nav:header.switchLanguageTo', { language: meta.nativeName })}
       data-testid="locale-toggle"
       className={cn(
-        'inline-flex min-h-10 items-center gap-2 rounded-control border border-border-control px-3 text-sm font-medium text-text data-hovered:bg-sunken pointer-coarse:min-h-11',
+        'inline-flex min-h-10 items-center gap-2 rounded-pill border border-border-control px-3.5 text-sm font-medium text-text outline-none transition-colors duration-[var(--motion-fast)] data-hovered:bg-sunken data-focus-visible:outline-2 data-focus-visible:outline-offset-2 data-focus-visible:outline-focus pointer-coarse:min-h-11',
         className,
       )}
     >

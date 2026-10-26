@@ -80,7 +80,7 @@ export function UrlTabs({
           />
         )}
       </div>
-      <TabPanel id={selected} className="pt-5 outline-none">
+      <TabPanel key={selected} id={selected} className="pt-5 outline-none">
         {children(selected)}
       </TabPanel>
     </AriaTabs>

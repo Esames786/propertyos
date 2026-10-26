@@ -6,7 +6,7 @@ export function NotFoundPage() {
     <NotFoundState
       headingLevel={1}
       actions={
-        <Link variant="plain" href="/backoffice/lab" className={buttonClass('primary')}>
+        <Link variant="plain" href="/backoffice/home/role-aware-dashboard" className={buttonClass('primary')}>
           {t('common:actions.goToStart')}
         </Link>
       }

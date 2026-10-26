@@ -181,5 +181,15 @@
   },
   "lang": {
     "switchTo": "Switch to {{language}}"
+  },
+  "images": {
+    "illustrative": "Illustrative image",
+    "heightsDusk": "Curved balconies of a residential tower at sunset",
+    "gardensResidences": "Low-rise white residences with balconies behind palm trees",
+    "interiorLivingBright": "Bright living room with floor-to-ceiling windows",
+    "interiorLivingCity": "Living room with large windows overlooking city towers",
+    "interiorKitchen": "Modern white kitchen with an island",
+    "viewDuskWindow": "City skyline at dusk seen through a tall window",
+    "constructionCranes": "Tower cranes above a building under construction"
   }
 }

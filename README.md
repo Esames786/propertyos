@@ -31,7 +31,7 @@ $env:PATH = "D:\laragon2\bin\nodejs\node-v20.20.1-win-x64;$env:PATH"
 | Command | What it does |
 |---|---|
 | `npm install` | Install all workspaces |
-| `npm run dev` | Backoffice at http://localhost:5173/backoffice and customer portal at http://localhost:5174/customer/portal |
+| `npm run dev` | Backoffice at http://localhost:5173/backoffice (opens the management dashboard) and customer portal at http://localhost:5174/customer/portal |
 | `npm run dev:backoffice` / `npm run dev:customer` | Run one app |
 | `npm run build` | Production build of both apps |
 | `npm run preview` | Serve the production builds on the same ports |
@@ -64,11 +64,12 @@ and choose a simulated network (normal, instant, slow, server error, offline).
 ```text
 apps/backoffice      Staff backoffice + SaaS HQ + staff sign-in (Vite + React; Inertia client later)
 apps/customer-web    Customer / owner / resident web app (PWA in Stage 4)
-packages/tokens      Design tokens (Tailwind v4 theme), contrast tests
+packages/tokens      Design tokens v2 (Limestone & Evergreen, Tailwind v4 theme), fonts, contrast tests
+packages/assets      Typed registry of licensed imagery (see docs/design/ASSET_REGISTRY.md)
 packages/i18n        en-PK / ur-PK dictionaries, locale provider, money/date/phone/CNIC/IBAN formatters
 packages/contracts   Entity, API-error, permission and screen-register types
 packages/fixtures    Fictional dataset, demo personas, in-memory mock transport
-packages/ui          Components, shells, command palette, guided-tour engine
+packages/ui          Components, shells, chart kit, command palette, guided-tour engine
 tests                Playwright e2e, accessibility and evidence specs
 scripts              Register sync, i18n parity, logical-CSS guard
 ```

@@ -57,6 +57,15 @@
     "notFound": "Page not found",
     "customerLab": "Customer portal preview",
     "accessibility": "Accessibility preferences",
-    "signIn": "Demo sign-in"
-  }
+    "signIn": "Demo sign-in",
+    "dashboard": "Dashboard"
+  },
+  "groups": {
+    "workspace": "Workspace",
+    "operations": "Operations",
+    "insights": "Insights",
+    "prototype": "Prototype"
+  },
+  "bottomBarLabel": "Quick navigation",
+  "more": "More"
 }

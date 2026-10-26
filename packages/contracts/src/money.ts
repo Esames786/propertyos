@@ -8,6 +8,8 @@ export const MoneySchema = z.object({
 
 export type Money = z.infer<typeof MoneySchema>;
 
+export const isMoneyAmount = (amount: string) => MoneySchema.shape.amount.safeParse(amount).success;
+
 export function pkr(amount: string): Money {
   return MoneySchema.parse({ amount, currency: 'PKR' });
 }

@@ -2,7 +2,7 @@ import { BO, CU, expect, seed, test, waitForApp } from '../support/fixtures';
 import { VIEWPORTS } from '../support/viewports';
 
 /** WCAG 1.4.10 reflow (320 CSS px) and 200 % zoom (half the CSS viewport): no page-level horizontal scroll. */
-const ROUTES = ['/backoffice/lab', '/backoffice/lab/forms', '/backoffice/lab/workspace', '/backoffice/lab/components', '/backoffice/help/tours', '/backoffice/global/profile--preferences'];
+const ROUTES = ['/backoffice/home/role-aware-dashboard', '/backoffice/lab', '/backoffice/lab/forms', '/backoffice/lab/workspace', '/backoffice/lab/components', '/backoffice/help/tours', '/backoffice/global/profile--preferences'];
 
 for (const [name, viewport] of [
   ['320 px reflow', VIEWPORTS.reflow],

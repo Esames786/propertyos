@@ -6,6 +6,8 @@ import {
   formatIban,
   formatInstant,
   formatMoney,
+  formatMoneyCompact,
+  formatNumberCompact,
   formatPkPhone,
   formatRelative,
   isValidCnic,
@@ -48,6 +50,13 @@ describe('formatMoney', () => {
   it('rejects float-looking or malformed amounts', () => {
     expect(() => formatMoney({ amount: '1.005', currency: 'PKR' }, 'en-PK')).toThrow(RangeError);
     expect(() => formatMoney({ amount: '1e5', currency: 'PKR' }, 'en-PK')).toThrow(RangeError);
+  });
+
+  it('compact money abbreviates by locale convention without changing the value', () => {
+    expect(visible(formatMoneyCompact({ amount: '1240000000.00', currency: 'PKR' }, 'en-PK'))).toBe('Rs 1.24B');
+    expect(visible(formatMoneyCompact({ amount: '86500000.00', currency: 'PKR' }, 'ur-PK'))).toBe('Rs 8.65 کروڑ');
+    expect(visible(formatNumberCompact(950000, 'ur-PK'))).toBe('9.5 لاکھ');
+    expect(() => formatMoneyCompact({ amount: '1e5', currency: 'PKR' }, 'en-PK')).toThrow(RangeError);
   });
 
   it('toDecimalAmount produces canonical strings', () => {

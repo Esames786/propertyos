@@ -5,6 +5,7 @@ import TextGuidePage from '../pages/help/TextGuidePage';
 import TourLibrary from '../pages/help/TourLibrary';
 import WorkspaceLab from '../pages/lab/WorkspaceLab';
 import PreferencesPage from '../pages/settings/PreferencesPage';
+import { LINKS } from '../nav.config';
 import { RouteError } from './RouteError';
 import { CommandPaletteRoute } from './CommandPaletteRoute';
 import { registerLoader, RegisterResolver, type RegisterData } from './register';
@@ -34,10 +35,10 @@ function WorkspaceLabRoute() {
   return <WorkspaceLab leadId={leadId} />;
 }
 
-/** `/backoffice` (GUIDE-001 register route) → start page, keeping any query string. */
+/** `/backoffice` (GUIDE-001 register route) → start page (HOME-001 dashboard), keeping any query string. */
 function StartRedirect() {
   const [params] = useSearchParams();
-  return <Navigate to={`/backoffice/lab${params.size ? `?${params}` : ''}`} replace />;
+  return <Navigate to={`${LINKS.start}${params.size ? `?${params}` : ''}`} replace />;
 }
 
 const preferences = (tab: 'language' | 'accessibility' | 'tours'): RouteObject => ({
@@ -47,6 +48,11 @@ const preferences = (tab: 'language' | 'accessibility' | 'tours'): RouteObject =
 
 const backofficeChildren: RouteObject[] = [
   { index: true, element: <StartRedirect /> },
+  {
+    path: 'home/role-aware-dashboard',
+    lazy: page(() => import('../pages/home/ManagementDashboard')),
+    handle: h({ title: (t) => t('nav:pages.dashboard') }),
+  },
   { path: 'lab', lazy: page(() => import('../pages/lab/LabHome')), handle: h({ title: (t) => t('nav:pages.lab'), helpKey: 'lab' }) },
   { path: 'lab/tokens', lazy: page(() => import('../pages/lab/TokensLab')), handle: h({ title: (t) => t('nav:pages.labTokens'), helpKey: 'lab' }) },
   { path: 'lab/components', lazy: page(() => import('../pages/lab/ComponentsLab')), handle: h({ title: (t) => t('nav:pages.labComponents'), helpKey: 'lab' }) },

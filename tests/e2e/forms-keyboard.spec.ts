@@ -107,6 +107,9 @@ test.describe('Forms lab', () => {
 
     await tabTo(page, focused(page, /Check and submit/));
     await page.keyboard.press('Enter');
+    // If validation fails, report which fields (the summary lists them) instead of only "no toast".
+    const summary = page.getByTestId('validation-summary');
+    if (await summary.isVisible().catch(() => false)) throw new Error(`Validation failed: ${await summary.innerText()}`);
     await expect(page.getByTestId('toast-success')).toContainText('Form is valid');
     await expect(page.getByTestId('validation-summary')).toHaveCount(0);
   });

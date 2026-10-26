@@ -19,12 +19,12 @@ export function PageHeader({
   badge?: ReactNode;
 }) {
   return (
-    <header className="mb-6 space-y-3">
+    <header className="mb-8 space-y-3 pt-2">
       <Breadcrumbs items={breadcrumbs} />
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 max-w-3xl space-y-2">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 id="page-title" lang={titleLang} className="text-2xl font-semibold tracking-tight text-text outline-none">
+            <h1 id="page-title" lang={titleLang} className="font-display text-[1.875rem] leading-tight text-text outline-none sm:text-[2.25rem]">
               {title}
             </h1>
             {badge}

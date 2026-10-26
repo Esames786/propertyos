@@ -10,6 +10,7 @@ import { PracticeLeadDrawer } from '../onboarding/PracticeLeadDrawer';
 import { PracticeModeBanner } from '../onboarding/PracticeModeBanner';
 import { useSession } from '../permissions/SessionProvider';
 import { AppHeader } from './AppHeader';
+import { BottomNav } from './BottomNav';
 import { HelpDrawer } from './HelpDrawer';
 import { useLanguageAnnouncement } from './LocaleSwitcher';
 import { MobileNavSheet } from './MobileNavSheet';
@@ -20,9 +21,9 @@ import type { Destination, HelpKey, NavItem, ShellLinks } from './types';
 const SIDEBAR_KEY = 'pref:sidebar';
 
 /**
- * Backoffice application shell: skip link, header, sidebar (tablet/desktop) or menu sheet (phone),
- * one <main>, and the global overlays (Ctrl+K, help, practice drawer). Responsive composition,
- * same features at every width (blueprint 01 §5).
+ * Backoffice application shell: skip link, floating rail (tablet/desktop) or bottom bar + menu sheet
+ * (phone), a header over the content column, one <main>, and the global overlays (Ctrl+K, help,
+ * practice drawer). Responsive composition, same features at every width (blueprint 01 §5).
  */
 export function AppShell({
   appName,
@@ -60,24 +61,29 @@ export function AppShell({
 
   return (
     <ShellContext.Provider value={value}>
-      <div id="app-shell" className="min-h-dvh bg-bg">
+      <div id="app-shell" className="min-h-dvh bg-bg md:flex">
         <SkipLink />
-        <AppHeader tenantName={tenant.name} />
-        <div className="flex">
-          <Sidebar
-            collapsed={collapsed}
-            onToggle={() => {
-              writeJson(SIDEBAR_KEY, { collapsed: !collapsed });
-              setCollapsedPref(!collapsed);
-            }}
-          />
-          <div className="min-w-0 flex-1">
-            <PracticeModeBanner />
-            <main id={MAIN_CONTENT_ID} tabIndex={-1} aria-label={pageTitle} className="mx-auto w-full max-w-7xl px-4 py-6 outline-none md:px-6 lg:px-8">
-              {children}
-            </main>
-          </div>
+        <Sidebar
+          tenantName={tenant.name}
+          collapsed={collapsed}
+          onToggle={() => {
+            writeJson(SIDEBAR_KEY, { collapsed: !collapsed });
+            setCollapsedPref(!collapsed);
+          }}
+        />
+        <div className="min-w-0 flex-1">
+          <AppHeader tenantName={tenant.name} />
+          <PracticeModeBanner />
+          <main
+            id={MAIN_CONTENT_ID}
+            tabIndex={-1}
+            aria-label={pageTitle}
+            className="mx-auto w-full max-w-[90rem] px-4 pt-4 pb-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom)+1.5rem)] outline-none sm:px-5 md:pb-10 lg:px-8"
+          >
+            {children}
+          </main>
         </div>
+        <BottomNav />
       </div>
       <MobileNavSheet tenantName={tenant.name} />
       <CommandPalette />

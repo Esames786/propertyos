@@ -5,3 +5,4 @@ export * from './entities';
 export * from './api';
 export * from './search';
 export * from './onboarding';
+export * from './dashboard';

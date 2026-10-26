@@ -1,3 +1,10 @@
-/* Self-hosted variable fonts: no third-party font CDN (privacy, offline PWA). */
-@import '@fontsource-variable/inter/wght.css';
+/*
+ * Self-hosted variable fonts: no third-party font CDN (privacy, offline PWA).
+ * Every face is split by unicode-range or only reached through fallback, so Urdu files download
+ * only when Urdu text is on screen and Latin files only when Latin is.
+ */
+@import '@fontsource-variable/geist/wght.css';
+@import '@fontsource-variable/geist-mono/wght.css';
+@import '@fontsource-variable/newsreader/opsz.css';
 @import '@fontsource-variable/noto-naskh-arabic/wght.css';
+@import '@fontsource/gulzar/arabic-400.css';

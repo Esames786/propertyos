@@ -4,7 +4,7 @@ import { extendTailwindMerge } from 'tailwind-merge';
 /** Tailwind-aware class merge: later classes win for the same CSS property (e.g. `hidden` over `inline-flex`). */
 const merge = extendTailwindMerge({
   extend: {
-    theme: { radius: ['sm', 'control', 'card', 'pill'] },
+    theme: { radius: ['sm', 'control', 'tile', 'card', 'pill'] },
   },
 });
 

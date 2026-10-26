@@ -31,19 +31,21 @@ export function ProjectSwitcher() {
       <AriaButton
         data-tour-id="project-switcher"
         aria-label={t('nav:header.projectFor', { project: current.label })}
-        className="flex min-h-10 max-w-[13rem] min-w-0 items-center gap-2 rounded-control border border-border-control bg-panel px-3 text-sm text-text data-hovered:bg-sunken pointer-coarse:min-h-11 max-sm:max-w-[7.5rem] max-xs:px-2.5"
+        className="flex min-h-10 max-w-[15rem] min-w-0 items-center gap-2 rounded-pill bg-panel ps-2 pe-3 text-sm font-medium text-text shadow-inset outline-none transition-shadow duration-[var(--motion-fast)] data-hovered:shadow-card data-focus-visible:outline-2 data-focus-visible:outline-focus pointer-coarse:min-h-11 max-sm:max-w-[8rem] max-xs:pe-2"
       >
-        <Building2 aria-hidden className="size-4 shrink-0 text-muted" />
+        <span aria-hidden className="grid size-7 shrink-0 place-items-center rounded-pill bg-primary-soft text-primary">
+          <Building2 className="size-3.5" />
+        </span>
         <SelectValue className="truncate max-xs:sr-only" />
         <ChevronDown aria-hidden className="size-4 shrink-0 text-muted max-xs:hidden" />
       </AriaButton>
-      <Popover placement="bottom start" offset={6} className="min-w-56 rounded-card border border-border bg-panel p-1 shadow-overlay">
+      <Popover placement="bottom start" offset={6} className="min-w-60 rounded-tile border border-border bg-panel p-1.5 shadow-overlay data-entering:animate-overlay-in">
         <ListBox items={options} className="outline-none">
           {(o) => (
             <ListBoxItem
               id={o.id}
               textValue={o.label}
-              className={cn('group flex cursor-default items-center gap-2 rounded-control px-3 py-2 text-sm text-text outline-none data-focused:bg-primary-soft pointer-coarse:py-3')}
+              className={cn('group flex cursor-default items-center gap-2 rounded-control px-3 py-2.5 text-sm text-text outline-none data-focused:bg-primary-soft pointer-coarse:py-3')}
             >
               <span className="flex-1">{o.label}</span>
               <Check aria-hidden className="size-4 text-primary opacity-0 group-data-selected:opacity-100" />

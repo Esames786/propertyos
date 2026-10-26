@@ -27,6 +27,15 @@ export { Reference } from './data/Reference';
 export { StatusLabel, Badge, DemoBadge, type StatusTone } from './data/StatusLabel';
 export { KeyValueList } from './data/KeyValueList';
 export { ActivityTimeline } from './data/ActivityTimeline';
+export { AnimatedNumber } from './data/AnimatedNumber';
+export { StatTile, type StatDelta } from './data/StatTile';
+
+// Charts (SVG/HTML on d3-scale + d3-shape; every chart has a data-table twin)
+export * from './charts';
+
+// Property presentation
+export { Photo, IllustrativeChip } from './property/Photo';
+export { PlotIllustration } from './property/PlotIllustration';
 
 // Feedback
 export { ToastProvider, useToast } from './feedback/Toast';
@@ -43,6 +52,8 @@ export { Tooltip } from './overlays/Tooltip';
 
 // Layout
 export { UrlTabs, type TabItem } from './layout/Tabs';
+export { PillTabs, type PillTab } from './layout/PillTabs';
+export { SegmentedControl } from './layout/SegmentedControl';
 export { Breadcrumbs, type Crumb } from './layout/Breadcrumbs';
 export { PageHeader } from './layout/PageHeader';
 export { WorkspaceHeader } from './layout/WorkspaceHeader';
@@ -75,5 +86,5 @@ export type { NavItem, Destination, HelpKey, ShellLinks } from './shell/types';
 
 // Utilities
 export { cn } from './lib/cn';
-export { useT } from './lib/useT';
+export { useT, dynamicT } from './lib/useT';
 export { useMediaQuery, useIsDesktop, useIsTabletUp, BREAKPOINTS } from './lib/useMediaQuery';

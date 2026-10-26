@@ -1,0 +1,227 @@
+{
+  "eyebrow": {
+    "manager": "انتظامی جائزہ",
+    "sales": "سیلز کا جائزہ",
+    "finance": "مالیاتی جائزہ"
+  },
+  "greeting": {
+    "morning": "صبح بخیر، {{name}}",
+    "afternoon": "سہ پہر بخیر، {{name}}",
+    "evening": "شام بخیر، {{name}}"
+  },
+  "asOf": "اعداد و شمار بمطابق {{date}}",
+  "fictional": "فرضی ڈیمو ڈیٹا",
+  "range": {
+    "label": "رپورٹنگ کی مدت",
+    "3m": "3 ماہ",
+    "6m": "6 ماہ",
+    "ytd": "سال کے آغاز سے",
+    "12m": "12 ماہ",
+    "short": {
+      "3m": "3 ماہ",
+      "6m": "6 ماہ",
+      "ytd": "اس سال",
+      "12m": "12 ماہ"
+    },
+    "period": {
+      "3m": "پچھلے 3 ماہ",
+      "6m": "پچھلے 6 ماہ",
+      "ytd": "اس سال اب تک",
+      "12m": "پچھلے 12 ماہ"
+    },
+    "previous": {
+      "3m": "اس سے پہلے کے 3 ماہ",
+      "6m": "اس سے پہلے کے 6 ماہ",
+      "ytd": "گزشتہ سال کی اسی مدت",
+      "12m": "اس سے پہلے کے 12 ماہ"
+    },
+    "changed": "{{period}} دکھایا جا رہا ہے"
+  },
+  "sections": {
+    "performance": "کارکردگی",
+    "performanceDescription": "{{period}} کے اعداد و شمار، {{previous}} کے مقابلے میں۔",
+    "portfolio": "پورٹ فولیو",
+    "portfolioDescription": "آج کی تاریخ تک انوینٹری، تعمیر اور رہائش گاہیں۔"
+  },
+  "showcase": {
+    "label": "نمایاں پروجیکٹس",
+    "slide": "{{count}} میں سے {{index}}: {{name}}",
+    "previous": "پچھلا پروجیکٹ",
+    "next": "اگلا پروجیکٹ",
+    "goTo": "{{name}} دکھائیں",
+    "eyebrow": "نمایاں پروجیکٹ",
+    "metaTowers": "{{city}} · {{units}} رہائش گاہیں",
+    "metaPlots": "{{city}} · {{units}} پلاٹ اور ولاز",
+    "completion": "تکمیل {{date}}",
+    "sold": "فروخت شدہ",
+    "available": "دستیاب",
+    "salesToDate": "اب تک فروخت",
+    "fromPrice": "شروع",
+    "built": "تعمیر شدہ",
+    "progressLabel": "تعمیر {{percent}} مکمل",
+    "open": "پروجیکٹ کھولیں",
+    "milestonesLabel": "تعمیر کے سنگِ میل",
+    "milestone": {
+      "land": "زمین",
+      "foundation": "بنیاد",
+      "structure": "ڈھانچہ",
+      "facade": "بیرونی حصہ",
+      "interiors": "اندرونی کام",
+      "handover": "حوالگی",
+      "roads": "سڑکیں",
+      "utilities": "یوٹیلیٹیز",
+      "landscaping": "لینڈ اسکیپنگ",
+      "possession": "قبضہ"
+    },
+    "milestoneState": {
+      "done": "مکمل",
+      "active": "{{percent}} مکمل",
+      "upcoming": "شروع نہیں ہوا"
+    },
+    "swipeHint": "دوسرے پروجیکٹس دیکھنے کے لیے سوائپ کریں یا تیر استعمال کریں"
+  },
+  "kpi": {
+    "label": "اہم اعداد و شمار",
+    "salesBooked": "بک شدہ فروخت",
+    "collected": "وصولی",
+    "available": "دستیاب یونٹس",
+    "conversion": "کنورژن کی شرح",
+    "pipeline": "کھلی پائپ لائن",
+    "receivables": "قابلِ وصول رقم",
+    "verifications": "تصدیق طلب ثبوت",
+    "context": {
+      "collected": "شیڈول شدہ {{target}} کا {{percent}}",
+      "available": "کل {{total}} یونٹس میں سے",
+      "conversion": "استفسار سے بکنگ تک",
+      "pipeline_one": "{{count}} کھلی لیڈ",
+      "pipeline_other": "{{count}} کھلی لیڈز",
+      "verifications": "ادائیگی کے ثبوت جائزے کے منتظر",
+      "previous": "پچھلا: {{value}}"
+    },
+    "delta": {
+      "up": "{{previous}} کے مقابلے میں {{change}} اضافہ",
+      "down": "{{previous}} کے مقابلے میں {{change}} کمی",
+      "flat": "{{previous}} کے مقابلے میں کوئی تبدیلی نہیں"
+    },
+    "points": "{{value}} پوائنٹس",
+    "units_one": "{{count}} یونٹ",
+    "units_other": "{{count}} یونٹس"
+  },
+  "collections": {
+    "title": "شیڈول کے مقابلے میں وصولی",
+    "summary": "{{period}} میں شیڈول شدہ {{scheduled}} میں سے {{collected}} وصول ہوئے ({{percent}})۔",
+    "partialNote": "{{month}} کے اعداد و شمار آج تک کے ہیں۔",
+    "collected": "وصول شدہ",
+    "scheduled": "شیڈول شدہ",
+    "rate": "شرح",
+    "month": "مہینہ",
+    "point": "{{month}}: شیڈول شدہ {{scheduled}} میں سے {{collected}} وصول، {{percent}}",
+    "caption": "ماہانہ وصولی اور شیڈول شدہ رقوم",
+    "toDate": "{{month}}، آج تک"
+  },
+  "funnel": {
+    "title": "سیلز فنل",
+    "summary": "{{period}} میں {{enquiries}} استفسارات سے {{booked}} بکنگز ({{percent}})۔",
+    "stage": {
+      "enquiries": "استفسارات",
+      "contacted": "رابطہ ہوا",
+      "visits": "سائٹ وزٹ",
+      "qualified": "اہل",
+      "booked": "بک شدہ"
+    },
+    "conversion": "پچھلے مرحلے کا {{percent}}",
+    "stageHeader": "مرحلہ",
+    "count": "لیڈز",
+    "fromPrevious": "پچھلے مرحلے سے",
+    "caption": "فنل کے مراحل کے لحاظ سے لیڈز"
+  },
+  "inventory": {
+    "title": "عمارت کے لحاظ سے انوینٹری",
+    "summary": "{{total}} میں سے {{available}} یونٹس دستیاب ہیں؛ سب سے زیادہ اسٹاک {{top}} میں ہے۔",
+    "tower": "ٹاور {{name}}",
+    "phase": "فیز {{name}}",
+    "bucket": {
+      "available": "دستیاب",
+      "onHold": "ہولڈ پر",
+      "sold": "فروخت شدہ",
+      "handedOver": "حوالے شدہ"
+    },
+    "other": "فروخت کے لیے نہیں",
+    "total": "کل",
+    "totalNote": "کل تعداد میں فروخت کے لیے غیر دستیاب یونٹس شامل ہیں۔ یونٹ میٹرکس کھولنے کے لیے عمارت منتخب کریں۔",
+    "row": "{{name}}: {{available}} دستیاب، {{onHold}} ہولڈ پر، {{sold}} فروخت شدہ، {{handedOver}} حوالے شدہ، کل {{total}} یونٹس۔ یونٹ میٹرکس میں کھولیں۔",
+    "caption": "عمارت اور حیثیت کے لحاظ سے یونٹس",
+    "building": "عمارت"
+  },
+  "attention": {
+    "title": "ایکشن سینٹر",
+    "subtitle": "آج آپ کی توجہ کے منتظر کام",
+    "tabs": "ایکشن سینٹر کی اقسام",
+    "kind": {
+      "verification": "ثبوت",
+      "followUp": "فالو اپ",
+      "hold": "ہولڈز",
+      "overdue": "واجب الادا"
+    },
+    "listLabel": {
+      "verification": "تصدیق کے منتظر ادائیگی کے ثبوت",
+      "followUp": "واجب فالو اپ",
+      "hold": "ختم ہونے والے یونٹ ہولڈز",
+      "overdue": "واجب الادا اقساط"
+    },
+    "when": {
+      "verification": "جمع کرایا گیا {{time}}",
+      "followUp": "مقررہ وقت {{time}}",
+      "hold": "ختم {{time}}",
+      "overdue": "مقررہ تاریخ {{time}}"
+    },
+    "urgent": "فوری",
+    "empty": "یہاں کچھ بھی زیرِ التوا نہیں۔ شاباش۔",
+    "viewAll": "سب دیکھیں",
+    "verificationNote": "ثبوت اس وقت تک \"تصدیق کا منتظر\" رہتے ہیں جب تک مالیات رقم کی تصدیق نہ کرے؛ انہیں کبھی خود بخود ادا شدہ نہیں کیا جاتا۔"
+  },
+  "residences": {
+    "title": "رہائش گاہیں",
+    "summary": "رہائش کی قسم کے لحاظ سے دستیابی اور ابتدائی قیمتیں۔",
+    "type": {
+      "apartment_1bed": "ایک بیڈروم رہائش گاہیں",
+      "apartment_2bed": "دو بیڈروم رہائش گاہیں",
+      "apartment_3bed": "تین بیڈروم رہائش گاہیں",
+      "penthouse": "پینٹ ہاؤسز",
+      "villa": "ولاز",
+      "plot": "رہائشی پلاٹ"
+    },
+    "available": "{{total}} میں سے {{available}} دستیاب",
+    "availability": "{{percent}} دستیاب",
+    "from": "شروع",
+    "avgArea": "اوسط {{area}}",
+    "previous": "پچھلی رہائش گاہیں",
+    "next": "اگلی رہائش گاہیں",
+    "openMatrix": "یونٹ میٹرکس کھولیں",
+    "listLabel": "رہائش کی اقسام"
+  },
+  "construction": {
+    "title": "تعمیراتی اپ ڈیٹ",
+    "eyebrow": "سائٹ رپورٹ · {{time}}",
+    "progress": "مجموعی پیش رفت",
+    "open": "تمام تعمیراتی اپ ڈیٹس",
+    "reports": {
+      "heights": {
+        "title": "ٹاور {{tower}}: منزل {{floor}} کا سلیب ڈال دیا گیا",
+        "body": "ٹاور {{tower}} کی منزل {{floor}} کا سلیب رات بھر میں ڈالا گیا اور اب پختہ ہو رہا ہے۔ نچلی منزلوں کے بیرونی پینل اگلے ہفتے پہنچیں گے، اور کام شیڈول کے مطابق جاری ہے۔"
+      },
+      "gardens": {
+        "title": "{{phase}}: مرکزی بلیوارڈ پختہ",
+        "body": "{{phase}} میں مرکزی بلیوارڈ کی تعمیر مکمل ہو گئی ہے۔ زیرِ زمین بجلی کا کام اب مشرقی بلاکس میں منتقل ہو رہا ہے۔"
+      }
+    }
+  },
+  "chart": {
+    "dataTable": "ڈیٹا ٹیبل",
+    "legend": "علامات"
+  },
+  "state": {
+    "refreshing": "اعداد و شمار اپ ڈیٹ ہو رہے ہیں",
+    "updated": "{{period}} کے اعداد و شمار اپ ڈیٹ ہو گئے"
+  }
+}

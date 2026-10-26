@@ -86,6 +86,6 @@ test.describe('Backoffice shell', () => {
     await page.goto(`${BO}/backoffice/does-not-exist`);
     await expect(page.getByTestId('state-not-found')).toBeVisible();
     await page.getByRole('link', { name: 'Go to start page' }).click();
-    await expect(page).toHaveURL(/\/backoffice\/lab$/);
+    await expect(page).toHaveURL(/\/backoffice\/home\/role-aware-dashboard$/);
   });
 });

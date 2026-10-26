@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { contrastRatio } from './contrast';
-import { CONTRAST, CONTRAST_PAIRS } from './tokens';
+import { CONTRAST, CONTRAST_PAIRS, IMAGE_SCRIM, ORDINAL_RAMPS } from './tokens';
 
 const css = readFileSync(fileURLToPath(new URL('./theme.css', import.meta.url)), 'utf8');
 
@@ -22,18 +22,22 @@ function block(selector: RegExp): string {
 
 function colours(source: string): Record<string, string> {
   const out: Record<string, string> = {};
-  for (const m of source.matchAll(/--color-([a-z-]+):\s*(#[0-9a-fA-F]{3,6})\s*;/g)) {
+  for (const m of source.matchAll(/--color-([a-z0-9-]+):\s*(#[0-9a-fA-F]{3,6})\s*;/g)) {
     out[m[1]!] = m[2]!;
   }
   return out;
 }
 
+const toHex = (rgb: readonly number[]) => `#${rgb.map((c) => Math.round(c).toString(16).padStart(2, '0')).join('')}`;
+
 const base = colours(block(/@theme\s*\{/));
 const moreContrast = { ...base, ...colours(block(/:root\[data-contrast='more'\]\s*\{/)) };
+const night = { ...base, ...colours(block(/:root\[data-theme='night'\]\s*\{/)) };
 
 describe.each([
   ['standard', base],
   ['more contrast', moreContrast],
+  ['night (authored, not exposed)', night],
 ])('token contrast (%s)', (_name, palette) => {
   it.each(CONTRAST_PAIRS.map((p) => [p.usage, p] as const))('%s', (_usage, pair) => {
     const fg = palette[pair.fg];
@@ -57,5 +61,30 @@ describe('blueprint conflicts resolved', () => {
   it('C2: focus ring contrasts with the page background around a primary fill', () => {
     expect(base.focus).toBe(base.primary);
     expect(contrastRatio(base.focus!, base.bg!)).toBeGreaterThanOrEqual(3);
+  });
+});
+
+describe('Stage 1.5 design system rules', () => {
+  it('brass is decorative only: below text contrast, so it must never carry text', () => {
+    expect(contrastRatio(base.brass!, base.panel!)).toBeLessThan(CONTRAST.text);
+    expect(contrastRatio(base.brass!, base.bg!)).toBeLessThan(CONTRAST.nonText);
+  });
+
+  it.each(Object.entries(ORDINAL_RAMPS))('%s ordinal ramp darkens step by step and its light end clears 2:1', (_name, steps) => {
+    const ratios = steps.map((s) => contrastRatio(base[s]!, base.panel!));
+    expect(ratios[0]).toBeGreaterThanOrEqual(2);
+    for (let i = 1; i < ratios.length; i++) expect(ratios[i]!).toBeGreaterThan(ratios[i - 1]!);
+  });
+
+  it('white text on photography keeps 4.5:1 at the weakest point of the scrim, over a white pixel', () => {
+    const a = IMAGE_SCRIM.textZoneMinAlpha;
+    const composite = toHex(IMAGE_SCRIM.rgb.map((c) => c * a + 255 * (1 - a)));
+    expect(contrastRatio('#ffffff', composite)).toBeGreaterThanOrEqual(CONTRAST.text);
+  });
+
+  it('chips on photography keep white text at 4.5:1 over a white pixel', () => {
+    const a = IMAGE_SCRIM.chipAlpha;
+    const composite = toHex(IMAGE_SCRIM.rgb.map((c) => c * a + 255 * (1 - a)));
+    expect(contrastRatio('#ffffff', composite)).toBeGreaterThanOrEqual(CONTRAST.text);
   });
 });

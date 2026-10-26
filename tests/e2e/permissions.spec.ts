@@ -1,7 +1,10 @@
 import { BO, expect, seed, test } from '../support/fixtures';
 
-const navNames = async (page: import('@playwright/test').Page) =>
-  page.getByRole('navigation', { name: 'Main navigation' }).first().getByRole('link').allInnerTexts();
+const navNames = async (page: import('@playwright/test').Page) => {
+  const links = page.getByRole('navigation', { name: 'Main navigation' }).first().getByRole('link');
+  await expect(links.first()).toBeVisible(); // allInnerTexts does not wait for the shell to render
+  return links.allInnerTexts();
+};
 
 test.describe('Permission-aware UI with demo personas (J9)', () => {
   test('Sales sees sales areas only, one project, and practice quick-create', async ({ page }) => {

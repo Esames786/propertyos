@@ -1,71 +1,114 @@
 /*
- * Design tokens (single source of truth for colour, radius, type and motion).
- * Consumed through Tailwind v4: every token below becomes a CSS custom property on :root
- * and a utility (bg-panel, text-muted, border-control, rounded-card ...).
- * Contrast pairs are verified by src/contrast.test.ts, which parses this file.
+ * Design tokens v2 — Direction A "Limestone & Evergreen" (Stage 1.5, owner-approved 2026-10-26).
+ * Single source of truth for colour, radius, elevation, type and motion, consumed through
+ * Tailwind v4: every token becomes a CSS custom property on :root and a utility
+ * (bg-panel, text-muted, border-control, rounded-card, shadow-raised …).
+ * Contrast pairs are verified by src/contrast.test.ts, which parses this file (standard,
+ * more-contrast and the authored night set). Chart colours are validated separately with the
+ * data-viz palette checks (see docs/design/stage-1.5/DESIGN_SYSTEM_V2.md).
  * Physical left/right is never used; layout relies on logical properties so RTL mirrors.
  */
 
 @theme {
   --color-*: initial;
 
-  /* Surfaces */
-  --color-bg: #f8fafc;
+  /* Surfaces: limestone frames the page, white carries the content */
+  --color-bg: #f6f3ee;
   --color-panel: #ffffff;
-  --color-sunken: #f1f5f9;
-  --color-overlay: rgb(15 23 42 / 0.45);
-  --color-scrim: rgb(15 23 42 / 0.55);
+  --color-raised: #fbfaf7;
+  --color-sunken: #efeae2;
+  --color-overlay: rgb(23 33 30 / 0.42);
+  --color-scrim: rgb(12 17 15 / 0.58);
 
   /* Text */
-  --color-text: #111827;
-  --color-muted: #475569;
-  --color-subtle: #5b6779;
+  --color-text: #17211e;
+  --color-muted: #58625d;
+  --color-subtle: #5f6863;
   --color-inverse: #ffffff;
 
-  /* Lines: decorative dividers vs. boundaries of interactive controls (WCAG 1.4.11 needs >= 3:1) */
-  --color-border: #cbd5e1;
-  --color-border-control: #64748b;
+  /* Lines: decorative hairlines vs. boundaries of interactive controls (WCAG 1.4.11 needs >= 3:1) */
+  --color-border: #e4ddd2;
+  --color-border-control: #878c84;
 
-  /* Brand accent (tenant-configurable later; must keep these contrast pairs) */
-  --color-primary: #1d4ed8;
-  --color-primary-hover: #1e40af;
-  --color-primary-soft: #eff6ff;
+  /* Evergreen: the single action colour (tenant-configurable later; must keep these pairs) */
+  --color-primary: #1e4d42;
+  --color-primary-hover: #163b33;
+  --color-primary-soft: #e3ece8;
   --color-on-primary: #ffffff;
 
+  /* Bronze for text accents; brass is decoration only (2.8:1, never text or meaning) */
+  --color-accent: #7a5221;
+  --color-accent-soft: #f3eadc;
+  --color-brass: #b58a47;
+
   /* Focus ring: drawn with an offset gap in the page background so it also shows on primary fills */
-  --color-focus: #1d4ed8;
+  --color-focus: #1e4d42;
 
   /* Semantic states: always paired with an icon and text, never colour alone */
-  --color-success: #166534;
-  --color-success-soft: #f0fdf4;
-  --color-warning: #92400e;
-  --color-warning-soft: #fffbeb;
-  --color-error: #b91c1c;
-  --color-error-soft: #fef2f2;
-  --color-info: #1e40af;
-  --color-info-soft: #eff6ff;
+  --color-success: #256b3e;
+  --color-success-soft: #e8f2ea;
+  --color-warning: #8a5300;
+  --color-warning-soft: #f6ead7;
+  --color-error: #a33a2a;
+  --color-error-soft: #fbeae6;
+  --color-info: #3d5a80;
+  --color-info-soft: #e8eef6;
 
   /* Prototype / training markers */
-  --color-demo: #6d28d9;
-  --color-demo-soft: #f5f3ff;
+  --color-demo: #6b4a8f;
+  --color-demo-soft: #f1ebf8;
+
+  /*
+   * Data visualisation. Categorical slots are assigned in this fixed order, never cycled
+   * (validated: lightness band, chroma floor, CVD ΔE ≥ 8 adjacent, normal-vision ΔE ≥ 15, ≥ 3:1).
+   * Ordinal ramps are one hue, light → dark, light end ≥ 2:1 on white.
+   */
+  --color-data-1: #0f8466;
+  --color-data-2: #c2862a;
+  --color-data-3: #4061b8;
+  --color-data-4: #c25b3c;
+  --color-data-5: #7e5aa6;
+  --color-ever-1: #86bca9;
+  --color-ever-2: #4f9c84;
+  --color-ever-3: #1f6e59;
+  --color-ever-4: #0f4536;
+  --color-bronze-1: #d4ac70;
+  --color-bronze-2: #c0904a;
+  --color-bronze-3: #a3742f;
+  --color-bronze-4: #7f5823;
+  --color-bronze-5: #5a3c18;
+  --color-chart-grid: #ece7df;
+  --color-chart-axis: #cfc8bc;
+  --color-chart-context: #878c84;
 
   --radius-sm: 6px;
-  --radius-control: 8px;
-  --radius-card: 12px;
+  --radius-control: 10px;
+  --radius-tile: 14px;
+  --radius-card: 20px;
   --radius-pill: 999px;
 
-  --font-sans: 'Inter Variable', 'Noto Naskh Arabic Variable', ui-sans-serif, system-ui, sans-serif;
+  /*
+   * Type. Latin-first stacks: Geist/Newsreader have no Arabic glyphs, so Urdu falls through to
+   * Noto Naskh (interface) or Gulzar (display) while Latin names inside Urdu keep Latin faces.
+   */
+  --font-sans: 'Geist Variable', 'Noto Naskh Arabic Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Newsreader Variable', 'Gulzar', 'Noto Naskh Arabic Variable', Georgia, serif;
+  --font-mono: 'Geist Mono Variable', ui-monospace, 'SFMono-Regular', monospace;
   --font-urdu: 'Noto Naskh Arabic Variable', serif;
 
-  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.06), 0 1px 3px rgb(15 23 42 / 0.08);
-  --shadow-overlay: 0 10px 30px rgb(15 23 42 / 0.18), 0 2px 6px rgb(15 23 42 / 0.08);
+  /* Elevation: soft, layered, warm-tinted (no grey halos on limestone) */
+  --shadow-card: 0 1px 2px rgb(23 33 30 / 0.04), 0 6px 20px -8px rgb(23 33 30 / 0.1);
+  --shadow-raised: 0 1px 2px rgb(23 33 30 / 0.05), 0 18px 40px -16px rgb(23 33 30 / 0.22);
+  --shadow-overlay: 0 28px 56px -16px rgb(23 33 30 / 0.3), 0 2px 8px rgb(23 33 30 / 0.06);
+  --shadow-inset: inset 0 1px 0 rgb(255 255 255 / 0.7), inset 0 0 0 1px rgb(23 33 30 / 0.04);
 
   --breakpoint-xs: 22.5rem;
 
   --animate-overlay-in: overlay-in var(--motion-regular) var(--ease-standard);
   --animate-overlay-out: overlay-in var(--motion-fast) var(--ease-standard) reverse;
-  --animate-sheet-in: sheet-in var(--motion-regular) var(--ease-standard);
+  --animate-sheet-in: sheet-in var(--motion-regular) var(--ease-emphasized);
   --animate-sheet-out: sheet-in var(--motion-fast) var(--ease-standard) reverse;
+  --animate-rise-in: rise-in var(--motion-slow) var(--ease-emphasized) both;
   --animate-tour-pulse: tour-pulse 1.6s ease-in-out 3;
 }
 
@@ -82,23 +125,33 @@
   }
 }
 
+/* Sections settle into place on first paint (transform + opacity only; off under reduced motion). */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    translate: 0 0.5rem;
+  }
+}
+
 /* Restrained: three pulses, then still (doc 09 §4: no endless flashing). */
 @keyframes tour-pulse {
   50% {
-    box-shadow: 0 0 0 6px rgb(29 78 216 / 0.25);
+    box-shadow: 0 0 0 6px rgb(30 77 66 / 0.22);
   }
 }
 
 :root {
-  --motion-fast: 120ms;
-  --motion-regular: 200ms;
+  --motion-fast: 140ms;
+  --motion-regular: 220ms;
+  --motion-slow: 360ms;
   --motion-tour: 280ms;
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasized: cubic-bezier(0.16, 1, 0.3, 1);
 
-  --header-height: 4rem;
-  --sidebar-width: 16rem;
-  --sidebar-collapsed-width: 4.5rem;
-  --bottom-nav-height: 4rem;
+  --header-height: 4.5rem;
+  --sidebar-width: 16.5rem;
+  --sidebar-collapsed-width: 5rem;
+  --bottom-nav-height: 4.25rem;
 
   --focus-ring-width: 2px;
   --focus-ring-offset: 2px;
@@ -111,29 +164,74 @@
 
 /* Users who ask for more contrast (OS setting or in-app preference) */
 :root[data-contrast='more'] {
-  --color-muted: #334155;
-  --color-subtle: #334155;
-  --color-border: #64748b;
-  --color-border-control: #334155;
-  --color-scrim: rgb(15 23 42 / 0.65);
+  --color-muted: #3e4a45;
+  --color-subtle: #3e4a45;
+  --color-border: #878c84;
+  --color-border-control: #5e6560;
+  --color-scrim: rgb(12 17 15 / 0.7);
+  --color-chart-grid: #cfc8bc;
   --tour-ring-width: 4px;
 }
 
 @media (prefers-contrast: more) {
   :root:not([data-contrast='standard']) {
-    --color-muted: #334155;
-    --color-subtle: #334155;
-    --color-border: #64748b;
-    --color-border-control: #334155;
-    --color-scrim: rgb(15 23 42 / 0.65);
+    --color-muted: #3e4a45;
+    --color-subtle: #3e4a45;
+    --color-border: #878c84;
+    --color-border-control: #5e6560;
+    --color-scrim: rgb(12 17 15 / 0.7);
+    --color-chart-grid: #cfc8bc;
     --tour-ring-width: 4px;
   }
+}
+
+/*
+ * Night palette (Direction C "Nocturne", owner-approved as the basis of a future dark theme).
+ * Authored and contrast-tested now; NOT exposed in the UI until the dark theme is approved.
+ */
+:root[data-theme='night'] {
+  --color-bg: #0c0e11;
+  --color-panel: #15181c;
+  --color-raised: #1b1f24;
+  --color-sunken: #101317;
+  --color-text: #f1ece2;
+  --color-muted: #a9adb2;
+  --color-subtle: #9ea3a8;
+  --color-inverse: #0c0e11;
+  --color-border: #262b31;
+  --color-border-control: #6e737b;
+  --color-primary: #63b7aa;
+  --color-primary-hover: #7cc6ba;
+  --color-primary-soft: #173430;
+  --color-on-primary: #0c0e11;
+  --color-accent: #d6b884;
+  --color-accent-soft: #2a2418;
+  --color-focus: #63b7aa;
+  --color-success: #6cc08a;
+  --color-success-soft: #15271c;
+  --color-warning: #e3b35c;
+  --color-warning-soft: #2b2212;
+  --color-error: #f08a76;
+  --color-error-soft: #2e1a16;
+  --color-info: #8fb0e8;
+  --color-info-soft: #18202e;
+  --color-demo: #c0a3f0;
+  --color-demo-soft: #221b30;
+  --color-data-1: #2fa483;
+  --color-data-2: #b8863a;
+  --color-data-3: #6f8fdb;
+  --color-data-4: #d9744f;
+  --color-data-5: #a07cc6;
+  --color-chart-grid: #23282e;
+  --color-chart-axis: #383e45;
+  color-scheme: dark;
 }
 
 /* Reduced motion (OS setting or in-app preference): durations collapse, content stays */
 :root[data-motion='reduce'] {
   --motion-fast: 0ms;
   --motion-regular: 0ms;
+  --motion-slow: 0ms;
   --motion-tour: 0ms;
 }
 
@@ -141,11 +239,12 @@
   :root:not([data-motion='full']) {
     --motion-fast: 0ms;
     --motion-regular: 0ms;
+    --motion-slow: 0ms;
     --motion-tour: 0ms;
   }
 }
 
-/* Urdu: Naskh needs more vertical room than Latin; metrics tuned on Urdu specimens, not copied */
+/* Urdu: Naskh/Nastaliq need more vertical room than Latin; metrics tuned on Urdu specimens */
 :root:lang(ur) {
   --body-leading: 1.9;
   --text-xs--line-height: 1.8;
@@ -153,8 +252,10 @@
   --text-base--line-height: 1.9;
   --text-lg--line-height: 1.85;
   --text-xl--line-height: 1.8;
-  --text-2xl--line-height: 1.7;
-  --text-3xl--line-height: 1.6;
+  --text-2xl--line-height: 1.75;
+  --text-3xl--line-height: 1.8;
+  --text-4xl--line-height: 1.8;
+  --text-5xl--line-height: 1.7;
 }
 
 @layer base {
@@ -170,20 +271,38 @@
     margin: 0;
     font-size: var(--body-size);
     line-height: var(--body-leading);
-    font-feature-settings: 'cv11', 'ss01';
+    font-feature-settings: 'ss01';
     min-block-size: 100dvh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   :lang(ur) body {
     font-size: calc(var(--body-size) * 1.08);
   }
 
-  /* Latin references embedded in Urdu stay in Inter with tabular figures */
+  /* Editorial display face: optical sizing on, a touch of negative tracking for Latin only */
+  .font-display {
+    font-optical-sizing: auto;
+    font-weight: 450;
+  }
+
+  :lang(en) .font-display {
+    letter-spacing: -0.012em;
+  }
+
+  /* Latin references embedded in Urdu stay in Geist Mono with tabular figures */
   .ltr-ref {
     direction: ltr;
     unicode-bidi: isolate;
-    font-family: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+    font-family: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
     font-variant-numeric: tabular-nums;
+  }
+
+  .ref-mono {
+    font-family: var(--font-mono);
+    font-size: 0.92em;
+    letter-spacing: -0.01em;
   }
 
   .tabular {
@@ -228,7 +347,7 @@
   }
 
   ::selection {
-    background: #bfdbfe;
+    background: #cfe2da;
     color: var(--color-text);
   }
 
@@ -247,6 +366,15 @@
   .sr-only {
     margin: 0;
     inset-inline-start: 0;
+  }
+
+  /* Horizontal scroller without a visible bar (content stays reachable by keyboard and touch). */
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
   }
 }
 

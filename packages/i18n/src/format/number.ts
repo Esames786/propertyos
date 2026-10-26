@@ -4,6 +4,11 @@ export function formatNumber(value: number, locale: AppLocale, maximumFractionDi
   return new Intl.NumberFormat(locale, { maximumFractionDigits }).format(value);
 }
 
+/** Compact number for axis ticks and summaries (1.2M / 12 لاکھ); exact values live in the table view. */
+export function formatNumberCompact(value: number, locale: AppLocale, maximumFractionDigits = 1): string {
+  return new Intl.NumberFormat(locale, { notation: 'compact', maximumFractionDigits }).format(value);
+}
+
 export function formatPercent(ratio: number, locale: AppLocale, maximumFractionDigits = 1): string {
   return new Intl.NumberFormat(locale, { style: 'percent', maximumFractionDigits }).format(ratio);
 }

@@ -38,11 +38,11 @@ export function UserMenu() {
       <AriaButton
         aria-label={t('nav:header.accountMenu', { name: persona.displayName })}
         data-testid="user-menu-button"
-        className="grid size-10 place-items-center rounded-pill bg-primary-soft text-sm font-semibold text-primary data-hovered:ring-2 data-hovered:ring-border pointer-coarse:size-11"
+        className="grid size-10 place-items-center rounded-pill bg-primary text-sm font-semibold text-on-primary shadow-[inset_0_0_0_1.5px_rgb(181_138_71/0.6)] outline-none transition-transform duration-[var(--motion-fast)] data-hovered:scale-[1.04] data-focus-visible:outline-2 data-focus-visible:outline-offset-2 data-focus-visible:outline-focus pointer-coarse:size-11"
       >
         <span aria-hidden>{initials(persona.displayName)}</span>
       </AriaButton>
-      <Popover placement="bottom end" offset={6} className="w-[min(20rem,calc(100vw-1rem))] rounded-card border border-border bg-panel p-4 shadow-overlay">
+      <Popover placement="bottom end" offset={6} className="w-[min(20rem,calc(100vw-1rem))] rounded-card border border-border bg-panel p-5 shadow-overlay data-entering:animate-overlay-in">
         <Dialog className="space-y-4 outline-none" data-testid="user-menu">
           {({ close }) => (
             <>

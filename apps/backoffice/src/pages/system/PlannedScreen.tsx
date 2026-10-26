@@ -7,7 +7,7 @@ export function PlannedScreen({ screen, record }: { screen: ScreenEntry; record:
     <PlannedScreenView
       screen={screen}
       record={record}
-      startHref="/backoffice/lab"
+      startHref="/backoffice/home/role-aware-dashboard"
       secondary={{ label: t('nav:pages.tourLibrary'), href: '/backoffice/help/tours' }}
     />
   );

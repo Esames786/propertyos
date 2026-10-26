@@ -9,6 +9,7 @@
     "preview": "vite preview --port 5173 --strictPort"
   },
   "dependencies": {
+    "@repo/assets": "0.1.0",
     "@repo/contracts": "0.1.0",
     "@repo/fixtures": "0.1.0",
     "@repo/i18n": "0.1.0",

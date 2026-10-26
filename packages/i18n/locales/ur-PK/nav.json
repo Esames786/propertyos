@@ -57,6 +57,15 @@
     "notFound": "صفحہ نہیں ملا",
     "customerLab": "کسٹمر پورٹل کی جھلک",
     "accessibility": "رسائی کی ترجیحات",
-    "signIn": "ڈیمو سائن اِن"
-  }
+    "signIn": "ڈیمو سائن اِن",
+    "dashboard": "ڈیش بورڈ"
+  },
+  "groups": {
+    "workspace": "کاروبار",
+    "operations": "آپریشنز",
+    "insights": "تجزیہ",
+    "prototype": "پروٹوٹائپ"
+  },
+  "bottomBarLabel": "فوری نیویگیشن",
+  "more": "مزید"
 }

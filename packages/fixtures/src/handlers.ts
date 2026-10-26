@@ -7,6 +7,7 @@ import {
   type SearchRecord,
   type SearchResponse,
 } from '@repo/contracts';
+import { buildDashboard } from './dashboard';
 import { FLOORS, GARDEN_BLOCKS, PROJECTS, TOWERS, UNITS } from './inventory';
 import { PARTIES } from './people';
 import { INVOICES, LEAD_ACTIVITY, LEADS, NOTIFICATIONS } from './records';
@@ -157,6 +158,14 @@ export const HANDLERS: readonly Handler[] = [
         }
       }
       return { query: q, records };
+    },
+  },
+  {
+    method: 'GET',
+    pattern: /^\/dashboard\/summary$/,
+    handle: (ctx) => {
+      if (!ctx.persona || ctx.persona.app !== 'backoffice') forbid(ctx);
+      return buildDashboard({ persona: ctx.persona, allowsProject: ctx.allowsProject, range: ctx.req.query?.range });
     },
   },
   {

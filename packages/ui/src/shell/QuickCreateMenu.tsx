@@ -46,8 +46,8 @@ export function QuickCreateMenu({ compact = false }: { compact?: boolean }) {
         data-tour-id="quick-create"
         aria-label={t('common:quickCreate.label')}
         className={cn(
-          'on-primary inline-flex min-h-10 items-center gap-2 rounded-control bg-primary px-3 text-sm font-medium text-on-primary data-hovered:bg-primary-hover pointer-coarse:min-h-11',
-          compact && 'size-10 justify-center px-0 pointer-coarse:size-11',
+          'on-primary inline-flex min-h-10 items-center gap-2 rounded-pill bg-primary ps-3 pe-4 text-sm font-medium text-on-primary shadow-[0_8px_18px_-10px_rgb(30_77_66/0.7)] transition-[background-color,translate] duration-[var(--motion-fast)] data-hovered:bg-primary-hover data-pressed:translate-y-px pointer-coarse:min-h-11',
+          compact && 'size-10 justify-center px-0 ps-0 pe-0 pointer-coarse:size-11',
         )}
       >
         <Plus aria-hidden className="size-5" />

@@ -37,6 +37,24 @@ export function formatMoney(
   return formatter.format(value.amount as Intl.StringNumericLiteral);
 }
 
+/**
+ * Compact money for summaries only (dashboard figures, chart labels): "Rs 1.24B" in English,
+ * "Rs 12.4 کروڑ" in Urdu (CLDR uses lakh/crore/arab for ur-PK). It is an abbreviation, never a
+ * ledger value: wherever it appears, the exact `formatMoney` amount stays reachable (data table,
+ * accessible name or tooltip).
+ */
+export function formatMoneyCompact(value: MoneyValue, locale: AppLocale, maximumFractionDigits = 2): string {
+  if (!isDecimalAmount(value.amount)) {
+    throw new RangeError(`Invalid money amount "${value.amount}"`);
+  }
+  return new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency: value.currency,
+    notation: 'compact',
+    maximumFractionDigits,
+  }).format(value.amount as Intl.StringNumericLiteral);
+}
+
 /** Converts a number from a numeric input to the canonical 2-decimal string. */
 export function toDecimalAmount(value: number): string {
   if (!Number.isFinite(value)) throw new RangeError('Amount must be finite');

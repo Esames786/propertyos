@@ -1,0 +1,227 @@
+{
+  "eyebrow": {
+    "manager": "Management overview",
+    "sales": "Sales overview",
+    "finance": "Finance overview"
+  },
+  "greeting": {
+    "morning": "Good morning, {{name}}",
+    "afternoon": "Good afternoon, {{name}}",
+    "evening": "Good evening, {{name}}"
+  },
+  "asOf": "Figures as of {{date}}",
+  "fictional": "Fictional demo data",
+  "range": {
+    "label": "Reporting period",
+    "3m": "3 months",
+    "6m": "6 months",
+    "ytd": "Year to date",
+    "12m": "12 months",
+    "short": {
+      "3m": "3M",
+      "6m": "6M",
+      "ytd": "YTD",
+      "12m": "12M"
+    },
+    "period": {
+      "3m": "the last 3 months",
+      "6m": "the last 6 months",
+      "ytd": "this year to date",
+      "12m": "the last 12 months"
+    },
+    "previous": {
+      "3m": "the previous 3 months",
+      "6m": "the previous 6 months",
+      "ytd": "the same period last year",
+      "12m": "the previous 12 months"
+    },
+    "changed": "Showing {{period}}"
+  },
+  "sections": {
+    "performance": "Performance",
+    "performanceDescription": "Figures for {{period}}, compared with {{previous}}.",
+    "portfolio": "Portfolio",
+    "portfolioDescription": "Inventory, construction and residences as of today."
+  },
+  "showcase": {
+    "label": "Featured projects",
+    "slide": "{{index}} of {{count}}: {{name}}",
+    "previous": "Previous project",
+    "next": "Next project",
+    "goTo": "Show {{name}}",
+    "eyebrow": "Featured project",
+    "metaTowers": "{{city}} · {{units}} residences",
+    "metaPlots": "{{city}} · {{units}} plots and villas",
+    "completion": "Completion {{date}}",
+    "sold": "Sold",
+    "available": "Available",
+    "salesToDate": "Sales to date",
+    "fromPrice": "From",
+    "built": "built",
+    "progressLabel": "Construction {{percent}} complete",
+    "open": "Open project",
+    "milestonesLabel": "Construction milestones",
+    "milestone": {
+      "land": "Land",
+      "foundation": "Foundation",
+      "structure": "Structure",
+      "facade": "Façade",
+      "interiors": "Interiors",
+      "handover": "Handover",
+      "roads": "Roads",
+      "utilities": "Utilities",
+      "landscaping": "Landscaping",
+      "possession": "Possession"
+    },
+    "milestoneState": {
+      "done": "Complete",
+      "active": "{{percent}} complete",
+      "upcoming": "Not started"
+    },
+    "swipeHint": "Swipe or use the arrows to see other projects"
+  },
+  "kpi": {
+    "label": "Key figures",
+    "salesBooked": "Sales booked",
+    "collected": "Collected",
+    "available": "Units available",
+    "conversion": "Conversion rate",
+    "pipeline": "Open pipeline",
+    "receivables": "Receivables",
+    "verifications": "Proofs to verify",
+    "context": {
+      "collected": "{{percent}} of {{target}} scheduled",
+      "available": "of {{total}} units",
+      "conversion": "Enquiry to booking",
+      "pipeline_one": "{{count}} open lead",
+      "pipeline_other": "{{count}} open leads",
+      "verifications": "Payment proofs awaiting review",
+      "previous": "Previous: {{value}}"
+    },
+    "delta": {
+      "up": "up {{change}} on {{previous}}",
+      "down": "down {{change}} on {{previous}}",
+      "flat": "unchanged on {{previous}}"
+    },
+    "points": "{{value}} pts",
+    "units_one": "{{count}} unit",
+    "units_other": "{{count}} units"
+  },
+  "collections": {
+    "title": "Collections against schedule",
+    "summary": "{{collected}} collected of {{scheduled}} scheduled ({{percent}}) over {{period}}.",
+    "partialNote": "{{month}} is to date.",
+    "collected": "Collected",
+    "scheduled": "Scheduled",
+    "rate": "Rate",
+    "month": "Month",
+    "point": "{{month}}: {{collected}} collected of {{scheduled}} scheduled, {{percent}}",
+    "caption": "Collections and scheduled amounts by month",
+    "toDate": "{{month}}, to date"
+  },
+  "funnel": {
+    "title": "Sales funnel",
+    "summary": "{{booked}} bookings from {{enquiries}} enquiries ({{percent}}) over {{period}}.",
+    "stage": {
+      "enquiries": "Enquiries",
+      "contacted": "Contacted",
+      "visits": "Site visits",
+      "qualified": "Qualified",
+      "booked": "Booked"
+    },
+    "conversion": "{{percent}} of the previous stage",
+    "stageHeader": "Stage",
+    "count": "Leads",
+    "fromPrevious": "From previous stage",
+    "caption": "Leads by funnel stage"
+  },
+  "inventory": {
+    "title": "Inventory by building",
+    "summary": "{{available}} of {{total}} units are available; {{top}} has the most stock.",
+    "tower": "Tower {{name}}",
+    "phase": "Phase {{name}}",
+    "bucket": {
+      "available": "Available",
+      "onHold": "On hold",
+      "sold": "Sold",
+      "handedOver": "Handed over"
+    },
+    "other": "Not for sale",
+    "total": "Total",
+    "totalNote": "Totals include units not for sale. Select a building to open its unit matrix.",
+    "row": "{{name}}: {{available}} available, {{onHold}} on hold, {{sold}} sold, {{handedOver}} handed over, {{total}} units in total. Open in unit matrix.",
+    "caption": "Units by building and status",
+    "building": "Building"
+  },
+  "attention": {
+    "title": "Action centre",
+    "subtitle": "What needs you today",
+    "tabs": "Action centre categories",
+    "kind": {
+      "verification": "Proofs",
+      "followUp": "Follow-ups",
+      "hold": "Holds",
+      "overdue": "Overdue"
+    },
+    "listLabel": {
+      "verification": "Payment proofs awaiting verification",
+      "followUp": "Follow-ups due",
+      "hold": "Unit holds expiring",
+      "overdue": "Overdue instalments"
+    },
+    "when": {
+      "verification": "Submitted {{time}}",
+      "followUp": "Due {{time}}",
+      "hold": "Expires {{time}}",
+      "overdue": "Due {{time}}"
+    },
+    "urgent": "Urgent",
+    "empty": "Nothing waiting here. Well done.",
+    "viewAll": "View all",
+    "verificationNote": "Proofs stay “Awaiting verification” until finance confirms the money; they are never marked paid automatically."
+  },
+  "residences": {
+    "title": "Residences",
+    "summary": "Availability and starting prices by residence type.",
+    "type": {
+      "apartment_1bed": "One-bedroom residences",
+      "apartment_2bed": "Two-bedroom residences",
+      "apartment_3bed": "Three-bedroom residences",
+      "penthouse": "Penthouses",
+      "villa": "Villas",
+      "plot": "Residential plots"
+    },
+    "available": "{{available}} of {{total}} available",
+    "availability": "{{percent}} available",
+    "from": "From",
+    "avgArea": "Average {{area}}",
+    "previous": "Previous residences",
+    "next": "Next residences",
+    "openMatrix": "Open unit matrix",
+    "listLabel": "Residence types"
+  },
+  "construction": {
+    "title": "Construction update",
+    "eyebrow": "Site report · {{time}}",
+    "progress": "Overall progress",
+    "open": "All construction updates",
+    "reports": {
+      "heights": {
+        "title": "Tower {{tower}}: level {{floor}} slab poured",
+        "body": "The level {{floor}} slab of Tower {{tower}} was poured overnight and is curing. Façade panels for the lower floors arrive next week, and the site remains on schedule."
+      },
+      "gardens": {
+        "title": "{{phase}}: main boulevard paved",
+        "body": "Paving of the main boulevard in {{phase}} is complete. Underground electrical work moves to the eastern blocks next."
+      }
+    }
+  },
+  "chart": {
+    "dataTable": "Data table",
+    "legend": "Legend"
+  },
+  "state": {
+    "refreshing": "Updating figures",
+    "updated": "Figures updated for {{period}}"
+  }
+}

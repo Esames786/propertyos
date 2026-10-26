@@ -8,6 +8,7 @@ import { VIEWPORTS } from '../support/viewports';
  * phone width, plus open overlays and tour steps. Zero violations is the bar.
  */
 const BACKOFFICE_ROUTES = [
+  '/backoffice/home/role-aware-dashboard',
   '/backoffice/lab',
   '/backoffice/lab/tokens',
   '/backoffice/lab/components',
@@ -101,10 +102,38 @@ for (const locale of ['en-PK', 'ur-PK'] as Locale[]) {
   }
 }
 
+for (const locale of ['en-PK', 'ur-PK'] as Locale[]) {
+  test(`dashboard (${locale}): every role, data tables open, last action tab, next project`, async ({ browser }, testInfo) => {
+    test.setTimeout(120_000);
+    for (const persona of ['manager', 'finance'] as const) {
+      const context = await browser.newContext({ viewport: VIEWPORTS.desktop });
+      const page = await context.newPage();
+      await seed(page, { persona, locale });
+      await page.goto(`${BO}/backoffice/home/role-aware-dashboard`);
+      await waitForApp(page);
+      await page.waitForLoadState('networkidle');
+      await expectClean(page, `dashboard-${locale}-${persona}`, testInfo);
+      for (const id of ['collections-chart', 'inventory-chart', 'funnel-chart']) {
+        const toggle = page.getByTestId(`${id}-table-toggle`);
+        if (await toggle.count()) await toggle.click();
+      }
+      await page.getByTestId('attention-tabs').getByRole('tab').last().click();
+      await page.getByTestId('showcase-next').click();
+      await page.waitForTimeout(800);
+      await expectClean(page, `dashboard-${locale}-${persona}-tables-tabs`, testInfo);
+      await context.close();
+    }
+  });
+}
+
 test('high-contrast preference still passes', async ({ page }, testInfo) => {
   await seed(page, { a11y: { motion: 'system', contrast: 'more', sound: false, textOnlyGuide: false } });
   await page.goto(`${BO}/backoffice/lab/components`);
   await waitForApp(page);
   await expect(page.locator('html')).toHaveAttribute('data-contrast', 'more');
   await expectClean(page, 'high-contrast-components', testInfo);
+  await page.goto(`${BO}/backoffice/home/role-aware-dashboard`);
+  await waitForApp(page);
+  await page.waitForLoadState('networkidle');
+  await expectClean(page, 'high-contrast-dashboard', testInfo);
 });

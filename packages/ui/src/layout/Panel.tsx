@@ -21,12 +21,12 @@ export function Panel({
   const id = useId();
   const H = `h${headingLevel}` as const;
   return (
-    <section aria-labelledby={title ? id : undefined} className={cn('@container rounded-card border border-border bg-panel p-4 shadow-card sm:p-5', className)}>
+    <section aria-labelledby={title ? id : undefined} className={cn('@container rounded-card bg-panel p-5 shadow-card sm:p-6', className)}>
       {(title || actions) && (
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             {title && (
-              <H id={id} className="text-base font-semibold text-text">
+              <H id={id} className="font-display text-lg text-text">
                 {title}
               </H>
             )}

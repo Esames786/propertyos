@@ -350,8 +350,8 @@ export const SCREENS: readonly ScreenEntry[] = [
     "uiTemplate": "dashboard",
     "registerRoute": "/backoffice/home/role-aware-dashboard",
     "route": "/backoffice/home/role-aware-dashboard",
-    "status": "planned",
-    "stage": 2
+    "status": "implemented",
+    "stage": 1.5
   },
   {
     "id": "HOME-002",
