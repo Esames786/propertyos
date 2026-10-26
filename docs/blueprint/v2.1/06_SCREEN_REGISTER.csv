@@ -1,0 +1,322 @@
+﻿screen_id,app,domain,name,surface,template,prototype_route,permission,data_rule
+GLOBAL-001,backoffice,GLOBAL,Command palette,page,index,/backoffice/global/command-palette,TBD per role/scope,Mock first; authoritative later
+GLOBAL-002,backoffice,GLOBAL,Unified search results,page,index,/backoffice/global/unified-search-results,TBD per role/scope,Mock first; authoritative later
+GLOBAL-003,backoffice,GLOBAL,Quick create,page,index,/backoffice/global/quick-create,TBD per role/scope,Mock first; authoritative later
+GLOBAL-004,backoffice,GLOBAL,Notifications,page,index,/backoffice/global/notifications,TBD per role/scope,Mock first; authoritative later
+GLOBAL-005,backoffice,GLOBAL,Recent records,page,index,/backoffice/global/recent-records,TBD per role/scope,Mock first; authoritative later
+GLOBAL-006,backoffice,GLOBAL,Favorites,page,index,/backoffice/global/favorites,TBD per role/scope,Mock first; authoritative later
+GLOBAL-007,backoffice,GLOBAL,Context help,page,index,/backoffice/global/context-help,TBD per role/scope,Mock first; authoritative later
+GLOBAL-008,backoffice,GLOBAL,Profile & preferences,page,index,/backoffice/global/profile--preferences,TBD per role/scope,Mock first; authoritative later
+GLOBAL-009,backoffice,GLOBAL,Language switcher,page,index,/backoffice/global/language-switcher,TBD per role/scope,Mock first; authoritative later
+GLOBAL-010,backoffice,GLOBAL,Accessibility preferences,page,index,/backoffice/global/accessibility-preferences,TBD per role/scope,Mock first; authoritative later
+AUTH-001,shared,AUTH,Login,page,index,/shared/auth/login,TBD per role/scope,Mock first; authoritative later
+AUTH-002,shared,AUTH,Forgot password,page,index,/shared/auth/forgot-password,TBD per role/scope,Mock first; authoritative later
+AUTH-003,shared,AUTH,Reset password,page,index,/shared/auth/reset-password,TBD per role/scope,Mock first; authoritative later
+AUTH-004,shared,AUTH,Second factor optional,page,index,/shared/auth/second-factor-optional,TBD per role/scope,Mock first; authoritative later
+AUTH-005,shared,AUTH,Tenant selection,page,index,/shared/auth/tenant-selection,TBD per role/scope,Mock first; authoritative later
+AUTH-006,shared,AUTH,Customer portal login,page,index,/shared/auth/customer-portal-login,TBD per role/scope,Mock first; authoritative later
+SAAS-001,saas,SAAS,Platform dashboard,page,index,/saas/saas/platform-dashboard,TBD per role/scope,Mock first; authoritative later
+SAAS-002,saas,SAAS,Tenants list,page,index,/saas/saas/tenants-list,TBD per role/scope,Mock first; authoritative later
+SAAS-003,saas,SAAS,Tenant 360 workspace,workspace,detail,/saas/saas/tenant-360-workspace,TBD per role/scope,Mock first; authoritative later
+SAAS-004,saas,SAAS,Create tenant,page,index,/saas/saas/create-tenant,TBD per role/scope,Mock first; authoritative later
+SAAS-005,saas,SAAS,Plans & entitlements,page,index,/saas/saas/plans--entitlements,TBD per role/scope,Mock first; authoritative later
+SAAS-006,saas,SAAS,Subscription billing,page,index,/saas/saas/subscription-billing,TBD per role/scope,Mock first; authoritative later
+SAAS-007,saas,SAAS,Domains,page,index,/saas/saas/domains,TBD per role/scope,Mock first; authoritative later
+SAAS-008,saas,SAAS,Platform roles/users,page,index,/saas/saas/platform-roles-users,TBD per role/scope,Mock first; authoritative later
+SAAS-009,saas,SAAS,Support/audit,page,index,/saas/saas/support-audit,TBD per role/scope,Mock first; authoritative later
+SAAS-010,saas,SAAS,Usage and limits,page,index,/saas/saas/usage-and-limits,TBD per role/scope,Mock first; authoritative later
+HOME-001,backoffice,HOME,Role-aware dashboard,page,index,/backoffice/home/role-aware-dashboard,TBD per role/scope,Mock first; authoritative later
+HOME-002,backoffice,HOME,My tasks,page,index,/backoffice/home/my-tasks,TBD per role/scope,Mock first; authoritative later
+HOME-003,backoffice,HOME,My approvals,page,index,/backoffice/home/my-approvals,TBD per role/scope,Mock first; authoritative later
+HOME-004,backoffice,HOME,Work queue,page,index,/backoffice/home/work-queue,TBD per role/scope,Mock first; authoritative later
+HOME-005,backoffice,HOME,Recent activity,page,index,/backoffice/home/recent-activity,TBD per role/scope,Mock first; authoritative later
+CRM-001,backoffice,CRM,Sales home,page,index,/backoffice/crm/sales-home,TBD per role/scope,Mock first; authoritative later
+CRM-002,backoffice,CRM,Leads list,page,index,/backoffice/crm/leads-list,TBD per role/scope,Mock first; authoritative later
+CRM-003,backoffice,CRM,Lead 360 workspace,workspace,detail,/backoffice/crm/lead-360-workspace,TBD per role/scope,Mock first; authoritative later
+CRM-004,backoffice,CRM,New lead drawer,drawer,form,/backoffice/crm/new-lead-drawer,TBD per role/scope,Mock first; authoritative later
+CRM-005,backoffice,CRM,Lead quick view,page,index,/backoffice/crm/lead-quick-view,TBD per role/scope,Mock first; authoritative later
+CRM-006,backoffice,CRM,Lead assignment,page,index,/backoffice/crm/lead-assignment,TBD per role/scope,Mock first; authoritative later
+CRM-007,backoffice,CRM,Opportunities pipeline,page,index,/backoffice/crm/opportunities-pipeline,TBD per role/scope,Mock first; authoritative later
+CRM-008,backoffice,CRM,Opportunity 360 workspace,workspace,detail,/backoffice/crm/opportunity-360-workspace,TBD per role/scope,Mock first; authoritative later
+CRM-009,backoffice,CRM,Site visits calendar,page,calendar,/backoffice/crm/site-visits-calendar,TBD per role/scope,Mock first; authoritative later
+CRM-010,backoffice,CRM,Schedule visit drawer,drawer,form,/backoffice/crm/schedule-visit-drawer,TBD per role/scope,Mock first; authoritative later
+CRM-011,backoffice,CRM,Visit workspace,workspace,detail,/backoffice/crm/visit-workspace,TBD per role/scope,Mock first; authoritative later
+CRM-012,backoffice,CRM,Quotation list,page,index,/backoffice/crm/quotation-list,TBD per role/scope,Mock first; authoritative later
+CRM-013,backoffice,CRM,Quotation builder,page,index,/backoffice/crm/quotation-builder,TBD per role/scope,Mock first; authoritative later
+CRM-014,backoffice,CRM,Quotation workspace,workspace,detail,/backoffice/crm/quotation-workspace,TBD per role/scope,Mock first; authoritative later
+CRM-015,backoffice,CRM,Hold list,page,index,/backoffice/crm/hold-list,TBD per role/scope,Mock first; authoritative later
+CRM-016,backoffice,CRM,Hold unit drawer,drawer,form,/backoffice/crm/hold-unit-drawer,TBD per role/scope,Mock first; authoritative later
+CRM-017,backoffice,CRM,Reservation list,page,index,/backoffice/crm/reservation-list,TBD per role/scope,Mock first; authoritative later
+CRM-018,backoffice,CRM,Reservation workspace,workspace,detail,/backoffice/crm/reservation-workspace,TBD per role/scope,Mock first; authoritative later
+PRJ-001,backoffice,PRJ,Projects list,page,index,/backoffice/prj/projects-list,TBD per role/scope,Mock first; authoritative later
+PRJ-002,backoffice,PRJ,Project 360 workspace,workspace,detail,/backoffice/prj/project-360-workspace,TBD per role/scope,Mock first; authoritative later
+PRJ-003,backoffice,PRJ,Project setup,page,index,/backoffice/prj/project-setup,TBD per role/scope,Mock first; authoritative later
+PRJ-004,backoffice,PRJ,Phase/block/tower explorer,page,index,/backoffice/prj/phase-block-tower-explorer,TBD per role/scope,Mock first; authoritative later
+PRJ-005,backoffice,PRJ,Building/tower create,page,index,/backoffice/prj/building-tower-create,TBD per role/scope,Mock first; authoritative later
+PRJ-006,backoffice,PRJ,Floor create,page,index,/backoffice/prj/floor-create,TBD per role/scope,Mock first; authoritative later
+PRJ-007,backoffice,PRJ,Unit types,page,index,/backoffice/prj/unit-types,TBD per role/scope,Mock first; authoritative later
+PRJ-008,backoffice,PRJ,Project construction overview,page,index,/backoffice/prj/project-construction-overview,TBD per role/scope,Mock first; authoritative later
+PRJ-009,backoffice,PRJ,Project analytics,page,index,/backoffice/prj/project-analytics,TBD per role/scope,Mock first; authoritative later
+INV-001,backoffice,INV,Unit matrix,page,matrix,/backoffice/inv/unit-matrix,TBD per role/scope,Mock first; authoritative later
+INV-002,backoffice,INV,Unit quick view,page,index,/backoffice/inv/unit-quick-view,TBD per role/scope,Mock first; authoritative later
+INV-003,backoffice,INV,Unit 360 workspace,workspace,detail,/backoffice/inv/unit-360-workspace,TBD per role/scope,Mock first; authoritative later
+INV-004,backoffice,INV,Create unit,page,index,/backoffice/inv/create-unit,TBD per role/scope,Mock first; authoritative later
+INV-005,backoffice,INV,Bulk create/import units,page,index,/backoffice/inv/bulk-create-import-units,TBD per role/scope,Mock first; authoritative later
+INV-006,backoffice,INV,Unit price history,page,index,/backoffice/inv/unit-price-history,TBD per role/scope,Mock first; authoritative later
+INV-007,backoffice,INV,Edit price drawer,drawer,form,/backoffice/inv/edit-price-drawer,TBD per role/scope,Mock first; authoritative later
+INV-008,backoffice,INV,Live availability,page,index,/backoffice/inv/live-availability,TBD per role/scope,Mock first; authoritative later
+INV-009,backoffice,INV,Parking inventory,page,index,/backoffice/inv/parking-inventory,TBD per role/scope,Mock first; authoritative later
+INV-010,backoffice,INV,Storage inventory,page,index,/backoffice/inv/storage-inventory,TBD per role/scope,Mock first; authoritative later
+COM-001,backoffice,COM,Payment plan templates,page,index,/backoffice/com/payment-plan-templates,TBD per role/scope,Mock first; authoritative later
+COM-002,backoffice,COM,Payment plan builder,page,index,/backoffice/com/payment-plan-builder,TBD per role/scope,Mock first; authoritative later
+COM-003,backoffice,COM,Pricing policies,page,index,/backoffice/com/pricing-policies,TBD per role/scope,Mock first; authoritative later
+COM-004,backoffice,COM,Fees and discounts,page,index,/backoffice/com/fees-and-discounts,TBD per role/scope,Mock first; authoritative later
+COM-005,backoffice,COM,Approval rules,page,index,/backoffice/com/approval-rules,TBD per role/scope,Mock first; authoritative later
+BKG-001,backoffice,BKG,Bookings list,page,index,/backoffice/bkg/bookings-list,TBD per role/scope,Mock first; authoritative later
+BKG-002,backoffice,BKG,Booking 360 workspace,workspace,detail,/backoffice/bkg/booking-360-workspace,TBD per role/scope,Mock first; authoritative later
+BKG-003,backoffice,BKG,New booking wizard,page,wizard,/backoffice/bkg/new-booking-wizard,TBD per role/scope,Mock first; authoritative later
+BKG-004,backoffice,BKG,Manage buyers,page,index,/backoffice/bkg/manage-buyers,TBD per role/scope,Mock first; authoritative later
+BKG-005,backoffice,BKG,Amend booking,page,index,/backoffice/bkg/amend-booking,TBD per role/scope,Mock first; authoritative later
+BKG-006,backoffice,BKG,Cancel booking flow,page,wizard,/backoffice/bkg/cancel-booking-flow,TBD per role/scope,Mock first; authoritative later
+BKG-007,backoffice,BKG,Booking payment plan,page,index,/backoffice/bkg/booking-payment-plan,TBD per role/scope,Mock first; authoritative later
+BKG-008,backoffice,BKG,Booking document review,page,index,/backoffice/bkg/booking-document-review,TBD per role/scope,Mock first; authoritative later
+CUS-001,backoffice,CUS,Customers list,page,index,/backoffice/cus/customers-list,TBD per role/scope,Mock first; authoritative later
+CUS-002,backoffice,CUS,Customer quick view,page,index,/backoffice/cus/customer-quick-view,TBD per role/scope,Mock first; authoritative later
+CUS-003,backoffice,CUS,Customer 360 workspace,workspace,detail,/backoffice/cus/customer-360-workspace,TBD per role/scope,Mock first; authoritative later
+CUS-004,backoffice,CUS,Identity/KYC,page,index,/backoffice/cus/identity-kyc,TBD per role/scope,Mock first; authoritative later
+CUS-005,backoffice,CUS,Relationships,page,index,/backoffice/cus/relationships,TBD per role/scope,Mock first; authoritative later
+CUS-006,backoffice,CUS,Owned properties,page,index,/backoffice/cus/owned-properties,TBD per role/scope,Mock first; authoritative later
+CUS-007,backoffice,CUS,Customer communications,page,index,/backoffice/cus/customer-communications,TBD per role/scope,Mock first; authoritative later
+CUS-008,backoffice,CUS,Customer ledger,page,index,/backoffice/cus/customer-ledger,TBD per role/scope,Mock first; authoritative later
+OWN-001,backoffice,OWN,Ownership workspace,workspace,detail,/backoffice/own/ownership-workspace,TBD per role/scope,Mock first; authoritative later
+OWN-002,backoffice,OWN,Ownership history,page,index,/backoffice/own/ownership-history,TBD per role/scope,Mock first; authoritative later
+OWN-003,backoffice,OWN,Transfers list,page,index,/backoffice/own/transfers-list,TBD per role/scope,Mock first; authoritative later
+OWN-004,backoffice,OWN,Transfer review/approval,page,index,/backoffice/own/transfer-review-approval,TBD per role/scope,Mock first; authoritative later
+OWN-005,backoffice,OWN,Occupancy history,page,index,/backoffice/own/occupancy-history,TBD per role/scope,Mock first; authoritative later
+COL-001,backoffice,COL,Collections dashboard,page,index,/backoffice/col/collections-dashboard,TBD per role/scope,Mock first; authoritative later
+COL-002,backoffice,COL,Receivables list,page,index,/backoffice/col/receivables-list,TBD per role/scope,Mock first; authoritative later
+COL-003,backoffice,COL,Recovery queue,page,index,/backoffice/col/recovery-queue,TBD per role/scope,Mock first; authoritative later
+COL-004,backoffice,COL,Customer statement,page,index,/backoffice/col/customer-statement,TBD per role/scope,Mock first; authoritative later
+COL-005,backoffice,COL,Aging breakdown,page,index,/backoffice/col/aging-breakdown,TBD per role/scope,Mock first; authoritative later
+COL-006,backoffice,COL,Promise-to-pay tracker,page,index,/backoffice/col/promise-to-pay-tracker,TBD per role/scope,Mock first; authoritative later
+FIN-001,backoffice,FIN,Finance dashboard,page,index,/backoffice/fin/finance-dashboard,TBD per role/scope,Mock first; authoritative later
+FIN-002,backoffice,FIN,Invoices list,page,index,/backoffice/fin/invoices-list,TBD per role/scope,Mock first; authoritative later
+FIN-003,backoffice,FIN,Invoice workspace,workspace,detail,/backoffice/fin/invoice-workspace,TBD per role/scope,Mock first; authoritative later
+FIN-004,backoffice,FIN,Create invoice,page,index,/backoffice/fin/create-invoice,TBD per role/scope,Mock first; authoritative later
+FIN-005,backoffice,FIN,Payment list,page,index,/backoffice/fin/payment-list,TBD per role/scope,Mock first; authoritative later
+FIN-006,backoffice,FIN,Payment workspace,workspace,detail,/backoffice/fin/payment-workspace,TBD per role/scope,Mock first; authoritative later
+FIN-007,backoffice,FIN,Receive payment drawer,drawer,form,/backoffice/fin/receive-payment-drawer,TBD per role/scope,Mock first; authoritative later
+FIN-008,backoffice,FIN,Unverified transfers queue,page,index,/backoffice/fin/unverified-transfers-queue,TBD per role/scope,Mock first; authoritative later
+FIN-009,backoffice,FIN,Transfer proof review,page,index,/backoffice/fin/transfer-proof-review,TBD per role/scope,Mock first; authoritative later
+FIN-010,backoffice,FIN,Refund flow,page,wizard,/backoffice/fin/refund-flow,TBD per role/scope,Mock first; authoritative later
+FIN-011,backoffice,FIN,Customer credit/overpayments,page,index,/backoffice/fin/customer-credit-overpayments,TBD per role/scope,Mock first; authoritative later
+FIN-012,backoffice,FIN,Maintenance billing,page,index,/backoffice/fin/maintenance-billing,TBD per role/scope,Mock first; authoritative later
+ACC-001,backoffice,ACC,Chart of accounts,page,index,/backoffice/acc/chart-of-accounts,TBD per role/scope,Mock first; authoritative later
+ACC-002,backoffice,ACC,Account workspace,workspace,detail,/backoffice/acc/account-workspace,TBD per role/scope,Mock first; authoritative later
+ACC-003,backoffice,ACC,Journal entries,page,index,/backoffice/acc/journal-entries,TBD per role/scope,Mock first; authoritative later
+ACC-004,backoffice,ACC,Create journal,page,index,/backoffice/acc/create-journal,TBD per role/scope,Mock first; authoritative later
+ACC-005,backoffice,ACC,Reverse journal,page,index,/backoffice/acc/reverse-journal,TBD per role/scope,Mock first; authoritative later
+ACC-006,backoffice,ACC,Trial balance,page,index,/backoffice/acc/trial-balance,TBD per role/scope,Mock first; authoritative later
+ACC-007,backoffice,ACC,Profit and loss,page,index,/backoffice/acc/profit-and-loss,TBD per role/scope,Mock first; authoritative later
+ACC-008,backoffice,ACC,Balance sheet,page,index,/backoffice/acc/balance-sheet,TBD per role/scope,Mock first; authoritative later
+ACC-009,backoffice,ACC,Accounting periods,page,index,/backoffice/acc/accounting-periods,TBD per role/scope,Mock first; authoritative later
+ACC-010,backoffice,ACC,Posting rules,page,index,/backoffice/acc/posting-rules,TBD per role/scope,Mock first; authoritative later
+BANK-001,backoffice,BANK,Bank accounts,page,index,/backoffice/bank/bank-accounts,TBD per role/scope,Mock first; authoritative later
+BANK-002,backoffice,BANK,Bank account 360 workspace,workspace,detail,/backoffice/bank/bank-account-360-workspace,TBD per role/scope,Mock first; authoritative later
+BANK-003,backoffice,BANK,Bank transaction feed,page,index,/backoffice/bank/bank-transaction-feed,TBD per role/scope,Mock first; authoritative later
+BANK-004,backoffice,BANK,Reconciliation workspace,workspace,detail,/backoffice/bank/reconciliation-workspace,TBD per role/scope,Mock first; authoritative later
+BANK-005,backoffice,BANK,Bank import,page,index,/backoffice/bank/bank-import,TBD per role/scope,Mock first; authoritative later
+BANK-006,backoffice,BANK,Transfers,page,index,/backoffice/bank/transfers,TBD per role/scope,Mock first; authoritative later
+SUP-001,backoffice,SUP,Suppliers list,page,index,/backoffice/sup/suppliers-list,TBD per role/scope,Mock first; authoritative later
+SUP-002,backoffice,SUP,Supplier 360 workspace,workspace,detail,/backoffice/sup/supplier-360-workspace,TBD per role/scope,Mock first; authoritative later
+SUP-003,backoffice,SUP,Supplier bills list,page,index,/backoffice/sup/supplier-bills-list,TBD per role/scope,Mock first; authoritative later
+SUP-004,backoffice,SUP,Supplier bill workspace,workspace,detail,/backoffice/sup/supplier-bill-workspace,TBD per role/scope,Mock first; authoritative later
+SUP-005,backoffice,SUP,New supplier bill,page,index,/backoffice/sup/new-supplier-bill,TBD per role/scope,Mock first; authoritative later
+SUP-006,backoffice,SUP,Supplier payment drawer,drawer,form,/backoffice/sup/supplier-payment-drawer,TBD per role/scope,Mock first; authoritative later
+SUP-007,backoffice,SUP,Supplier ledger,page,index,/backoffice/sup/supplier-ledger,TBD per role/scope,Mock first; authoritative later
+SUP-008,backoffice,SUP,Utilities bills register,page,index,/backoffice/sup/utilities-bills-register,TBD per role/scope,Mock first; authoritative later
+EXP-001,backoffice,EXP,Expenses list,page,index,/backoffice/exp/expenses-list,TBD per role/scope,Mock first; authoritative later
+EXP-002,backoffice,EXP,New expense,page,index,/backoffice/exp/new-expense,TBD per role/scope,Mock first; authoritative later
+EXP-003,backoffice,EXP,Expense workspace,workspace,detail,/backoffice/exp/expense-workspace,TBD per role/scope,Mock first; authoritative later
+EXP-004,backoffice,EXP,Expense approvals,page,index,/backoffice/exp/expense-approvals,TBD per role/scope,Mock first; authoritative later
+EXP-005,backoffice,EXP,Petty cash,page,index,/backoffice/exp/petty-cash,TBD per role/scope,Mock first; authoritative later
+EXP-006,backoffice,EXP,Employee expenses,page,index,/backoffice/exp/employee-expenses,TBD per role/scope,Mock first; authoritative later
+EXP-007,backoffice,EXP,Budget list,page,index,/backoffice/exp/budget-list,TBD per role/scope,Mock first; authoritative later
+EXP-008,backoffice,EXP,Budget workspace,workspace,detail,/backoffice/exp/budget-workspace,TBD per role/scope,Mock first; authoritative later
+EXP-009,backoffice,EXP,Budget vs actual,page,index,/backoffice/exp/budget-vs-actual,TBD per role/scope,Mock first; authoritative later
+PROC-001,backoffice,PROC,Procurement overview,page,index,/backoffice/proc/procurement-overview,TBD per role/scope,Mock first; authoritative later
+PROC-002,backoffice,PROC,Purchase request list,page,index,/backoffice/proc/purchase-request-list,TBD per role/scope,Mock first; authoritative later
+PROC-003,backoffice,PROC,Purchase request workspace,workspace,detail,/backoffice/proc/purchase-request-workspace,TBD per role/scope,Mock first; authoritative later
+PROC-004,backoffice,PROC,RFQ list,page,index,/backoffice/proc/rfq-list,TBD per role/scope,Mock first; authoritative later
+PROC-005,backoffice,PROC,Supplier quotation comparison,page,index,/backoffice/proc/supplier-quotation-comparison,TBD per role/scope,Mock first; authoritative later
+PROC-006,backoffice,PROC,Purchase orders list,page,index,/backoffice/proc/purchase-orders-list,TBD per role/scope,Mock first; authoritative later
+PROC-007,backoffice,PROC,Purchase order workspace,workspace,detail,/backoffice/proc/purchase-order-workspace,TBD per role/scope,Mock first; authoritative later
+PROC-008,backoffice,PROC,Goods/service receipt,page,index,/backoffice/proc/goods-service-receipt,TBD per role/scope,Mock first; authoritative later
+HR-001,backoffice,HR,HR dashboard,page,index,/backoffice/hr/hr-dashboard,TBD per role/scope,Mock first; authoritative later
+HR-002,backoffice,HR,Employees list,page,index,/backoffice/hr/employees-list,TBD per role/scope,Mock first; authoritative later
+HR-003,backoffice,HR,Employee 360 workspace,workspace,detail,/backoffice/hr/employee-360-workspace,TBD per role/scope,Mock first; authoritative later
+HR-004,backoffice,HR,New employee,page,index,/backoffice/hr/new-employee,TBD per role/scope,Mock first; authoritative later
+HR-005,backoffice,HR,Attendance,page,index,/backoffice/hr/attendance,TBD per role/scope,Mock first; authoritative later
+HR-006,backoffice,HR,Leave/attendance adjustments,page,index,/backoffice/hr/leave-attendance-adjustments,TBD per role/scope,Mock first; authoritative later
+HR-007,backoffice,HR,Employee advances,page,index,/backoffice/hr/employee-advances,TBD per role/scope,Mock first; authoritative later
+HR-008,backoffice,HR,Employee advance settlement,page,index,/backoffice/hr/employee-advance-settlement,TBD per role/scope,Mock first; authoritative later
+HR-009,backoffice,HR,Employee documents,page,index,/backoffice/hr/employee-documents,TBD per role/scope,Mock first; authoritative later
+PAY-001,backoffice,PAY,Payroll dashboard,page,index,/backoffice/pay/payroll-dashboard,TBD per role/scope,Mock first; authoritative later
+PAY-002,backoffice,PAY,Payroll periods,page,index,/backoffice/pay/payroll-periods,TBD per role/scope,Mock first; authoritative later
+PAY-003,backoffice,PAY,Payroll run workspace,workspace,detail,/backoffice/pay/payroll-run-workspace,TBD per role/scope,Mock first; authoritative later
+PAY-004,backoffice,PAY,Employee pay breakdown,page,index,/backoffice/pay/employee-pay-breakdown,TBD per role/scope,Mock first; authoritative later
+PAY-005,backoffice,PAY,Payroll finalization,page,index,/backoffice/pay/payroll-finalization,TBD per role/scope,Mock first; authoritative later
+PAY-006,backoffice,PAY,Payroll disbursement status,page,index,/backoffice/pay/payroll-disbursement-status,TBD per role/scope,Mock first; authoritative later
+PAY-007,backoffice,PAY,Payroll accounting,page,index,/backoffice/pay/payroll-accounting,TBD per role/scope,Mock first; authoritative later
+DOC-001,backoffice,DOC,Document center,page,index,/backoffice/doc/document-center,TBD per role/scope,Mock first; authoritative later
+DOC-002,backoffice,DOC,Document preview,page,index,/backoffice/doc/document-preview,TBD per role/scope,Mock first; authoritative later
+DOC-003,backoffice,DOC,Upload drawer,drawer,form,/backoffice/doc/upload-drawer,TBD per role/scope,Mock first; authoritative later
+DOC-004,backoffice,DOC,Document versions,page,index,/backoffice/doc/document-versions,TBD per role/scope,Mock first; authoritative later
+DOC-005,backoffice,DOC,Expiring documents,page,index,/backoffice/doc/expiring-documents,TBD per role/scope,Mock first; authoritative later
+DOC-006,backoffice,DOC,Templates and policies,page,index,/backoffice/doc/templates-and-policies,TBD per role/scope,Mock first; authoritative later
+APR-001,backoffice,APR,My approvals,page,index,/backoffice/apr/my-approvals,TBD per role/scope,Mock first; authoritative later
+APR-002,backoffice,APR,Approval 360 view,workspace,detail,/backoffice/apr/approval-360-view,TBD per role/scope,Mock first; authoritative later
+APR-003,backoffice,APR,Approve/reject drawer,drawer,form,/backoffice/apr/approve-reject-drawer,TBD per role/scope,Mock first; authoritative later
+APR-004,backoffice,APR,Approval settings,page,index,/backoffice/apr/approval-settings,TBD per role/scope,Mock first; authoritative later
+APR-005,backoffice,APR,Delegation,page,index,/backoffice/apr/delegation,TBD per role/scope,Mock first; authoritative later
+CON-001,backoffice,CON,Construction dashboard,page,index,/backoffice/con/construction-dashboard,TBD per role/scope,Mock first; authoritative later
+CON-002,backoffice,CON,Milestones,page,index,/backoffice/con/milestones,TBD per role/scope,Mock first; authoritative later
+CON-003,backoffice,CON,Construction update list,page,index,/backoffice/con/construction-update-list,TBD per role/scope,Mock first; authoritative later
+CON-004,backoffice,CON,New update,page,index,/backoffice/con/new-update,TBD per role/scope,Mock first; authoritative later
+CON-005,backoffice,CON,Customer publication preview,page,index,/backoffice/con/customer-publication-preview,TBD per role/scope,Mock first; authoritative later
+CON-006,backoffice,CON,Media timeline,page,index,/backoffice/con/media-timeline,TBD per role/scope,Mock first; authoritative later
+HND-001,backoffice,HND,Handover dashboard,page,index,/backoffice/hnd/handover-dashboard,TBD per role/scope,Mock first; authoritative later
+HND-002,backoffice,HND,Handover queue,page,index,/backoffice/hnd/handover-queue,TBD per role/scope,Mock first; authoritative later
+HND-003,backoffice,HND,Handover 360 workspace,workspace,detail,/backoffice/hnd/handover-360-workspace,TBD per role/scope,Mock first; authoritative later
+HND-004,backoffice,HND,Finance clearance,page,index,/backoffice/hnd/finance-clearance,TBD per role/scope,Mock first; authoritative later
+HND-005,backoffice,HND,Legal clearance,page,index,/backoffice/hnd/legal-clearance,TBD per role/scope,Mock first; authoritative later
+HND-006,backoffice,HND,Inspection checklist,page,index,/backoffice/hnd/inspection-checklist,TBD per role/scope,Mock first; authoritative later
+HND-007,backoffice,HND,Snag board,page,index,/backoffice/hnd/snag-board,TBD per role/scope,Mock first; authoritative later
+HND-008,backoffice,HND,Handover scheduler,page,index,/backoffice/hnd/handover-scheduler,TBD per role/scope,Mock first; authoritative later
+HND-009,backoffice,HND,Complete handover flow,page,wizard,/backoffice/hnd/complete-handover-flow,TBD per role/scope,Mock first; authoritative later
+MNT-001,backoffice,MNT,Maintenance dashboard,page,index,/backoffice/mnt/maintenance-dashboard,TBD per role/scope,Mock first; authoritative later
+MNT-002,backoffice,MNT,Maintenance list,page,index,/backoffice/mnt/maintenance-list,TBD per role/scope,Mock first; authoritative later
+MNT-003,backoffice,MNT,Maintenance 360 workspace,workspace,detail,/backoffice/mnt/maintenance-360-workspace,TBD per role/scope,Mock first; authoritative later
+MNT-004,backoffice,MNT,New request,page,index,/backoffice/mnt/new-request,TBD per role/scope,Mock first; authoritative later
+MNT-005,backoffice,MNT,Assign work order,page,index,/backoffice/mnt/assign-work-order,TBD per role/scope,Mock first; authoritative later
+MNT-006,backoffice,MNT,Technician board,page,index,/backoffice/mnt/technician-board,TBD per role/scope,Mock first; authoritative later
+MNT-007,backoffice,MNT,SLA dashboard,page,index,/backoffice/mnt/sla-dashboard,TBD per role/scope,Mock first; authoritative later
+MNT-008,backoffice,MNT,Resident confirmation,page,index,/backoffice/mnt/resident-confirmation,TBD per role/scope,Mock first; authoritative later
+RES-001,backoffice,RES,Resident dashboard,page,index,/backoffice/res/resident-dashboard,TBD per role/scope,Mock first; authoritative later
+RES-002,backoffice,RES,Occupancy list,page,index,/backoffice/res/occupancy-list,TBD per role/scope,Mock first; authoritative later
+RES-003,backoffice,RES,Occupancy 360 workspace,workspace,detail,/backoffice/res/occupancy-360-workspace,TBD per role/scope,Mock first; authoritative later
+RES-004,backoffice,RES,Household members,page,index,/backoffice/res/household-members,TBD per role/scope,Mock first; authoritative later
+RES-005,backoffice,RES,Community announcements,page,index,/backoffice/res/community-announcements,TBD per role/scope,Mock first; authoritative later
+RES-006,backoffice,RES,Resident notices,page,index,/backoffice/res/resident-notices,TBD per role/scope,Mock first; authoritative later
+VIS-001,backoffice,VIS,Visitor dashboard,page,index,/backoffice/vis/visitor-dashboard,TBD per role/scope,Mock first; authoritative later
+VIS-002,backoffice,VIS,Visitor passes,page,index,/backoffice/vis/visitor-passes,TBD per role/scope,Mock first; authoritative later
+VIS-003,backoffice,VIS,Pass detail,page,index,/backoffice/vis/pass-detail,TBD per role/scope,Mock first; authoritative later
+VIS-004,backoffice,VIS,Gate check-in,page,index,/backoffice/vis/gate-check-in,TBD per role/scope,Mock first; authoritative later
+VIS-005,backoffice,VIS,Visitor history,page,index,/backoffice/vis/visitor-history,TBD per role/scope,Mock first; authoritative later
+VIS-006,backoffice,VIS,Scan QR,page,index,/backoffice/vis/scan-qr,TBD per role/scope,Mock first; authoritative later
+PARK-001,backoffice,PARK,Parking overview,page,index,/backoffice/park/parking-overview,TBD per role/scope,Mock first; authoritative later
+PARK-002,backoffice,PARK,Parking inventory,page,index,/backoffice/park/parking-inventory,TBD per role/scope,Mock first; authoritative later
+PARK-003,backoffice,PARK,Parking space workspace,workspace,detail,/backoffice/park/parking-space-workspace,TBD per role/scope,Mock first; authoritative later
+PARK-004,backoffice,PARK,Allocate parking,page,index,/backoffice/park/allocate-parking,TBD per role/scope,Mock first; authoritative later
+PARK-005,backoffice,PARK,Vehicle registry,page,index,/backoffice/park/vehicle-registry,TBD per role/scope,Mock first; authoritative later
+PARK-006,backoffice,PARK,Guest parking,page,index,/backoffice/park/guest-parking,TBD per role/scope,Mock first; authoritative later
+AMN-001,backoffice,AMN,Amenity list,page,index,/backoffice/amn/amenity-list,TBD per role/scope,Mock first; authoritative later
+AMN-002,backoffice,AMN,Amenity calendar,page,calendar,/backoffice/amn/amenity-calendar,TBD per role/scope,Mock first; authoritative later
+AMN-003,backoffice,AMN,Amenity bookings,page,index,/backoffice/amn/amenity-bookings,TBD per role/scope,Mock first; authoritative later
+AMN-004,backoffice,AMN,Amenity booking details,page,index,/backoffice/amn/amenity-booking-details,TBD per role/scope,Mock first; authoritative later
+AMN-005,backoffice,AMN,Amenity rules,page,index,/backoffice/amn/amenity-rules,TBD per role/scope,Mock first; authoritative later
+NOT-001,backoffice,NOT,Communication center,page,index,/backoffice/not/communication-center,TBD per role/scope,Mock first; authoritative later
+NOT-002,backoffice,NOT,History,page,index,/backoffice/not/history,TBD per role/scope,Mock first; authoritative later
+NOT-003,backoffice,NOT,Send message,page,index,/backoffice/not/send-message,TBD per role/scope,Mock first; authoritative later
+NOT-004,backoffice,NOT,Templates,page,index,/backoffice/not/templates,TBD per role/scope,Mock first; authoritative later
+NOT-005,backoffice,NOT,Failure queue,page,index,/backoffice/not/failure-queue,TBD per role/scope,Mock first; authoritative later
+NOT-006,backoffice,NOT,Notification preferences,page,index,/backoffice/not/notification-preferences,TBD per role/scope,Mock first; authoritative later
+RPT-001,backoffice,RPT,Report center,page,index,/backoffice/rpt/report-center,TBD per role/scope,Mock first; authoritative later
+RPT-002,backoffice,RPT,Sales funnel,page,index,/backoffice/rpt/sales-funnel,TBD per role/scope,Mock first; authoritative later
+RPT-003,backoffice,RPT,Inventory availability,page,index,/backoffice/rpt/inventory-availability,TBD per role/scope,Mock first; authoritative later
+RPT-004,backoffice,RPT,Customer outstanding,page,index,/backoffice/rpt/customer-outstanding,TBD per role/scope,Mock first; authoritative later
+RPT-005,backoffice,RPT,Collection report,page,index,/backoffice/rpt/collection-report,TBD per role/scope,Mock first; authoritative later
+RPT-006,backoffice,RPT,GL detail,page,index,/backoffice/rpt/gl-detail,TBD per role/scope,Mock first; authoritative later
+RPT-007,backoffice,RPT,Trial balance,page,index,/backoffice/rpt/trial-balance,TBD per role/scope,Mock first; authoritative later
+RPT-008,backoffice,RPT,P&L,page,index,/backoffice/rpt/p-l,TBD per role/scope,Mock first; authoritative later
+RPT-009,backoffice,RPT,Balance sheet,page,index,/backoffice/rpt/balance-sheet,TBD per role/scope,Mock first; authoritative later
+RPT-010,backoffice,RPT,Cash flow,page,wizard,/backoffice/rpt/cash-flow,TBD per role/scope,Mock first; authoritative later
+RPT-011,backoffice,RPT,AR aging,page,index,/backoffice/rpt/ar-aging,TBD per role/scope,Mock first; authoritative later
+RPT-012,backoffice,RPT,AP aging,page,index,/backoffice/rpt/ap-aging,TBD per role/scope,Mock first; authoritative later
+RPT-013,backoffice,RPT,Project profitability,page,index,/backoffice/rpt/project-profitability,TBD per role/scope,Mock first; authoritative later
+RPT-014,backoffice,RPT,Budget vs actual,page,index,/backoffice/rpt/budget-vs-actual,TBD per role/scope,Mock first; authoritative later
+RPT-015,backoffice,RPT,Payroll summary,page,index,/backoffice/rpt/payroll-summary,TBD per role/scope,Mock first; authoritative later
+RPT-016,backoffice,RPT,Construction progress,page,index,/backoffice/rpt/construction-progress,TBD per role/scope,Mock first; authoritative later
+RPT-017,backoffice,RPT,Maintenance SLA,page,index,/backoffice/rpt/maintenance-sla,TBD per role/scope,Mock first; authoritative later
+ADM-001,backoffice,ADM,Administration home,page,index,/backoffice/adm/administration-home,TBD per role/scope,Mock first; authoritative later
+ADM-002,backoffice,ADM,Users list,page,index,/backoffice/adm/users-list,TBD per role/scope,Mock first; authoritative later
+ADM-003,backoffice,ADM,User workspace,workspace,detail,/backoffice/adm/user-workspace,TBD per role/scope,Mock first; authoritative later
+ADM-004,backoffice,ADM,Invite user,page,index,/backoffice/adm/invite-user,TBD per role/scope,Mock first; authoritative later
+ADM-005,backoffice,ADM,Roles list,page,index,/backoffice/adm/roles-list,TBD per role/scope,Mock first; authoritative later
+ADM-006,backoffice,ADM,Role workspace,workspace,detail,/backoffice/adm/role-workspace,TBD per role/scope,Mock first; authoritative later
+ADM-007,backoffice,ADM,Permission matrix,page,matrix,/backoffice/adm/permission-matrix,TBD per role/scope,Mock first; authoritative later
+ADM-008,backoffice,ADM,Company profile,page,index,/backoffice/adm/company-profile,TBD per role/scope,Mock first; authoritative later
+ADM-009,backoffice,ADM,Departments,page,index,/backoffice/adm/departments,TBD per role/scope,Mock first; authoritative later
+ADM-010,backoffice,ADM,Teams,page,index,/backoffice/adm/teams,TBD per role/scope,Mock first; authoritative later
+ADM-011,backoffice,ADM,Branches,page,index,/backoffice/adm/branches,TBD per role/scope,Mock first; authoritative later
+ADM-012,backoffice,ADM,Cost centers,page,index,/backoffice/adm/cost-centers,TBD per role/scope,Mock first; authoritative later
+ADM-013,backoffice,ADM,Finance settings,page,index,/backoffice/adm/finance-settings,TBD per role/scope,Mock first; authoritative later
+ADM-014,backoffice,ADM,Numbering sequences,page,index,/backoffice/adm/numbering-sequences,TBD per role/scope,Mock first; authoritative later
+ADM-015,backoffice,ADM,Payment settings,page,index,/backoffice/adm/payment-settings,TBD per role/scope,Mock first; authoritative later
+ADM-016,backoffice,ADM,Bank transfer settings,page,index,/backoffice/adm/bank-transfer-settings,TBD per role/scope,Mock first; authoritative later
+ADM-017,backoffice,ADM,Safepay sandbox settings,page,index,/backoffice/adm/safepay-sandbox-settings,TBD per role/scope,Mock first; authoritative later
+ADM-018,backoffice,ADM,Payment method rules,page,index,/backoffice/adm/payment-method-rules,TBD per role/scope,Mock first; authoritative later
+ADM-019,backoffice,ADM,Document rules,page,index,/backoffice/adm/document-rules,TBD per role/scope,Mock first; authoritative later
+ADM-020,backoffice,ADM,Notification rules,page,index,/backoffice/adm/notification-rules,TBD per role/scope,Mock first; authoritative later
+ADM-021,backoffice,ADM,Audit explorer,page,index,/backoffice/adm/audit-explorer,TBD per role/scope,Mock first; authoritative later
+PORTAL-001,customer,PORTAL,Home,page,index,/customer/portal/home,TBD per role/scope,Mock first; authoritative later
+PORTAL-002,customer,PORTAL,My properties,page,index,/customer/portal/my-properties,TBD per role/scope,Mock first; authoritative later
+PORTAL-003,customer,PORTAL,Property 360 workspace,workspace,detail,/customer/portal/property-360-workspace,TBD per role/scope,Mock first; authoritative later
+PORTAL-004,customer,PORTAL,Payments dashboard,page,index,/customer/portal/payments-dashboard,TBD per role/scope,Mock first; authoritative later
+PORTAL-005,customer,PORTAL,Invoice detail,page,index,/customer/portal/invoice-detail,TBD per role/scope,Mock first; authoritative later
+PORTAL-006,customer,PORTAL,Pay online mock,page,index,/customer/portal/pay-online-mock,TBD per role/scope,Mock first; authoritative later
+PORTAL-007,customer,PORTAL,Bank transfer details,page,index,/customer/portal/bank-transfer-details,TBD per role/scope,Mock first; authoritative later
+PORTAL-008,customer,PORTAL,Upload proof mock,page,index,/customer/portal/upload-proof-mock,TBD per role/scope,Mock first; authoritative later
+PORTAL-009,customer,PORTAL,Payment history,page,index,/customer/portal/payment-history,TBD per role/scope,Mock first; authoritative later
+PORTAL-010,customer,PORTAL,Receipt,page,index,/customer/portal/receipt,TBD per role/scope,Mock first; authoritative later
+PORTAL-011,customer,PORTAL,Documents,page,index,/customer/portal/documents,TBD per role/scope,Mock first; authoritative later
+PORTAL-012,customer,PORTAL,Construction updates,page,index,/customer/portal/construction-updates,TBD per role/scope,Mock first; authoritative later
+PORTAL-013,customer,PORTAL,Handover status,page,index,/customer/portal/handover-status,TBD per role/scope,Mock first; authoritative later
+PORTAL-014,customer,PORTAL,Handover appointment,page,index,/customer/portal/handover-appointment,TBD per role/scope,Mock first; authoritative later
+PORTAL-015,customer,PORTAL,Services home,page,index,/customer/portal/services-home,TBD per role/scope,Mock first; authoritative later
+PORTAL-016,customer,PORTAL,Maintenance list,page,index,/customer/portal/maintenance-list,TBD per role/scope,Mock first; authoritative later
+PORTAL-017,customer,PORTAL,Create maintenance,page,index,/customer/portal/create-maintenance,TBD per role/scope,Mock first; authoritative later
+PORTAL-018,customer,PORTAL,Maintenance workspace,workspace,detail,/customer/portal/maintenance-workspace,TBD per role/scope,Mock first; authoritative later
+PORTAL-019,customer,PORTAL,Visitor passes,page,index,/customer/portal/visitor-passes,TBD per role/scope,Mock first; authoritative later
+PORTAL-020,customer,PORTAL,Create visitor pass,page,index,/customer/portal/create-visitor-pass,TBD per role/scope,Mock first; authoritative later
+PORTAL-021,customer,PORTAL,Parking,page,index,/customer/portal/parking,TBD per role/scope,Mock first; authoritative later
+PORTAL-022,customer,PORTAL,Amenities,page,index,/customer/portal/amenities,TBD per role/scope,Mock first; authoritative later
+PORTAL-023,customer,PORTAL,Community notices,page,index,/customer/portal/community-notices,TBD per role/scope,Mock first; authoritative later
+PORTAL-024,customer,PORTAL,Profile,page,index,/customer/portal/profile,TBD per role/scope,Mock first; authoritative later
+PORTAL-025,customer,PORTAL,Household,page,index,/customer/portal/household,TBD per role/scope,Mock first; authoritative later
+PORTAL-026,customer,PORTAL,Vehicles,page,index,/customer/portal/vehicles,TBD per role/scope,Mock first; authoritative later
+PORTAL-027,customer,PORTAL,Accessibility preferences,page,index,/customer/portal/accessibility-preferences,TBD per role/scope,Mock first; authoritative later
+WEB-001,public,WEB,Cinematic landing,page,index,/public/web/cinematic-landing,TBD per role/scope,Mock first; authoritative later
+WEB-002,public,WEB,Project story,page,index,/public/web/project-story,TBD per role/scope,Mock first; authoritative later
+WEB-003,public,WEB,Architecture,page,index,/public/web/architecture,TBD per role/scope,Mock first; authoritative later
+WEB-004,public,WEB,Master plan,page,index,/public/web/master-plan,TBD per role/scope,Mock first; authoritative later
+WEB-005,public,WEB,Tower explorer,page,index,/public/web/tower-explorer,TBD per role/scope,Mock first; authoritative later
+WEB-006,public,WEB,Floor explorer,page,index,/public/web/floor-explorer,TBD per role/scope,Mock first; authoritative later
+WEB-007,public,WEB,Unit explorer,page,index,/public/web/unit-explorer,TBD per role/scope,Mock first; authoritative later
+WEB-008,public,WEB,Unit detail,page,index,/public/web/unit-detail,TBD per role/scope,Mock first; authoritative later
+WEB-009,public,WEB,Floor plan zoom,page,index,/public/web/floor-plan-zoom,TBD per role/scope,Mock first; authoritative later
+WEB-010,public,WEB,360 tour,workspace,detail,/public/web/360-tour,TBD per role/scope,Mock first; authoritative later
+WEB-011,public,WEB,Amenities story,page,index,/public/web/amenities-story,TBD per role/scope,Mock first; authoritative later
+WEB-012,public,WEB,Location,page,index,/public/web/location,TBD per role/scope,Mock first; authoritative later
+WEB-013,public,WEB,Construction progress,page,index,/public/web/construction-progress,TBD per role/scope,Mock first; authoritative later
+WEB-014,public,WEB,Payment plan calculator,page,index,/public/web/payment-plan-calculator,TBD per role/scope,Mock first; authoritative later
+WEB-015,public,WEB,Book site visit,page,index,/public/web/book-site-visit,TBD per role/scope,Mock first; authoritative later
+WEB-016,public,WEB,Enquire,page,index,/public/web/enquire,TBD per role/scope,Mock first; authoritative later
+WEB-017,public,WEB,Contact,page,index,/public/web/contact,TBD per role/scope,Mock first; authoritative later
+WEB-018,public,WEB,Legal pages,page,index,/public/web/legal-pages,TBD per role/scope,Mock first; authoritative later
+GUIDE-001,backoffice,GUIDED_ONBOARDING,First-login tour invitation,modal,welcome,/backoffice,All signed-in users,"Opt-in, accessible, user/tenant/app aware"
+GUIDE-002,backoffice,GUIDED_ONBOARDING,Spotlight walkthrough,overlay,guided-tour,/backoffice/help/tours,Authorized role-scoped steps,"Six-step global tour, context-aware anchors"
+GUIDE-003,backoffice,GUIDED_ONBOARDING,Tour library and replay,page,index,/backoffice/help/tours,All signed-in users,"List modules, start/replay/resume tours"
+GUIDE-004,backoffice,GUIDED_ONBOARDING,Practice mode tutorial,wizard,training,/backoffice/help/practice,Authorized role-scoped activities,"Fixture-only actions, clearly marked DEMO"
+GUIDE-005,customer,GUIDED_ONBOARDING,Resident guided tour,overlay,guided-tour,/portal/help/tours,Customer or resident only,"Responsive PWA, accessible EN/Urdu tour"
+GUIDE-006,backoffice,GUIDED_ONBOARDING,Tour preferences,tab,settings,/backoffice/settings/onboarding,All signed-in users,"Disable auto-offers, reset progress, reduced motion"
