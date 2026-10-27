@@ -1,6 +1,6 @@
 import { formatNumber, useLocale } from '@repo/i18n';
 import { FileText, Paperclip, X } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button as AriaButton, DropZone, FileTrigger, Text } from 'react-aria-components';
 import { useController } from 'react-hook-form';
 import { useAnnounce } from '../a11y/LiveAnnouncer';
@@ -13,12 +13,27 @@ import { descriptionClass, fieldWrap } from './fieldStyles';
 const ACCEPTED = ['image/jpeg', 'image/png', 'application/pdf'];
 const MAX_BYTES = 5 * 1024 * 1024;
 
+/**
+ * The object URL is created and revoked by the same effect, so React's StrictMode remount (cleanup,
+ * then setup again) gets a fresh URL instead of reusing one that was already revoked.
+ */
+function useObjectUrl(file: File): string | null {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!file.type.startsWith('image/')) return;
+    const created = URL.createObjectURL(file);
+    setUrl(created);
+    return () => {
+      URL.revokeObjectURL(created);
+      setUrl(null);
+    };
+  }, [file]);
+  return url;
+}
+
 function Preview({ file }: { file: File }) {
   const { t } = useT();
-  const url = useMemo(() => (file.type.startsWith('image/') ? URL.createObjectURL(file) : null), [file]);
-  useEffect(() => () => {
-    if (url) URL.revokeObjectURL(url);
-  }, [url]);
+  const url = useObjectUrl(file);
   return url ? (
     <img src={url} alt={t('forms:upload.preview', { name: file.name })} className="size-12 rounded-sm object-cover" />
   ) : (

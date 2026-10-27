@@ -1,4 +1,5 @@
 import { isValidPkPhone } from '@repo/i18n';
+import { useQueryClient } from '@tanstack/react-query';
 import { GraduationCap } from 'lucide-react';
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
@@ -47,6 +48,7 @@ export function PracticeLeadDrawer() {
   const { transport } = useTransport();
   const training = useTraining();
   const toast = useToast();
+  const queryClient = useQueryClient();
   const methods = useForm<PracticeLead>({
     resolver: zodResolver(schema),
     mode: 'onTouched',
@@ -71,6 +73,8 @@ export function PracticeLeadDrawer() {
       idempotencyKey: crypto.randomUUID(),
     });
     toast.success(t('forms:newLead.created', { ref: result.ref }));
+    // Lists in practice mode show practice records (labelled), so refresh them.
+    void queryClient.invalidateQueries({ queryKey: ['api'] });
     methods.reset();
     close();
     emitTourEvent('practice.lead.submitted');

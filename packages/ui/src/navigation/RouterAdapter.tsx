@@ -61,3 +61,24 @@ export function useQueryParam(name: string): [string | null, (value: string | nu
   );
   return [value, setValue];
 }
+
+/**
+ * Updates several search parameters in one navigation (e.g. a filter change that also resets the
+ * page). Calling several `useQueryParam` setters in a row would each start from the same URL and
+ * overwrite one another.
+ */
+export function useQueryParams(): (updates: Record<string, string | null>, options?: NavigateOptions) => void {
+  const { location, navigate } = useNavigation();
+  return useCallback(
+    (updates, options = { replace: true }) => {
+      const params = new URLSearchParams(location.search);
+      for (const [name, value] of Object.entries(updates)) {
+        if (value === null) params.delete(name);
+        else params.set(name, value);
+      }
+      const search = params.toString();
+      navigate(`${location.pathname}${search ? `?${search}` : ''}${location.hash}`, options);
+    },
+    [location, navigate],
+  );
+}

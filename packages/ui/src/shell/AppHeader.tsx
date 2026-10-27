@@ -1,9 +1,9 @@
-import { Menu as MenuIcon, Search } from 'lucide-react';
+import { Search, ShieldCheck } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Button as AriaButton } from 'react-aria-components';
-import { Badge } from '../data/StatusLabel';
 import { cn } from '../lib/cn';
 import { useT } from '../lib/useT';
+import { Tooltip } from '../overlays/Tooltip';
 import { BrandBlock } from './BrandBlock';
 import { HelpMenu } from './HelpMenu';
 import { LocaleToggle } from './LocaleSwitcher';
@@ -26,36 +26,59 @@ function useScrolled(threshold = 4) {
 }
 
 /**
+ * The demo notice that persists through every fictional workflow: the full sentence on wide screens,
+ * a short "Demo" pill elsewhere (the full sentence is its accessible name and tooltip).
+ */
+export function DemoEnvironmentPill({ className }: { className?: string }) {
+  const { t } = useT();
+  const pill = (
+    <span
+      role="note"
+      aria-label={t('nav:demoEnvironment')}
+      data-testid="demo-environment"
+      className={cn('inline-flex shrink-0 items-center gap-1.5 rounded-pill border border-demo/30 bg-demo-soft px-2.5 py-1 text-xs font-medium text-demo', className)}
+    >
+      <ShieldCheck aria-hidden className="size-3.5" />
+      <span aria-hidden className="hidden 2xl:inline">{t('nav:demoEnvironment')}</span>
+      <span aria-hidden className="2xl:hidden">{t('nav:demoShort')}</span>
+    </span>
+  );
+  return (
+    <Tooltip content={t('nav:demoEnvironment')}>
+      <AriaButton className="rounded-pill outline-none data-focus-visible:outline-2 data-focus-visible:outline-offset-2 data-focus-visible:outline-focus">{pill}</AriaButton>
+    </Tooltip>
+  );
+}
+
+/**
  * Persistent header (blueprint 01 §7): project · search (Ctrl+K) · quick create · language ·
- * notifications · help · user. It floats on the canvas (no heavy bar) and gains a hairline once
- * content scrolls under it. On phones the brand shows here (the rail is hidden), language moves to
- * the menu sheet and, below 640 px, notifications too: density drops, information does not.
+ * notifications · help · user. Desktop: it sits over the content column and gains a hairline once
+ * content scrolls under it. Phone: a floating rounded top bar with the brand, the demo pill and the
+ * essentials; quick create moves to the bottom bar's centre button and the rest to the More page.
  */
 export function AppHeader({ tenantName }: { tenantName: string }) {
   const { t } = useT();
-  const { setPaletteOpen, setMobileNavOpen } = useShell();
+  const { setPaletteOpen } = useShell();
   const scrolled = useScrolled();
   return (
     <header
       aria-label={t('a11y:landmarks.header')}
       data-scrolled={scrolled || undefined}
       className={cn(
-        'sticky top-0 z-30 flex h-[var(--header-height)] items-center gap-2 border-b border-transparent bg-bg/85 px-3 backdrop-blur-md transition-[border-color,box-shadow] duration-[var(--motion-regular)] sm:gap-3 sm:px-5 lg:px-8',
-        'data-scrolled:border-border data-scrolled:shadow-[0_8px_24px_-18px_rgb(23_33_30/0.35)]',
+        'sticky z-30 flex items-center gap-2 transition-[border-color,box-shadow,background-color] duration-[var(--motion-regular)]',
+        // Phone: floating rounded bar
+        'top-2 mx-2 mt-2 h-16 rounded-[1.25rem] border border-border/80 bg-panel/95 px-2.5 shadow-card backdrop-blur-md',
+        // Tablet/desktop: full-width bar over the content
+        'md:top-0 md:mx-0 md:mt-0 md:h-[var(--header-height)] md:rounded-none md:border-x-0 md:border-t-0 md:border-b md:border-transparent md:bg-bg/85 md:px-5 md:shadow-none lg:px-8',
+        'md:data-scrolled:border-border md:data-scrolled:shadow-[0_8px_24px_-18px_rgb(23_33_30/0.35)]',
       )}
     >
-      <AriaButton
-        data-tour-id="nav-menu-button"
-        aria-label={t('common:actions.openMenu')}
-        onPress={() => setMobileNavOpen(true)}
-        className="grid size-10 shrink-0 place-items-center rounded-control text-text outline-none data-hovered:bg-sunken data-focus-visible:outline-2 data-focus-visible:outline-focus pointer-coarse:size-11 md:hidden"
-      >
-        <MenuIcon aria-hidden className="size-5" />
-      </AriaButton>
-      <span className="hidden min-w-0 sm:max-md:flex">
-        <BrandBlock tenantName={tenantName} compact />
+      <span className="flex min-w-0 md:hidden">
+        <BrandBlock tenantName={tenantName} compact className="gap-2" />
       </span>
-      <ProjectSwitcher />
+      <span className="min-w-0 max-md:flex-1">
+        <ProjectSwitcher />
+      </span>
       <AriaButton
         data-tour-id="command-search"
         onPress={() => setPaletteOpen(true)}
@@ -63,7 +86,7 @@ export function AppHeader({ tenantName }: { tenantName: string }) {
         aria-keyshortcuts="Control+K Meta+K"
         data-testid="search-button"
         className={cn(
-          'ms-auto flex min-h-10 items-center gap-2.5 rounded-pill bg-panel px-4 text-sm text-muted shadow-inset outline-none pointer-coarse:min-h-11',
+          'flex min-h-10 items-center gap-2.5 rounded-pill bg-panel px-4 text-sm text-muted shadow-inset outline-none pointer-coarse:min-h-11 md:ms-auto',
           'transition-shadow duration-[var(--motion-fast)] data-hovered:shadow-card data-focus-visible:outline-2 data-focus-visible:outline-focus',
           'max-lg:size-10 max-lg:justify-center max-lg:px-0 max-lg:pointer-coarse:size-11 lg:me-auto lg:ms-2 lg:w-[22rem]',
         )}
@@ -73,11 +96,11 @@ export function AppHeader({ tenantName }: { tenantName: string }) {
         <kbd className="ltr-ref hidden rounded-sm bg-sunken px-1.5 py-0.5 text-[11px] text-muted lg:inline">{t('nav:header.searchShortcut')}</kbd>
       </AriaButton>
       <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
-        <span className="hidden 2xl:inline-flex">
-          <Badge tone="demo">{t('common:app.prototypeBadge')}</Badge>
+        <span className="max-xs:hidden">
+          <DemoEnvironmentPill />
         </span>
-        <span className="lg:hidden">
-          <QuickCreateMenu compact />
+        <span className="hidden md:inline-flex lg:hidden">
+          <QuickCreateMenu variant="compact" />
         </span>
         <span className="hidden lg:inline-flex">
           <QuickCreateMenu />

@@ -1,12 +1,15 @@
 import { findScreenByRegisterRoute } from '@repo/contracts/screens';
 import { INVOICES, UNITS } from '@repo/fixtures';
 import { LocaleToggle, NavigationProvider, NotFoundState, PlannedScreenView, useT } from '@repo/ui';
-import { useCallback } from 'react';
+import { useCallback, type ComponentType } from 'react';
 import { createBrowserRouter, Navigate, useHref, useLoaderData, useLocation, useNavigate, type RouteObject } from 'react-router';
 import AccessibilityPreferencesPage from '../pages/AccessibilityPreferencesPage';
 import CustomerLab, { type CustomerLabProps } from '../pages/CustomerLab';
 import { START } from '../nav.config';
 import { RootLayout, type CustomerHandle } from './RootLayout';
+
+/** Portal pages are code-split: each route loads its page on first visit (keeps the entry bundle small). */
+const page = (load: () => Promise<{ default: ComponentType }>) => async () => ({ Component: (await load()).default });
 
 function registerLoader({ request }: { request: Request }) {
   const url = new URL(request.url);
@@ -48,6 +51,21 @@ const handle = (h: CustomerHandle) => h;
 
 const portalChildren: RouteObject[] = [
   { index: true, element: <Navigate to={START} replace /> },
+  // Stage 1.5R customer portal (PORTAL-001, 004, 008, 010, 011, 012, 015): real screens on mock data.
+  { path: 'home', lazy: page(() => import('../pages/portal/PortalHomePage')), handle: handle({ title: (t) => t('portal:pages.home') }) },
+  { path: 'payments-dashboard', lazy: page(() => import('../pages/portal/PaymentsPage')), handle: handle({ title: (t) => t('portal:pages.payments') }) },
+  { path: 'upload-proof-mock', lazy: page(() => import('../pages/portal/PayPage')), handle: handle({ title: (t) => t('portal:pages.pay') }) },
+  { path: 'receipt', lazy: page(() => import('../pages/portal/ReceiptPage')), handle: handle({ title: (t) => t('portal:pages.receipt') }) },
+  { path: 'construction-updates', lazy: page(() => import('../pages/portal/ConstructionPage')), handle: handle({ title: (t) => t('portal:pages.construction') }) },
+  { path: 'services-home', lazy: page(() => import('../pages/portal/ServicesPage')), handle: handle({ title: (t) => t('portal:pages.services') }) },
+  { path: 'documents', lazy: page(() => import('../pages/portal/DocumentsPage')), handle: handle({ title: (t) => t('portal:pages.documents') }) },
+  // Register screens served by a built screen (deep links keep working; see the screen register notes).
+  { path: 'pay-online-mock', element: <Navigate to="/customer/portal/upload-proof-mock?mode=online" replace /> },
+  { path: 'payment-history', element: <Navigate to="/customer/portal/payments-dashboard?status=paid" replace /> },
+  { path: 'maintenance-list', element: <Navigate to="/customer/portal/services-home?tab=maintenance" replace /> },
+  { path: 'create-maintenance', element: <Navigate to="/customer/portal/services-home?tab=maintenance&new=1" replace /> },
+  { path: 'visitor-passes', element: <Navigate to="/customer/portal/services-home?tab=visitors" replace /> },
+  { path: 'create-visitor-pass', element: <Navigate to="/customer/portal/services-home?tab=visitors&new=1" replace /> },
   {
     path: 'lab',
     // Prototype loader: fictional records become page props (a versioned API supplies them later).

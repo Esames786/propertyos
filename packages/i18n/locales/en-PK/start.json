@@ -1,0 +1,408 @@
+{
+  "title": "Get started",
+  "signIn": {
+    "newHere": "New to PropertyOS?",
+    "getStarted": "Get started"
+  },
+  "frame": {
+    "productLine": "For real-estate developers",
+    "brandHome": "{{product}}: back to Get started",
+    "accessibility": "Accessibility",
+    "accessibilityTitle": "Accessibility preferences",
+    "done": "Done",
+    "backToStart": "Back to Get started",
+    "footer": "{{product}} is a working codename. This is a prototype with fictional data."
+  },
+  "welcome": {
+    "eyebrow": "For real-estate developers in Pakistan",
+    "heading": "Every project, unit and instalment in one place",
+    "intro": "Towers and plots, leads and site visits, bookings and instalment plans, organised for your whole team, in English and Urdu.",
+    "featuresLabel": "What PropertyOS covers",
+    "features": {
+      "inventory": "Towers, floors and units",
+      "sales": "Leads and site visits",
+      "collections": "Instalments and receipts",
+      "bilingual": "English and Urdu"
+    },
+    "chooseHeading": "How would you like to start?",
+    "demo": {
+      "title": "Explore a live demo",
+      "body": "Look around Larkspur Estates, a fictional developer with projects, leads, bookings and instalments already in place.",
+      "meta": "No sign-up · fictional data",
+      "cta": "Explore the demo",
+      "points": {
+        "roles": "Try it as a manager, salesperson or finance officer",
+        "tour": "A short guided tour of the real dashboard",
+        "safe": "Nothing you do touches real records or money"
+      }
+    },
+    "setup": {
+      "title": "Set up my developer workspace",
+      "body": "Create your account, describe your company and first project, and invite your team.",
+      "meta": "About 3 minutes · a simulation in this prototype",
+      "cta": "Start setup",
+      "points": {
+        "account": "Your account, with a simulated verification",
+        "company": "Company profile and first project",
+        "team": "Invite colleagues (optional)"
+      }
+    },
+    "photo": {
+      "name": "Larkspur Heights",
+      "caption": "Fictional demo project · Lahore",
+      "tenantDetail": "Two fictional projects in Lahore and Islamabad"
+    },
+    "signInPrompt": "Already exploring?",
+    "signInLink": "Sign in"
+  },
+  "roles": {
+    "manager": {
+      "summary": "Runs the business: every project, team and figure.",
+      "points": {
+        "a": "Sales, collections and inventory across all projects",
+        "b": "Today's approvals, follow-ups and overdue payments",
+        "c": "Construction progress and team performance"
+      }
+    },
+    "sales": {
+      "summary": "Works the pipeline for Larkspur Heights.",
+      "points": {
+        "a": "Leads, follow-ups and site visits",
+        "b": "Available units with prices and holds",
+        "c": "Bookings in progress, without finance screens"
+      }
+    },
+    "finance": {
+      "summary": "Keeps the money side accurate.",
+      "points": {
+        "a": "Invoices, receipts and overdue instalments",
+        "b": "Payment proofs awaiting verification",
+        "c": "Collections against target, without the sales pipeline"
+      }
+    }
+  },
+  "demo": {
+    "role": {
+      "eyebrow": "Explore the demo",
+      "heading": "Choose who you’d like to be",
+      "intro": "Each role sees different menus, figures and actions, just as your own team would. You can switch at any time.",
+      "groupLabel": "Demo role",
+      "recommended": "Recommended for a first look",
+      "scopeAll": "All projects",
+      "scopeOne": "Only {{project}}",
+      "fresh": "Start with fresh demo data",
+      "freshHint": "Clears leads, visits and unit holds you added earlier in this browser tab.",
+      "continue": "Continue as {{name}}"
+    },
+    "preparing": {
+      "heading": "Preparing your demo",
+      "intro": "Signing you in as {{name}} ({{role}}) and loading the screens you’ll see first.",
+      "listTitle": "Getting ready",
+      "progress": "{{done}} of {{total}} ready",
+      "tasks": {
+        "identity": {
+          "active": "Signing in as {{name}}",
+          "done": "Signed in as {{name}}"
+        },
+        "reset": {
+          "active": "Clearing earlier demo changes",
+          "done": "Earlier demo changes cleared"
+        },
+        "dashboard": {
+          "active": "Loading dashboard figures",
+          "done": "Dashboard figures loaded"
+        },
+        "projects": {
+          "active": "Loading projects",
+          "done": "Projects loaded"
+        },
+        "notifications": {
+          "active": "Checking notifications",
+          "done": "Notifications checked"
+        },
+        "pipeline": {
+          "active": "Loading the sales pipeline",
+          "done": "Sales pipeline loaded"
+        },
+        "overview": {
+          "active": "Counting what’s inside the demo",
+          "done": "Demo contents counted"
+        }
+      },
+      "state": {
+        "pending": "Waiting",
+        "loading": "In progress",
+        "done": "Done",
+        "error": "Failed"
+      },
+      "announceStart": "Preparing your demo as {{name}}.",
+      "announceReady": "Your demo is ready.",
+      "failed": "Part of the demo couldn’t load",
+      "failedBody": "Nothing was changed. Try again, or go back and choose another role.",
+      "chooseAnother": "Choose another role"
+    },
+    "ready": {
+      "eyebrow": "Demo ready",
+      "heading": "Your demo is ready",
+      "intro": "You’re exploring <b>{{tenant}}</b> as <b>{{name}}</b>, {{role}}.",
+      "switchRole": "Choose a different role",
+      "actionsTitle": "How would you like to begin?",
+      "actionsBody": "The tour highlights the real dashboard step by step: figures, today’s work, quick create and search. It takes about 2 minutes, and you can pause or skip it.",
+      "startTour": "Start the guided tour",
+      "explore": "Explore on my own",
+      "tourLater": "You can start the tour later from Help.",
+      "sessionNote": "Changes you make stay in this browser tab only and disappear when you close it.",
+      "insideTitle": "What’s inside",
+      "insideBody": "Fictional records you can open, filter and change safely.",
+      "countsError": "The demo contents couldn’t be counted.",
+      "projectsLabel": "Projects in this demo",
+      "counts": {
+        "projects": "Projects",
+        "units": "Units",
+        "customers": "Customers",
+        "leads": "Leads",
+        "siteVisits": "Site visits",
+        "openFollowUps": "Open follow-ups"
+      },
+      "tasksTitle": "Things to try",
+      "tasksBody": "A few good first steps for this role.",
+      "tasks": {
+        "manager": {
+          "attention": {
+            "title": "See what needs attention today",
+            "body": "The action centre lists proofs, follow-ups and holds waiting for you."
+          },
+          "pipeline": {
+            "title": "Walk through the sales pipeline",
+            "body": "Leads by stage, follow-ups due and this week’s site visits."
+          },
+          "project": {
+            "title": "Focus on one project",
+            "body": "Use the project switcher at the top to narrow every figure."
+          },
+          "practice": {
+            "title": "Practise adding a lead",
+            "body": "A safe training form: nothing reaches the demo records."
+          }
+        },
+        "sales": {
+          "followUps": {
+            "title": "Work through today’s follow-ups",
+            "body": "Call, message or reschedule straight from Sales home."
+          },
+          "leads": {
+            "title": "Open a lead’s full history",
+            "body": "Search the lead list and open the 360° workspace."
+          },
+          "units": {
+            "title": "Check which units are available",
+            "body": "The dashboard shows inventory by tower and status."
+          },
+          "practice": {
+            "title": "Practise adding a lead",
+            "body": "A safe training form: nothing reaches the demo records."
+          }
+        },
+        "finance": {
+          "verify": {
+            "title": "Review proofs awaiting verification",
+            "body": "A proof stays “Awaiting verification” until someone confirms it."
+          },
+          "collections": {
+            "title": "Compare collections with target",
+            "body": "Month by month, with the figures in a table too."
+          },
+          "search": {
+            "title": "Find an invoice by number",
+            "body": "Open search and type part of an invoice number, such as INV."
+          }
+        }
+      }
+    }
+  },
+  "setup": {
+    "stepOf": "Step {{current}} of {{total}}",
+    "stepPrefix": "Step {{current}} of {{total}}:",
+    "progressLabel": "Setup progress",
+    "simulationTitle": "This is a simulation",
+    "simulationBody": "Nothing you enter creates a real account, sends an email or SMS, or sets up a workspace. Your entries stay in this browser tab only.",
+    "draftRestored": "Your earlier entries were restored.",
+    "steps": {
+      "account": "Account",
+      "verify": "Verify",
+      "organisation": "Organisation",
+      "project": "First project",
+      "team": "Team",
+      "review": "Review"
+    },
+    "stepState": {
+      "done": "Completed",
+      "current": "Current step",
+      "skipped": "Skipped",
+      "upcoming": "Not started"
+    },
+    "actions": {
+      "back": "Back",
+      "next": "Continue",
+      "skip": "Skip for now",
+      "saveReturn": "Save and return to review",
+      "verify": "Verify and continue",
+      "verifyReturn": "Verify and return to review",
+      "submit": "Finish setup (simulated)",
+      "edit": "Edit {{section}}"
+    },
+    "account": {
+      "heading": "Create your account",
+      "intro": "You’ll be the first administrator of your workspace.",
+      "fullName": "Full name",
+      "email": "Work email",
+      "emailHint": "We’d use this to sign you in.",
+      "mobile": "Mobile number",
+      "mobileHint": "A Pakistani mobile, for example 0300 1234567.",
+      "password": "Password",
+      "passwordHint": "At least 10 characters, including a number or symbol.",
+      "confirm": "Confirm password",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "passwordNotKept": "Your password is never saved, not even in this browser.",
+      "passwordAgain": "For your security, the password isn’t kept after a reload. Enter it again to continue.",
+      "strength": {
+        "label": "Password strength: {{level}}.",
+        "weak": "weak",
+        "fair": "fair",
+        "good": "good",
+        "strong": "strong"
+      }
+    },
+    "verify": {
+      "heading": "Verify your email",
+      "intro": "In a live product we would send a 6-digit code to <b>{{email}}</b>.",
+      "noMessageTitle": "No email or SMS is sent in this prototype",
+      "noMessageBody": "Enter the prototype code shown here to continue.",
+      "codeLabel": "Prototype code",
+      "code": "Verification code",
+      "codeHint": "6 digits",
+      "changeEmail": "Change email address",
+      "accepted": "Code accepted. Email verified (simulated).",
+      "failed": "The code couldn’t be checked",
+      "failedBody": "Nothing was changed. Try again in a moment."
+    },
+    "organisation": {
+      "heading": "Tell us about your company",
+      "intro": "This is how your company appears to your team and, later, to your customers.",
+      "name": "Company name",
+      "nameHint": "As registered, for example “Crescent Builders (Pvt) Ltd”.",
+      "type": "Organisation type",
+      "types": {
+        "private_limited": "Private limited company",
+        "partnership": "Partnership",
+        "sole_proprietor": "Sole proprietor",
+        "public_limited": "Public limited company"
+      },
+      "city": "Head-office city",
+      "officePhone": "Office phone",
+      "officePhoneHint": "Landline or mobile.",
+      "language": "Preferred language for your team",
+      "languageHint": "Each person can still choose their own.",
+      "fixedLabel": "Fixed settings",
+      "currency": "Currency",
+      "currencyValue": "Pakistani rupee (PKR)",
+      "timeZone": "Time zone",
+      "timeZoneValue": "Pakistan Standard Time (UTC+5)",
+      "fixed": "Fixed in this prototype"
+    },
+    "project": {
+      "heading": "Add your first project",
+      "intro": "Towers, floors and units come later. Skip this step if you’re not ready.",
+      "name": "Project name",
+      "nameHint": "For example “Crescent Residency”.",
+      "type": "Project type",
+      "types": {
+        "towers": "Apartment towers",
+        "plots": "Plots and villas",
+        "mixed": "Mixed use"
+      },
+      "typeHints": {
+        "towers": "Towers with floors and apartments.",
+        "plots": "A housing scheme with phases, plots and villas.",
+        "mixed": "Apartments, shops and offices together."
+      },
+      "city": "City",
+      "units": "Expected number of units",
+      "unitsHint": "An estimate is fine.",
+      "skipped": "First project skipped. You can add projects later."
+    },
+    "team": {
+      "heading": "Invite your team",
+      "intro": "Add colleagues by email and choose what each one can do.",
+      "noInvites": "No invitations are sent in this prototype.",
+      "person": "Person {{n}}",
+      "email": "Email of person {{n}}",
+      "role": "Role of person {{n}}",
+      "add": "Add another person",
+      "added": "Person {{n}} added.",
+      "remove": "Remove person {{n}}",
+      "removed": "Person {{n}} removed.",
+      "max": "You can invite up to {{max}} people here.",
+      "roles": {
+        "manager": "Manager: everything",
+        "sales": "Sales: leads and units",
+        "finance": "Finance: invoices and receipts"
+      },
+      "skipped": "Team invitations skipped. You can invite people later."
+    },
+    "review": {
+      "heading": "Review your setup",
+      "intro": "Check the details. Choose Edit to change a section.",
+      "account": "Account",
+      "organisation": "Organisation",
+      "project": "First project",
+      "team": "Team",
+      "verified": "Email verified (simulated)",
+      "notGiven": "Not given",
+      "submitNote": "Finishing records this setup in this browser tab only. No account or workspace is created and no invitations are sent.",
+      "failed": "The setup couldn’t be recorded"
+    },
+    "done": {
+      "eyebrow": "Simulation complete",
+      "heading": "Setup finished, as a simulation",
+      "body": "Nothing was provisioned. No account, workspace, email, SMS or invitation was created for <b>{{company}}</b>.",
+      "announce": "Setup finished. This was a simulation: nothing was created or sent.",
+      "nothingSent": "Your entries were kept in this browser tab only, and the saved draft has been cleared.",
+      "recordedTitle": "What the simulation recorded",
+      "recordedBody": "Shown here so you can check it. It disappears when you close the tab.",
+      "recorded": {
+        "company": "Company",
+        "project": "First project",
+        "team": "Team",
+        "language": "Team language",
+        "skipped": "Skipped",
+        "people_one": "{{count}} person",
+        "people_other": "{{count}} people"
+      },
+      "nextTitle": "See what your workspace would look like",
+      "nextBody": "Open <b>{{tenant}}</b>, a fictional workspace, as <b>{{name}}</b>, a developer manager, and take the guided tour.",
+      "openDemo": "Open the demo workspace",
+      "fullProduct": "In the full product, this is where your own workspace would open, with your colleagues invited by email."
+    }
+  },
+  "cities": {
+    "Lahore": "Lahore",
+    "Karachi": "Karachi",
+    "Islamabad": "Islamabad",
+    "Rawalpindi": "Rawalpindi",
+    "Faisalabad": "Faisalabad",
+    "Multan": "Multan",
+    "Peshawar": "Peshawar",
+    "Quetta": "Quetta",
+    "Sialkot": "Sialkot",
+    "Hyderabad": "Hyderabad",
+    "Gujranwala": "Gujranwala"
+  },
+  "errors": {
+    "nameShort": "Enter at least 2 characters.",
+    "codeLength": "Enter all 6 digits of the code.",
+    "unitsRange": "Enter a whole number from 1 to 100,000.",
+    "duplicateEmail": "This email is already in the list."
+  }
+}

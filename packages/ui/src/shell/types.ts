@@ -34,4 +34,6 @@ export interface ShellLinks {
   preferences: string;
   signIn: string;
   tourLibrary: string;
+  /** Phone "More" page (all areas and settings); the bottom bar links here. */
+  more?: string;
 }

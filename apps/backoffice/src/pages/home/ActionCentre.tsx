@@ -30,7 +30,7 @@ export function ActionCentre({ attention, fmt }: { attention: Partial<Record<Att
     <section aria-labelledby={titleId} className="flex min-w-0 flex-col rounded-card bg-panel p-5 shadow-card sm:p-6" data-testid="action-centre">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 id={titleId} className="font-display text-xl text-text">
+          <h2 id={titleId} className="text-lg font-bold tracking-tight text-text">
             {t('dashboard:attention.title')}
           </h2>
           <p className="mt-0.5 text-sm text-muted">{t('dashboard:attention.subtitle')}</p>

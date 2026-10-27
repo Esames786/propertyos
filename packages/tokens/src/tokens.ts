@@ -10,6 +10,13 @@ export const CONTRAST = {
 export type ContrastKind = keyof typeof CONTRAST;
 
 /**
+ * Tile hues (icon wayfinding and quick actions). Each hue has a solid fill, a soft square and an
+ * ink for glyphs/labels on the soft square. Hues identify modules; they never encode status.
+ */
+export const TILE_HUES = ['emerald', 'teal', 'sky', 'violet', 'rose', 'amber', 'orange', 'slate', 'gold'] as const;
+export type TileHue = (typeof TILE_HUES)[number];
+
+/**
  * Every foreground/background combination the UI actually uses.
  * Adding a new combination in components means adding it here, so the test proves it
  * (standard, more-contrast and the authored night palette).
@@ -57,6 +64,11 @@ export const CONTRAST_PAIRS: ReadonlyArray<{
   { fg: 'data-3', bg: 'panel', kind: 'nonText', usage: 'Chart series 3 (slate) on card' },
   { fg: 'data-4', bg: 'panel', kind: 'nonText', usage: 'Chart series 4 (clay) on card' },
   { fg: 'data-5', bg: 'panel', kind: 'nonText', usage: 'Chart series 5 (plum) on card' },
+  ...TILE_HUES.flatMap((hue) => [
+    { fg: 'on-tile', bg: `tile-${hue}`, kind: 'nonText' as const, usage: `White glyph on the solid ${hue} quick-action tile` },
+    { fg: `tile-${hue}-ink`, bg: `tile-${hue}-soft`, kind: 'text' as const, usage: `${hue} glyph and label on its soft icon square` },
+    { fg: `tile-${hue}-ink`, bg: 'panel', kind: 'text' as const, usage: `${hue} accent text on a card` },
+  ]),
 ];
 
 /** Decorative-only tokens: allowed below 3:1 because they never carry meaning or bound a control. */

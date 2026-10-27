@@ -6,3 +6,6 @@ export * from './api';
 export * from './search';
 export * from './onboarding';
 export * from './dashboard';
+export * from './crm';
+export * from './workspace';
+export * from './portal';

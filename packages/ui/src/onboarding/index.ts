@@ -12,3 +12,5 @@ export { tourReducer } from './tourMachine';
 export type { TourDefinition, TourStep, TourKind } from './tourTypes';
 export { GLOBAL_TOUR } from './tours/backoffice';
 export { LAB_TOUR } from './tours/lab';
+export { CRM_TOUR } from './tours/crm';
+export { PORTAL_TOUR } from './tours/portal';

@@ -415,8 +415,8 @@ export const SCREENS: readonly ScreenEntry[] = [
     "uiTemplate": "dashboard",
     "registerRoute": "/backoffice/crm/sales-home",
     "route": "/backoffice/crm/sales-home",
-    "status": "planned",
-    "stage": 2
+    "status": "implemented",
+    "stage": 1.5
   },
   {
     "id": "CRM-002",
@@ -428,8 +428,8 @@ export const SCREENS: readonly ScreenEntry[] = [
     "uiTemplate": "index",
     "registerRoute": "/backoffice/crm/leads-list",
     "route": "/backoffice/crm/leads-list",
-    "status": "planned",
-    "stage": 2
+    "status": "implemented",
+    "stage": 1.5
   },
   {
     "id": "CRM-003",
@@ -441,8 +441,8 @@ export const SCREENS: readonly ScreenEntry[] = [
     "uiTemplate": "workspace",
     "registerRoute": "/backoffice/crm/lead-360-workspace",
     "route": "/backoffice/crm/lead-360-workspace",
-    "status": "planned",
-    "stage": 2
+    "status": "implemented",
+    "stage": 1.5
   },
   {
     "id": "CRM-004",
@@ -454,8 +454,8 @@ export const SCREENS: readonly ScreenEntry[] = [
     "uiTemplate": "form",
     "registerRoute": "/backoffice/crm/new-lead-drawer",
     "route": "/backoffice/crm/new-lead-drawer",
-    "status": "planned",
-    "stage": 2
+    "status": "implemented",
+    "stage": 1.5
   },
   {
     "id": "CRM-005",
@@ -532,8 +532,8 @@ export const SCREENS: readonly ScreenEntry[] = [
     "uiTemplate": "form",
     "registerRoute": "/backoffice/crm/schedule-visit-drawer",
     "route": "/backoffice/crm/schedule-visit-drawer",
-    "status": "planned",
-    "stage": 2
+    "status": "implemented",
+    "stage": 1.5
   },
   {
     "id": "CRM-011",
@@ -3522,8 +3522,8 @@ export const SCREENS: readonly ScreenEntry[] = [
     "uiTemplate": "dashboard",
     "registerRoute": "/customer/portal/home",
     "route": "/customer/portal/home",
-    "status": "planned",
-    "stage": 4
+    "status": "implemented",
+    "stage": 1.5
   },
   {
     "id": "PORTAL-002",
@@ -3561,8 +3561,8 @@ export const SCREENS: readonly ScreenEntry[] = [
     "uiTemplate": "dashboard",
     "registerRoute": "/customer/portal/payments-dashboard",
     "route": "/customer/portal/payments-dashboard",
-    "status": "planned",
-    "stage": 4
+    "status": "implemented",
+    "stage": 1.5
   },
   {
     "id": "PORTAL-005",
@@ -3587,8 +3587,8 @@ export const SCREENS: readonly ScreenEntry[] = [
     "uiTemplate": "index",
     "registerRoute": "/customer/portal/pay-online-mock",
     "route": "/customer/portal/pay-online-mock",
-    "status": "planned",
-    "stage": 4
+    "status": "partial",
+    "stage": 1.5
   },
   {
     "id": "PORTAL-007",
@@ -3613,8 +3613,8 @@ export const SCREENS: readonly ScreenEntry[] = [
     "uiTemplate": "form",
     "registerRoute": "/customer/portal/upload-proof-mock",
     "route": "/customer/portal/upload-proof-mock",
-    "status": "planned",
-    "stage": 4
+    "status": "implemented",
+    "stage": 1.5
   },
   {
     "id": "PORTAL-009",
@@ -3626,8 +3626,8 @@ export const SCREENS: readonly ScreenEntry[] = [
     "uiTemplate": "index",
     "registerRoute": "/customer/portal/payment-history",
     "route": "/customer/portal/payment-history",
-    "status": "planned",
-    "stage": 4
+    "status": "partial",
+    "stage": 1.5
   },
   {
     "id": "PORTAL-010",
@@ -3639,8 +3639,8 @@ export const SCREENS: readonly ScreenEntry[] = [
     "uiTemplate": "index",
     "registerRoute": "/customer/portal/receipt",
     "route": "/customer/portal/receipt",
-    "status": "planned",
-    "stage": 4
+    "status": "implemented",
+    "stage": 1.5
   },
   {
     "id": "PORTAL-011",
@@ -3652,8 +3652,8 @@ export const SCREENS: readonly ScreenEntry[] = [
     "uiTemplate": "index",
     "registerRoute": "/customer/portal/documents",
     "route": "/customer/portal/documents",
-    "status": "planned",
-    "stage": 4
+    "status": "implemented",
+    "stage": 1.5
   },
   {
     "id": "PORTAL-012",
@@ -3665,8 +3665,8 @@ export const SCREENS: readonly ScreenEntry[] = [
     "uiTemplate": "index",
     "registerRoute": "/customer/portal/construction-updates",
     "route": "/customer/portal/construction-updates",
-    "status": "planned",
-    "stage": 4
+    "status": "implemented",
+    "stage": 1.5
   },
   {
     "id": "PORTAL-013",
@@ -3704,8 +3704,8 @@ export const SCREENS: readonly ScreenEntry[] = [
     "uiTemplate": "dashboard",
     "registerRoute": "/customer/portal/services-home",
     "route": "/customer/portal/services-home",
-    "status": "planned",
-    "stage": 4
+    "status": "implemented",
+    "stage": 1.5
   },
   {
     "id": "PORTAL-016",
@@ -3717,8 +3717,8 @@ export const SCREENS: readonly ScreenEntry[] = [
     "uiTemplate": "index",
     "registerRoute": "/customer/portal/maintenance-list",
     "route": "/customer/portal/maintenance-list",
-    "status": "planned",
-    "stage": 4
+    "status": "partial",
+    "stage": 1.5
   },
   {
     "id": "PORTAL-017",
@@ -3730,8 +3730,8 @@ export const SCREENS: readonly ScreenEntry[] = [
     "uiTemplate": "form",
     "registerRoute": "/customer/portal/create-maintenance",
     "route": "/customer/portal/create-maintenance",
-    "status": "planned",
-    "stage": 4
+    "status": "partial",
+    "stage": 1.5
   },
   {
     "id": "PORTAL-018",
@@ -3756,8 +3756,8 @@ export const SCREENS: readonly ScreenEntry[] = [
     "uiTemplate": "index",
     "registerRoute": "/customer/portal/visitor-passes",
     "route": "/customer/portal/visitor-passes",
-    "status": "planned",
-    "stage": 4
+    "status": "partial",
+    "stage": 1.5
   },
   {
     "id": "PORTAL-020",
@@ -3769,8 +3769,8 @@ export const SCREENS: readonly ScreenEntry[] = [
     "uiTemplate": "form",
     "registerRoute": "/customer/portal/create-visitor-pass",
     "route": "/customer/portal/create-visitor-pass",
-    "status": "planned",
-    "stage": 4
+    "status": "partial",
+    "stage": 1.5
   },
   {
     "id": "PORTAL-021",

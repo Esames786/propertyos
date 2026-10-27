@@ -46,6 +46,11 @@ export interface GuidedTourContextValue {
   decideWelcome: (decision: 'accepted' | 'declined', autoOffer: boolean) => void;
   setModule: (moduleId: string | null) => void;
   links: TourLinks;
+  /** The essentials tour for the signed-in persona (what Help → Take a tour starts). */
+  welcomeTourId: string | undefined;
+  /** A tour paused in this session (offered back with a Resume chip until resumed or hidden). */
+  pausedTourId: string | null;
+  hidePausedReminder: () => void;
 }
 
 export interface TourLinks {
@@ -66,13 +71,17 @@ const GuidedTourContext = createContext<GuidedTourContextValue | null>(null);
  */
 export function GuidedTourProvider({
   tours,
-  welcomeTourId,
+  welcomeTourId: welcomeTourFor,
+  suppressWelcome = false,
   links,
   store: injectedStore,
   children,
 }: {
   tours: readonly TourDefinition[];
-  welcomeTourId?: string;
+  /** The tour offered on first login: one id, or chosen per persona (role-specific essentials). */
+  welcomeTourId?: string | ((personaId: string) => string | undefined);
+  /** Hide the first-login dialog (e.g. on the Get started flow, which asks the same question itself). */
+  suppressWelcome?: boolean;
   links: TourLinks;
   store?: TourProgressStore;
   children: ReactNode;
@@ -92,9 +101,11 @@ export function GuidedTourProvider({
   const [target, setTarget] = useState<HTMLElement | null>(null);
   const [module, setModule] = useState<string | null>(null);
   const [offer, setOffer] = useState<TourDefinition | null>(null);
+  const [pausedTourId, setPausedTourId] = useState<string | null>(null);
   const returnFocus = useRef<HTMLElement | null>(null);
 
   const persona = session.persona;
+  const welcomeTourId = persona ? (typeof welcomeTourFor === 'function' ? welcomeTourFor(persona.id) : welcomeTourFor) : undefined;
   const scope: TourScope | null = useMemo(
     () => (persona ? { tenantId: session.tenant.id, personaId: persona.id, app: session.app } : null),
     [persona, session.tenant.id, session.app],
@@ -161,6 +172,7 @@ export function GuidedTourProvider({
       const index = Math.max(0, resumeIndex);
       returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
       setOffer(null);
+      setPausedTourId(null);
       if (tour.practice) training.start();
       dispatch({ type: 'START', tourId, steps, index });
       save(tour, { status: 'in_progress', lastStepId: steps[index]?.id ?? null, startedAt: prior?.startedAt ?? new Date().toISOString(), dismissedAt: null });
@@ -200,6 +212,7 @@ export function GuidedTourProvider({
       if (tour.practice) void training.end();
     }
     dispatch({ type: status === 'dismissed' ? 'SKIP' : 'PAUSE' });
+    setPausedTourId(status === 'paused' ? running.tourId : null);
     setTarget(null);
     if (status === 'paused') announce(t('onboarding:controls.paused'));
     restoreFocus();
@@ -245,6 +258,7 @@ export function GuidedTourProvider({
   useEffect(() => {
     dispatch({ type: 'PAUSE' });
     setTarget(null);
+    setPausedTourId(null);
   }, [persona?.id]);
 
   // Module first-use offer (doc 09 §2B): once per module, only after the welcome was answered.
@@ -307,9 +321,13 @@ export function GuidedTourProvider({
     },
     setModule,
     links,
+    welcomeTourId,
+    pausedTourId,
+    hidePausedReminder: () => setPausedTourId(null),
   };
 
   const showWelcome =
+    !suppressWelcome &&
     !!persona &&
     !!profile &&
     profile.welcomeDecision === 'pending' &&

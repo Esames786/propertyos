@@ -49,7 +49,15 @@ export function Drawer({ isOpen, onOpenChange, title, subtitle, children, footer
             <IconButton label={t('common:actions.close')} icon={X} onPress={() => onOpenChange(false)} className="-m-2" />
           </header>
           {banner}
-          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">{children}</div>
+          {/* Focusable so keyboard users can scroll a long body even when it holds no controls. */}
+          <div
+            role="region"
+            aria-label={title}
+            tabIndex={0}
+            className="min-h-0 flex-1 overflow-y-auto px-5 py-5 outline-none focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-focus"
+          >
+            {children}
+          </div>
           {footer && (
             <footer className="flex flex-wrap justify-end gap-2 border-t border-border bg-panel px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
               {footer}

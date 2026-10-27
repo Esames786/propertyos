@@ -131,7 +131,34 @@ test.describe('Management dashboard (HOME-001)', () => {
     await expect(list).toBeVisible();
     await list.getByTestId('attention-item').first().click();
     await expect(page).toHaveURL(/\/backoffice\/crm\/lead-360-workspace\?record=led_\d+/);
-    await expect(page.getByTestId('planned-screen')).toHaveAttribute('data-screen-id', 'CRM-003');
+    // CRM-003 is built in Stage 1.5R: the row opens the real lead workspace.
+    await expect(page.getByTestId('lead-contact')).toBeVisible();
+    await expect(page.getByTestId('planned-screen')).toHaveCount(0);
+  });
+
+  test('quick actions are role-aware and every tile leads somewhere real', async ({ browser }) => {
+    for (const [persona, want] of [
+      ['manager', ['dqa-new-lead', 'dqa-visit', 'dqa-sales', 'dqa-leads', 'dqa-collections', 'dqa-search', 'dqa-tour', 'dqa-practice']],
+      ['finance', ['dqa-collections', 'dqa-search', 'dqa-tour']],
+    ] as const) {
+      const context = await browser.newContext();
+      const page = await context.newPage();
+      await seed(page, { persona });
+      await openDashboard(page);
+      const ids = await page.getByTestId('dashboard-quick-actions').locator('[data-testid^="dqa-"]').evaluateAll((els) => els.map((e) => e.getAttribute('data-testid')));
+      expect(ids, persona).toEqual(want);
+      await context.close();
+    }
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    await seed(page);
+    await openDashboard(page);
+    await page.getByTestId('dqa-new-lead').click();
+    await expect(page.getByTestId('new-lead-drawer')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await page.getByTestId('dqa-sales').click();
+    await expect(page).toHaveURL(/\/backoffice\/crm\/sales-home$/);
+    await context.close();
   });
 
   test('KPI tiles and inventory rows are links to the screens behind the numbers', async ({ page }) => {
@@ -149,9 +176,7 @@ test.describe('Management dashboard (HOME-001)', () => {
     const bottom = page.getByRole('navigation', { name: 'Quick navigation' });
     await expect(bottom).toBeVisible();
     await expect(bottom.getByRole('link', { name: 'Home' })).toHaveAttribute('aria-current', 'page');
-    await bottom.getByRole('button', { name: 'More' }).click();
-    await expect(page.getByTestId('mobile-nav')).toBeVisible();
-    await page.keyboard.press('Escape');
+    await expect(bottom.getByRole('link', { name: 'More' })).toHaveAttribute('href', '/backoffice/more');
     await expect(page.getByTestId('residence-card')).toHaveCount(6);
     expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
     await bottom.getByRole('link', { name: 'Sales' }).click();
@@ -188,7 +213,8 @@ test.describe('Management dashboard (HOME-001)', () => {
       await seed(page, { persona: 'sales', onboarding: 'fresh' });
       await page.goto(`${BO}/backoffice`);
       await page.getByTestId('welcome-start').click();
-      for (let i = 0; i < 6; i++) {
+      // Sales: 9 steps (no collections step) on the real dashboard widgets.
+      for (let i = 0; i < 9; i++) {
         await expect(page.getByTestId('tour-card')).toBeVisible();
         await page.getByTestId('tour-next').click();
       }

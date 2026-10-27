@@ -55,11 +55,13 @@ function generateParties(): Party[] {
     const urdu = i % 10 === 3;
     const first = rnd.pick(FIRST_NAMES);
     const last = rnd.pick(LAST_NAMES);
+    // Party 1 is the demo resident persona (Usman Tariq): the backoffice and the portal must agree.
+    const [given, family] = i === 1 ? ['Usman', 'Tariq'] : [first, last];
     parties.push({
       id, ref, kind: 'individual',
-      displayName: urdu ? URDU_NAMES[(i / 10) % URDU_NAMES.length | 0]! : `${first} ${last}`,
+      displayName: urdu ? URDU_NAMES[(i / 10) % URDU_NAMES.length | 0]! : `${given} ${family}`,
       phone: demoPhone(i),
-      email: `${first.toLowerCase()}.${last.toLowerCase()}${i}@example.com`,
+      email: `${given.toLowerCase()}.${family.toLowerCase()}${i}@example.com`,
       cnic: demoCnic(i),
       city,
     });

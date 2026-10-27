@@ -1,10 +1,10 @@
-import { ArrowLeft, ArrowRight, Crosshair } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Crosshair, Pause } from 'lucide-react';
 import { useT } from '../lib/useT';
 import { Button } from '../primitives/Button';
 import { DirectionalIcon } from '../primitives/DirectionalIcon';
 
 /**
- * Back | Next/Finish | Skip tour. "Next" is always index + 1; only its arrow mirrors in RTL.
+ * Skip tour · Pause | Back | Next/Finish (Pause keeps the step; a Resume chip brings it back). "Next" is always index + 1; only its arrow mirrors in RTL.
  * Guided actions that must be performed hide Next and offer "Go to the highlighted control".
  */
 export function TourControls({
@@ -15,6 +15,7 @@ export function TourControls({
   onBack,
   onNext,
   onSkip,
+  onPause,
   onShowTarget,
 }: {
   index: number;
@@ -24,15 +25,21 @@ export function TourControls({
   onBack: () => void;
   onNext: () => void;
   onSkip: () => void;
+  onPause: () => void;
   onShowTarget: () => void;
 }) {
   const { t } = useT();
   const isLast = index === total - 1;
   return (
     <div className="mt-4 flex flex-wrap items-center gap-2">
-      <Button variant="quiet" size="sm" onPress={onSkip} className="me-auto" data-testid="tour-skip">
-        {t('onboarding:controls.skip')}
-      </Button>
+      <span className="me-auto flex items-center gap-1">
+        <Button variant="quiet" size="sm" onPress={onSkip} data-testid="tour-skip">
+          {t('onboarding:controls.skip')}
+        </Button>
+        <Button variant="quiet" size="sm" icon={Pause} onPress={onPause} data-testid="tour-pause-text">
+          {t('onboarding:controls.pauseShort')}
+        </Button>
+      </span>
       {canShowTarget && (
         <Button variant="secondary" size="sm" icon={Crosshair} onPress={onShowTarget} data-testid="tour-show-target">
           {t('onboarding:controls.showTarget')}

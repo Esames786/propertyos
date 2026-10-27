@@ -51,8 +51,11 @@ export default function TokensLab() {
                       <td className="px-3 py-2">
                         {pair.kind === 'nonText' ? (
                           // Non-text pairs (control edges, focus, chart marks) are previewed as marks, not text.
-                          <span className="inline-flex items-center gap-2 rounded-sm border border-border px-2 py-1 text-text" style={{ background: bg }}>
-                            <span aria-hidden className="h-3 w-5 rounded-[3px] border-2" style={{ borderColor: fg, background: fg }} />
+                          // The label sits beside the swatch, not on it: dark swatches (solid tiles) would hide text.
+                          <span className="inline-flex items-center gap-2 text-text">
+                            <span aria-hidden className="grid h-7 w-10 place-items-center rounded-sm border border-border" style={{ background: bg }}>
+                              <span className="h-3 w-5 rounded-[3px] border-2" style={{ borderColor: fg, background: fg }} />
+                            </span>
                             <span className="ltr-ref text-xs" dir="ltr">
                               {pair.fg} / {pair.bg}
                             </span>

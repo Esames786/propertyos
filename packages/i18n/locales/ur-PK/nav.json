@@ -58,7 +58,14 @@
     "customerLab": "کسٹمر پورٹل کی جھلک",
     "accessibility": "رسائی کی ترجیحات",
     "signIn": "ڈیمو سائن اِن",
-    "dashboard": "ڈیش بورڈ"
+    "dashboard": "ڈیش بورڈ",
+    "salesHome": "سیلز",
+    "leadsList": "لیڈز",
+    "leadWorkspace": "لیڈ",
+    "more": "مزید",
+    "getStarted": "آغاز کریں",
+    "demoLaunch": "ڈیمو دیکھیں",
+    "workspaceSetup": "اپنا ورک اسپیس ترتیب دیں"
   },
   "groups": {
     "workspace": "کاروبار",
@@ -67,5 +74,8 @@
     "prototype": "پروٹوٹائپ"
   },
   "bottomBarLabel": "فوری نیویگیشن",
-  "more": "مزید"
+  "more": "مزید",
+  "quickCreateFab": "فوری اندراج",
+  "demoEnvironment": "ڈیمو ماحول · فرضی ریکارڈ · کوئی حقیقی لین دین نہیں",
+  "demoShort": "ڈیمو"
 }

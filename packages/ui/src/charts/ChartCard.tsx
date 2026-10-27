@@ -52,10 +52,10 @@ export function ChartCard({
   const summaryId = useId();
   const [showTable, setShowTable] = useState(false);
   return (
-    <section aria-labelledby={titleId} data-testid={testId} className={cn('@container flex flex-col rounded-card bg-panel p-5 shadow-card sm:p-6', className)}>
+    <section aria-labelledby={titleId} data-testid={testId} className={cn('@container flex flex-col rounded-card border border-border/70 bg-panel p-5 shadow-card sm:p-6', className)}>
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
         <div className="min-w-0">
-          <H id={titleId} className="font-display text-xl text-text">
+          <H id={titleId} className="text-lg font-bold tracking-tight text-text">
             {title}
           </H>
           <p id={summaryId} className="mt-1 max-w-prose text-sm text-muted">

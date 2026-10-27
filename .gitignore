@@ -11,3 +11,6 @@ blob-report/
 !.env.example
 .DS_Store
 Thumbs.db
+
+# Third-party reference captures (contain a real account phone number); keep local only
+docs/design/reference/nizam/

@@ -1,7 +1,10 @@
 import { DASHBOARD_RANGES, type DashboardRange, type DashboardSummary } from '@repo/contracts';
-import { cn, DemoBadge, ErrorState, SegmentedControl, Skeleton, useAnnounce, useApiQuery, useQueryParam, useSession, useT } from '@repo/ui';
+import { cn, ErrorState, QuickActions, SegmentedControl, Skeleton, useAnnounce, useApiQuery, useQueryParam, useReducedMotion, useSession, useShell, useT, type QuickAction } from '@repo/ui';
+import { useGuidedTour } from '@repo/ui/onboarding';
+import { BarChart3, BriefcaseBusiness, CalendarPlus, Compass, GraduationCap, Search, UserPlus, UsersRound } from 'lucide-react';
 import { keepPreviousData } from '@tanstack/react-query';
 import { useEffect, useId, useRef } from 'react';
+import { LINKS } from '../../nav.config';
 import { ActionCentre } from './ActionCentre';
 import { KpiRow } from './KpiRow';
 import { CollectionsCard, FunnelCard } from './PerformanceCharts';
@@ -70,6 +73,7 @@ function DashboardView({
   const firstName = personaName.split(/\s+/)[0] ?? personaName;
   const eyebrow = personaId === 'sales' || personaId === 'finance' ? personaId : 'manager';
   const hasAttention = Object.keys(data.attention).length > 0;
+  const actions = useDashboardActions(!!data.collections);
 
   return (
     <div className="space-y-10 sm:space-y-12" data-testid="management-dashboard">
@@ -77,7 +81,7 @@ function DashboardView({
       <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 pt-2 motion-safe:animate-rise-in">
         <div className="min-w-0">
           <p className="text-xs font-semibold tracking-[0.14em] text-accent uppercase">{t(`dashboard:eyebrow.${eyebrow}`)}</p>
-          <h1 id="page-title" className="mt-2 font-display text-[2rem] leading-tight text-text outline-none sm:text-[2.6rem]">
+          <h1 id="page-title" className="mt-1.5 text-[1.75rem] leading-tight font-bold tracking-tight text-text outline-none sm:text-[2.25rem]">
             {t(`dashboard:greeting.${greeting}`, { name: firstName })}
           </h1>
           <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
@@ -88,7 +92,6 @@ function DashboardView({
             <span className="max-sm:w-full">{t('dashboard:asOf', { date: fmt.date(data.asOf.slice(0, 10)) })}</span>
           </p>
         </div>
-        <DemoBadge />
       </header>
 
       {/* Featured project + today's work */}
@@ -99,17 +102,19 @@ function DashboardView({
           </div>
         )}
         {hasAttention && (
-          <div className="min-w-0 xl:col-span-5 [&>section]:h-full">
+          <div className="min-w-0 xl:col-span-5 [&>section]:h-full" data-tour-id="dashboard-action-centre">
             <ActionCentre attention={data.attention} fmt={fmt} />
           </div>
         )}
       </div>
 
+      <QuickActions title={t('dashboard:quick.title')} actions={actions} tourId="dashboard-quick-actions" testId="dashboard-quick-actions" />
+
       {/* Performance: everything below the period control is scoped by it */}
       <section aria-labelledby={perfId} aria-busy={refreshing || undefined} className="space-y-5">
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
           <div className="min-w-0">
-            <h2 id={perfId} className="font-display text-2xl text-text sm:text-[1.75rem]">
+            <h2 id={perfId} className="text-xl font-bold tracking-tight text-text sm:text-2xl">
               {t('dashboard:sections.performance')}
             </h2>
             <p className="mt-1 text-sm text-muted">
@@ -134,7 +139,7 @@ function DashboardView({
       {(data.inventory || data.construction || data.residences) && (
         <section aria-labelledby={portfolioId} className="space-y-5">
           <div>
-            <h2 id={portfolioId} className="font-display text-2xl text-text sm:text-[1.75rem]">
+            <h2 id={portfolioId} className="text-xl font-bold tracking-tight text-text sm:text-2xl">
               {t('dashboard:sections.portfolio')}
             </h2>
             <p className="mt-1 text-sm text-muted">{t('dashboard:sections.portfolioDescription')}</p>
@@ -157,10 +162,48 @@ function PerformanceCharts({ data, range, fmt }: { data: DashboardSummary; range
   if (!data.collections && !data.funnel) return null;
   return (
     <div className={cn('grid gap-5 lg:gap-6', both && 'xl:grid-cols-12')}>
-      {data.collections && <CollectionsCard points={data.collections} range={range} fmt={fmt} className={cn(both && 'xl:col-span-8')} />}
+      {data.collections && (
+        <div id="collections" data-tour-id="dashboard-collections" className={cn('min-w-0 scroll-mt-24 [&>section]:h-full', both && 'xl:col-span-8')}>
+          <CollectionsCard points={data.collections} range={range} fmt={fmt} />
+        </div>
+      )}
       {data.funnel && <FunnelCard funnel={data.funnel} range={range} fmt={fmt} className={cn(both && 'xl:col-span-4')} />}
     </div>
   );
+}
+
+/** Brings a dashboard section into view and moves focus to its heading (keyboard and screen readers follow). */
+function scrollToSection(id: string, reduced: boolean) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+  const heading = el.querySelector<HTMLElement>('h2, h3');
+  if (heading) {
+    heading.setAttribute('tabindex', '-1');
+    heading.focus({ preventScroll: true });
+  }
+}
+
+/**
+ * Quick actions on the start page, filtered by role. Every tile reaches something that works today:
+ * a working drawer, a built screen, search, a tour or practice mode (no planned-screen dead ends).
+ */
+function useDashboardActions(hasCollections: boolean): QuickAction[] {
+  const { t } = useT();
+  const [, setDrawer] = useQueryParam('drawer');
+  const { setPaletteOpen } = useShell();
+  const tour = useGuidedTour();
+  const reduced = useReducedMotion();
+  return [
+    { id: 'new-lead', label: t('dashboard:quick.newLead'), icon: UserPlus, hue: 'sky', onPress: () => setDrawer('new-lead', { replace: false }), permission: 'lead.create', testId: 'dqa-new-lead' },
+    { id: 'visit', label: t('dashboard:quick.visit'), icon: CalendarPlus, hue: 'violet', onPress: () => setDrawer('schedule-visit', { replace: false }), permission: 'visit.schedule', testId: 'dqa-visit' },
+    { id: 'sales', label: t('dashboard:quick.sales'), icon: BriefcaseBusiness, hue: 'teal', href: LINKS.salesHome, permission: 'lead.view', testId: 'dqa-sales' },
+    { id: 'leads', label: t('dashboard:quick.leads'), icon: UsersRound, hue: 'emerald', href: LINKS.leads, permission: 'lead.view', testId: 'dqa-leads' },
+    ...(hasCollections ? [{ id: 'collections', label: t('dashboard:quick.collections'), icon: BarChart3, hue: 'gold' as const, onPress: () => scrollToSection('collections', reduced), testId: 'dqa-collections' }] : []),
+    { id: 'search', label: t('dashboard:quick.search'), icon: Search, hue: 'slate', onPress: () => setPaletteOpen(true), testId: 'dqa-search' },
+    { id: 'tour', label: t('dashboard:quick.tour'), icon: Compass, hue: 'amber', onPress: () => tour.start('GLOBAL-TOUR-001'), testId: 'dqa-tour' },
+    { id: 'practice', label: t('dashboard:quick.practice'), icon: GraduationCap, hue: 'rose', href: '/backoffice/help/practice', permission: 'lead.create', testId: 'dqa-practice' },
+  ];
 }
 
 function DashboardSkeleton() {

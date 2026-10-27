@@ -14,7 +14,13 @@
     "fileSize": "{{name}} is larger than {{max}}.",
     "fileRequired": "Attach a file.",
     "unitUnavailable": "This unit is {{status}}, so it can't be chosen.",
-    "consentRequired": "Confirm that the customer agreed to be contacted."
+    "consentRequired": "Confirm that the customer agreed to be contacted.",
+    "unitNotAvailable": "This unit is no longer available. Choose another unit.",
+    "codeInvalid": "That code doesn’t match. In this prototype the code is 246810.",
+    "passwordShort": "Use at least 10 characters.",
+    "passwordWeak": "Add a number or symbol to make the password stronger.",
+    "passwordMismatch": "The passwords don’t match.",
+    "timeRequired": "Choose a time."
   },
   "summary": {
     "title_one": "Fix {{count}} problem to continue",

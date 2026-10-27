@@ -73,13 +73,19 @@ test.describe('Guided onboarding (doc 09 §11)', () => {
       await page.goto(`${BO}/backoffice/lab`);
       await startWelcomeTour(page);
       expect(await stepId(page)).toBe('welcome');
+      await expect(page).toHaveURL(/\/backoffice\/home\/role-aware-dashboard/);
       await expectCardInViewport(page);
 
+      // v2 runs on the dashboard and spotlights real widgets; Sales has no collections step.
+      const phone = vp !== 'desktop';
       const anchors = [
-        ['sidebar', vp === 'desktop' ? 'nav-primary' : 'nav-menu-button'],
+        ['sidebar', phone ? 'bottom-nav' : 'nav-primary'],
         ['project', 'project-switcher'],
+        ['kpis', phone ? 'dashboard-kpi-first' : 'dashboard-kpis'],
+        ['quickActions', 'dashboard-quick-actions'],
+        ['actionCentre', 'dashboard-action-centre'],
         ['search', 'command-search'],
-        ['quickCreate', 'quick-create'],
+        ['quickCreate', phone ? 'quick-create-fab' : 'quick-create'],
         ['help', 'global-help'],
       ] as const;
       for (const [id, anchor] of anchors) {
@@ -88,6 +94,7 @@ test.describe('Guided onboarding (doc 09 §11)', () => {
         await expectSpotlightOn(page, anchor);
         await expectCardInViewport(page);
       }
+      await expect(page.getByTestId('tour-next')).toHaveText(/finish/i);
     });
   }
 
@@ -105,10 +112,11 @@ test.describe('Guided onboarding (doc 09 §11)', () => {
     await expect(page.locator('html')).toHaveAttribute('lang', 'ur-PK');
     await expect(card(page)).toHaveAttribute('data-step-id', 'project');
     await expect(card(page).getByRole('heading')).toHaveText('موجودہ پروجیکٹ');
-    await expect(page.getByTestId('tour-progress')).toHaveText('مرحلہ 3 از 6');
+    await expect(page.getByTestId('tour-progress')).toHaveText('مرحلہ 3 از 9');
     await expectSpotlightOn(page, 'project-switcher');
     await next(page);
-    await expect(card(page)).toHaveAttribute('data-step-id', 'search');
+    await expect(card(page)).toHaveAttribute('data-step-id', 'kpis');
+    await expectSpotlightOn(page, 'dashboard-kpis');
   });
 
   test('5: Finance-only steps are removed for Sales and never shown', async ({ page }) => {
@@ -135,25 +143,25 @@ test.describe('Guided onboarding (doc 09 §11)', () => {
     await startWelcomeTour(page);
     await page.getByTestId('tour-skip').click();
     await expect(card(page)).toHaveCount(0);
-    expect((await tourRecord(page, 'sales', 'GLOBAL-TOUR-001'))?.status).toBe('dismissed');
+    expect((await tourRecord(page, 'sales', 'GLOBAL-TOUR-001', 2))?.status).toBe('dismissed');
 
     await page.getByTestId('help-button').click();
     await page.getByTestId('help-take-tour').click();
     await expect(card(page)).toHaveAttribute('data-step-id', 'welcome');
   });
 
-  test('7: finishing step 6 marks this exact tour version complete for persona, tenant and app', async ({ page }) => {
+  test('7: finishing the last step marks this exact tour version complete for persona, tenant and app', async ({ page }) => {
     await seed(page, { persona: 'sales', onboarding: 'fresh' });
     await page.goto(`${BO}/backoffice/lab`);
     await startWelcomeTour(page);
-    for (let i = 0; i < 5; i++) await next(page);
+    for (let i = 0; i < 8; i++) await next(page);
     await expect(page.getByTestId('tour-next')).toHaveText(/finish/i);
     await next(page);
     await expect(page.getByTestId('tour-completion')).toBeVisible();
-    const record = await tourRecord(page, 'sales', 'GLOBAL-TOUR-001', 1);
-    expect(record).toMatchObject({ tenantId: 'tnt_larkspur', personaId: 'sales', app: 'backoffice', tourId: 'GLOBAL-TOUR-001', tourVersion: 1, status: 'completed' });
+    const record = await tourRecord(page, 'sales', 'GLOBAL-TOUR-001', 2);
+    expect(record).toMatchObject({ tenantId: 'tnt_larkspur', personaId: 'sales', app: 'backoffice', tourId: 'GLOBAL-TOUR-001', tourVersion: 2, status: 'completed' });
     expect(record.completedAt).toBeTruthy();
-    expect(await tourRecord(page, 'sales', 'GLOBAL-TOUR-001', 2)).toBeNull();
+    expect(await tourRecord(page, 'sales', 'GLOBAL-TOUR-001', 1)).toBeNull();
 
     await page.getByRole('button', { name: /go to start page/i }).click();
     await page.reload();
@@ -200,8 +208,16 @@ test.describe('Guided onboarding (doc 09 §11)', () => {
 
     await page.keyboard.press('Escape');
     await expect(card(page)).toHaveCount(0);
-    expect((await tourRecord(page, 'sales', 'GLOBAL-TOUR-001'))?.status).toBe('paused');
+    expect((await tourRecord(page, 'sales', 'GLOBAL-TOUR-001', 2))?.status).toBe('paused');
     await expect.poll(() => page.evaluate(() => document.activeElement?.tagName)).not.toBe('BODY');
+
+    // A Resume chip offers the paused tour back at the same step.
+    const chip = page.getByTestId('tour-paused');
+    await expect(chip).toContainText('step 2 of 9');
+    await chip.getByTestId('tour-resume').click();
+    await expect(card(page)).toHaveAttribute('data-step-id', 'sidebar');
+    await page.getByTestId('tour-pause-text').click();
+    await expect(card(page)).toHaveCount(0);
 
     await page.goto(`${BO}/backoffice/help/tours`);
     await page.getByTestId('resume-GLOBAL-TOUR-001').click();
@@ -214,10 +230,10 @@ test.describe('Guided onboarding (doc 09 §11)', () => {
     await startWelcomeTour(page);
     const dialog = page.getByRole('dialog', { name: 'Welcome to your workspace' });
     await expect(dialog).toHaveAttribute('aria-modal', 'true');
-    await expect(dialog).toHaveAccessibleDescription(/Step 1 of 6/);
+    await expect(dialog).toHaveAccessibleDescription(/Step 1 of 9/);
     await expect(page.locator('#app-shell')).toHaveAttribute('inert', '');
 
-    for (let i = 0; i < 3; i++) await next(page);
+    for (let i = 0; i < 6; i++) await next(page);
     const search = page.getByRole('dialog', { name: 'Search anything' });
     await expect(search).toHaveAttribute('aria-modal', 'false');
     await expect(page.locator('#app-shell')).not.toHaveAttribute('inert', '');
@@ -305,8 +321,8 @@ test.describe('Guided onboarding (doc 09 §11)', () => {
     await expect(page).toHaveURL(/\/help\/tours\/GLOBAL-TOUR-001\/text$/);
     await expect(card(page)).toHaveCount(0);
     const items = page.getByTestId('text-guide').getByRole('listitem');
-    await expect(items).toHaveCount(6);
-    await items.nth(4).getByRole('button', { name: 'Show me' }).click();
+    await expect(items).toHaveCount(10);
+    await items.nth(8).getByRole('button', { name: 'Show me' }).click();
     await expect(page.locator('[data-tour-id="quick-create"]:visible')).toBeFocused();
   });
 

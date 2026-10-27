@@ -14,6 +14,8 @@ export interface SessionContextValue {
   persona: Persona | null;
   signIn: (personaId: Persona['id']) => void;
   signOut: () => void;
+  /** Someone has signed in to this app in this browser before (returning visitors skip Get started). */
+  returning: boolean;
   /** Header project context: 'all' or a project id inside the persona's scope. */
   projectId: string;
   setProjectId: (projectId: string) => void;
@@ -38,7 +40,9 @@ export function SessionProvider({
   children: ReactNode;
 }) {
   const key = `demo:session:${app}`;
+  const returningKey = `demo:returning:${app}`;
   const [stored, setStored] = useState<StoredSession>(() => readJson(key, { personaId: null, projectId: 'all' }));
+  const [returning, setReturning] = useState(() => readJson<{ returning: boolean }>(returningKey, { returning: false }).returning || stored.personaId !== null);
 
   const persist = useCallback(
     (next: StoredSession) => {
@@ -56,13 +60,18 @@ export function SessionProvider({
       tenant,
       personas: personas.filter((p) => p.app === app),
       persona,
-      signIn: (personaId) => persist({ personaId, projectId: 'all' }),
+      signIn: (personaId) => {
+        writeJson(returningKey, { returning: true });
+        setReturning(true);
+        persist({ personaId, projectId: 'all' });
+      },
+      returning,
       signOut: () => persist({ personaId: null, projectId: 'all' }),
       projectId: stored.projectId,
       setProjectId: (projectId) => persist({ ...stored, projectId }),
       can: (permission) => persona?.permissions.includes(permission) ?? false,
     }),
-    [app, tenant, personas, persona, stored, persist],
+    [app, tenant, personas, persona, stored, persist, returning, returningKey],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

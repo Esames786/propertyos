@@ -2,24 +2,29 @@ import { CU, expect, seed, test, waitForApp } from '../support/fixtures';
 import { VIEWPORTS } from '../support/viewports';
 
 test.describe('Customer web/PWA shell (one source for phone and desktop)', () => {
-  test('phone: bottom navigation with five items', async ({ page }) => {
+  test('phone: floating bottom bar, four items around a raised centre Pay action', async ({ page }) => {
     await page.setViewportSize(VIEWPORTS.phone);
     await seed(page, { persona: 'resident', app: 'customer' });
     await page.goto(`${CU}/customer/portal`);
     await waitForApp(page);
     const nav = page.getByRole('navigation', { name: 'Portal navigation' }).locator('visible=true');
-    await expect(nav.getByRole('link')).toHaveText(['Home', 'Property', 'Payments', 'Services', 'Profile']);
+    await expect(nav.getByRole('link')).toHaveText(['Home', 'Payments', 'Pay', 'Progress', 'Services']);
+    await expect(nav.getByRole('link', { name: 'Home' })).toHaveAttribute('aria-current', 'page');
     const box = await nav.boundingBox();
-    expect(box!.y + box!.height).toBeGreaterThan(VIEWPORTS.phone.height - 5);
+    // Floating: a small gap above the screen edge, still within thumb reach.
+    expect(box!.y + box!.height).toBeGreaterThan(VIEWPORTS.phone.height - 24);
   });
 
-  test('desktop: the same items as side navigation', async ({ page }) => {
+  test('desktop: grouped side navigation with the same destinations', async ({ page }) => {
     await seed(page, { persona: 'resident', app: 'customer' });
     await page.goto(`${CU}/customer/portal`);
     const nav = page.getByRole('navigation', { name: 'Portal navigation' }).locator('visible=true');
-    await expect(nav.getByRole('link')).toHaveText(['Home', 'Property', 'Payments', 'Services', 'Profile']);
+    await expect(nav.getByRole('link')).toHaveText(['Home', 'Payments', 'Progress', 'Documents', 'Services', 'Accessibility']);
+    await expect(nav.getByRole('link', { name: 'Home' })).toHaveAttribute('aria-current', 'page');
     const box = await nav.boundingBox();
     expect(box!.y).toBeLessThan(200);
+    // The centre action becomes the rail's primary button.
+    await expect(page.getByTestId('portal-rail-action')).toHaveText('Pay or upload proof');
   });
 
   test('payment status says awaiting verification, never paid, and amounts are bidi-safe in Urdu', async ({ page }) => {

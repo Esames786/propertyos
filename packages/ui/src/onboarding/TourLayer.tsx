@@ -1,4 +1,5 @@
 import { useLocale } from '@repo/i18n';
+import { Compass, Play, X } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useAnnounce } from '../a11y/LiveAnnouncer';
 import { cn } from '../lib/cn';
@@ -6,6 +7,7 @@ import { BREAKPOINTS, useMediaQuery } from '../lib/useMediaQuery';
 import { useT } from '../lib/useT';
 import { usePreferences } from '../preferences/PreferencesProvider';
 import { Button } from '../primitives/Button';
+import { IconButton } from '../primitives/IconButton';
 import { Spinner } from '../primitives/Spinner';
 import { FirstLoginWelcome, TourCompletion } from './TourDialogs';
 import { useGuidedTour } from './GuidedTourProvider';
@@ -49,7 +51,10 @@ export function TourLayer({ showWelcome, offer, onDismissOffer }: { showWelcome:
       setRect(null);
       return;
     }
-    highlighted.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: reducedMotion ? 'auto' : 'smooth' });
+    // Bring the target to the middle of the viewport (room for the card above or below it); very tall
+    // targets are aligned to the top instead so their start is visible.
+    const fits = highlighted.getBoundingClientRect().height < innerHeight * 0.55;
+    highlighted.scrollIntoView({ block: fits ? 'center' : 'start', inline: 'nearest', behavior: reducedMotion ? 'auto' : 'smooth' });
     let frame = 0;
     let last = '';
     const tick = () => {
@@ -143,10 +148,36 @@ export function TourLayer({ showWelcome, offer, onDismissOffer }: { showWelcome:
           </Button>
         </div>
       )}
+      {!running && tour.state.status === 'idle' && tour.pausedTourId && <PausedReminder tourId={tour.pausedTourId} />}
       <FirstLoginWelcome isOpen={showWelcome} />
       <TourCompletion />
       {offer && <ModuleOffer tour={offer} onDismiss={onDismissOffer} />}
     </div>
+  );
+}
+
+/** After a pause: a small, non-modal reminder with Resume (the tour continues from the same step). */
+function PausedReminder({ tourId }: { tourId: string }) {
+  const { t } = useT();
+  const { start, progressFor, resolvedSteps, hidePausedReminder } = useGuidedTour();
+  const steps = resolvedSteps(tourId);
+  const last = progressFor(tourId)?.lastStepId;
+  const index = steps.findIndex((s) => s.id === last);
+  return (
+    <section
+      aria-label={t('onboarding:controls.pausedChipNoStep')}
+      data-testid="tour-paused"
+      className="fixed bottom-4 start-4 flex max-w-[calc(100vw-2rem)] animate-pop-in items-center gap-2 rounded-pill border border-border bg-panel py-1.5 ps-3 pe-1.5 text-sm text-text shadow-overlay max-md:bottom-[calc(var(--bottom-nav-height)+1.75rem)]"
+    >
+      <Compass aria-hidden className="size-4 shrink-0 text-primary" />
+      <span className="truncate">
+        {index >= 0 ? t('onboarding:controls.pausedChip', { current: index + 1, total: steps.length }) : t('onboarding:controls.pausedChipNoStep')}
+      </span>
+      <Button size="sm" variant="primary" icon={Play} onPress={() => start(tourId, { resume: true })} className="rounded-pill" data-testid="tour-resume">
+        {t('onboarding:controls.resumeShort')}
+      </Button>
+      <IconButton label={t('onboarding:controls.dismissPaused')} icon={X} onPress={hidePausedReminder} className="size-9" />
+    </section>
   );
 }
 

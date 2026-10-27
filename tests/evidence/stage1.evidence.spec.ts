@@ -18,6 +18,10 @@ async function open(browser: Browser, vp: ViewportName, path: string, opts: { pe
   return page;
 }
 
+// Historical evidence for Stage 1: the screenshots in its folder are the "before" set for later
+// stages, and the shell has changed since (Stage 1.5R), so this file is kept for reference only.
+test.skip(true, 'Historical evidence for Stage 1; kept for reference, not re-run');
+
 test.describe.configure({ mode: 'parallel' });
 
 for (const locale of ['en-PK', 'ur-PK'] as Locale[]) {

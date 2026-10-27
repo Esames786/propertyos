@@ -22,7 +22,9 @@ test.describe('Permission-aware UI with demo personas (J9)', () => {
     await page.locator('[data-tour-id="quick-create"]:visible').click();
     await expect(page.getByTestId('quick-create-practice-lead')).toBeVisible();
     await expect(page.getByRole('menuitem', { name: /Receive payment/ })).toHaveCount(0);
-    await expect(page.getByRole('menuitem', { name: /Schedule site visit/ })).toHaveAttribute('aria-disabled', 'true');
+    // Stage 1.5R: New lead and Schedule visit work against the demo session; Hold is still planned.
+    await expect(page.getByRole('menuitem', { name: /Schedule site visit/ })).not.toHaveAttribute('aria-disabled', 'true');
+    await expect(page.getByRole('menuitem', { name: /Hold a unit/ })).toHaveAttribute('aria-disabled', 'true');
   });
 
   test('Finance sees finance areas and not Sales', async ({ page }) => {

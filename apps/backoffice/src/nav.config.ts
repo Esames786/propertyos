@@ -39,8 +39,15 @@ export const NAV_ITEMS: NavItem[] = [
 export const LINKS = {
   start: '/backoffice/home/role-aware-dashboard',
   preferences: '/backoffice/global/profile--preferences',
-  signIn: '/backoffice',
+  signIn: '/backoffice/sign-in',
+  getStarted: '/backoffice/get-started',
+  demoLaunch: '/backoffice/get-started/demo',
+  workspaceSetup: '/backoffice/get-started/setup',
   tourLibrary: '/backoffice/help/tours',
+  salesHome: '/backoffice/crm/sales-home',
+  leads: '/backoffice/crm/leads-list',
+  leadWorkspace: (leadId: string) => `/backoffice/crm/lead-360-workspace?record=${leadId}`,
+  more: '/backoffice/more',
 } as const;
 
 export const TOUR_LINKS = {

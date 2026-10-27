@@ -1,74 +1,79 @@
 import { LayoutGrid } from 'lucide-react';
 import { motion } from 'motion/react';
-import { Button as AriaButton, Link } from 'react-aria-components';
-import { cn } from '../lib/cn';
+import { Link } from 'react-aria-components';
+import type { NavItem } from './types';
 import { useT } from '../lib/useT';
 import { useNavigation } from '../navigation/RouterAdapter';
 import { filterAllowed } from '../permissions/can';
 import { useSession } from '../permissions/SessionProvider';
 import { useReducedMotion } from '../preferences/PreferencesProvider';
 import { isCurrent } from './NavList';
+import { QuickCreateMenu } from './QuickCreateMenu';
 import { useShell } from './ShellContext';
 
 /**
- * Phone bottom bar (< 768 px): the four most-used destinations the persona may open, plus "More"
- * for the full menu sheet. Thumb-reach targets (≥ 48 px), labels always visible, current item
- * marked with aria-current and a pill (not colour alone). Sits above the home-indicator inset.
+ * Phone bottom bar (< 768 px): a floating rounded bar with two destinations either side of a raised
+ * centre Quick create button, and "More" for everything else. Thumb-reach targets (≥ 48 px), labels
+ * always visible, the current item marked with aria-current and a sliding pill (not colour alone).
+ * Sits above the home-indicator inset.
  */
 export function BottomNav() {
   const { t } = useT();
-  const { navItems, setMobileNavOpen } = useShell();
-  const { persona } = useSession();
+  const { navItems, links } = useShell();
+  const { persona, can } = useSession();
   const { location } = useNavigation();
   const reduced = useReducedMotion();
-  const items = filterAllowed(persona, navItems.filter((i) => i.bottomBar)).slice(0, 4);
+  const items = filterAllowed(persona, navItems.filter((i) => i.bottomBar)).slice(0, 3);
+  const more: NavItem | null = links.more ? { id: 'more', labelKey: 'nav:more', href: links.more, icon: LayoutGrid, match: links.more } : null;
+  const hasFab = can('quickcreate.use');
+  const start = items.slice(0, 2);
+  const end = [...items.slice(2), ...(more ? [more] : [])];
+
+  const cell = (item: NavItem) => {
+    const Icon = item.icon;
+    const current = isCurrent(location.pathname, item);
+    return (
+      <li key={item.id} className="flex-1">
+        <Link
+          href={item.href}
+          aria-current={current ? 'page' : undefined}
+          data-testid={item.id === 'more' ? 'bottom-nav-more' : undefined}
+          className="group flex h-full flex-col items-center justify-center gap-1 rounded-tile text-[0.6875rem] font-medium text-muted outline-none data-focus-visible:outline-2 data-focus-visible:outline-offset-[-4px] data-focus-visible:outline-focus data-pressed:scale-95 aria-[current=page]:text-primary"
+        >
+          <span className="relative grid h-7 w-12 place-items-center">
+            {current && (
+              <motion.span
+                layoutId="bottom-nav-pill"
+                aria-hidden
+                transition={reduced ? { duration: 0 } : { type: 'spring', bounce: 0.22, duration: 0.45 }}
+                className="absolute inset-0 rounded-pill bg-primary-soft"
+              />
+            )}
+            <Icon aria-hidden className="relative size-5" strokeWidth={current ? 2.2 : 1.8} />
+          </span>
+          <span className="line-clamp-2 max-w-full px-0.5 text-center leading-[1.15]">{t(item.labelKey as 'nav:items.home')}</span>
+        </Link>
+      </li>
+    );
+  };
+
   return (
     <nav
       aria-label={t('nav:bottomBarLabel')}
-      className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-panel/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden"
+      data-tour-id="bottom-nav"
       data-testid="bottom-nav"
+      className="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-30 rounded-[1.375rem] border border-border/80 bg-panel/95 shadow-overlay backdrop-blur-md md:hidden"
     >
-      <ul className="mx-auto flex h-[var(--bottom-nav-height)] max-w-lg items-stretch px-1">
-        {items.map((item) => {
-          const Icon = item.icon;
-          const current = isCurrent(location.pathname, item);
-          return (
-            <li key={item.id} className="flex-1">
-              <Link
-                href={item.href}
-                aria-current={current ? 'page' : undefined}
-                className="group flex h-full flex-col items-center justify-center gap-1 rounded-control text-[11px] font-medium text-muted outline-none data-focus-visible:outline-2 data-focus-visible:outline-offset-[-4px] data-focus-visible:outline-focus aria-[current=page]:text-primary"
-              >
-                <span className="relative grid h-7 w-12 place-items-center">
-                  {current && (
-                    <motion.span
-                      layoutId="bottom-nav-pill"
-                      aria-hidden
-                      transition={reduced ? { duration: 0 } : { type: 'spring', bounce: 0.22, duration: 0.45 }}
-                      className="absolute inset-0 rounded-pill bg-primary-soft"
-                    />
-                  )}
-                  <Icon aria-hidden className="relative size-5" strokeWidth={current ? 2.1 : 1.8} />
-                </span>
-                <span className="max-w-full truncate px-0.5">{t(item.labelKey as 'nav:items.home')}</span>
-              </Link>
-            </li>
-          );
-        })}
-        <li className="flex-1">
-          <AriaButton
-            onPress={() => setMobileNavOpen(true)}
-            className={cn(
-              'flex h-full w-full flex-col items-center justify-center gap-1 rounded-control text-[11px] font-medium text-muted outline-none',
-              'data-focus-visible:outline-2 data-focus-visible:outline-offset-[-4px] data-focus-visible:outline-focus',
-            )}
-          >
-            <span className="relative grid h-7 w-12 place-items-center">
-              <LayoutGrid aria-hidden className="size-5" strokeWidth={1.8} />
+      <ul className="mx-auto flex h-[var(--bottom-nav-height)] max-w-lg items-stretch px-1.5">
+        {start.map(cell)}
+        {hasFab && (
+          <li className="relative flex w-[4.5rem] shrink-0 justify-center">
+            <span className="absolute -top-6">
+              <QuickCreateMenu variant="fab" />
             </span>
-            <span>{t('nav:more')}</span>
-          </AriaButton>
-        </li>
+          </li>
+        )}
+        {end.map(cell)}
       </ul>
     </nav>
   );

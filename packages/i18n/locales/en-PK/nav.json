@@ -58,7 +58,14 @@
     "customerLab": "Customer portal preview",
     "accessibility": "Accessibility preferences",
     "signIn": "Demo sign-in",
-    "dashboard": "Dashboard"
+    "dashboard": "Dashboard",
+    "salesHome": "Sales",
+    "leadsList": "Leads",
+    "leadWorkspace": "Lead",
+    "more": "More",
+    "getStarted": "Get started",
+    "demoLaunch": "Explore the demo",
+    "workspaceSetup": "Set up your workspace"
   },
   "groups": {
     "workspace": "Workspace",
@@ -67,5 +74,8 @@
     "prototype": "Prototype"
   },
   "bottomBarLabel": "Quick navigation",
-  "more": "More"
+  "more": "More",
+  "quickCreateFab": "Quick create",
+  "demoEnvironment": "Demo environment · fictional records · no real transactions",
+  "demoShort": "Demo"
 }

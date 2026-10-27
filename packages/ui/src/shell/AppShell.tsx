@@ -3,8 +3,11 @@ import { MAIN_CONTENT_ID, SkipLink } from '../a11y/SkipLink';
 import { useRouteFocus } from '../a11y/useRouteFocus';
 import { CommandPalette } from '../command/CommandPalette';
 import { useCommandHotkey } from '../command/useCommandHotkey';
+import { NewLeadDrawer } from '../crm/NewLeadDrawer';
+import { ScheduleVisitDrawer } from '../crm/ScheduleVisitDrawer';
 import { readJson, writeJson } from '../lib/storage';
 import { useIsDesktop } from '../lib/useMediaQuery';
+import { PageEnter } from '../motion/Reveal';
 import { useNavigation } from '../navigation/RouterAdapter';
 import { PracticeLeadDrawer } from '../onboarding/PracticeLeadDrawer';
 import { PracticeModeBanner } from '../onboarding/PracticeModeBanner';
@@ -13,7 +16,6 @@ import { AppHeader } from './AppHeader';
 import { BottomNav } from './BottomNav';
 import { HelpDrawer } from './HelpDrawer';
 import { useLanguageAnnouncement } from './LocaleSwitcher';
-import { MobileNavSheet } from './MobileNavSheet';
 import { ShellContext, type ShellContextValue } from './ShellContext';
 import { Sidebar } from './Sidebar';
 import type { Destination, HelpKey, NavItem, ShellLinks } from './types';
@@ -21,9 +23,10 @@ import type { Destination, HelpKey, NavItem, ShellLinks } from './types';
 const SIDEBAR_KEY = 'pref:sidebar';
 
 /**
- * Backoffice application shell: skip link, floating rail (tablet/desktop) or bottom bar + menu sheet
- * (phone), a header over the content column, one <main>, and the global overlays (Ctrl+K, help,
- * practice drawer). Responsive composition, same features at every width (blueprint 01 §5).
+ * Backoffice application shell: skip link, white rail (tablet/desktop) or floating top bar + bottom
+ * bar with a centre Quick create button and a More page (phone), a header over the content column,
+ * one <main> whose page settles in on navigation, and the global overlays (Ctrl+K, help, the demo
+ * New lead / Schedule visit drawers, the practice drawer). Same features at every width (01 §5).
  */
 export function AppShell({
   appName,
@@ -46,7 +49,6 @@ export function AppShell({
   const { location } = useNavigation();
   const isDesktop = useIsDesktop();
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [collapsedPref, setCollapsedPref] = useState<boolean | null>(() => readJson<{ collapsed: boolean | null }>(SIDEBAR_KEY, { collapsed: null }).collapsed);
   const collapsed = collapsedPref ?? !isDesktop;
 
@@ -55,8 +57,8 @@ export function AppShell({
   useCommandHotkey(useCallback(() => setPaletteOpen((o) => !o), []));
 
   const value = useMemo<ShellContextValue>(
-    () => ({ appName, navItems, destinations, links, helpKey, paletteOpen, setPaletteOpen, mobileNavOpen, setMobileNavOpen }),
-    [appName, navItems, destinations, links, helpKey, paletteOpen, mobileNavOpen],
+    () => ({ appName, navItems, destinations, links, helpKey, paletteOpen, setPaletteOpen }),
+    [appName, navItems, destinations, links, helpKey, paletteOpen],
   );
 
   return (
@@ -78,16 +80,17 @@ export function AppShell({
             id={MAIN_CONTENT_ID}
             tabIndex={-1}
             aria-label={pageTitle}
-            className="mx-auto w-full max-w-[90rem] px-4 pt-4 pb-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom)+1.5rem)] outline-none sm:px-5 md:pb-10 lg:px-8"
+            className="mx-auto w-full max-w-[90rem] px-4 pt-5 pb-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom)+2.75rem)] outline-none sm:px-5 md:pt-4 md:pb-10 lg:px-8"
           >
-            {children}
+            <PageEnter id={location.pathname}>{children}</PageEnter>
           </main>
         </div>
         <BottomNav />
       </div>
-      <MobileNavSheet tenantName={tenant.name} />
       <CommandPalette />
       <HelpDrawer />
+      <NewLeadDrawer />
+      <ScheduleVisitDrawer />
       <PracticeLeadDrawer />
     </ShellContext.Provider>
   );

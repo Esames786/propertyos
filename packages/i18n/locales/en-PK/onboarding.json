@@ -26,7 +26,13 @@
     "targetUnavailable": "This control isn't on your screen right now, so here is a description instead.",
     "stepAnnouncement": "Step {{current}} of {{total}}: {{title}}",
     "paused": "Tour paused. Resume it from Help → Guided tours.",
-    "completedAnnouncement": "Tour complete."
+    "completedAnnouncement": "Tour complete.",
+    "pause": "Pause tour",
+    "pausedChip": "Tour paused at step {{current}} of {{total}}",
+    "pausedChipNoStep": "Tour paused",
+    "resumeShort": "Resume",
+    "dismissPaused": "Hide this reminder",
+    "pauseShort": "Pause"
   },
   "completion": {
     "title": "You're ready",
@@ -88,15 +94,15 @@
   "tours": {
     "GLOBAL-TOUR-001": {
       "name": "Backoffice essentials",
-      "summary": "The five controls you'll use every day.",
+      "summary": "A short walk through the dashboard and the controls you’ll use every day.",
       "welcome": {
         "title": "Welcome to your workspace",
-        "body": "Your work areas, tasks and connected records are in one place. This tour shows the five controls you'll use every day."
+        "body": "Everything you need to run sales, inventory and collections is on this dashboard. This short tour highlights the real controls, one at a time. You can pause or skip at any point."
       },
       "sidebar": {
-        "title": "Main areas",
-        "body": "Switch between major work areas here. You only see the areas your role includes.",
-        "bodyMobile": "On a phone, open this menu to switch between work areas."
+        "title": "Your work areas",
+        "body": "Sales, projects, customers, finance and more. You only see the areas your role includes.",
+        "bodyMobile": "On a phone, your main areas are in this bar. More opens everything else."
       },
       "project": {
         "title": "Current project",
@@ -109,11 +115,27 @@
       },
       "quickCreate": {
         "title": "Quick create",
-        "body": "Start a lead, a visit or another task you're allowed to do, without leaving your current screen."
+        "body": "Start a lead, a visit or another task you’re allowed to do, without leaving the screen you’re on."
       },
       "help": {
-        "title": "Related records and help",
-        "body": "Each record links to its related records. Replay this guide, or read help for the current page, from Help."
+        "title": "Help is always here",
+        "body": "Replay this tour, pause and resume it, or read help for the current page from Help."
+      },
+      "kpis": {
+        "title": "Today’s numbers at a glance",
+        "body": "Bookings, collections and available stock for the period you choose. Select a card to open the screen behind the number."
+      },
+      "quickActions": {
+        "title": "Quick actions",
+        "body": "The jobs you do most often, one tap away: add a lead, book a visit, check stock and more."
+      },
+      "actionCentre": {
+        "title": "What needs you now",
+        "body": "Follow-ups due, payment proofs awaiting verification and expiring holds. Proofs stay “Awaiting verification” until finance confirms them."
+      },
+      "collections": {
+        "title": "Collections against target",
+        "body": "Money collected each month against what was scheduled. Use the arrow keys on the chart, or open its data table."
       }
     },
     "LAB-TOUR-001": {
@@ -139,9 +161,46 @@
         "title": "Replay any time",
         "body": "Find this tour and the essentials tour in Help → Guided tours."
       }
+    },
+    "CRM-TOUR-001": {
+      "name": "Sales workspace",
+      "summary": "Follow-ups, the pipeline, site visits, and creating your first demo lead.",
+      "intro": {
+        "title": "Your sales workspace",
+        "body": "Leads, follow-ups, site visits and bookings in one place. Let’s look at the parts you’ll use every day, then create a demo lead together."
+      },
+      "kpis": {
+        "title": "Your week in four numbers",
+        "body": "New leads, follow-ups due, visits this week and bookings this month. Each card opens the list behind it."
+      },
+      "followUps": {
+        "title": "Follow-ups due",
+        "body": "Who to call today, overdue first. Call or WhatsApp straight from the card and log the outcome."
+      },
+      "pipeline": {
+        "title": "Pipeline",
+        "body": "How many leads sit at each stage and what they’re worth. Select a stage to see those leads."
+      },
+      "visits": {
+        "title": "Upcoming site visits",
+        "body": "Confirm a visit, or mark it done after the customer has seen the unit."
+      },
+      "newLead": {
+        "title": "Create a demo lead",
+        "body": "Select New lead, fill in a name and phone number, and save. It’s fictional demo data: nothing is sent to anyone."
+      },
+      "recentLeads": {
+        "title": "Your new lead is here",
+        "body": "New leads appear at the top of the list straight away, with a “New” marker. Open one to see its timeline."
+      },
+      "done": {
+        "title": "You’re ready",
+        "body": "Replay this tour from Help at any time, or keep exploring the demo on your own."
+      }
     }
   },
   "modules": {
-    "lab": "the design system lab"
+    "lab": "the design system lab",
+    "crm": "Sales"
   }
 }

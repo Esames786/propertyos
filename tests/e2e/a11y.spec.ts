@@ -25,10 +25,26 @@ const BACKOFFICE_ROUTES = [
   '/backoffice/global/notifications',
   '/backoffice/global/context-help',
   '/backoffice/crm/sales-home',
+  '/backoffice/crm/leads-list?status=qualified',
+  '/backoffice/crm/lead-360-workspace?record=led_0033',
+  '/backoffice/crm/lead-360-workspace?record=led_0033&tab=activity',
+  '/backoffice/crm/lead-360-workspace?record=led_0033&tab=units',
+  '/backoffice/more',
   '/backoffice/no-such-page',
 ];
 
-const CUSTOMER_ROUTES = ['/customer/portal/lab', '/customer/portal/accessibility-preferences', '/customer/portal/payments-dashboard'];
+const CUSTOMER_ROUTES = [
+  '/customer/portal/home',
+  '/customer/portal/payments-dashboard',
+  '/customer/portal/upload-proof-mock',
+  '/customer/portal/receipt?record=rcp_14',
+  '/customer/portal/construction-updates',
+  '/customer/portal/services-home',
+  '/customer/portal/services-home?tab=visitors',
+  '/customer/portal/documents',
+  '/customer/portal/lab',
+  '/customer/portal/accessibility-preferences',
+];
 
 async function expectClean(page: Page, label: string, testInfo: TestInfo) {
   const { violations } = await scanA11y(page, testInfo, label);
@@ -63,7 +79,7 @@ for (const locale of ['en-PK', 'ur-PK'] as Locale[]) {
       test('overlays: sign-in, welcome, tour steps, palette, drawer, validation summary', async ({ page }, testInfo) => {
         test.setTimeout(120_000);
         await seed(page, { persona: null, locale, onboarding: 'fresh' });
-        await page.goto(`${BO}/backoffice/lab`);
+        await page.goto(`${BO}/backoffice/sign-in?next=/backoffice/lab`);
         await expect(page.getByTestId('sign-in-sales')).toBeVisible();
         await expectClean(page, `${locale}-${vp}-sign-in`, testInfo);
 
@@ -72,7 +88,7 @@ for (const locale of ['en-PK', 'ur-PK'] as Locale[]) {
         await expectClean(page, `${locale}-${vp}-welcome`, testInfo);
 
         await page.getByTestId('welcome-start').click();
-        for (let i = 0; i < 6; i++) {
+        for (let i = 0; i < 9; i++) {
           await expect(page.getByTestId('tour-card')).toBeVisible();
           await page.waitForTimeout(350);
           await expectClean(page, `${locale}-${vp}-tour-step-${i + 1}`, testInfo);
@@ -97,6 +113,26 @@ for (const locale of ['en-PK', 'ur-PK'] as Locale[]) {
         await page.getByTestId('lab-form-submit').click();
         await expect(page.getByTestId('validation-summary')).toBeVisible();
         await expectClean(page, `${locale}-${vp}-form-errors`, testInfo);
+
+        // Stage 1.5R CRM overlays: new lead (with errors), schedule visit, simulated call, unit quick view.
+        await page.goto(`${BO}/backoffice/crm/sales-home?drawer=new-lead`);
+        await expect(page.getByTestId('new-lead-drawer')).toBeVisible();
+        await page.getByTestId('new-lead-submit').click();
+        await expect(page.getByTestId('validation-summary')).toBeVisible();
+        await expectClean(page, `${locale}-${vp}-new-lead-errors`, testInfo);
+        await page.goto(`${BO}/backoffice/crm/sales-home?drawer=schedule-visit`);
+        await expect(page.getByTestId('schedule-visit-drawer')).toBeVisible();
+        await expectClean(page, `${locale}-${vp}-schedule-visit`, testInfo);
+        await page.goto(`${BO}/backoffice/crm/lead-360-workspace?record=led_0033`);
+        await page.getByTestId('lead-contact').getByRole('button').first().click();
+        await expect(page.getByTestId('contact-sheet')).toBeVisible();
+        await expectClean(page, `${locale}-${vp}-contact-sheet`, testInfo);
+        await page.keyboard.press('Escape');
+        await page.goto(`${BO}/backoffice/crm/lead-360-workspace?record=led_0033&tab=units`);
+        await page.getByTestId('matched-unit-open').first().click();
+        await expect(page.getByTestId('unit-quick-view')).toBeVisible();
+        await page.waitForTimeout(500);
+        await expectClean(page, `${locale}-${vp}-unit-quick-view`, testInfo);
       });
     });
   }

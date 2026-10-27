@@ -31,13 +31,13 @@ export function ProjectSwitcher() {
       <AriaButton
         data-tour-id="project-switcher"
         aria-label={t('nav:header.projectFor', { project: current.label })}
-        className="flex min-h-10 max-w-[15rem] min-w-0 items-center gap-2 rounded-pill bg-panel ps-2 pe-3 text-sm font-medium text-text shadow-inset outline-none transition-shadow duration-[var(--motion-fast)] data-hovered:shadow-card data-focus-visible:outline-2 data-focus-visible:outline-focus pointer-coarse:min-h-11 max-sm:max-w-[8rem] max-xs:pe-2"
+        className="flex min-h-10 max-w-[15rem] min-w-0 items-center gap-2 rounded-pill bg-panel ps-2 pe-3 text-sm font-medium text-text shadow-inset outline-none transition-shadow duration-[var(--motion-fast)] data-hovered:shadow-card data-focus-visible:outline-2 data-focus-visible:outline-focus pointer-coarse:min-h-11 max-sm:size-10 max-sm:justify-center max-sm:px-0 max-sm:pointer-coarse:size-11"
       >
         <span aria-hidden className="grid size-7 shrink-0 place-items-center rounded-pill bg-primary-soft text-primary">
           <Building2 className="size-3.5" />
         </span>
-        <SelectValue className="truncate max-xs:sr-only" />
-        <ChevronDown aria-hidden className="size-4 shrink-0 text-muted max-xs:hidden" />
+        <SelectValue className="truncate max-sm:sr-only" />
+        <ChevronDown aria-hidden className="size-4 shrink-0 text-muted max-sm:hidden" />
       </AriaButton>
       <Popover placement="bottom start" offset={6} className="min-w-60 rounded-tile border border-border bg-panel p-1.5 shadow-overlay data-entering:animate-overlay-in">
         <ListBox items={options} className="outline-none">

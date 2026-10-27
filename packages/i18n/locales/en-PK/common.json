@@ -142,7 +142,21 @@
     "visitScheduled": "Scheduled a site visit for {{date}}",
     "called": "Called the customer; asked for a 3-bed price list",
     "assigned": "Assigned the lead to {{name}}",
-    "created": "Lead created from the {{source}} enquiry form"
+    "created": "Lead created from the {{source}} enquiry form",
+    "leadCreated": "Created the lead ({{source}})",
+    "callAnswered": "Called the customer: they answered",
+    "callNoAnswer": "Called the customer: no answer",
+    "callCallback": "Called the customer: asked to be called back",
+    "whatsappSent": "Sent a WhatsApp message",
+    "noteAdded": "Added a note: “{{note}}”",
+    "statusChanged": "Moved the lead to {{status}}",
+    "visitBooked": "Booked a site visit for {{at}}",
+    "visitConfirmed": "Confirmed the site visit for {{at}}",
+    "visitCompleted": "Completed the site visit",
+    "unitHeld": "Held unit {{unit}} until {{until}}",
+    "unitReleased": "Released the hold on unit {{unit}}",
+    "followUpDone": "Completed the follow-up",
+    "followUpSet": "Set the next follow-up for {{at}}"
   },
   "quickCreate": {
     "label": "Quick create",
@@ -155,7 +169,10 @@
     "scheduleVisit": "Schedule site visit",
     "holdUnit": "Hold a unit",
     "receivePayment": "Receive payment",
-    "newExpense": "New expense"
+    "newExpense": "New expense",
+    "demoGroup": "Create (demo data)",
+    "newLeadDescription": "Adds a fictional lead to this demo session.",
+    "scheduleVisitDescription": "Books a site visit for a demo lead."
   },
   "command": {
     "title": "Search",
@@ -191,5 +208,19 @@
     "interiorKitchen": "Modern white kitchen with an island",
     "viewDuskWindow": "City skyline at dusk seen through a tall window",
     "constructionCranes": "Tower cranes above a building under construction"
+  },
+  "contact": {
+    "call": "Call {{name}}",
+    "whatsapp": "WhatsApp {{name}}"
+  },
+  "more": {
+    "description": "Every area of your workspace, settings and demo controls.",
+    "switchRole": "View the demo as",
+    "switchRoleHint": "See the same workspace through another role.",
+    "areas": "Your areas",
+    "settings": "Settings and help",
+    "demoBody": "Everything here is fictional. Changes you make (new leads, logged calls, visits, holds) last for this browser tab and can be reset.",
+    "reset": "Reset demo data",
+    "resetDone": "Demo data reset. Fixtures are back to their starting state."
   }
 }

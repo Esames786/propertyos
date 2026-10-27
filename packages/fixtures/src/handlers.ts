@@ -1,64 +1,32 @@
-import {
-  ApiError,
-  type ApiRequest,
-  type Party,
-  type Permission,
-  type Persona,
-  type SearchRecord,
-  type SearchResponse,
-} from '@repo/contracts';
+import { ApiError, type Party, type Permission, type SearchRecord, type SearchResponse } from '@repo/contracts';
+import { CRM_HANDLERS } from './crm-handlers';
 import { buildDashboard } from './dashboard';
+import { can, forbid, isScopeOnly, matches, type Handler, type HandlerContext } from './handler-types';
+import { PORTAL_HANDLERS } from './portal-handlers';
+import { WORKSPACE_HANDLERS } from './workspace-handlers';
 import { FLOORS, GARDEN_BLOCKS, PROJECTS, TOWERS, UNITS } from './inventory';
 import { PARTIES } from './people';
-import { INVOICES, LEAD_ACTIVITY, LEADS, NOTIFICATIONS } from './records';
-import type { TrainingStore } from './training-store';
+import { INVOICES, LEADS, NOTIFICATIONS } from './records';
 
-export interface HandlerContext {
-  persona: Persona | undefined;
-  allowsProject: (projectId: string) => boolean;
-  correlationId: string;
-  req: ApiRequest;
-  params: Record<string, string>;
-  training: TrainingStore;
-}
-
-interface Handler {
-  method: ApiRequest['method'];
-  pattern: RegExp;
-  handle: (ctx: HandlerContext) => unknown;
-}
+export type { HandlerContext } from './handler-types';
 
 const readNotifications = new Set<string>();
 
-function can(ctx: HandlerContext, permission: Permission): boolean {
-  return ctx.persona?.permissions.includes(permission) ?? false;
-}
-
-function forbid(ctx: HandlerContext): never {
-  throw new ApiError({ status: 403, code: 'forbidden', messageKey: 'errors:api.forbidden', correlationId: ctx.correlationId, changed: false });
-}
-
-const norm = (s: string) => s.toLocaleLowerCase('en').replace(/[\s\-+]/g, '');
-
-function matches(q: string, ...fields: Array<string | undefined>): boolean {
-  const needle = norm(q);
-  return fields.some((f) => f !== undefined && norm(f).includes(needle));
-}
-
-/** Parties the persona may see: those linked to leads/invoices in permitted projects. */
+/** Parties the persona may see: those linked to leads/invoices in permitted projects (incl. this demo session's). */
 function visibleParties(ctx: HandlerContext): Party[] {
   if (!can(ctx, 'customer.view') && !can(ctx, 'lead.view')) return [];
   const ids = new Set<string>();
-  LEADS.filter((l) => ctx.allowsProject(l.projectId)).forEach((l) => ids.add(l.partyId));
+  ctx.demo.leads(LEADS).filter((l) => ctx.allowsProject(l.projectId)).forEach((l) => ids.add(l.partyId));
   INVOICES.filter((i) => ctx.allowsProject(i.projectId)).forEach((i) => ids.add(i.partyId));
-  return PARTIES.filter((p) => ids.has(p.id));
+  const sessionParties = ctx.demo.section<{ parties: Party[] }>('crm', () => ({ parties: [] })).parties;
+  return [...sessionParties, ...PARTIES].filter((p) => ids.has(p.id));
 }
 
 function partyResult(p: Party) {
   return { id: p.id, ref: p.ref, displayName: p.displayName, phone: p.phone, cnic: p.cnic, kind: p.kind };
 }
 
-export const HANDLERS: readonly Handler[] = [
+const CORE_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/projects$/,
@@ -95,6 +63,7 @@ export const HANDLERS: readonly Handler[] = [
     handle: (ctx) => {
       if (!can(ctx, 'unit.view')) forbid(ctx);
       const { floorId, projectId, block, q } = ctx.req.query ?? {};
+      const holds = ctx.demo.holds();
       return UNITS.filter(
         (u) =>
           isScopeOnly(ctx, u.projectId) &&
@@ -102,7 +71,9 @@ export const HANDLERS: readonly Handler[] = [
           (projectId === undefined || u.projectId === projectId) &&
           (block === undefined || u.block === block) &&
           (q === undefined || matches(String(q), u.ref)),
-      ).slice(0, 60);
+      )
+        .slice(0, 60)
+        .map((u) => (holds[u.id] ? { ...u, status: 'held' as const } : u));
     },
   },
   {
@@ -117,20 +88,6 @@ export const HANDLERS: readonly Handler[] = [
   },
   {
     method: 'GET',
-    pattern: /^\/leads\/(?<leadId>[\w-]+)$/,
-    handle: (ctx) => {
-      const lead = LEADS.find((l) => l.id === ctx.params.leadId);
-      if (!lead || !can(ctx, 'lead.view') || !ctx.allowsProject(lead.projectId)) forbid(ctx);
-      return {
-        lead,
-        party: PARTIES.find((p) => p.id === lead.partyId),
-        project: PROJECTS.find((p) => p.id === lead.projectId),
-        activity: LEAD_ACTIVITY,
-      };
-    },
-  },
-  {
-    method: 'GET',
     pattern: /^\/search$/,
     handle: (ctx): SearchResponse => {
       const q = String(ctx.req.query?.q ?? '').trim();
@@ -140,8 +97,10 @@ export const HANDLERS: readonly Handler[] = [
         records.push({ type: 'party', id: p.id, ref: p.ref, title: p.displayName, subtitle: p.phone, href: `/backoffice/cus/customer-360-workspace?record=${p.id}` });
       }
       if (can(ctx, 'lead.view')) {
-        for (const l of LEADS.filter((l) => ctx.allowsProject(l.projectId))) {
-          const party = PARTIES.find((p) => p.id === l.partyId)!;
+        const parties = visibleParties(ctx);
+        for (const l of ctx.demo.leads(LEADS).filter((l) => ctx.allowsProject(l.projectId))) {
+          const party = parties.find((p) => p.id === l.partyId);
+          if (!party) continue;
           if (!matches(q, l.ref, party.displayName)) continue;
           records.push({ type: 'lead', id: l.id, ref: l.ref, title: party.displayName, subtitle: l.status, href: `/backoffice/crm/lead-360-workspace?record=${l.id}` });
           if (records.filter((r) => r.type === 'lead').length >= 5) break;
@@ -222,8 +181,5 @@ export const HANDLERS: readonly Handler[] = [
   },
 ];
 
-/** Project visible by persona scope, ignoring the header project filter (for pickers). */
-function isScopeOnly(ctx: HandlerContext, projectId: string): boolean {
-  const scope = ctx.persona?.projectScope ?? [];
-  return scope === 'all' || scope.includes(projectId);
-}
+/** Core endpoints first; feature modules own their routes. First match wins. */
+export const HANDLERS: readonly Handler[] = [...CORE_HANDLERS, ...CRM_HANDLERS, ...PORTAL_HANDLERS, ...WORKSPACE_HANDLERS];

@@ -9,8 +9,6 @@ export interface ShellContextValue {
   helpKey: HelpKey;
   paletteOpen: boolean;
   setPaletteOpen: (open: boolean) => void;
-  mobileNavOpen: boolean;
-  setMobileNavOpen: (open: boolean) => void;
 }
 
 export const ShellContext = createContext<ShellContextValue | null>(null);

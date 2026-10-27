@@ -148,7 +148,7 @@ export function ResidencesRail({ residences, fmt }: { residences: ResidenceSumma
     <section aria-labelledby={titleId} className="min-w-0" data-testid="residences">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h3 id={titleId} className="font-display text-xl text-text">
+          <h3 id={titleId} className="text-lg font-bold tracking-tight text-text">
             {t('dashboard:residences.title')}
           </h3>
           <p className="mt-1 text-sm text-muted">{t('dashboard:residences.summary')}</p>

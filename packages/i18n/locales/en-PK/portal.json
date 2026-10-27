@@ -1,0 +1,456 @@
+{
+  "title": "My home",
+  "nav": {
+    "label": "Portal navigation",
+    "home": "Home",
+    "payments": "Payments",
+    "pay": "Pay",
+    "payLong": "Pay or upload proof",
+    "construction": "Progress",
+    "services": "Services",
+    "documents": "Documents",
+    "accessibility": "Accessibility",
+    "groups": {
+      "property": "My property",
+      "services": "Living here",
+      "account": "Account"
+    }
+  },
+  "shell": {
+    "ownerPortal": "Owner portal",
+    "demoShort": "Demo",
+    "demoFull": "Demo environment · fictional records · no real transactions",
+    "help": "Help: take the guided tour",
+    "account": "Account menu for {{name}}",
+    "signedInAs": "Signed in as {{name}}",
+    "accessibility": "Accessibility preferences",
+    "replayTour": "Take the guided tour",
+    "signOut": "Sign out of demo"
+  },
+  "pages": {
+    "home": "Home",
+    "payments": "Payments",
+    "pay": "Pay or upload proof",
+    "receipt": "Payment receipt",
+    "construction": "Construction progress",
+    "services": "Services",
+    "documents": "Documents"
+  },
+  "status": {
+    "paid": "Paid",
+    "due": "Due",
+    "overdue": "Overdue",
+    "awaiting_verification": "Awaiting verification",
+    "needs_information": "More info needed",
+    "upcoming": "Upcoming"
+  },
+  "method": {
+    "bank_transfer": "Bank transfer",
+    "cheque": "Cheque",
+    "cash_deposit": "Cash deposit",
+    "online_simulated": "Online (simulated)"
+  },
+  "instalment": {
+    "numberOf": "Instalment {{number}} of {{total}}",
+    "downPayment": "Down payment",
+    "dueOn": "Due {{date}}",
+    "dueToday": "Due today",
+    "dueIn_one": "Due in {{count}} day",
+    "dueIn_other": "Due in {{count}} days",
+    "overdueBy_one": "{{count}} day overdue",
+    "overdueBy_other": "{{count}} days overdue",
+    "amountDue": "Amount due",
+    "amountPaid": "Amount paid",
+    "amountSent": "Amount sent",
+    "paymentReceived": "Payment received",
+    "viewReceipt": "View receipt",
+    "proofSent": "Proof sent {{date}} · Finance is verifying",
+    "simulatedSent": "Simulated online payment {{date}} · Finance is verifying",
+    "payOrUpload": "Pay or upload proof",
+    "uploadAgain": "Upload again",
+    "notDueYet": "Not due yet · you can pay early",
+    "new": "Updated just now",
+    "daysLeft_one": "{{count}} day left",
+    "daysLeft_other": "{{count}} days left"
+  },
+  "home": {
+    "welcome": "Welcome back",
+    "heroLabel": "Your property",
+    "owner": "Owner",
+    "resident": "Resident",
+    "unit": "Unit",
+    "propertyLine": "{{project}} · Tower {{tower}} · Floor {{floor}}",
+    "typeArea": "{{type}} · {{area}}",
+    "possession": "Living here since {{date}}",
+    "next": {
+      "title": "Next instalment",
+      "payOnline": "Pay online",
+      "uploadProof": "Upload proof",
+      "simulationHint": "Online payment is a labelled simulation in this demo.",
+      "awaitingTitle": "Proof received {{date}}",
+      "awaitingBody": "Finance is verifying your payment. It stays unpaid until it is verified; then your receipt appears here.",
+      "viewStatus": "View payment status",
+      "noneTitle": "You're all caught up",
+      "noneBody": "Every instalment is paid or being verified."
+    },
+    "attention": {
+      "title": "Action needed",
+      "needsInfo": "Finance needs a clearer copy of your proof for instalment {{number}}.",
+      "overdue": "Instalment {{number}} is overdue.",
+      "action": "Upload again",
+      "pay": "Pay now"
+    },
+    "metrics": {
+      "label": "Your plan at a glance",
+      "paid": "Paid to date",
+      "paidCaption": "{{percent}} of {{total}}",
+      "outstanding": "Outstanding",
+      "outstandingCaption": "{{count}} instalments left",
+      "construction": "Construction",
+      "constructionCaption": "{{project}} overall",
+      "documents": "Documents",
+      "documentsNew_one": "{{count}} new this month",
+      "documentsNew_other": "{{count}} new this month",
+      "documentsNone": "Nothing new"
+    },
+    "quick": {
+      "title": "Quick actions",
+      "pay": "Pay online",
+      "upload": "Upload proof",
+      "receipts": "Receipts",
+      "maintenance": "Maintenance",
+      "visitor": "Visitor pass",
+      "documents": "Documents",
+      "construction": "Progress"
+    },
+    "receipts": {
+      "title": "Recent receipts",
+      "viewAll": "All payments",
+      "empty": "No receipts yet. They appear here once Finance verifies a payment."
+    },
+    "construction": {
+      "title": "Construction update",
+      "viewAll": "All updates",
+      "built": "built"
+    }
+  },
+  "payments": {
+    "title": "Payments",
+    "description": "{{unit}} · {{count}} monthly instalments after a {{percent}} down payment",
+    "summary": {
+      "title": "Plan summary",
+      "total": "Total price",
+      "paid": "Paid to date",
+      "outstanding": "Outstanding",
+      "awaiting": "Awaiting verification",
+      "progress": "{{percent}} paid · {{paid}} of {{total}} instalments verified",
+      "progressLabel": "Share of the price paid"
+    },
+    "filters": {
+      "label": "Show instalments",
+      "open": "To pay",
+      "awaiting": "Being verified",
+      "upcoming": "Upcoming",
+      "paid": "Paid",
+      "all": "All"
+    },
+    "schedule": {
+      "title": "Instalment schedule",
+      "empty": "No instalments match this filter.",
+      "emptyAwaiting": "Nothing is waiting for verification."
+    },
+    "financeNote": {
+      "label": "Note from Finance",
+      "unclear": "The transfer slip was too blurred to read. Please upload a clearer photo or the bank's PDF advice."
+    },
+    "bank": {
+      "title": "Bank transfer details",
+      "fictional": "Fictional account for this demo. Do not send real money.",
+      "bankName": "Bank",
+      "accountTitle": "Account title",
+      "iban": "IBAN",
+      "copy": "Copy IBAN",
+      "copied": "IBAN copied",
+      "copyFailed": "Couldn't copy. Select the IBAN and copy it yourself."
+    },
+    "receipts": {
+      "title": "Receipts",
+      "count_one": "{{count}} verified payment",
+      "count_other": "{{count}} verified payments"
+    }
+  },
+  "pay": {
+    "title": "Pay or upload proof",
+    "description": "Choose an instalment, then upload your bank transfer proof or try the online payment simulation.",
+    "instalment": "Instalment",
+    "mode": {
+      "label": "How are you paying?",
+      "upload": "Bank transfer and upload proof",
+      "online": "Pay online (simulation)"
+    },
+    "rule": "Sending proof does not mark the instalment paid. Finance checks it first, usually within 2 working days.",
+    "upload": {
+      "method": "Payment method",
+      "amount": "Amount sent",
+      "paidOn": "Date sent",
+      "reference": "Bank reference or cheque number",
+      "referenceHint": "As printed on your slip, for example FT26 1234 5678.",
+      "file": "Proof of payment",
+      "fileHint": "Photo or PDF of the transfer slip, up to 5 MB. In this prototype the file never leaves your device.",
+      "submit": "Send proof for verification"
+    },
+    "online": {
+      "banner": "Simulation: no payment gateway is contacted and no money moves.",
+      "body": "This shows how paying online will work. Like a bank transfer, it ends at “Awaiting verification” until Finance confirms the money arrived.",
+      "method": "Demo payment method",
+      "card": "Demo card (fictional)",
+      "submit": "Simulate payment of {{amount}}"
+    },
+    "done": {
+      "title": "Awaiting verification",
+      "uploadBody": "We received your proof for {{label}}. It stays unpaid until Finance verifies it; your receipt will then appear under Payments.",
+      "onlineBody": "The simulated online payment for {{label}} was recorded. Nothing was charged, and it stays unpaid until Finance verifies it.",
+      "announce": "Sent. {{label}} is awaiting verification.",
+      "toPayments": "Back to payments",
+      "home": "Go to home",
+      "another": "Pay another instalment"
+    },
+    "nothing": {
+      "title": "Nothing to pay right now",
+      "body": "Every instalment is paid or awaiting verification."
+    },
+    "notPayable": "{{label}} is {{status}}, so there is nothing to pay. Choose another instalment."
+  },
+  "receipt": {
+    "title": "Payment receipt",
+    "missingTitle": "Receipt not found",
+    "missingBody": "Choose a receipt from your payments.",
+    "prototype": "Prototype receipt · fictional data · not valid for tax or legal use",
+    "verified": "Verified by Finance",
+    "amountReceived": "Amount received",
+    "fields": {
+      "receiptNo": "Receipt number",
+      "instalment": "For",
+      "unit": "Unit",
+      "project": "Project",
+      "receivedFrom": "Received from",
+      "customerRef": "Customer number",
+      "paidOn": "Paid on",
+      "method": "Method",
+      "bankReference": "Bank reference",
+      "verifiedOn": "Verified on",
+      "verifiedBy": "Verified by"
+    },
+    "print": "Print or save as PDF",
+    "back": "Back to payments"
+  },
+  "construction": {
+    "title": "Construction progress",
+    "description": "{{project}} · planned completion {{date}}",
+    "overall": "Overall progress",
+    "progressLabel": "{{project}} is {{percent}} built",
+    "yourTower": "Your tower (Tower {{tower}}) was handed over on {{date}}. Work continues on the rest of the project.",
+    "milestonesTitle": "Milestones",
+    "milestone": {
+      "land": "Land",
+      "foundation": "Foundation",
+      "structure": "Structure",
+      "facade": "Facade",
+      "interiors": "Interiors",
+      "handover": "Final handover",
+      "roads": "Roads",
+      "utilities": "Utilities",
+      "landscaping": "Landscaping",
+      "possession": "Possession"
+    },
+    "milestoneState": {
+      "done": "Done",
+      "active": "{{percent}} done",
+      "upcoming": "Not started"
+    },
+    "target": "Target {{date}}",
+    "updatesTitle": "Site updates",
+    "updates": {
+      "slab": {
+        "title": "Tower {{tower}}: level {{floor}} slab poured",
+        "body": "The concrete slab for level {{floor}} was poured and is curing. Columns for the next level start next week."
+      },
+      "facade": {
+        "title": "Tower {{tower}}: facade mock-up approved",
+        "body": "The full-size facade panel passed weather and finish checks. Installation starts from the lower floors in December."
+      },
+      "clubhouse": {
+        "title": "Clubhouse and pool: structure complete",
+        "body": "The clubhouse frame and pool shell are complete. Waterproofing and services work have started."
+      },
+      "towerC": {
+        "title": "Tower {{tower}}: level {{floor}} reached",
+        "body": "Tower {{tower}} has reached level {{floor}} on schedule. Brickwork continues on the floors below."
+      },
+      "interiors": {
+        "title": "Tower {{tower}}: show apartment fitted out",
+        "body": "A finished show apartment is ready in Tower {{tower}} so future owners can see the final specification."
+      }
+    },
+    "milestoneTag": "Milestone: {{milestone}}"
+  },
+  "documents": {
+    "title": "Documents",
+    "description": "Fictional documents for {{unit}}. Previews are generated from demo data.",
+    "kind": {
+      "allotment_letter": "Allotment letter",
+      "payment_plan": "Payment plan",
+      "booking_form": "Booking form",
+      "account_statement": "Account statement",
+      "construction_report": "Construction report",
+      "possession_letter": "Possession letter"
+    },
+    "hint": {
+      "allotment_letter": "Confirms the unit allotted to you",
+      "payment_plan": "Your down payment and 36 monthly instalments",
+      "booking_form": "The form you signed at booking",
+      "account_statement": "Payments verified to date",
+      "construction_report": "Quarterly site progress report",
+      "possession_letter": "Confirms you received possession"
+    },
+    "issued": "Issued {{date}}",
+    "meta": "{{pages}} pages · {{size}} KB",
+    "new": "New",
+    "preview": "Preview",
+    "previewOf": "Preview {{name}}",
+    "previewBanner": "Prototype preview: a fictional document built from demo data. It is not a legal document and cannot be downloaded.",
+    "watermark": "Prototype preview",
+    "previewIntro": "Larkspur Estates (Demo) confirms the following details for the owner named below.",
+    "fields": {
+      "reference": "Document reference",
+      "owner": "Owner",
+      "customerRef": "Customer number",
+      "unit": "Unit",
+      "project": "Project",
+      "type": "Type and area",
+      "price": "Price",
+      "issued": "Issued on"
+    },
+    "close": "Close preview"
+  },
+  "services": {
+    "title": "Services",
+    "description": "Maintenance requests and visitor passes for {{unit}}",
+    "tabs": {
+      "label": "Service type",
+      "maintenance": "Maintenance",
+      "visitors": "Visitor passes"
+    },
+    "simulatedCall": "Prototype: no call was placed. The live app would call {{name}}.",
+    "simulatedWhatsApp": "Prototype: WhatsApp was not opened. The live app would message {{name}}.",
+    "maintenance": {
+      "new": "New request",
+      "listTitle": "Your requests",
+      "emptyTitle": "No requests yet",
+      "emptyBody": "Report a leak, a faulty switch or anything else that needs fixing.",
+      "category": {
+        "plumbing": "Plumbing",
+        "electrical": "Electrical",
+        "carpentry": "Carpentry",
+        "air_conditioning": "Air conditioning",
+        "cleaning": "Cleaning",
+        "other": "Something else"
+      },
+      "status": {
+        "submitted": "Sent",
+        "scheduled": "Visit booked",
+        "in_progress": "In progress",
+        "resolved": "Resolved"
+      },
+      "raised": "Raised {{date}}",
+      "visit": "Visit {{date}}",
+      "preferred": "Preferred date {{date}}",
+      "technician": "Technician: {{name}}",
+      "nextStep": "The facilities team will confirm a visit time.",
+      "form": {
+        "title": "New maintenance request",
+        "intro": "Tell the facilities team what needs fixing. This is a demo: no team is notified.",
+        "category": "What needs fixing?",
+        "description": "Describe the problem",
+        "descriptionHint": "Where it is and what happens, in a sentence or two.",
+        "preferredDate": "Preferred visit date",
+        "submit": "Send request"
+      },
+      "created": "Request {{ref}} sent to the facilities team."
+    },
+    "visitors": {
+      "new": "New visitor pass",
+      "listTitle": "Your visitor passes",
+      "emptyTitle": "No visitor passes yet",
+      "emptyBody": "Create a pass and share the gate code with your guest.",
+      "purpose": {
+        "guest": "Guest",
+        "family": "Family",
+        "delivery": "Delivery",
+        "contractor": "Contractor"
+      },
+      "status": {
+        "active": "Active",
+        "used": "Used",
+        "expired": "Expired"
+      },
+      "code": "Gate code",
+      "copy": "Copy code {{code}}",
+      "copied": "Code {{code}} copied",
+      "copyFailed": "Couldn't copy. Read the code out to your guest instead.",
+      "validOn": "Valid on {{date}}",
+      "showAtGate": "Your guest shows this code to security at the main gate.",
+      "form": {
+        "title": "New visitor pass",
+        "intro": "Your guest gives the gate code to security. This is a demo: no gate system is updated.",
+        "visitorName": "Visitor's name",
+        "phone": "Visitor's mobile number",
+        "phoneHint": "Optional. For example 0300 1234567.",
+        "purpose": "Purpose of visit",
+        "visitDate": "Visit date",
+        "submit": "Create pass"
+      },
+      "created": "Visitor pass {{code}} created for {{name}}."
+    }
+  },
+  "tour": {
+    "name": "Your owner portal",
+    "summary": "Eight short stops: your property, the next instalment, paying, receipts, construction and where to find help.",
+    "hero": {
+      "title": "This is your property",
+      "body": "Your unit, your role as owner and the project it belongs to. The photo is illustrative."
+    },
+    "nextInstalment": {
+      "title": "Your next instalment",
+      "body": "The amount and due date of the next payment in your plan, with its current status."
+    },
+    "payActions": {
+      "title": "Pay or upload proof",
+      "body": "Upload your bank transfer proof, or try the online payment simulation. Either way the instalment shows “Awaiting verification” until Finance confirms it, never “Paid” straight away."
+    },
+    "quickActions": {
+      "title": "Quick actions",
+      "body": "One tap to the things owners do most: pay, receipts, maintenance, visitor passes, documents and construction progress."
+    },
+    "receipts": {
+      "title": "Recent receipts",
+      "body": "Every payment Finance has verified, with its receipt. The green edge and the “Paid” label mean it is confirmed."
+    },
+    "construction": {
+      "title": "Construction progress",
+      "body": "How far the project has come, its milestones and the latest site update."
+    },
+    "navigation": {
+      "title": "Getting around",
+      "body": "The side navigation takes you to payments, construction, documents and services.",
+      "bodyMobile": "The bottom bar takes you anywhere. The round button in the middle is the quickest way to pay or upload proof."
+    },
+    "help": {
+      "title": "Help is always here",
+      "body": "Replay this tour from here at any time. You can also change language or accessibility settings."
+    }
+  },
+  "errors": {
+    "notPayable": "This instalment can't be paid now: it is already paid or awaiting verification."
+  }
+}

@@ -1,4 +1,5 @@
 import { ShieldCheck } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useAnnounce } from '../a11y/LiveAnnouncer';
 import { Badge } from '../data/StatusLabel';
 import { InlineAlert } from '../feedback/InlineAlert';
@@ -11,7 +12,7 @@ import { LocaleToggle } from './LocaleSwitcher';
  * Simulated sign-in with fictional demo identities (prototype only; AUTH screens come in Stage 2).
  * Choosing an identity is that persona's "first login" for this app and tenant.
  */
-export function DemoSignIn({ appName }: { appName: string }) {
+export function DemoSignIn({ appName, onSignedIn, footer }: { appName: string; onSignedIn?: (personaId: string) => void; footer?: ReactNode }) {
   const { t } = useT();
   const { personas, signIn, tenant } = useSession();
   const announce = useAnnounce();
@@ -52,6 +53,7 @@ export function DemoSignIn({ appName }: { appName: string }) {
                 onPress={() => {
                   signIn(p.id);
                   announce(t('a11y:announce.identityChanged', { name: p.displayName, role: t(p.roleKey as 'common:persona.manager') }));
+                  onSignedIn?.(p.id);
                 }}
                 data-testid={`sign-in-${p.id}`}
               >
@@ -60,6 +62,7 @@ export function DemoSignIn({ appName }: { appName: string }) {
             </li>
           ))}
         </ul>
+        {footer}
       </main>
     </div>
   );

@@ -1,10 +1,11 @@
-import { X } from 'lucide-react';
+import type { TileHue } from '@repo/tokens';
+import { motion } from 'motion/react';
 import { forwardRef, useEffect, useRef, type CSSProperties } from 'react';
 import { FocusScope, useId } from 'react-aria';
 import { DemoBadge } from '../data/StatusLabel';
 import { cn } from '../lib/cn';
 import { useT } from '../lib/useT';
-import { IconButton } from '../primitives/IconButton';
+import { useReducedMotion } from '../preferences/PreferencesProvider';
 import { LocaleToggle } from '../shell/LocaleSwitcher';
 import { TourControls } from './TourControls';
 import type { TourStep } from './tourTypes';
@@ -27,6 +28,18 @@ export interface TourCardProps {
   inline?: boolean;
 }
 
+const ART_BG: Record<TileHue, string> = {
+  emerald: 'bg-tile-emerald',
+  teal: 'bg-tile-teal',
+  sky: 'bg-tile-sky',
+  violet: 'bg-tile-violet',
+  rose: 'bg-tile-rose',
+  amber: 'bg-tile-amber',
+  orange: 'bg-tile-orange',
+  slate: 'bg-tile-slate',
+  gold: 'bg-tile-gold',
+};
+
 /**
  * The step card. Real heading, step x of y, and labelled controls. Focus moves to the heading on
  * each step. EXPLAIN steps are modal dialogs (focus contained, page inert); guided-action steps are
@@ -37,6 +50,7 @@ export const TourCard = forwardRef<HTMLDivElement, TourCardProps>(function TourC
   ref,
 ) {
   const { t } = useT();
+  const reduced = useReducedMotion();
   const titleId = useId();
   const bodyId = useId();
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -65,7 +79,7 @@ export const TourCard = forwardRef<HTMLDivElement, TourCardProps>(function TourC
       }}
       style={style}
       className={cn(
-        'rounded-card border border-border bg-panel p-4 text-start shadow-overlay',
+        'rounded-card border border-border bg-panel p-4 text-start shadow-overlay sm:p-5',
         !inline && 'transition-[top,left] duration-[var(--motion-tour)] ease-[var(--ease-standard)]',
         inline && 'border-2 border-primary',
         className,
@@ -85,21 +99,36 @@ export const TourCard = forwardRef<HTMLDivElement, TourCardProps>(function TourC
         {step.kind === 'SIMULATED_TASK' && <DemoBadge training />}
         {/* Language stays switchable mid-tour, including while a modal step makes the page inert. */}
         <LocaleToggle className="min-h-8 px-2 text-xs pointer-coarse:min-h-10" />
-        <IconButton label={t('onboarding:controls.close')} icon={X} onPress={onPause} className="-m-2 size-9" />
       </div>
+      {step.art && (
+        <motion.div
+          key={`art-${step.id}`}
+          aria-hidden
+          initial={reduced ? false : { opacity: 0, scale: 0.97 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', bounce: 0.2, duration: 0.5 }}
+          className={cn('relative mt-3 grid h-24 place-items-center overflow-hidden rounded-tile text-on-tile', ART_BG[step.art.hue])}
+        >
+          <span className="absolute -end-6 -top-8 size-24 rounded-pill bg-on-tile/15" />
+          <span className="absolute -start-8 -bottom-10 size-28 rounded-pill bg-on-tile/10" />
+          <step.art.icon className="relative size-10" strokeWidth={1.8} />
+        </motion.div>
+      )}
       <div aria-hidden className="mt-2 flex gap-1">
         {Array.from({ length: total }, (_, i) => (
           <span key={i} className={cn('h-1 flex-1 rounded-pill', i <= index ? 'bg-primary' : 'bg-border')} />
         ))}
       </div>
-      <h2 ref={headingRef} id={titleId} tabIndex={-1} className="mt-3 text-base font-semibold text-text outline-none">
-        {t(step.titleKey as 'onboarding:completion.title')}
-      </h2>
-      <div id={bodyId} className="mt-1 space-y-2 text-sm text-text">
-        <p className="sr-only">{t('onboarding:controls.progress', { current: index + 1, total })}.</p>
-        <p>{t(body as 'onboarding:completion.body')}</p>
-        {isFallback && <p className="rounded-control bg-sunken p-2 text-muted">{t('onboarding:controls.targetUnavailable')}</p>}
-      </div>
+      <motion.div key={step.id} initial={reduced ? false : { opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, ease: [0.2, 0, 0, 1] }}>
+        <h2 ref={headingRef} id={titleId} tabIndex={-1} className="mt-3 text-lg leading-snug font-bold tracking-tight text-text outline-none">
+          {t(step.titleKey as 'onboarding:completion.title')}
+        </h2>
+        <div id={bodyId} className="mt-1 space-y-2 text-sm leading-relaxed text-text">
+          <p className="sr-only">{t('onboarding:controls.progress', { current: index + 1, total })}.</p>
+          <p>{t(body as 'onboarding:completion.body')}</p>
+          {isFallback && <p className="rounded-control bg-sunken p-2 text-muted">{t('onboarding:controls.targetUnavailable')}</p>}
+        </div>
+      </motion.div>
       <TourControls
         index={index}
         total={total}
@@ -108,6 +137,7 @@ export const TourCard = forwardRef<HTMLDivElement, TourCardProps>(function TourC
         onBack={onBack}
         onNext={onNext}
         onSkip={onSkip}
+        onPause={onPause}
         onShowTarget={onShowTarget}
       />
     </div>

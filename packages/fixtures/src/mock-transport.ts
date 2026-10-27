@@ -1,4 +1,5 @@
 import { ApiError, type ApiRequest, type ApiTransport, type Persona } from '@repo/contracts';
+import { DemoStore } from './demo-store';
 import { HANDLERS, type HandlerContext } from './handlers';
 import { findPersona } from './people';
 import { createRandom } from './seed';
@@ -25,6 +26,8 @@ interface MockTransportOptions {
   getContext: () => MockContext;
   getMode?: () => MockMode;
   seed?: number;
+  /** Session overlay; defaults to one persisted in sessionStorage (tests may inject a fresh one). */
+  demo?: DemoStore;
 }
 
 let correlation = 0;
@@ -39,12 +42,14 @@ const nextCorrelationId = () => `demo-${(++correlation).toString(36).padStart(5,
 export class MockTransport implements ApiTransport {
   readonly mutationLog: MutationLogEntry[] = [];
   readonly training = new TrainingStore();
+  readonly demo: DemoStore;
   private readonly random;
   private readonly options: MockTransportOptions;
 
   constructor(options: MockTransportOptions) {
     this.options = options;
     this.random = createRandom(options.seed ?? 1);
+    this.demo = options.demo ?? new DemoStore();
   }
 
   async request<T>(req: ApiRequest): Promise<T> {
@@ -72,7 +77,7 @@ export class MockTransport implements ApiTransport {
       if (handler.method !== req.method) continue;
       const match = handler.pattern.exec(req.path);
       if (!match) continue;
-      return handler.handle({ ...ctx, req, params: match.groups ?? {}, training: this.training }) as T;
+      return handler.handle({ ...ctx, req, params: match.groups ?? {}, training: this.training, demo: this.demo }) as T;
     }
     throw new ApiError({ status: 404, code: 'not_found', messageKey: 'errors:api.notFound', correlationId: nextCorrelationId(), changed: false });
   }
@@ -82,7 +87,7 @@ export class MockTransport implements ApiTransport {
     return this.mutationLog.filter((m) => !m.training);
   }
 
-  private context(): Omit<HandlerContext, 'req' | 'params' | 'training'> {
+  private context(): Omit<HandlerContext, 'req' | 'params' | 'training' | 'demo'> {
     const { personaId, projectId } = this.options.getContext();
     const persona: Persona | undefined = findPersona(personaId);
     const scope = persona?.projectScope ?? [];

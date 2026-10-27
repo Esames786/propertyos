@@ -82,7 +82,7 @@ export function useTransport(): TransportContextValue {
   return ctx;
 }
 
-/** GET through the transport with a cache key scoped to persona + project. */
+/** GET through the transport with a cache key scoped to persona + project (and practice mode). */
 export function useApiQuery<T>(
   request: ApiRequest | null,
   options: Omit<UseQueryOptions<T>, 'queryKey' | 'queryFn'> = {},
@@ -90,7 +90,7 @@ export function useApiQuery<T>(
   const { transport } = useTransport();
   const { persona, projectId } = useSession();
   return useQuery<T>({
-    queryKey: ['api', persona?.id, projectId, request?.path, request?.query],
+    queryKey: ['api', persona?.id, projectId, request?.path, request?.query, request?.training === true],
     queryFn: ({ signal }) => transport.request<T>({ ...request!, signal }),
     enabled: request !== null && (options.enabled ?? true),
     ...options,

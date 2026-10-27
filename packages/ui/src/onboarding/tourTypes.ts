@@ -1,4 +1,6 @@
 import type { AppId, Permission } from '@repo/contracts';
+import type { TileHue } from '@repo/tokens';
+import type { LucideIcon } from 'lucide-react';
 
 /**
  * Tour contract (doc 09 §8, extended per ADR-0002).
@@ -33,6 +35,8 @@ export interface TourStep {
   fallback?: 'skip' | 'explain';
   /** The step renders inside a host dialog's slot (target lives in a modal). */
   inlineSlot?: string;
+  /** Illustrated header for introduction steps (an icon on a tinted band; decorative). */
+  art?: { icon: LucideIcon; hue: TileHue };
 }
 
 export interface TourDefinition {

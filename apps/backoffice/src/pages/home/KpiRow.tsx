@@ -1,5 +1,5 @@
 import type { DashboardKpi, DashboardRange, KpiId } from '@repo/contracts';
-import { AnimatedNumber, StatTile, useT, type StatDelta } from '@repo/ui';
+import { AnimatedNumber, RevealItem, Stagger, StatTile, useT, type StatDelta, type TileHue } from '@repo/ui';
 import { HandCoins, KeyRound, ReceiptText, ShieldCheck, Target, TrendingUp, Wallet } from 'lucide-react';
 import type { DashboardFormat } from './useDashboardFormat';
 
@@ -11,6 +11,16 @@ const ICON: Record<KpiId, typeof Wallet> = {
   pipeline: TrendingUp,
   receivables: ReceiptText,
   verifications: ShieldCheck,
+};
+
+const HUE: Record<KpiId, TileHue> = {
+  salesBooked: 'emerald',
+  collected: 'gold',
+  available: 'teal',
+  conversion: 'violet',
+  pipeline: 'sky',
+  receivables: 'amber',
+  verifications: 'rose',
 };
 
 const MINUS = '−';
@@ -64,9 +74,9 @@ export function KpiRow({ kpis, range, fmt }: { kpis: DashboardKpi[]; range: Dash
   };
 
   return (
-    <ul aria-label={t('dashboard:kpi.label')} className="grid grid-cols-1 gap-4 min-[30rem]:grid-cols-2 xl:grid-cols-4" data-testid="kpi-row">
-      {kpis.map((k) => (
-        <li key={k.id} className="flex min-w-0">
+    <Stagger as="ul" label={t('dashboard:kpi.label')} testId="kpi-row" tourId="dashboard-kpis" className="grid grid-cols-1 gap-4 min-[30rem]:grid-cols-2 xl:grid-cols-4">
+      {kpis.map((k, i) => (
+        <RevealItem as="li" key={k.id} className="flex min-w-0" tourId={i === 0 ? 'dashboard-kpi-first' : undefined}>
           <StatTile
             label={t(`dashboard:kpi.${k.id}`)}
             value={
@@ -80,10 +90,11 @@ export function KpiRow({ kpis, range, fmt }: { kpis: DashboardKpi[]; range: Dash
             trend={k.trend}
             href={k.href}
             icon={ICON[k.id]}
+            hue={HUE[k.id]}
             testId={`kpi-${k.id}`}
           />
-        </li>
+        </RevealItem>
       ))}
-    </ul>
+    </Stagger>
   );
 }

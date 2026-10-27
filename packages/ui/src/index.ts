@@ -1,7 +1,8 @@
 // Providers and seams
 export { AppProviders } from './providers/AppProviders';
-export { NavigationProvider, useNavigation, useQueryParam, type AppLocation, type NavigateOptions } from './navigation/RouterAdapter';
+export { NavigationProvider, useNavigation, useQueryParam, useQueryParams, type AppLocation, type NavigateOptions } from './navigation/RouterAdapter';
 export { TransportProvider, useTransport, useApiQuery, MOCK_MODE_KEY, type MockMode, type TransportFactory } from './data/TransportProvider';
+export { useApiMutation, useApiPrefetch } from './data/useApi';
 export { SessionProvider, useSession, useCan } from './permissions/SessionProvider';
 export { PermissionGate } from './permissions/PermissionGate';
 export { allowed, filterAllowed } from './permissions/can';
@@ -29,6 +30,11 @@ export { KeyValueList } from './data/KeyValueList';
 export { ActivityTimeline } from './data/ActivityTimeline';
 export { AnimatedNumber } from './data/AnimatedNumber';
 export { StatTile, type StatDelta } from './data/StatTile';
+export { IconTile, HueChip, TILE_INK, TILE_SOFT_BG, type TileHue } from './data/IconTile';
+export { MetricCard } from './data/MetricCard';
+export { AmountStrip } from './data/AmountStrip';
+export { RecordCard } from './data/RecordCard';
+export { ContactButtons } from './data/ContactButtons';
 
 // Charts (SVG/HTML on d3-scale + d3-shape; every chart has a data-table twin)
 export * from './charts';
@@ -60,6 +66,12 @@ export { WorkspaceHeader } from './layout/WorkspaceHeader';
 export { Panel } from './layout/Panel';
 export { RelatedDrawer, type RelatedGroup } from './layout/RelatedDrawer';
 export { PlannedScreenView } from './layout/PlannedScreenView';
+export { QuickActions, type QuickAction } from './layout/QuickActions';
+export { SectionHeading } from './layout/SectionHeading';
+export { FilterPills, type FilterPill } from './layout/FilterPills';
+
+// Motion (every effect is skipped under reduced motion)
+export { Stagger, RevealItem, PageEnter } from './motion/Reveal';
 
 // Forms
 export { Form, zodResolver, useFormMeta } from './forms/Form';

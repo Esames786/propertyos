@@ -8,6 +8,9 @@ import enLab from '../locales/en-PK/lab.json';
 import enNav from '../locales/en-PK/nav.json';
 import enOnboarding from '../locales/en-PK/onboarding.json';
 import enStatus from '../locales/en-PK/status.json';
+import enStart from '../locales/en-PK/start.json';
+import enCrm from '../locales/en-PK/crm.json';
+import enPortal from '../locales/en-PK/portal.json';
 import urA11y from '../locales/ur-PK/a11y.json';
 import urCommon from '../locales/ur-PK/common.json';
 import urDashboard from '../locales/ur-PK/dashboard.json';
@@ -18,6 +21,9 @@ import urLab from '../locales/ur-PK/lab.json';
 import urNav from '../locales/ur-PK/nav.json';
 import urOnboarding from '../locales/ur-PK/onboarding.json';
 import urStatus from '../locales/ur-PK/status.json';
+import urStart from '../locales/ur-PK/start.json';
+import urCrm from '../locales/ur-PK/crm.json';
+import urPortal from '../locales/ur-PK/portal.json';
 
 export const NAMESPACES = [
   'common',
@@ -30,6 +36,9 @@ export const NAMESPACES = [
   'a11y',
   'lab',
   'dashboard',
+  'start',
+  'crm',
+  'portal',
 ] as const;
 
 export type Namespace = (typeof NAMESPACES)[number];
@@ -45,6 +54,9 @@ const en = {
   a11y: enA11y,
   lab: enLab,
   dashboard: enDashboard,
+  start: enStart,
+  crm: enCrm,
+  portal: enPortal,
 };
 
 const ur: typeof en = {
@@ -58,6 +70,9 @@ const ur: typeof en = {
   a11y: urA11y,
   lab: urLab,
   dashboard: urDashboard,
+  start: urStart,
+  crm: urCrm,
+  portal: urPortal,
 };
 
 export const resources = { 'en-PK': en, 'ur-PK': ur };

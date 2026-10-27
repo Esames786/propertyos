@@ -1,30 +1,106 @@
-import { type ReactNode } from 'react';
+import { ShieldCheck } from 'lucide-react';
+import { motion } from 'motion/react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-aria-components';
 import { MAIN_CONTENT_ID, SkipLink } from '../a11y/SkipLink';
 import { useRouteFocus } from '../a11y/useRouteFocus';
-import { Badge } from '../data/StatusLabel';
 import { cn } from '../lib/cn';
 import { useT } from '../lib/useT';
+import { PageEnter } from '../motion/Reveal';
 import { useNavigation } from '../navigation/RouterAdapter';
 import { useSession } from '../permissions/SessionProvider';
+import { useReducedMotion } from '../preferences/PreferencesProvider';
 import { LocaleToggle, useLanguageAnnouncement } from './LocaleSwitcher';
 import { isCurrent } from './NavList';
 import type { NavItem } from './types';
 
+/** A labelled group of the side navigation (tablet/desktop). */
+export interface CustomerNavGroup {
+  id: string;
+  /** Translation key of the group label; the first group is usually unlabelled. */
+  labelKey?: string;
+  items: NavItem[];
+}
+
+const label = (t: ReturnType<typeof useT>['t'], key: string) => t(key as 'portal:nav.home');
+
+/** True once the page has scrolled, so the desktop header gains its hairline only when content passes under it. */
+function useScrolled(threshold = 4) {
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > threshold);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [threshold]);
+  return scrolled;
+}
+
+function Monogram({ name, className }: { name: string; className?: string }) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        'grid size-10 shrink-0 place-items-center rounded-[12px] bg-primary font-display text-xl leading-none text-on-primary shadow-[inset_0_0_0_1px_rgb(181_138_71/0.55)]',
+        className,
+      )}
+    >
+      {name.charAt(0)}
+    </span>
+  );
+}
+
+/** The persistent demo notice: a short pill on small screens, the full sentence on wide ones (always its accessible name). */
+function DemoPill({ className }: { className?: string }) {
+  const { t } = useT();
+  return (
+    <span
+      role="note"
+      data-testid="demo-environment"
+      className={cn(
+        'inline-flex shrink-0 items-center gap-1 rounded-pill border border-demo/30 bg-demo-soft px-2 py-0.5 text-[11px] font-medium text-demo',
+        className,
+      )}
+    >
+      <ShieldCheck aria-hidden className="size-3.5 shrink-0" />
+      <span aria-hidden className="xl:hidden">
+        {t('portal:shell.demoShort')}
+      </span>
+      <span className="sr-only xl:not-sr-only">{t('portal:shell.demoFull')}</span>
+    </span>
+  );
+}
+
 /**
- * Customer/owner/resident shell: one component tree for phone and desktop (blueprint 01 §5).
- * Phone: bottom navigation (Home | Property | Payments | Services | Profile).
- * Tablet/desktop: the same items as a side navigation. Body text is 16 px+.
+ * Customer / owner / resident shell: one component tree for phone and desktop (blueprint 01 §5).
+ *
+ * - Phone: a floating rounded top bar (monogram, tenant, demo pill, language, help and account) and a
+ *   floating bottom bar with four destinations split around a raised round centre action (Pay).
+ * - Tablet/desktop: a white, grouped side rail like the backoffice (with the centre action as its
+ *   primary button) and a header over the content.
+ *
+ * Labels are always visible; the current item carries `aria-current` plus a sliding marker (motion
+ * `layoutId`, instant under reduced motion). Body text is 16 px+.
  */
 export function CustomerShell({
   appName,
-  navItems,
+  navGroups,
+  bottomItems,
+  centreAction,
+  aliases = {},
   pageTitle,
   headerEnd,
   children,
 }: {
   appName: string;
-  navItems: NavItem[];
+  /** Side navigation on tablet/desktop. */
+  navGroups: CustomerNavGroup[];
+  /** Phone bottom bar: four destinations, two either side of the centre action. */
+  bottomItems: NavItem[];
+  /** The most-used action: raised round button on phones, primary button in the rail elsewhere. */
+  centreAction?: NavItem;
+  /** Path prefixes that belong to a nav item (e.g. a receipt page belongs to Payments). */
+  aliases?: Record<string, string>;
   pageTitle: string;
   headerEnd?: ReactNode;
   children: ReactNode;
@@ -32,64 +108,238 @@ export function CustomerShell({
   const { t } = useT();
   const { tenant } = useSession();
   const { location } = useNavigation();
+  const reduced = useReducedMotion();
+  const scrolled = useScrolled();
   useRouteFocus(location.pathname, pageTitle, appName);
   useLanguageAnnouncement();
 
-  const item = (n: NavItem, variant: 'side' | 'bottom') => {
-    const current = isCurrent(location.pathname, n);
+  const aliasId = Object.entries(aliases).find(
+    ([prefix]) => location.pathname === prefix || location.pathname.startsWith(`${prefix}/`),
+  )?.[1];
+  const current = (n: NavItem) => (aliasId ? aliasId === n.id : isCurrent(location.pathname, n));
+  const spring = reduced
+    ? { duration: 0 }
+    : { type: 'spring' as const, bounce: 0.22, duration: 0.45 };
+  const focusRing = 'outline-none data-focus-visible:outline-2 data-focus-visible:outline-focus';
+  const half = Math.ceil(bottomItems.length / 2);
+
+  const bottomItem = (n: NavItem) => {
     const Icon = n.icon;
+    const on = current(n);
     return (
-      <li key={n.id} className={variant === 'bottom' ? 'flex-1' : undefined}>
+      <li key={n.id} className="min-w-0">
         <Link
           href={n.href}
-          aria-current={current ? 'page' : undefined}
+          aria-current={on ? 'page' : undefined}
           data-tour-id={`portal-nav-${n.id}`}
           className={cn(
-            'outline-none data-focus-visible:outline-2 data-focus-visible:outline-offset-[-2px] data-focus-visible:outline-focus',
-            variant === 'bottom'
-              ? 'relative flex min-h-14 flex-col items-center justify-center gap-0.5 text-xs'
-              : 'relative flex min-h-11 items-center gap-3 rounded-control px-3 text-base data-hovered:bg-sunken',
-            current ? 'font-semibold text-primary' : 'text-muted',
-            variant === 'side' && current && 'bg-primary-soft',
+            'flex h-full min-h-14 flex-col items-center justify-center gap-0.5 rounded-[1rem] px-0.5 text-[11px] leading-tight font-medium data-focus-visible:outline-offset-[-3px]',
+            focusRing,
+            on ? 'font-semibold text-primary' : 'text-muted data-hovered:text-text',
           )}
         >
-          <Icon aria-hidden className={variant === 'bottom' ? 'size-6' : 'size-5'} />
-          <span>{t(n.labelKey as 'nav:customer.home')}</span>
-          {variant === 'bottom' && current && <span aria-hidden className="absolute top-0 h-0.5 w-10 rounded-pill bg-primary" />}
+          <span className="relative grid h-8 w-12 place-items-center">
+            {on && (
+              <motion.span
+                layoutId="portal-bottom-pill"
+                aria-hidden
+                transition={spring}
+                className="absolute inset-0 rounded-pill bg-primary-soft"
+              />
+            )}
+            <Icon aria-hidden className="relative size-5" strokeWidth={on ? 2.2 : 1.8} />
+          </span>
+          <span className="max-w-full truncate">{label(t, n.labelKey)}</span>
         </Link>
       </li>
     );
   };
 
+  const CentreIcon = centreAction?.icon;
+  const centreOn = centreAction ? current(centreAction) : false;
+
   return (
-    <div id="app-shell" className="min-h-dvh bg-bg [--body-size:1rem]">
+    <div id="app-shell" className="min-h-dvh bg-bg [--body-size:1rem] md:flex">
       <SkipLink />
-      <header aria-label={t('a11y:landmarks.header')} className="sticky top-0 z-30 flex h-[var(--header-height)] items-center gap-3 border-b border-border bg-panel/95 px-4 backdrop-blur">
-        <span aria-hidden className="grid size-9 place-items-center rounded-control bg-primary font-bold text-on-primary">
-          {tenant.name.charAt(0)}
-        </span>
-        <span className="min-w-0 flex-1 leading-tight">
-          <span className="block truncate font-semibold text-text">
-            <bdi>{tenant.name}</bdi>
+
+      {/* Tablet / desktop rail */}
+      <div className="hidden w-[var(--sidebar-width)] shrink-0 border-e border-border bg-panel md:block">
+        <aside
+          aria-label={t('a11y:landmarks.sidebar')}
+          className="sticky top-0 flex h-dvh flex-col"
+        >
+          <div className="flex h-[var(--header-height)] shrink-0 items-center gap-3 border-b border-border/70 px-5">
+            <Monogram name={tenant.name} />
+            <span className="min-w-0 leading-tight">
+              <span className="line-clamp-2 font-display text-base leading-tight text-text">
+                <bdi>{tenant.name}</bdi>
+              </span>
+              <span className="block truncate text-xs text-muted">{appName}</span>
+            </span>
+          </div>
+          {centreAction && CentreIcon && (
+            <div className="px-3 pt-4">
+              <Link
+                href={centreAction.href}
+                aria-current={centreOn ? 'page' : undefined}
+                data-testid="portal-rail-action"
+                className={cn(
+                  'group flex min-h-12 w-full items-center justify-center gap-2 rounded-tile bg-primary px-4 text-[0.9375rem] font-semibold text-on-primary shadow-fab',
+                  'transition-[translate,background-color] duration-[var(--motion-fast)] data-hovered:-translate-y-0.5 data-hovered:bg-primary-hover data-pressed:translate-y-0',
+                  'data-focus-visible:outline-offset-2',
+                  focusRing,
+                )}
+              >
+                <CentreIcon aria-hidden className="size-5" />
+                {t('portal:nav.payLong')}
+              </Link>
+            </div>
+          )}
+          <nav
+            aria-label={t('portal:nav.label')}
+            data-tour-id="portal-side-nav"
+            className="min-h-0 flex-1 space-y-5 overflow-y-auto px-3 pt-5 pb-4"
+          >
+            {navGroups.map((g) => (
+              <div key={g.id}>
+                {g.labelKey && (
+                  <p className="mb-2 px-3 text-[0.6875rem] font-semibold tracking-[0.08em] text-muted uppercase">
+                    {label(t, g.labelKey)}
+                  </p>
+                )}
+                <ul className="space-y-1">
+                  {g.items.map((n) => {
+                    const Icon = n.icon;
+                    const on = current(n);
+                    return (
+                      <li key={n.id}>
+                        <Link
+                          href={n.href}
+                          aria-current={on ? 'page' : undefined}
+                          data-tour-id={`portal-side-${n.id}`}
+                          className={cn(
+                            'relative flex min-h-11 items-center gap-3 rounded-tile px-3 text-[0.9375rem] data-focus-visible:outline-offset-[-2px]',
+                            'transition-[background-color,color] duration-[var(--motion-fast)]',
+                            focusRing,
+                            on
+                              ? 'bg-primary-soft font-semibold text-primary'
+                              : 'text-muted data-hovered:bg-sunken data-hovered:text-text',
+                          )}
+                        >
+                          {on && (
+                            <motion.span
+                              layoutId="portal-side-marker"
+                              aria-hidden
+                              transition={spring}
+                              className="absolute inset-y-2.5 start-1 w-[3px] rounded-pill bg-primary"
+                            />
+                          )}
+                          <Icon
+                            aria-hidden
+                            className="size-5 shrink-0"
+                            strokeWidth={on ? 2.1 : 1.8}
+                          />
+                          <span className="truncate">{label(t, n.labelKey)}</span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
+          </nav>
+          <div className="border-t border-border/70 p-4">
+            <DemoPill className="max-w-full whitespace-normal" />
+          </div>
+        </aside>
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <header
+          aria-label={t('a11y:landmarks.header')}
+          data-scrolled={scrolled || undefined}
+          className={cn(
+            'sticky z-30 flex items-center gap-2 transition-[border-color,box-shadow] duration-[var(--motion-regular)]',
+            // Phone: floating rounded bar
+            'top-2 mx-2 mt-2 h-16 rounded-[1.25rem] border border-border/80 bg-panel/95 ps-2.5 pe-1.5 shadow-card backdrop-blur-md',
+            // Tablet/desktop: a bar over the content column
+            'md:top-0 md:mx-0 md:mt-0 md:h-[var(--header-height)] md:rounded-none md:border-x-0 md:border-t-0 md:border-b md:border-transparent md:bg-bg/85 md:px-8 md:shadow-none',
+            'md:data-scrolled:border-border md:data-scrolled:shadow-[0_8px_24px_-18px_rgb(23_33_30/0.35)]',
+          )}
+        >
+          <Monogram name={tenant.name} className="size-9 text-lg md:hidden" />
+          <span className="min-w-0 flex-1 leading-tight">
+            {/* Inline-block with its own direction: a Latin name truncates at its end in Urdu too. */}
+            <span className="block text-sm font-semibold text-text md:hidden">
+              <span dir="auto" className="inline-block max-w-full truncate align-bottom">
+                {tenant.name}
+              </span>
+            </span>
+            <span className="hidden truncate text-sm font-medium text-muted md:block">
+              {appName}
+            </span>
+            <DemoPill className="mt-0.5 md:hidden" />
           </span>
-          <span className="block truncate text-xs text-muted">{appName}</span>
-        </span>
-        <span className="hidden sm:inline-flex">
-          <Badge tone="demo">{t('common:app.prototypeBadge')}</Badge>
-        </span>
-        <LocaleToggle compact={false} className="max-xs:px-2" />
-        {headerEnd}
-      </header>
-      <div className="mx-auto flex max-w-6xl gap-8 md:px-6 md:py-6">
-        <nav aria-label={t('nav:customer.nav')} className="sticky top-[calc(var(--header-height)+1.5rem)] hidden h-fit w-56 shrink-0 md:block">
-          <ul className="space-y-1">{navItems.map((n) => item(n, 'side'))}</ul>
-        </nav>
-        <main id={MAIN_CONTENT_ID} tabIndex={-1} aria-label={pageTitle} className="min-w-0 flex-1 px-4 py-6 pb-28 text-base outline-none md:px-0 md:py-0 md:pb-6">
-          {children}
+          <span className="hidden md:inline-flex">
+            <DemoPill className="py-1 text-xs" />
+          </span>
+          <LocaleToggle className="max-xs:px-2.5 max-md:min-h-10 max-md:px-3" />
+          {headerEnd}
+        </header>
+
+        <main
+          id={MAIN_CONTENT_ID}
+          tabIndex={-1}
+          aria-label={pageTitle}
+          className="mx-auto w-full max-w-6xl px-4 pt-5 pb-[calc(7.5rem+env(safe-area-inset-bottom))] text-base outline-none sm:px-5 md:px-8 md:pt-4 md:pb-12"
+        >
+          <PageEnter id={location.pathname}>{children}</PageEnter>
         </main>
       </div>
-      <nav aria-label={t('nav:customer.nav')} className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-panel pb-[env(safe-area-inset-bottom)] md:hidden">
-        <ul className="relative flex">{navItems.map((n) => item(n, 'bottom'))}</ul>
+
+      {/* Phone bottom bar with a raised centre action */}
+      <nav
+        aria-label={t('portal:nav.label')}
+        data-tour-id="portal-bottom-nav"
+        data-testid="portal-bottom-nav"
+        className="fixed inset-x-2 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-30 rounded-[1.5rem] border border-border/80 bg-panel/95 shadow-lift backdrop-blur-md md:hidden"
+      >
+        <ul className="mx-auto grid h-[4.5rem] max-w-lg grid-cols-5 items-stretch px-1 py-1">
+          {bottomItems.slice(0, half).map(bottomItem)}
+          {centreAction && CentreIcon ? (
+            <li className="relative min-w-0">
+              <Link
+                href={centreAction.href}
+                aria-current={centreOn ? 'page' : undefined}
+                data-tour-id="portal-centre-action"
+                data-testid="portal-centre-action"
+                className={cn(
+                  'group flex h-full flex-col items-center justify-end gap-0.5 rounded-[1rem] pb-1 text-[11px] leading-tight font-semibold data-focus-visible:outline-offset-[-3px]',
+                  focusRing,
+                  centreOn ? 'text-primary' : 'text-text',
+                )}
+              >
+                {/* Press feedback is CSS (motion's whileTap would make this decorative span focusable). */}
+                <motion.span
+                  aria-hidden
+                  initial={reduced ? false : { scale: 0.85, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={
+                    reduced ? { duration: 0 } : { type: 'spring', bounce: 0.35, duration: 0.5 }
+                  }
+                  className="absolute -top-6 grid size-[3.75rem] place-items-center rounded-pill bg-primary text-on-primary shadow-fab ring-4 ring-bg transition-colors duration-[var(--motion-fast)] group-data-hovered:bg-primary-hover"
+                >
+                  <CentreIcon
+                    className="size-6 transition-transform duration-[var(--motion-fast)] group-data-pressed:scale-90 motion-reduce:transition-none"
+                    strokeWidth={2.2}
+                  />
+                </motion.span>
+                <span className="max-w-full truncate">{label(t, centreAction.labelKey)}</span>
+              </Link>
+            </li>
+          ) : null}
+          {bottomItems.slice(half).map(bottomItem)}
+        </ul>
       </nav>
     </div>
   );

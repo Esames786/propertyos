@@ -21,6 +21,28 @@ const focused = (page: Page, name: RegExp) => () =>
     return new RegExp(src, 'i').test(`${own} ${labels} ${labelledBy} ${text}`);
   }, name.source);
 
+/** A focused radio button whose label matches (a text field named "Email" must not count). */
+const focusedRadio = (page: Page, name: RegExp) => () =>
+  page.evaluate((src) => {
+    const el = document.activeElement as HTMLInputElement | null;
+    if (!el || el.type !== 'radio') return false;
+    return new RegExp(src, 'i').test([...(el.labels ?? [])].map((l) => l.textContent ?? '').join(' '));
+  }, name.source);
+
+/**
+ * Root cause of the Stage 1.5 intermittent failure: when a listbox popup closes, React Aria moves
+ * focus back to its trigger on the next animation frame. Under heavy load the test's next Tab
+ * arrived inside that frame, while focus was still on <body>; Tab then started from the top of the
+ * page, and the loose "Email" match landed on the Email text field instead of the contact radios.
+ * Wait for the popup to close and focus to be back on a real control before tabbing on.
+ */
+async function afterPopupCloses(page: Page) {
+  await expect(page.getByRole('listbox')).toHaveCount(0);
+  await expect
+    .poll(() => page.evaluate(() => !!document.activeElement && document.activeElement !== document.body && !document.activeElement.closest('[role="listbox"]')))
+    .toBe(true);
+}
+
 test.describe('Forms lab', () => {
   test('a failed submit focuses the summary; each link focuses its field', async ({ page }) => {
     await seed(page);
@@ -50,6 +72,7 @@ test.describe('Forms lab', () => {
     }).toPass();
     await page.keyboard.press('Enter');
     await expect(page.getByRole('textbox', { name: 'Full name' })).not.toHaveValue('');
+    await afterPopupCloses(page);
 
     await tabTo(page, focused(page, /^\s*CNIC/));
     await page.keyboard.type('9123412345671');
@@ -68,6 +91,7 @@ test.describe('Forms lab', () => {
       await expect(option).toBeVisible();
       for (let i = 0; i < 20 && !(await option.evaluate((el) => el.hasAttribute('data-focused'))); i++) await page.keyboard.press('ArrowDown');
       await page.keyboard.press('Enter');
+      await afterPopupCloses(page);
     }
     await tabTo(page, focused(page, /\bUnit\b/));
     await page.keyboard.press('Enter');
@@ -75,6 +99,7 @@ test.describe('Forms lab', () => {
     await expect(available).toBeVisible();
     for (let i = 0; i < 10 && !(await available.evaluate((el) => el.hasAttribute('data-focused'))); i++) await page.keyboard.press('ArrowDown');
     await page.keyboard.press('Enter');
+    await afterPopupCloses(page);
 
     await tabTo(page, focused(page, /Budget/));
     await page.keyboard.type('25000000');
@@ -84,15 +109,20 @@ test.describe('Forms lab', () => {
 
     await tabTo(page, focused(page, /Lead source/));
     await page.keyboard.press('Enter');
+    await expect(page.getByRole('listbox')).toBeVisible();
     await page.keyboard.press('Enter');
+    await afterPopupCloses(page);
 
     await tabTo(page, focused(page, /Interested in/));
     await page.keyboard.press('Enter');
+    await expect(page.getByRole('listbox')).toBeVisible();
     await page.keyboard.press('Enter');
     await page.keyboard.press('Escape');
+    await afterPopupCloses(page);
 
-    await tabTo(page, focused(page, /Phone call|WhatsApp|Email/));
+    await tabTo(page, focusedRadio(page, /Phone call|WhatsApp|Email/));
     await page.keyboard.press('Space');
+    await expect(page.getByRole('radiogroup', { name: 'Preferred contact method' }).getByRole('radio', { checked: true })).toHaveCount(1);
 
     await tabTo(page, focused(page, /Choose file/));
     const chooser = page.waitForEvent('filechooser');
@@ -107,10 +137,13 @@ test.describe('Forms lab', () => {
 
     await tabTo(page, focused(page, /Check and submit/));
     await page.keyboard.press('Enter');
-    // If validation fails, report which fields (the summary lists them) instead of only "no toast".
+    // Validation is asynchronous: wait for whichever outcome appears, then report the fields named
+    // by the summary if it failed (instead of an opaque "no toast" timeout).
     const summary = page.getByTestId('validation-summary');
-    if (await summary.isVisible().catch(() => false)) throw new Error(`Validation failed: ${await summary.innerText()}`);
-    await expect(page.getByTestId('toast-success')).toContainText('Form is valid');
+    const toast = page.getByTestId('toast-success');
+    await expect(toast.or(summary).first()).toBeVisible();
+    if (await summary.isVisible()) throw new Error(`Validation failed: ${await summary.innerText()}`);
+    await expect(toast).toContainText('Form is valid');
     await expect(page.getByTestId('validation-summary')).toHaveCount(0);
   });
 

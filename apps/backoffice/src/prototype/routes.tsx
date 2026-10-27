@@ -1,6 +1,7 @@
 import { LEADS } from '@repo/fixtures';
+import { DemoSignIn, Link, useT } from '@repo/ui';
 import type { ComponentType } from 'react';
-import { createBrowserRouter, Navigate, useLoaderData, useParams, useSearchParams, type RouteObject } from 'react-router';
+import { createBrowserRouter, Navigate, useLoaderData, useNavigate, useParams, useSearchParams, type RouteObject } from 'react-router';
 import TextGuidePage from '../pages/help/TextGuidePage';
 import TourLibrary from '../pages/help/TourLibrary';
 import WorkspaceLab from '../pages/lab/WorkspaceLab';
@@ -11,6 +12,7 @@ import { CommandPaletteRoute } from './CommandPaletteRoute';
 import { registerLoader, RegisterResolver, type RegisterData } from './register';
 import type { RouteHandle } from './handle';
 import { RootLayout } from './RootLayout';
+import { ShellLayout } from './ShellLayout';
 import { StandaloneLayout } from './StandaloneLayout';
 
 /**
@@ -41,18 +43,53 @@ function StartRedirect() {
   return <Navigate to={`${LINKS.start}${params.size ? `?${params}` : ''}`} replace />;
 }
 
+/** Where to go after entry: the address the visitor originally asked for, if it is inside the backoffice. */
+export function useNextHref(): string {
+  const [params] = useSearchParams();
+  const next = params.get('next');
+  return next && next.startsWith('/backoffice/') && !next.startsWith('/backoffice/get-started') && !next.startsWith('/backoffice/sign-in') ? next : LINKS.start;
+}
+
+/** Returning visitors pick a demo identity; new visitors are pointed to Get started. */
+function SignInRoute() {
+  const { t } = useT();
+  const navigate = useNavigate();
+  const next = useNextHref();
+  return (
+    <DemoSignIn
+      appName={t('common:app.backoffice')}
+      onSignedIn={() => navigate(next, { replace: true })}
+      footer={
+        <p className="text-center text-sm text-muted">
+          {t('start:signIn.newHere')}{' '}
+          <Link href={LINKS.getStarted} data-testid="sign-in-get-started">
+            {t('start:signIn.getStarted')}
+          </Link>
+        </p>
+      }
+    />
+  );
+}
+
 const preferences = (tab: 'language' | 'accessibility' | 'tours'): RouteObject => ({
   element: <PreferencesPage defaultTab={tab} />,
   handle: h({ title: (t) => t('nav:pages.preferences'), helpKey: 'preferences' }),
 });
 
-const backofficeChildren: RouteObject[] = [
+const shellChildren: RouteObject[] = [
   { index: true, element: <StartRedirect /> },
   {
     path: 'home/role-aware-dashboard',
     lazy: page(() => import('../pages/home/ManagementDashboard')),
     handle: h({ title: (t) => t('nav:pages.dashboard') }),
   },
+  { path: 'crm/sales-home', lazy: page(() => import('../pages/crm/SalesHome')), handle: h({ title: (t) => t('nav:pages.salesHome') }) },
+  { path: 'crm/leads-list', lazy: page(() => import('../pages/crm/LeadsList')), handle: h({ title: (t) => t('nav:pages.leadsList') }) },
+  { path: 'crm/lead-360-workspace', lazy: page(() => import('../pages/crm/LeadWorkspace')), handle: h({ title: (t) => t('nav:pages.leadWorkspace') }) },
+  // Drawer screens from the register open over Sales home (deep-linkable ?drawer=…).
+  { path: 'crm/new-lead-drawer', element: <Navigate to={`${LINKS.salesHome}?drawer=new-lead`} replace /> },
+  { path: 'crm/schedule-visit-drawer', element: <Navigate to={`${LINKS.salesHome}?drawer=schedule-visit`} replace /> },
+  { path: 'more', lazy: page(() => import('../pages/more/MorePage')), handle: h({ title: (t) => t('nav:pages.more') }) },
   { path: 'lab', lazy: page(() => import('../pages/lab/LabHome')), handle: h({ title: (t) => t('nav:pages.lab'), helpKey: 'lab' }) },
   { path: 'lab/tokens', lazy: page(() => import('../pages/lab/TokensLab')), handle: h({ title: (t) => t('nav:pages.labTokens'), helpKey: 'lab' }) },
   { path: 'lab/components', lazy: page(() => import('../pages/lab/ComponentsLab')), handle: h({ title: (t) => t('nav:pages.labComponents'), helpKey: 'lab' }) },
@@ -85,9 +122,22 @@ const backofficeChildren: RouteObject[] = [
   },
 ];
 
+/** Entry routes render without the shell and without a signed-in identity. */
+const entryChildren: RouteObject[] = [
+  { path: 'get-started', lazy: page(() => import('../pages/start/GetStartedPage')) },
+  { path: 'get-started/demo', lazy: page(() => import('../pages/start/DemoLaunchPage')) },
+  { path: 'get-started/setup', lazy: page(() => import('../pages/start/WorkspaceSetupPage')) },
+  { path: 'sign-in', element: <SignInRoute /> },
+];
+
 export const router = createBrowserRouter([
   { path: '/', element: <Navigate to="/backoffice" replace /> },
-  { path: '/backoffice', element: <RootLayout />, errorElement: <RouteError />, children: backofficeChildren },
+  {
+    path: '/backoffice',
+    element: <RootLayout />,
+    errorElement: <RouteError />,
+    children: [...entryChildren, { element: <ShellLayout />, children: shellChildren }],
+  },
   // SaaS HQ and staff sign-in screens are Stage 2; their register URLs resolve to planned pages.
   { path: '*', loader: registerLoader, element: <StandaloneLayout />, errorElement: <RouteError /> },
 ]);

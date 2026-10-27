@@ -41,26 +41,40 @@ test.describe('Backoffice shell', () => {
     await expect(page.getByRole('button', { name: 'Expand sidebar' })).toBeVisible();
   });
 
-  test('phone: the sidebar becomes a menu sheet with focus trapped and returned', async ({ page }) => {
+  test('phone: floating top bar, bottom bar with a centre Quick create, and a More page with every area', async ({ page, consoleErrors }) => {
     await page.setViewportSize(VIEWPORTS.phone);
     await seed(page);
     await page.goto(`${BO}/backoffice/lab`);
     await expect(page.locator('aside')).toBeHidden();
-    const menuButton = page.getByRole('button', { name: 'Open menu' });
-    await menuButton.click();
-    const sheet = page.getByTestId('mobile-nav');
-    await expect(sheet).toBeVisible();
-    for (let i = 0; i < 25; i++) {
-      await page.keyboard.press('Tab');
-      expect(await sheet.evaluate((el) => el.contains(document.activeElement))).toBe(true);
-    }
-    await page.keyboard.press('Escape');
-    await expect(sheet).toBeHidden();
-    await expect(menuButton).toBeFocused();
+    const bar = page.getByTestId('bottom-nav');
+    await expect(bar).toBeVisible();
+    await expect(bar.getByRole('link')).toHaveCount(4);
 
-    await menuButton.click();
-    await sheet.getByRole('link', { name: 'Design system lab' }).click();
-    await expect(sheet).toBeHidden();
+    // The raised centre button is Quick create: a real menu with working demo actions.
+    await page.getByTestId('quick-create-fab').click();
+    await expect(page.getByTestId('quick-create-new-lead')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('quick-create-fab')).toBeFocused();
+
+    await bar.getByTestId('bottom-nav-more').click();
+    await expect(page).toHaveURL(/\/backoffice\/more$/);
+    await expect(page.locator('main h1')).toHaveText('More');
+    await expect(bar.getByTestId('bottom-nav-more')).toHaveAttribute('aria-current', 'page');
+    await page.getByTestId('more-area-lab').click();
+    await expect(page.locator('main h1')).toHaveText('Design system lab');
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+    expect(consoleErrors).toEqual([]);
+  });
+
+  test('More: switching the demo role changes what the shell offers', async ({ page }) => {
+    await page.setViewportSize(VIEWPORTS.phone);
+    await seed(page, { persona: 'manager' });
+    await page.goto(`${BO}/backoffice/more`);
+    await expect(page.getByTestId('more-area-finance')).toBeVisible();
+    await page.getByTestId('more-role-sales').click();
+    await expect(page.getByTestId('more-role-sales')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByTestId('more-area-finance')).toHaveCount(0);
+    await expect(page.getByTestId('live-polite')).toContainText('Bilal Ahmed');
   });
 
   test('breadcrumbs are real links with the current page marked', async ({ page }) => {

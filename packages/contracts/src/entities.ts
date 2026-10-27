@@ -98,7 +98,8 @@ export const LEAD_STATUSES = [
 ] as const;
 export type LeadStatus = (typeof LEAD_STATUSES)[number];
 
-export type LeadSource = 'website' | 'walk_in' | 'referral' | 'social' | 'broker' | 'phone';
+export const LEAD_SOURCES = ['website', 'walk_in', 'referral', 'social', 'broker', 'phone'] as const;
+export type LeadSource = (typeof LEAD_SOURCES)[number];
 
 export interface Lead {
   id: string;

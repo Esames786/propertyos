@@ -31,7 +31,7 @@ $env:PATH = "D:\laragon2\bin\nodejs\node-v20.20.1-win-x64;$env:PATH"
 | Command | What it does |
 |---|---|
 | `npm install` | Install all workspaces |
-| `npm run dev` | Backoffice at http://localhost:5173/backoffice (opens the management dashboard) and customer portal at http://localhost:5174/customer/portal |
+| `npm run dev` | Backoffice at http://localhost:5173/backoffice (first visit: Get started; afterwards the dashboard) and customer portal at http://localhost:5174/customer/portal |
 | `npm run dev:backoffice` / `npm run dev:customer` | Run one app |
 | `npm run build` | Production build of both apps |
 | `npm run preview` | Serve the production builds on the same ports |
@@ -44,10 +44,15 @@ $env:PATH = "D:\laragon2\bin\nodejs\node-v20.20.1-win-x64;$env:PATH"
 
 First Playwright run only: `npx playwright install chromium` (~170 MB).
 
-## Demo identities
+## First visit and demo identities
 
-Open the app and pick a fictional identity. Each one has different permissions, so menus, search
-results and actions change.
+A first visit to the backoffice opens **Get started**:
+- **Explore a live demo:** pick a role, the demo is prepared, then take the guided tour or explore.
+- **Set up my developer workspace:** a labelled simulation; no account, email or SMS is created.
+
+Returning visitors land on the demo sign-in at `/backoffice/sign-in`. Each identity has different permissions, so menus, search
+results and actions change. Changes you make in the demo (leads, calls, visits, holds, proof uploads) last for the
+browser tab; More → Reset demo data clears them.
 
 | Identity | Role | Scope |
 |---|---|---|
@@ -64,11 +69,11 @@ and choose a simulated network (normal, instant, slow, server error, offline).
 ```text
 apps/backoffice      Staff backoffice + SaaS HQ + staff sign-in (Vite + React; Inertia client later)
 apps/customer-web    Customer / owner / resident web app (PWA in Stage 4)
-packages/tokens      Design tokens v2 (Limestone & Evergreen, Tailwind v4 theme), fonts, contrast tests
+packages/tokens      Design tokens v3 (Limestone & Evergreen, Clarity; Tailwind v4 theme), fonts, contrast tests
 packages/assets      Typed registry of licensed imagery (see docs/design/ASSET_REGISTRY.md)
 packages/i18n        en-PK / ur-PK dictionaries, locale provider, money/date/phone/CNIC/IBAN formatters
 packages/contracts   Entity, API-error, permission and screen-register types
-packages/fixtures    Fictional dataset, demo personas, in-memory mock transport
+packages/fixtures    Fictional dataset, demo personas, mock transport with a session demo store (CRM, portal, workspace)
 packages/ui          Components, shells, chart kit, command palette, guided-tour engine
 tests                Playwright e2e, accessibility and evidence specs
 scripts              Register sync, i18n parity, logical-CSS guard

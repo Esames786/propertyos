@@ -19,7 +19,7 @@ export function HelpMenu() {
   const { navigate } = useNavigation();
   const [, setHelp] = useQueryParam('help');
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
-  const essentials = tour.available.find((d) => d.id === 'GLOBAL-TOUR-001') ?? tour.available[0];
+  const essentials = tour.available.find((d) => d.id === tour.welcomeTourId) ?? tour.available.find((d) => d.id === 'GLOBAL-TOUR-001') ?? tour.available[0];
 
   return (
     <>

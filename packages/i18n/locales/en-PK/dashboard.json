@@ -223,5 +223,16 @@
   "state": {
     "refreshing": "Updating figures",
     "updated": "Figures updated for {{period}}"
+  },
+  "quick": {
+    "title": "Quick actions",
+    "newLead": "New lead",
+    "visit": "Schedule visit",
+    "sales": "Sales",
+    "leads": "Leads",
+    "collections": "Collections",
+    "search": "Search",
+    "tour": "Guided tour",
+    "practice": "Practice"
   }
 }
