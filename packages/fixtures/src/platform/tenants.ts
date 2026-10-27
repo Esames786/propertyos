@@ -37,6 +37,7 @@ export const PLATFORM_PERSONAS: readonly Persona[] = [
   {
     id: 'supreme_admin',
     tenantId: PLATFORM_ID,
+    principalId: 'usr_hq_0001',
     app: 'platform',
     displayName: 'Hamza Qureshi',
     roleKey: 'platform:personas.supremeAdmin',
@@ -47,6 +48,7 @@ export const PLATFORM_PERSONAS: readonly Persona[] = [
   {
     id: 'commercial_approver',
     tenantId: PLATFORM_ID,
+    principalId: 'usr_hq_0002',
     app: 'platform',
     displayName: 'Ayesha Siddiqui',
     roleKey: 'platform:personas.commercialApprover',
@@ -57,6 +59,7 @@ export const PLATFORM_PERSONAS: readonly Persona[] = [
   {
     id: 'platform_support',
     tenantId: PLATFORM_ID,
+    principalId: 'usr_hq_0003',
     app: 'platform',
     displayName: 'Iqra Rana',
     roleKey: 'platform:personas.support',
@@ -114,6 +117,7 @@ function build(seed: Seed): TenantDetail {
     version: 1,
     status: contractStatus,
     createdBy: 'Hamza Qureshi',
+    createdById: 'usr_hq_0001',
     createdAt: seed.createdAt,
     ...(seed.activatedAt ? { activatedAt: seed.activatedAt } : {}),
   };
@@ -253,6 +257,7 @@ export const SEED_APPROVALS: ContractApproval[] = [
     contractVersion: 1,
     reasons: kestrel.quote!.approval.reasons,
     requestedBy: 'Omar Sheikh',
+    requestedById: 'usr_hq_0004',
     requestedAt: '2026-10-24T13:20:00Z',
     status: 'pending',
   },
@@ -268,13 +273,13 @@ export const SEED_REQUESTS: readonly WorkspaceRequest[] = [
 ];
 
 export const SEED_AUDIT: readonly PlatformAuditEvent[] = [
-  { id: 'aud_7', at: '2026-10-25T16:41:00Z', actorName: 'System', action: 'requestReceived', params: { organisation: 'Sunfield Apartments Association (Demo)' } },
-  { id: 'aud_6', at: '2026-10-24T13:20:00Z', actorName: 'Omar Sheikh', action: 'approvalRequested', tenantId: kestrel.id, tenantName: kestrel.displayName, params: { reasons: '1' } },
-  { id: 'aud_5', at: '2026-10-20T07:00:00Z', actorName: 'System', action: 'graceStarted', tenantId: riverbend.id, tenantName: riverbend.displayName, params: {} },
-  { id: 'aud_4', at: '2026-10-13T08:05:00Z', actorName: 'Sana Raza', action: 'trialStarted', tenantId: mapleCourt.id, tenantName: mapleCourt.displayName, params: { days: '30' } },
-  { id: 'aud_3', at: '2026-09-30T07:00:00Z', actorName: 'Hamza Qureshi', action: 'tenantSuspended', tenantId: cedarHills.id, tenantName: cedarHills.displayName, params: {} },
-  { id: 'aud_2', at: '2026-05-01T05:00:00Z', actorName: 'Hamza Qureshi', action: 'contractActivated', tenantId: riverbend.id, tenantName: riverbend.displayName, params: { version: '1' } },
-  { id: 'aud_1', at: '2026-03-01T05:00:00Z', actorName: 'Hamza Qureshi', action: 'contractActivated', tenantId: larkspur.id, tenantName: larkspur.displayName, params: { version: '1' } },
+  { id: 'aud_7', at: '2026-10-25T16:41:00Z', actorName: 'System', actorId: 'system', action: 'requestReceived', params: { organisation: 'Sunfield Apartments Association (Demo)' } },
+  { id: 'aud_6', at: '2026-10-24T13:20:00Z', actorName: 'Omar Sheikh', actorId: 'usr_hq_0004', action: 'approvalRequested', tenantId: kestrel.id, tenantName: kestrel.displayName, params: { reasons: '1' } },
+  { id: 'aud_5', at: '2026-10-20T07:00:00Z', actorName: 'System', actorId: 'system', action: 'graceStarted', tenantId: riverbend.id, tenantName: riverbend.displayName, params: {} },
+  { id: 'aud_4', at: '2026-10-13T08:05:00Z', actorName: 'Sana Raza', actorId: 'usr_hq_0005', action: 'trialStarted', tenantId: mapleCourt.id, tenantName: mapleCourt.displayName, params: { days: '30' } },
+  { id: 'aud_3', at: '2026-09-30T07:00:00Z', actorName: 'Hamza Qureshi', actorId: 'usr_hq_0001', action: 'tenantSuspended', tenantId: cedarHills.id, tenantName: cedarHills.displayName, params: {} },
+  { id: 'aud_2', at: '2026-05-01T05:00:00Z', actorName: 'Hamza Qureshi', actorId: 'usr_hq_0001', action: 'contractActivated', tenantId: riverbend.id, tenantName: riverbend.displayName, params: { version: '1' } },
+  { id: 'aud_1', at: '2026-03-01T05:00:00Z', actorName: 'Hamza Qureshi', actorId: 'usr_hq_0001', action: 'contractActivated', tenantId: larkspur.id, tenantName: larkspur.displayName, params: { version: '1' } },
 ];
 
 /**

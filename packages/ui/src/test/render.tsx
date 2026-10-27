@@ -8,6 +8,7 @@ export const TEST_PERSONA: Persona = {
   id: 'manager',
   tenantId: 'tnt_test',
   app: 'backoffice',
+  principalId: 'usr_test_0001',
   displayName: 'Test Manager',
   roleKey: 'common:persona.manager',
   email: 'test@example.com',

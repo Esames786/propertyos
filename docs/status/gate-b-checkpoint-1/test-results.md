@@ -13,13 +13,32 @@
 |---|---|---|
 | Typecheck | `npm run typecheck` | clean |
 | Lint (ESLint, logical-CSS RTL guard, i18n parity) | `npm run lint` | clean. 2 locales × 14 namespaces, 2,347 keys each (Stage 1.5R: 13 namespaces, 1,673 keys) |
-| Unit tests | `npm test` | **388 / 388** in 18 files (Stage 1.5R: 303 in 15), plus the 2 new announcer tests, run on their own (2 / 2) |
+| Unit tests | `npm test` (the complete command) | **419 / 419** in 20 files, including the 2 announcer tests and the 28 new server-rule tests (Stage 1.5R: 303 in 15) |
 | Register | `npm run register:sync -- --check` | 390 rows, 331 distinct screens (34 built, 13 partial, 284 planned); all 321 V2.1 IDs and addresses preserved |
-| End-to-end | `npm run test:e2e` | **158 / 158 on two consecutive full runs** (runs 3 and 4: 11.1 and 12.1 min, 4 workers). Stage 1.5R: 134 |
-| Accessibility (inside E2E) | `a11y`, `get-started`, `portal`, `hq` specs | Runs 3 and 4: **330 axe scans per run, 8,993 rule passes, 0 violations** (HQ: 68 scans). Stage 1.5R: 262 / 7,057 / 0 |
-| After runs 3 and 4 | `hq.spec.ts` axe tests | Three more scans per HQ sweep (dependency problem, activation confirmation, done screen); they found the announcer defect below. After the fix: **4 / 4, 80 HQ scans, 0 violations** |
-| Final full runs | `npm run test:e2e` | Runs 5 and 6 on the final code were **still running when this was pushed**. Their results follow in the next commit |
+| End-to-end, final code | `npm run test:e2e` | **159 / 159 on two consecutive full runs** (runs 7 and 8: 9.7 and 10.9 min, 4 workers). Stage 1.5R: 134 |
+| Accessibility, final code (inside E2E) | `a11y`, `get-started`, `portal`, `hq` specs | **342 axe scans per run, 9,277 rule passes, 0 violations** (HQ: 80 scans). Stage 1.5R: 262 / 7,057 / 0 |
 | Evidence | `npx playwright test --project=evidence tests/evidence/gateb1.evidence.spec.ts` | 11 / 11; 126 screenshots, 3 videos |
+
+### Every full run, in order (nothing hidden)
+
+| Run | Code | Result | What failed and why |
+|---|---|---|---|
+| 1 | first build | 153 / 154 | HQ tour test read the spotlight mid-move. Fixed in the test |
+| 2 | same | 152 / 154 | a11y overlays test over its 120 s budget twice (it needs about 106 s; other work was running). Budget raised to 240 s |
+| 3, 4 | after the fixes | 158 / 158 twice | — |
+| 5 | three more HQ axe scans + announcer fix | 158 / 158 | — |
+| 6 | same | 156 / 158 | (a) the first HQ axe scan ran before the page had finished fading in; the test now waits for the step. (b) a Stage 1.5R portal test matched the file name in the hidden live region as well as in the form; it is now scoped to the form. Both test-only; each was then repeated 5 times (25 / 25) |
+| 7, 8 | final code, including the checkpoint-1 closure below | **159 / 159 twice** | — |
+
+## Checkpoint 1 closure (owner review of `d89e274`)
+
+| Owner requirement | Done | Proof |
+|---|---|---|
+| Report final runs 5 and 6 | Yes: the table above, including run 6's two test-only failures and their fixes | runs 5–8 |
+| Announcer tests in the normal unit command | Yes. They were always picked up by `npm test` (the `dom` project includes `packages/ui/src/**/*.test.tsx`); the earlier report counted them separately by mistake | `npm test`: 419 / 419 |
+| Maker-checker by stable principal IDs | Every persona has a `principalId`; approvals record `requestedById` / `decidedById`, contracts `createdById`, audit events `actorId`. The server compares principals; the summary drawer uses the same rule | `validation.test.ts`: a maker who changed their display name is still refused; a different person sharing the maker's name may decide |
+| Critical draft and pricing validation in the mock server | One validator (`packages/fixtures/src/platform/validation.ts`) for every quote, simulation, draft save and activation. Prices, dates, tiers, terms, tax (the rate comes from the configured code, never the request), discounts, counts, sites, modules and email are checked; draft saves and activation also need discount and price-override reasons; a draft save can no longer write ids or activation state; activation re-checks the stored draft | `validation.test.ts` (28); `hq.spec`: a refused save is listed, focused, and the wizard stays on the step |
+| Regression tests for invalid commercial inputs and unauthorized approvals | 14 invalid-input cases, counts, simulator (still never writes), tampered drafts; approvals by a role without permission (403), by the maker (403), twice (409), unknown (404), malformed (422, nothing changes), audited with the checker's principal | `validation.test.ts`, `platform.test.ts` |
 
 ## New unit tests
 
@@ -29,16 +48,16 @@
 | `packages/fixtures/src/platform/pricing.test.ts` | 23 vectors | The pricing engine. Al-Noor 18,700 / 3,700; 3,540 occupied; mid-month start; scheduled price change to 4,100; graduated and volume tiers; usage with allowance; discounts; free and trial; minimum and cap; tax per line; quarterly; rounding; every commercial-policy rule |
 | `packages/fixtures/src/platform/platform.test.ts` | 18 | Module catalogue and dependency check; mock handlers: create and activate, idempotency, reset, approvals (maker ≠ checker, comment to return), incomplete drafts refused, the simulator never writes, tenant records refused without a support grant, permissions before handlers, dashboard figures, search without tenant people |
 
-## End-to-end by spec (158)
+## End-to-end by spec (159)
 
 | Spec | Tests | Change in this checkpoint |
 |---|---|---|
-| `hq.spec.ts` | 21 | **New.** See the next table |
+| `hq.spec.ts` | 22 | **New.** See the next table |
 | `onboarding.spec.ts` | 18 | Unchanged |
 | `register.spec.ts` | 16 | **Updated for the V3.1 register** (was 13): the register keeps every V2.1 screen and adds the V3.1 families; all 355 openable addresses across the three apps, 25 per test |
 | `a11y.spec.ts` | 15 | Unchanged except one time budget (see below) |
 | `dashboard.spec.ts` | 13 | Unchanged |
-| `portal.spec.ts` | 11 | Unchanged |
+| `portal.spec.ts` | 11 | One check scoped to the form (run 6) |
 | `get-started.spec.ts` | 10 | Unchanged |
 | `crm.spec.ts` | 9 | Unchanged |
 | `shell.spec.ts` | 8 | Unchanged |
@@ -50,9 +69,10 @@
 | `permissions.spec.ts` | 4 | Unchanged |
 | `forms-keyboard.spec.ts` | 4 | Unchanged |
 
-**Regression (AB-11).** The Stage 1.5R tests pass, and Larkspur's backoffice navigation is unchanged. Only two existing spec files changed:
+**Regression (AB-11).** The Stage 1.5R tests pass, and Larkspur's backoffice navigation is unchanged. Only three existing spec files changed:
 - the register spec, which had to move to the V3.1 register;
-- one time budget in the a11y spec.
+- one time budget in the a11y spec;
+- one portal check scoped to its form (run 6).
 
 **Shared UI changes the backoffice and portal also receive**
 - The shell accepts HQ's slots (context chip, Create button). The backoffice and portal keep their defaults.
@@ -61,12 +81,13 @@
 - The planned-screen page shows the V3.1 gate and module.
 - The announcer fix above.
 
-### `hq.spec.ts` (21)
+### `hq.spec.ts` (22)
 
 | Test | Acceptance check |
 |---|---|
 | Create Al-Noor: 18,700 first invoice, 3,700 after, first year 59,400; activated; summary; **Simulate pricing** opens the simulator on this tenant | AB-1, AB-2 |
 | Wizard entries survive Back and a refresh (server draft) | B.5b |
+| **A save the server refuses is listed and focused; the wizard stays on the step** | Owner review |
 | **Review → Edit → Continue** returns to the review with the change | B.5b |
 | A missing hard requirement blocks Continue, is explained, and one click adds it | AB-3 |
 | A 20 % discount waits for approval; the requester cannot approve; an approver can | AB-15 |

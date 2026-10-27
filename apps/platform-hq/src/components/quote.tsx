@@ -228,7 +228,20 @@ export function ApprovalNotice({ approval, footer, className }: { approval: Appr
  * Below xl the full live-price panel would sit under the form, out of sight while prices are edited.
  * This compact bar stays pinned under the header instead; at xl the panel beside the form takes over.
  */
-export function LivePriceBar({ quote, loading, action, testId }: { quote: QuotePreview | undefined; loading: boolean; action?: ReactNode; testId: string }) {
+export function LivePriceBar({
+  quote,
+  loading,
+  unavailable = false,
+  action,
+  testId,
+}: {
+  quote: QuotePreview | undefined;
+  loading: boolean;
+  /** The server refused to price the current entries (422): say so instead of showing old figures. */
+  unavailable?: boolean;
+  action?: ReactNode;
+  testId: string;
+}) {
   const { t } = useT();
   const fmt = useHqFormat();
   return (
@@ -237,7 +250,11 @@ export function LivePriceBar({ quote, loading, action, testId }: { quote: QuoteP
         aria-label={t('platform:wizard.liveQuote')}
         className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-tile border border-border bg-panel/95 px-4 py-2.5 shadow-card backdrop-blur-md"
       >
-        {!quote ? (
+        {unavailable ? (
+          <p className="text-sm font-medium text-error" role="status" data-testid={`${testId}-unavailable`}>
+            {t('platform:validation.quoteUnavailable')}
+          </p>
+        ) : !quote ? (
           <Skeleton className="h-10 w-full rounded-tile" />
         ) : (
           <dl className="flex flex-wrap items-center gap-x-5 gap-y-1.5" aria-live="polite" aria-busy={loading}>

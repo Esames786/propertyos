@@ -493,6 +493,48 @@
     "draftActivated": "This setup has already been activated.",
     "supportGrantRequired": "Platform HQ cannot open tenant records without an audited, consented support grant."
   },
+  "validation": {
+    "contractMissing": "The contract is missing or incomplete.",
+    "start": "Enter a valid start date.",
+    "term": "The term must be 1 to 120 months, or rolling.",
+    "frequency": "Choose monthly, quarterly or annual billing.",
+    "minimum": "The monthly minimum must be an amount of zero or more, with up to two decimals.",
+    "cap": "The monthly cap must be an amount of zero or more, with up to two decimals.",
+    "minCap": "The monthly minimum cannot be higher than the cap.",
+    "tax": "Choose a tax code from the list; its rate comes from the configuration.",
+    "noComponents": "Add at least one price component.",
+    "componentType": "Component {{n}} has an unknown type.",
+    "componentPrice": "Component {{n}}: the price must be an amount of zero or more, with up to two decimals.",
+    "componentStart": "Component {{n}} needs a valid start date.",
+    "componentDates": "Component {{n}}: the end date must be after the start date.",
+    "componentBasis": "Component {{n}}: choose what to count.",
+    "allowance": "Component {{n}}: the included amount must be a whole number of zero or more.",
+    "quantity": "Component {{n}}: the quantity must be a whole number of zero or more.",
+    "trialDays": "Component {{n}}: a trial lasts 1 to 365 days.",
+    "tiers": "Component {{n}}: price bands must rise in order, end with an open band and have prices of zero or more.",
+    "overrideReason": "Component {{n}}: a price different from the rate card needs a reason.",
+    "discountKind": "Discount {{n}} must be a percentage or an amount.",
+    "discountPercent": "Discount {{n}}: a percentage must be above 0 and at most 100.",
+    "discountAmount": "Discount {{n}}: the amount must be above zero, with up to two decimals.",
+    "discountTarget": "Discount {{n}} applies to a component that is not in the contract.",
+    "discountStart": "Discount {{n}} needs a valid start date.",
+    "discountDates": "Discount {{n}}: the end date must be after the start date.",
+    "discountReason": "Discount {{n}} needs a reason.",
+    "quantities": "Counts must be whole numbers of zero or more.",
+    "modules": "The module list is not valid.",
+    "module": "Unknown module: {{module}}.",
+    "moduleSites": "{{module}} is granted for a site that is not in this setup.",
+    "site": "Site {{n}}: enter a name, buildings (0–500) and flats (1–100,000).",
+    "sites": "The site list is not valid.",
+    "edition": "Choose Developer, Community, Portfolio or Custom.",
+    "email": "Enter a valid email address.",
+    "nameLength": "Names are limited to 120 characters (legal name 160).",
+    "decision": "Choose approve or return.",
+    "commentLength": "Keep the comment under 1,000 characters.",
+    "serverTitle": "The platform did not accept these entries",
+    "serverBody": "Nothing was saved. Correct the entries below and continue.",
+    "quoteUnavailable": "These entries cannot be priced yet. Correct them to see the price."
+  },
   "builder": {
     "addGroups": {
       "recurring": "Recurring",
@@ -554,7 +596,8 @@
     "errors": {
       "title_one": "Fix {{count}} problem to continue",
       "title_other": "Fix {{count}} problems to continue",
-      "activate": "The tenant could not be activated. Nothing was created."
+      "activate": "The tenant could not be activated. Nothing was created.",
+      "save": "Your entries could not be saved. Nothing changed; try again."
     },
     "type": {
       "title": "What kind of organisation is this?",

@@ -7,6 +7,11 @@ export interface Persona {
   id: 'manager' | 'sales' | 'finance' | 'resident' | 'supreme_admin' | 'commercial_approver' | 'platform_support';
   tenantId: string;
   app: AppId;
+  /**
+   * Stable identity of the person (a user id once real sign-in exists). Maker-checker, ownership
+   * and audit compare this, never the display name, which can change or be shared by two people.
+   */
+  principalId: string;
   /** Person's name as entered (free text is never translated). */
   displayName: string;
   /** Translation key for the role title. */

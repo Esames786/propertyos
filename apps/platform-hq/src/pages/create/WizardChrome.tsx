@@ -148,7 +148,7 @@ export function Stepper({ current, reached, onGo }: { current: Step; reached: nu
 }
 
 /** Live price beside the pricing steps: re-priced on the server after every edit. */
-export function QuoteAside({ quote, loading }: { quote: QuotePreview | undefined; loading: boolean }) {
+export function QuoteAside({ quote, loading, unavailable = false }: { quote: QuotePreview | undefined; loading: boolean; unavailable?: boolean }) {
   const { t } = useT();
   const fmt = useHqFormat();
   return (
@@ -157,7 +157,11 @@ export function QuoteAside({ quote, loading }: { quote: QuotePreview | undefined
         <h2 className="text-sm font-bold text-text">{t('platform:wizard.liveQuote')}</h2>
         {loading && <span className="text-xs text-muted">{t('platform:wizard.repricing')}</span>}
       </div>
-      {!quote ? (
+      {unavailable ? (
+        <p className="mt-3 text-sm font-medium text-error" role="status" data-testid="aside-unavailable">
+          {t('platform:validation.quoteUnavailable')}
+        </p>
+      ) : !quote ? (
         <Skeleton className="mt-3 h-24 rounded-tile" />
       ) : (
         <dl className="mt-3 space-y-3" aria-live="polite">

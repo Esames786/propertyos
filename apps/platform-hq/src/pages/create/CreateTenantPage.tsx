@@ -1,18 +1,19 @@
-import type {
-  ActivationResult,
-  ContractDraft,
-  EditionKey,
-  ModuleCatalog,
-  RateCard,
-  TenantDetail,
-  TenantDraft,
-  UsageDimension,
-  WorkspaceRequest,
+import {
+  ApiError,
+  type ActivationResult,
+  type ContractDraft,
+  type EditionKey,
+  type ModuleCatalog,
+  type RateCard,
+  type TenantDetail,
+  type TenantDraft,
+  type UsageDimension,
+  type WorkspaceRequest,
 } from '@repo/contracts';
 import { directionOf, useLocale } from '@repo/i18n';
-import { cn, ErrorState, PageHeader, Skeleton, useAnnounce, useApiMutation, useApiQuery, useNavigation, useQueryParams, useReducedMotion, useT, useToast, useTransport } from '@repo/ui';
+import { cn, dynamicT, ErrorState, InlineAlert, PageHeader, Skeleton, useAnnounce, useApiMutation, useApiQuery, useNavigation, useQueryParams, useReducedMotion, useT, useToast, useTransport } from '@repo/ui';
 import { AnimatePresence, motion, type Variants } from 'motion/react';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { LivePriceBar } from '../../components/quote';
 import { HQ } from '../../nav.config';
 import { useQuote } from '../../lib/useQuote';
@@ -114,6 +115,8 @@ function Wizard({
   const [quantities, setQuantities] = useState<Partial<Record<UsageDimension, number>>>(() => (initial ? quantitiesFor(initial) : {}));
   const [result, setResult] = useState<ActivationResult | null>(null);
   const [returnToReview, setReturnToReview] = useState(false);
+  /** What the server refused on the last save, for the step it was sent from. */
+  const [refused, setRefused] = useState<{ step: Step; messages: string[] } | null>(null);
 
   const done = stepParam === 'done' && !!draft?.activatedTenantId;
   const tenant = useApiQuery<TenantDetail>(done && !result ? { method: 'GET', path: `/platform/tenants/${draft!.activatedTenantId}` } : null);
@@ -146,7 +149,16 @@ function Wizard({
   const commit = async (from: Step, patch: Partial<TenantDraft>) => {
     const nextStep = returnToReview && stepIndex(from) < stepIndex('review') && reached >= stepIndex('review') ? 'review' : STEPS[stepIndex(from) + 1]!;
     const furthest = STEPS[Math.max(reached, stepIndex(nextStep))]!;
-    const saved = await save.mutateAsync({ method: 'PATCH', path: `/platform/tenant-drafts/${draft!.id}`, body: { ...patch, step: furthest } });
+    let saved: StoredDraft;
+    try {
+      saved = await save.mutateAsync({ method: 'PATCH', path: `/platform/tenant-drafts/${draft!.id}`, body: { ...patch, step: furthest } });
+    } catch (error) {
+      // The server checks every entry again; anything it refuses is listed here and nothing moves on.
+      if (error instanceof ApiError && error.problem.status === 422) setRefused({ step: from, messages: problemMessages(error, t) });
+      else toast.error(t('platform:wizard.errors.save'));
+      return;
+    }
+    setRefused(null);
     setDraft(saved);
     // New or changed sites change the declared counts derived from them.
     if (patch.sites) setQuantities(quantitiesFor({ sites: saved.sites, quantities: {} }));
@@ -220,7 +232,8 @@ function Wizard({
       setDraft((d) => (d ? { ...d, activatedTenantId: r.tenantId } : d));
       announce(r.contractStatus === 'pending_approval' ? t('platform:wizard.done.pendingTitle', { name: draft!.organisation!.displayName }) : t('platform:wizard.done.title', { name: draft!.organisation!.displayName }));
       go('done');
-    } catch {
+    } catch (error) {
+      if (error instanceof ApiError && error.problem.status === 422) setRefused({ step: 'review', messages: problemMessages(error, t) });
       toast.error(t('platform:wizard.errors.activate'));
     }
   };
@@ -325,7 +338,8 @@ function Wizard({
           <Stepper current={step} reached={reached} onGo={(s) => go(s)} />
         </div>
         <div className="min-w-0">
-          {showAside && <LivePriceBar quote={quote.data} loading={quote.isFetching} testId="price-bar" />}
+          {showAside && <LivePriceBar quote={quote.data} loading={quote.isFetching} unavailable={quote.isError} testId="price-bar" />}
+          {refused?.step === step && <RefusedEntries messages={refused.messages} />}
           <AnimatePresence mode="wait" custom={slideDir} initial={false}>
             <motion.div
               key={step}
@@ -342,10 +356,38 @@ function Wizard({
         </div>
         {showAside && (
           <div className="max-xl:hidden xl:sticky xl:top-24 xl:self-start">
-            <QuoteAside quote={quote.data} loading={quote.isFetching} />
+            <QuoteAside quote={quote.data} loading={quote.isFetching} unavailable={quote.isError} />
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+/** Field problems from a 422, in the reader's language (codes are translation keys with params). */
+function problemMessages(error: ApiError, t: ReturnType<typeof useT>['t']): string[] {
+  const tr = dynamicT(t);
+  const messages = Object.values(error.problem.errors ?? {})
+    .flat()
+    .map((e) => tr(e.code, e.params));
+  return messages.length ? [...new Set(messages)] : [tr(error.problem.messageKey)];
+}
+
+/** The server's refusal, focused so keyboard and screen-reader users land on it. */
+function RefusedEntries({ messages }: { messages: string[] }) {
+  const { t } = useT();
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => ref.current?.focus(), [messages]);
+  return (
+    <div ref={ref} tabIndex={-1} className="mb-4 outline-none" data-testid="wizard-refused">
+      <InlineAlert tone="error" role="alert" title={t('platform:validation.serverTitle')}>
+        <p>{t('platform:validation.serverBody')}</p>
+        <ul className="mt-2 list-disc space-y-1 ps-5">
+          {messages.map((m) => (
+            <li key={m}>{m}</li>
+          ))}
+        </ul>
+      </InlineAlert>
     </div>
   );
 }

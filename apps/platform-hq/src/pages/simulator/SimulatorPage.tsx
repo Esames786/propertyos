@@ -165,6 +165,7 @@ export default function SimulatorPage() {
             <LivePriceBar
               quote={quote.data}
               loading={quote.isFetching}
+              unavailable={quote.isError}
               testId="sim-price-bar"
               action={
                 <Button variant="quiet" size="sm" icon={ArrowDown} onPress={() => focusResults()} data-testid="sim-see-results">
@@ -174,7 +175,7 @@ export default function SimulatorPage() {
             />
             <Controls scenario={scenario} onChange={setScenario} rateCard={rateCard.data.rateCard} />
           </div>
-          <Results quote={quote.data} baseline={base.data} loading={quote.isFetching} />
+          <Results quote={quote.data} baseline={base.data} loading={quote.isFetching} unavailable={quote.isError} />
         </div>
       )}
     </div>
@@ -283,7 +284,7 @@ function Controls({ scenario, onChange, rateCard }: { scenario: Scenario; onChan
   );
 }
 
-function Results({ quote, baseline, loading }: { quote: QuotePreview | undefined; baseline: QuotePreview | undefined; loading: boolean }) {
+function Results({ quote, baseline, loading, unavailable }: { quote: QuotePreview | undefined; baseline: QuotePreview | undefined; loading: boolean; unavailable: boolean }) {
   const { t } = useT();
   const fmt = useHqFormat();
   const points = useMemo<ColumnTargetPoint[]>(
@@ -297,6 +298,12 @@ function Results({ quote, baseline, loading }: { quote: QuotePreview | undefined
       })),
     [quote, baseline, fmt],
   );
+  if (unavailable)
+    return (
+      <div id="sim-results" tabIndex={-1} className="outline-none" data-testid="sim-results">
+        <InlineAlert tone="error" title={t('platform:validation.quoteUnavailable')} />
+      </div>
+    );
   if (!quote) return <Skeleton className="h-96 rounded-card" />;
   const delta = baseline ? Number(quote.regularPeriod.total.amount) - Number(baseline.regularPeriod.total.amount) : 0;
   const yearDelta = baseline ? Number(quote.firstYearValue.amount) - Number(baseline.firstYearValue.amount) : 0;

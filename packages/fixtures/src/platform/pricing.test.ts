@@ -2,6 +2,8 @@ import { pkr, type ContractDiscount, type ContractDraft, type PricingComponent }
 import { describe, expect, it } from 'vitest';
 import { priceContract, roundHalf, type Quantities } from './pricing';
 import table from './pricing.vectors.json';
+import { RATE_CARD } from './rate-card';
+import { contractProblems } from './validation';
 
 interface RawComponent {
   id: string;
@@ -90,6 +92,10 @@ describe('pricing golden vectors (A3 §5)', () => {
       expect(quote.nonAuthoritative).toBe(true);
     });
   }
+
+  it('every vector also passes the server’s pricing rules (nothing valid is refused)', () => {
+    for (const v of table.vectors as unknown as Vector[]) expect(contractProblems(contractOf(v), { commit: false, rateCard: RATE_CARD }), v.name).toEqual({});
+  });
 });
 
 describe('pricing engine details', () => {

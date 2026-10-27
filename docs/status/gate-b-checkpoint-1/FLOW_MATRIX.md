@@ -55,7 +55,7 @@
 | 24 | Site-scoped module → choose sites | Entitlement saved per site | As expected | Mock working | `platform.test.ts`, vectors (site add-on) |
 | 25 | Pricing: change a price, add a component, schedule a price change | Live price re-priced on the server | As expected; the old version ends on the date the new one starts | Working | vectors (scheduled price change); screenshots |
 | 26 | Counts: declared estimates | Marked as estimates; drive the quote | As expected | Working | screenshots |
-| 27 | Tax code, minimum, cap, discount with reason | Applied by the engine; a discount needs a reason | As expected; Continue shows a field error until the reason is filled (checked in the page, not yet on the server) | Working | vectors; `hq` AB-15 |
+| 27 | Tax code, minimum, cap, discount with reason | Applied by the engine; a discount needs a reason | As expected; Continue shows a field error until the reason is filled. The mock server refuses the same save without a reason, and the wizard lists and focuses its refusal | Working | vectors; `hq` AB-15; `hq` server refusal; `validation.test.ts` |
 | 28 | Quote | First invoice, next invoice, typical month, first-year value, 12 periods, breakdown | Al-Noor: 18,700.00 / 3,700.00 / 59,400.00 | Working | `hq` AB-1/2 |
 | 29 | Refresh or Back mid-wizard | Entries kept (server draft, step in the address) | As expected | Mock working | `hq` draft |
 | 30 | Review → Edit a section | Returns to that step, then back to review | As expected; the review shows the change | Working | `hq` review → Edit |
@@ -70,7 +70,7 @@
 |---|---|---|---|---|---|
 | 33 | 20 % discount | Live price and quote say *Needs commercial approval*, with the reason | As expected | Working | `hq` AB-15 |
 | 34 | Review → Submit for approval | Tenant *Awaiting approval*; not billed | As expected | Mock working | `hq` AB-15 |
-| 35 | Requester opens it | "You requested this approval, so another approver must decide it."; no Approve | As expected; the server also refuses | Working | `hq` AB-15; `platform.test.ts` |
+| 35 | Requester opens it | "You requested this approval, so another approver must decide it."; no Approve | As expected; the server also refuses, comparing principal IDs (a renamed maker is still refused; another person with the same name is not) | Working | `hq` AB-15; `platform.test.ts`; `validation.test.ts` |
 | 36 | Approver → Approve | Tenant active; history records who approved | "Approved by Ayesha Siddiqui"; "Contract approved for Kite Gardens Society (Demo)" | Mock working | `hq` AB-15 |
 | 37 | Approver → Return without a comment | Refused; a comment is required | As expected | Mock working | `platform.test.ts` |
 

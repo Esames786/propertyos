@@ -195,7 +195,8 @@ function ApprovalPanel({ approval, tenant }: { approval: ContractApproval; tenan
       </InlineAlert>
     );
   }
-  const isRequester = persona?.displayName === approval.requestedBy;
+  // The same rule the server applies: by principal, never by name.
+  const isRequester = persona?.principalId === approval.requestedById;
   const mayDecide = can('platform.contracts.approve') && !isRequester;
   const run = async (decision: 'approve' | 'return', comment?: string) => {
     try {

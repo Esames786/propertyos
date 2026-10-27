@@ -82,6 +82,7 @@ export const PERSONAS: readonly Persona[] = [
   {
     id: 'manager',
     tenantId: TENANT.id,
+    principalId: 'usr_lsp_0001',
     app: 'backoffice',
     displayName: 'Nadia Rahman',
     roleKey: 'common:persona.manager',
@@ -92,6 +93,7 @@ export const PERSONAS: readonly Persona[] = [
   {
     id: 'sales',
     tenantId: TENANT.id,
+    principalId: 'usr_lsp_0002',
     app: 'backoffice',
     displayName: 'Bilal Ahmed',
     roleKey: 'common:persona.sales',
@@ -105,6 +107,7 @@ export const PERSONAS: readonly Persona[] = [
   {
     id: 'finance',
     tenantId: TENANT.id,
+    principalId: 'usr_lsp_0003',
     app: 'backoffice',
     displayName: 'Farah Javed',
     roleKey: 'common:persona.finance',
@@ -118,6 +121,7 @@ export const PERSONAS: readonly Persona[] = [
   {
     id: 'resident',
     tenantId: TENANT.id,
+    principalId: 'usr_lsp_c0001',
     app: 'customer',
     displayName: 'Usman Tariq',
     roleKey: 'common:persona.resident',

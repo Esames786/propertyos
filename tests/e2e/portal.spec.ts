@@ -51,7 +51,8 @@ test.describe('Customer portal', () => {
     await expect(page.getByTestId('pay-amount')).toContainText('804,500.00');
     await page.getByLabel('Bank reference or cheque number').fill('FT26 1234 5678');
     await page.locator('input[type="file"]').setInputFiles({ name: 'transfer-slip.png', mimeType: 'image/png', buffer: PNG_1PX });
-    await expect(page.getByText('transfer-slip.png')).toBeVisible();
+    // Scoped to the form: the hidden live region also says the file name once it is chosen.
+    await expect(page.getByTestId('proof-form').getByText('transfer-slip.png')).toBeVisible();
     await page.getByTestId('proof-submit').click();
 
     const done = page.getByTestId('pay-done');

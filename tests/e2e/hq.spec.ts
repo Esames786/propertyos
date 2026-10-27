@@ -115,6 +115,27 @@ test.describe('Platform HQ (Gate B checkpoint 1)', () => {
     await expect(input(page, 'org-display')).toHaveValue('Draft Keeper Society (Demo)');
   });
 
+  test('a save the server refuses is listed and focused, and the wizard stays on the step', async ({ page }) => {
+    await seedHq(page);
+    await createUpToPricing(page, 'Server Rules Society (Demo)');
+    // Alter the next save on its way to the mock server, as a crafted request would, past the form's checks.
+    await page.evaluate(() => {
+      const transport = window.__hq!.transport;
+      const send = transport.request.bind(transport);
+      transport.request = ((request: { method: string; path: string; body?: { contract?: { discounts: unknown[] } } }) => {
+        if (request.method === 'PATCH' && request.body?.contract) request.body.contract.discounts.push({ id: 'd_x', target: 'recurring', kind: 'percent', value: '150', from: '2026-11-01' });
+        return send(request as never);
+      }) as typeof transport.request;
+    });
+    await page.getByTestId('step-pricing-next').click();
+    const refused = page.getByTestId('wizard-refused');
+    await expect(refused).toBeFocused();
+    await expect(refused).toContainText('Discount 1: a percentage must be above 0 and at most 100.');
+    await expect(refused).toContainText('Discount 1 needs a reason.');
+    await expect(page.getByTestId('step-pricing')).toBeVisible();
+    await expect(page).toHaveURL(/step=pricing/);
+  });
+
   test('review → Edit a section → Continue returns to the review with the change', async ({ page }) => {
     await seedHq(page);
     await createUpToPricing(page, 'Edit Path Society (Demo)');
@@ -343,6 +364,7 @@ test.describe('Platform HQ (Gate B checkpoint 1)', () => {
         }
         // Every wizard step, including the field errors of the organisation step.
         await page.goto(`${HQ}/hq/tenants/new`);
+        await page.getByTestId('step-type').waitFor();
         await scan('wizard-type');
         await page.getByTestId('edition-community').click();
         await page.getByTestId('step-type-next').click();

@@ -202,6 +202,7 @@ export interface SubscriptionContract extends ContractDraft {
   version: number;
   status: ContractStatus;
   createdBy: string;
+  createdById: string;
   createdAt: string;
   activatedAt?: string;
   supersedesId?: string;
@@ -305,10 +306,15 @@ export interface ContractApproval {
   contractId: string;
   contractVersion: number;
   reasons: ApprovalCheck['reasons'];
+  /** Display name at the time, for reading; decisions compare `requestedById`. */
   requestedBy: string;
+  /** Principal who asked for approval (maker). */
+  requestedById: string;
   requestedAt: string;
   status: 'pending' | 'approved' | 'returned';
   decidedBy?: string;
+  /** Principal who decided (checker); never the maker. */
+  decidedById?: string;
   decidedAt?: string;
   comment?: string;
 }
@@ -421,6 +427,8 @@ export interface PlatformAuditEvent {
   id: string;
   at: string;
   actorName: string;
+  /** Principal id, or 'system' for automatic events. */
+  actorId: string;
   /** Translation key under platform:audit.* */
   action: string;
   tenantId?: string;

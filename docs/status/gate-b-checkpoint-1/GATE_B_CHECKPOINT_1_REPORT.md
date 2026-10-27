@@ -1,6 +1,22 @@
 # Gate B, checkpoint 1: Platform HQ shell, tenant creation and pricing simulator
 
-**Status: built; STOPPED FOR OWNER REVIEW.** The rest of Gate B has not been started, and Gate C has not been started.
+**Status: CONDITIONALLY APPROVED by the owner (review of `d89e274`); the five closing items are done** (see "Checkpoint 1 closure" below and in [`test-results.md`](test-results.md)). Checkpoint 2 is authorized and follows on the same branch. Gate C has not been started.
+
+## Checkpoint 1 closure (after the owner's review)
+
+| Owner requirement | Result |
+|---|---|
+| Final E2E runs 5 and 6 | Run 5: 158 / 158. Run 6: 156 / 158, two test-only timing problems, fixed and repeated 25 / 25. On the final code: **159 / 159 on two consecutive full runs** (7 and 8), 342 axe scans each, 0 violations |
+| Announcer tests in the normal unit command | Already included by `npm test`; the complete command now reports **419 / 419** in 20 files |
+| Maker-checker by stable principal IDs | Done: approvals, contracts and audit carry principal IDs; the server and the UI compare those, never names |
+| Server-side draft and pricing validation | Done: one validator for every quote, simulation, draft save and activation; the wizard lists and focuses what the server refuses |
+| Regression tests for invalid inputs and unauthorized approvals | 28 new unit tests and one E2E test |
+
+**Owner decisions recorded:** the six thresholds stay as illustrative defaults and will become a configurable, versioned Commercial Policies screen in the remaining Gate B work; Rs 0 components stay visible in detailed quotes and contract breakdowns.
+
+---
+
+*The original checkpoint report follows.*
 
 **What this checkpoint is**
 - It follows the owner's Gate A decision: *"Implement the foundational HQ shell, tenant-creation flow and pricing simulator first … STOP FOR OWNER REVIEW BEFORE EXPANDING INTO THE REST OF GATE B."*

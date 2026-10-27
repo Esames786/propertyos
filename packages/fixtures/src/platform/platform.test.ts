@@ -108,7 +108,7 @@ describe('platform handlers', () => {
   it('a 20 % discount waits for a commercial approver who is not the requester', async () => {
     const store = new PlatformStore(false);
     const admin = transportAs('supreme_admin', store);
-    const { result } = await createAlNoor(admin, (c) => c.discounts.push({ id: 'd20', target: 'recurring', kind: 'percent', value: '20', from: '2026-11-01' }));
+    const { result } = await createAlNoor(admin, (c) => c.discounts.push({ id: 'd20', target: 'recurring', kind: 'percent', value: '20', from: '2026-11-01', reason: 'Launch offer' }));
     expect(result).toMatchObject({ status: 'draft', contractStatus: 'pending_approval' });
     expect(result.approvalId).toBeTruthy();
 
@@ -117,7 +117,7 @@ describe('platform handlers', () => {
 
     const approver = transportAs('commercial_approver', store);
     const decided = await approver.request<ContractApproval>({ method: 'POST', path: `/platform/approvals/${result.approvalId}/decide`, body: { decision: 'approve', comment: 'Introductory offer agreed' } });
-    expect(decided).toMatchObject({ status: 'approved', decidedBy: 'Ayesha Siddiqui' });
+    expect(decided).toMatchObject({ status: 'approved', decidedBy: 'Ayesha Siddiqui', decidedById: 'usr_hq_0002', requestedById: 'usr_hq_0001' });
     const detail = await approver.request<TenantDetail>({ method: 'GET', path: `/platform/tenants/${result.tenantId}` });
     expect(detail).toMatchObject({ status: 'active', contractStatus: 'active' });
   });

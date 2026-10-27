@@ -29,6 +29,7 @@ import { fromPaisa, priceContract, toPaisa, type Quantities } from './pricing';
 import { COMMERCIAL_POLICY, RATE_CARD, TAX_CODES } from './rate-card';
 import type { PlatformStore } from './store';
 import { SEED_MRR_PREVIOUS, SEED_OUTSTANDING, SEED_REVENUE, SEED_USAGE } from './tenants';
+import { contractProblems, draftPatchProblems, quantityProblems, type Problem, type Problems } from './validation';
 
 export interface PlatformContext {
   persona: Persona | undefined;
@@ -49,16 +50,33 @@ export interface PlatformHandler {
 const fail = (ctx: PlatformContext, status: number, code: string, messageKey: string): never => {
   throw new ApiError({ status, code, messageKey, correlationId: ctx.correlationId, changed: false });
 };
-const invalid = (ctx: PlatformContext, errors: Record<string, string>): never => {
+const invalid = (ctx: PlatformContext, errors: Record<string, string | Problem>): never => {
   throw new ApiError({
     status: 422,
     code: 'validation_failed',
     messageKey: 'errors:validation.summary',
-    errors: Object.fromEntries(Object.entries(errors).map(([field, code]) => [field, [{ code }]])),
+    errors: Object.fromEntries(Object.entries(errors).map(([field, e]) => [field, [typeof e === 'string' ? { code: e } : e]])),
     correlationId: ctx.correlationId,
     changed: false,
   });
 };
+const refuse = (ctx: PlatformContext, problems: Problems) => {
+  if (Object.keys(problems).length) invalid(ctx, problems);
+};
+const EDITION_KEYS: readonly string[] = ['developer', 'community', 'portfolio', 'custom'];
+const DRAFT_FIELDS = ['edition', 'organisation', 'sites', 'modules', 'contract', 'quantities', 'step'] as const satisfies readonly (keyof TenantDraft)[];
+/** What a pricing request must carry before the engine runs (the forms check the same). */
+function pricingInput(ctx: PlatformContext) {
+  const { contract, quantities, edition } = body<{ contract: ContractDraft; quantities: Quantities; edition: EditionKey }>(ctx);
+  refuse(ctx, {
+    ...(EDITION_KEYS.includes(edition) ? {} : { edition: { code: 'platform:validation.edition' } }),
+    ...contractProblems(contract, { commit: false, rateCard: RATE_CARD }),
+    ...quantityProblems(quantities ?? {}),
+  });
+  return { contract, quantities: quantities ?? {}, edition };
+}
+/** Principal of the signed-in identity: maker-checker and audit compare these, never display names. */
+const principalOf = (ctx: PlatformContext) => ctx.persona?.principalId ?? fail(ctx, 401, 'unauthenticated', 'errors:api.unauthenticated');
 const notFound = (ctx: PlatformContext) => fail(ctx, 404, 'not_found', 'errors:api.notFound');
 
 const body = <T,>(ctx: PlatformContext) => (ctx.req.body ?? {}) as T;
@@ -195,6 +213,8 @@ function activate(ctx: PlatformContext, draftId: string): ActivationResult {
     return { tenantId: t.id, status: t.status, contractStatus: t.contractStatus === 'pending_approval' ? 'pending_approval' : 'active', ...(approval ? { approvalId: approval.id } : {}) };
   }
   validateDraft(ctx, draft);
+  // The saved draft is checked again in full: activation never trusts what the forms let through.
+  refuse(ctx, { ...contractProblems(draft.contract, { commit: true, rateCard: RATE_CARD }), ...quantityProblems(draft.quantities) });
   const quantities = draftQuantities(draft);
   const quote = priceContract({ contract: draft.contract, quantities, quantitySource: 'declared', edition: draft.edition });
   const needsApproval = quote.approval.required;
@@ -202,7 +222,8 @@ function activate(ctx: PlatformContext, draftId: string): ActivationResult {
   const status: TenantStatus = needsApproval ? 'draft' : trial ? 'trial' : 'active';
   const id = `tnt_${slug(draft.organisation.displayName)}_${store.nextId('t').slice(-3)}`;
   const at = now();
-  const actor = persona?.displayName ?? 'Unknown';
+  const actorId = principalOf(ctx);
+  const actor = persona!.displayName;
 
   const tenant: TenantDetail = {
     id,
@@ -225,7 +246,7 @@ function activate(ctx: PlatformContext, draftId: string): ActivationResult {
     organisation: draft.organisation,
     sites: draft.sites,
     grants: draft.modules,
-    contract: { ...draft.contract, id: `ctr_${id.slice(4)}_1`, tenantId: id, version: 1, status: needsApproval ? 'pending_approval' : 'active', createdBy: actor, createdAt: at, ...(needsApproval ? {} : { activatedAt: at }) },
+    contract: { ...draft.contract, id: `ctr_${id.slice(4)}_1`, tenantId: id, version: 1, status: needsApproval ? 'pending_approval' : 'active', createdBy: actor, createdById: actorId, createdAt: at, ...(needsApproval ? {} : { activatedAt: at }) },
     quote,
     approval: null,
     audit: [],
@@ -233,15 +254,15 @@ function activate(ctx: PlatformContext, draftId: string): ActivationResult {
 
   let approval: ContractApproval | undefined;
   if (needsApproval) {
-    approval = { id: store.nextId('apr'), tenantId: id, contractId: tenant.contract!.id, contractVersion: 1, reasons: quote.approval.reasons, requestedBy: actor, requestedAt: at, status: 'pending' };
+    approval = { id: store.nextId('apr'), tenantId: id, contractId: tenant.contract!.id, contractVersion: 1, reasons: quote.approval.reasons, requestedBy: actor, requestedById: actorId, requestedAt: at, status: 'pending' };
     tenant.approval = approval;
     store.saveApproval(approval);
   }
   store.saveTenant(tenant);
   store.saveDraft({ ...draft, activatedTenantId: id, updatedAt: at });
-  store.addAudit({ at, actorName: actor, action: 'tenantCreated', tenantId: id, tenantName: tenant.displayName, params: { edition: draft.edition } });
-  if (needsApproval) store.addAudit({ at, actorName: actor, action: 'approvalRequested', tenantId: id, tenantName: tenant.displayName, params: { reasons: String(quote.approval.reasons.length) } });
-  else store.addAudit({ at, actorName: actor, action: trial ? 'trialStarted' : 'contractActivated', tenantId: id, tenantName: tenant.displayName, params: trial ? { days: String(trial.trialDays ?? 30) } : { version: '1' } });
+  store.addAudit({ at, actorName: actor, actorId, action: 'tenantCreated', tenantId: id, tenantName: tenant.displayName, params: { edition: draft.edition } });
+  if (needsApproval) store.addAudit({ at, actorName: actor, actorId, action: 'approvalRequested', tenantId: id, tenantName: tenant.displayName, params: { reasons: String(quote.approval.reasons.length) } });
+  else store.addAudit({ at, actorName: actor, actorId, action: trial ? 'trialStarted' : 'contractActivated', tenantId: id, tenantName: tenant.displayName, params: trial ? { days: String(trial.trialDays ?? 30) } : { version: '1' } });
 
   return { tenantId: id, status, contractStatus: needsApproval ? 'pending_approval' : 'active', ...(approval ? { approvalId: approval.id } : {}) };
 }
@@ -249,14 +270,27 @@ function activate(ctx: PlatformContext, draftId: string): ActivationResult {
 function decideApproval(ctx: PlatformContext): ContractApproval {
   const { store, persona } = ctx;
   const approval = store.approvals().find((a) => a.id === ctx.params.id) ?? notFound(ctx);
-  const { decision, comment } = body<{ decision: 'approve' | 'return'; comment?: string }>(ctx);
+  const { decision, comment } = body<{ decision: unknown; comment?: unknown }>(ctx);
+  if (decision !== 'approve' && decision !== 'return') invalid(ctx, { decision: 'platform:validation.decision' });
+  if (comment !== undefined && typeof comment !== 'string') invalid(ctx, { comment: 'platform:validation.decision' });
+  const note = typeof comment === 'string' ? comment.trim() : '';
   if (approval.status !== 'pending') fail(ctx, 409, 'invalid_transition', 'platform:errors.approvalDecided');
-  // Maker ≠ checker (I-22): the person who requested approval cannot decide it.
-  if (persona?.displayName === approval.requestedBy) fail(ctx, 403, 'maker_checker_required', 'platform:errors.makerChecker');
-  if (decision === 'return' && !comment?.trim()) invalid(ctx, { comment: 'forms:errors.required' });
+  // Maker ≠ checker (I-22): compared by principal, so a renamed maker is still refused and two
+  // different people who share a name are not confused.
+  const checkerId = principalOf(ctx);
+  if (checkerId === approval.requestedById) fail(ctx, 403, 'maker_checker_required', 'platform:errors.makerChecker');
+  if (decision === 'return' && !note) invalid(ctx, { comment: 'forms:errors.required' });
+  if (note.length > 1000) invalid(ctx, { comment: 'platform:validation.commentLength' });
 
   const at = now();
-  const decided: ContractApproval = { ...approval, status: decision === 'approve' ? 'approved' : 'returned', decidedBy: persona!.displayName, decidedAt: at, ...(comment ? { comment } : {}) };
+  const decided: ContractApproval = {
+    ...approval,
+    status: decision === 'approve' ? 'approved' : 'returned',
+    decidedBy: persona!.displayName,
+    decidedById: checkerId,
+    decidedAt: at,
+    ...(note ? { comment: note } : {}),
+  };
   store.saveApproval(decided);
 
   const tenant = clone(store.tenant(approval.tenantId) ?? notFound(ctx));
@@ -273,7 +307,7 @@ function decideApproval(ctx: PlatformContext): ContractApproval {
   }
   tenant.approval = decided;
   store.saveTenant(tenant);
-  store.addAudit({ at, actorName: persona!.displayName, action: decision === 'approve' ? 'approvalGranted' : 'approvalReturned', tenantId: tenant.id, tenantName: tenant.displayName, params: comment ? { comment } : {} });
+  store.addAudit({ at, actorName: persona!.displayName, actorId: checkerId, action: decision === 'approve' ? 'approvalGranted' : 'approvalReturned', tenantId: tenant.id, tenantName: tenant.displayName, params: note ? { comment: note } : {} });
   return decided;
 }
 
@@ -335,6 +369,8 @@ export const PLATFORM_HANDLERS: PlatformHandler[] = [
     permission: ['platform.tenants.create', 'platform.pricing.simulate'],
     handle: (ctx) => {
       const { edition, start, trial } = body<{ edition: EditionKey; start?: string; trial?: boolean }>(ctx);
+      if (!EDITION_KEYS.includes(edition)) invalid(ctx, { edition: 'platform:validation.edition' });
+      if (start !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(start)) invalid(ctx, { start: 'platform:validation.start' });
       return defaultContract(edition, { start: start ?? nextMonthStart(today), ...(trial ? { trial } : {}) });
     },
   },
@@ -342,20 +378,14 @@ export const PLATFORM_HANDLERS: PlatformHandler[] = [
     method: 'POST',
     pattern: /^\/platform\/quotes\/preview$/,
     permission: ['platform.contracts.manage', 'platform.pricing.simulate'],
-    handle: (ctx) => {
-      const { contract, quantities, edition } = body<{ contract: ContractDraft; quantities: Quantities; edition: EditionKey }>(ctx);
-      return priceContract({ contract, quantities, quantitySource: 'declared', edition });
-    },
+    handle: (ctx) => priceContract({ ...pricingInput(ctx), quantitySource: 'declared' }),
   },
   {
     // The simulator: same engine, nothing is stored (AB-6).
     method: 'POST',
     pattern: /^\/platform\/simulations\/price$/,
     permission: 'platform.pricing.simulate',
-    handle: (ctx) => {
-      const { contract, quantities, edition } = body<{ contract: ContractDraft; quantities: Quantities; edition: EditionKey }>(ctx);
-      return priceContract({ contract, quantities, quantitySource: 'scenario', edition });
-    },
+    handle: (ctx) => priceContract({ ...pricingInput(ctx), quantitySource: 'scenario' }),
   },
 
   {
@@ -363,7 +393,9 @@ export const PLATFORM_HANDLERS: PlatformHandler[] = [
     pattern: /^\/platform\/tenant-drafts$/,
     permission: 'platform.tenants.create',
     handle: (ctx): TenantDraft => {
-      const draft: TenantDraft = { id: ctx.store.nextId('drf'), edition: body<{ edition?: EditionKey }>(ctx).edition ?? null, organisation: null, sites: [], modules: [], contract: null, quantities: {}, step: 'type', updatedAt: now() };
+      const edition = body<{ edition?: EditionKey }>(ctx).edition ?? null;
+      if (edition !== null && !EDITION_KEYS.includes(edition)) invalid(ctx, { edition: 'platform:validation.edition' });
+      const draft: TenantDraft = { id: ctx.store.nextId('drf'), edition, organisation: null, sites: [], modules: [], contract: null, quantities: {}, step: 'type', updatedAt: now() };
       ctx.store.saveDraft(draft);
       return draft;
     },
@@ -376,7 +408,11 @@ export const PLATFORM_HANDLERS: PlatformHandler[] = [
     handle: (ctx) => {
       const draft = ctx.store.draft(ctx.params.id!) ?? notFound(ctx);
       if (draft.activatedTenantId) fail(ctx, 409, 'invalid_transition', 'platform:errors.draftActivated');
-      const next = { ...draft, ...body<Partial<TenantDraft>>(ctx), id: draft.id, updatedAt: now() };
+      // Only the wizard's own fields can be written; ids, timestamps and activation state cannot.
+      const sent = body<Partial<TenantDraft>>(ctx);
+      const patch = Object.fromEntries(DRAFT_FIELDS.filter((k) => k in sent).map((k) => [k, sent[k]])) as Partial<TenantDraft>;
+      refuse(ctx, draftPatchProblems(patch, draft, RATE_CARD));
+      const next = { ...draft, ...patch, updatedAt: now() };
       ctx.store.saveDraft(next);
       return next;
     },

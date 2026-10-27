@@ -8,7 +8,8 @@
   "api": {
     "notFound": "We couldn't find that record.",
     "forbidden": "Your role doesn't include access to this.",
-    "trainingOnly": "This action is only available in practice mode."
+    "trainingOnly": "This action is only available in practice mode.",
+    "unauthenticated": "Sign in to continue."
   },
   "server": {
     "fieldInvalid": "This value wasn't accepted: {{detail}}"
