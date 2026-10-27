@@ -5,7 +5,7 @@
 - **Scope:** a complete first-time-user experience and at least one connected working CRM workflow, plus a real customer portal home.
 - **Not done:** Stage 2 and the remaining reference screens have **not** been started.
 
-**Branch.** `feature/stage-1.5-premium-design`; the commit is listed at the end. `main` is untouched.
+**Branch.** `feature/stage-1.5-premium-design`, milestone commit `11de1a8` (report follow-up after it). `main` is untouched.
 
 **Inputs**
 - The owner's review pack `PropertyOS_vs_Nizam_Claude_Review.zip`.
