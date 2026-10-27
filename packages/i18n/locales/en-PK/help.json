@@ -43,6 +43,8 @@
   },
   "related": {
     "title": "Related records",
-    "intro": "Records connected to {{name}}. Each link opens its own workspace."
+    "intro": "Records connected to {{name}}. Each link opens its own workspace.",
+    "lockedPlan": "Not in your plan",
+    "lockedRole": "Not available to your role"
   }
 }

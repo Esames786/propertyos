@@ -1,4 +1,4 @@
-import type { AppId, Permission } from '@repo/contracts';
+import type { AppId, ModuleKey, Permission } from '@repo/contracts';
 import type { TileHue } from '@repo/tokens';
 import type { LucideIcon } from 'lucide-react';
 
@@ -23,6 +23,8 @@ export interface TourStep {
   /** Navigate here before locating the target. */
   route?: string;
   requiredPermission?: Permission;
+  /** Kept only when at least one of these modules is licensed (e.g. developer figures on the dashboard). */
+  anyModule?: readonly ModuleKey[];
   /** Event that completes a GUIDED_ACTION / SIMULATED_TASK step. */
   completionEvent?: string;
   /** Event that temporarily hides the overlay while the user works in a menu or dialog it opened. */
@@ -47,6 +49,8 @@ export interface TourDefinition {
   applicablePersonas: readonly string[] | '*';
   /** Offered automatically on first visit to this module (doc 09 §2B). */
   moduleId?: string;
+  /** The whole tour needs this (its module licensed and the permission held), e.g. the Sales tour. */
+  requiredPermission?: Permission;
   nameKey: string;
   summaryKey: string;
   /** Runs inside practice mode (training store, TRAINING banner). */

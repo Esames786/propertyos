@@ -4,7 +4,7 @@ export type AppId = 'backoffice' | 'customer' | 'public' | 'platform';
 
 /** A fictional demo identity used to simulate sign-in and role scope in the prototype. */
 export interface Persona {
-  id: 'manager' | 'sales' | 'finance' | 'resident' | 'supreme_admin' | 'commercial_approver' | 'platform_support';
+  id: 'manager' | 'sales' | 'finance' | 'resident' | 'facility_manager' | 'society_admin' | 'supreme_admin' | 'commercial_approver' | 'platform_support';
   tenantId: string;
   app: AppId;
   /**

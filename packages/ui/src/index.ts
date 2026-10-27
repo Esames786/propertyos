@@ -92,7 +92,9 @@ export { useShell } from './shell/ShellContext';
 export { LocaleToggle } from './shell/LocaleSwitcher';
 export { NotificationList } from './shell/NotificationsPanel';
 export { ShortcutList } from './shell/HelpMenu';
-export { QuickCreateMenu } from './shell/QuickCreateMenu';
+export { QuickCreateMenu, quickCreateAvailable } from './shell/QuickCreateMenu';
+export { TENANT_NAV, TENANT_QUICK_CREATE, TENANT_SEARCH_SCOPES, navItemFor, evaluate, workspaceRouteTarget } from './workspace/tenantWorkspace';
+export { AccessOutcomeView } from './layout/AccessOutcomeView';
 export { CommandPalette } from './command/CommandPalette';
 export type { NavItem, Destination, HelpKey, ShellLinks } from './shell/types';
 

@@ -75,6 +75,7 @@ export function StepActions({
           isDisabled={!!nextDisabledReason}
           disabledReason={nextDisabledReason}
           data-testid={`${testId}-next`}
+          data-tour-id="wizard-continue"
           className="max-sm:w-full"
         >
           <span className="inline-flex items-center gap-2">
@@ -95,7 +96,7 @@ export function Stepper({ current, reached, onGo }: { current: Step; reached: nu
   const { t } = useT();
   const index = stepIndex(current);
   return (
-    <nav aria-label={t('platform:wizard.progress')} data-testid="wizard-stepper">
+    <nav aria-label={t('platform:wizard.progress')} data-testid="wizard-stepper" data-tour-id="wizard-stepper">
       <div className="rounded-card border border-border bg-panel p-4 shadow-card lg:hidden">
         <div className="flex items-baseline justify-between gap-3">
           <p className="min-w-0 truncate text-sm font-bold text-text" aria-current="step">

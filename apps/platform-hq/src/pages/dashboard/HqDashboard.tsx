@@ -32,7 +32,7 @@ export default function HqDashboard() {
     <div className="space-y-8" data-testid="hq-dashboard">
       <header className="space-y-1.5">
         <p className="text-xs font-semibold tracking-[0.08em] text-accent uppercase">{t('platform:dashboard.eyebrow')}</p>
-        <h1 id="page-title" className="text-[1.75rem] leading-tight font-bold text-text sm:text-[2.25rem]">
+        <h1 id="page-title" className="text-[1.75rem] leading-tight font-bold text-text outline-none sm:text-[2.25rem]">
           {t(`platform:dashboard.greeting.${greeting}`, { name: firstName })}
         </h1>
         <p className="text-muted">

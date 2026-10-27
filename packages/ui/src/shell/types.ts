@@ -1,4 +1,4 @@
-import type { Permission } from '@repo/contracts';
+import type { ModuleKey, Permission } from '@repo/contracts';
 import type { LucideIcon } from 'lucide-react';
 
 export interface NavItem {
@@ -8,6 +8,8 @@ export interface NavItem {
   href: string;
   icon: LucideIcon;
   permission?: Permission;
+  /** Module that must be licensed (defaults to the permission's module). */
+  module?: ModuleKey;
   /** Path prefix that marks the item as current. */
   match?: string;
   /** Current only on exactly this path (a start page whose path prefixes every other page). */
@@ -26,6 +28,7 @@ export interface Destination {
   label: string;
   href: string;
   permission?: Permission;
+  module?: ModuleKey;
   keywords?: string;
 }
 

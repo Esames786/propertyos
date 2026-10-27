@@ -14,7 +14,8 @@ const OPEN_LEAD = new Set(['new', 'assigned', 'contacted', 'qualified', 'dormant
  * persona's project scope (not the header filter); kinds the role cannot see are `null`.
  */
 function demoOverview(ctx: HandlerContext): DemoOverview {
-  if (!ctx.persona || ctx.persona.app !== 'backoffice') forbid(ctx);
+  // The demo overview describes the Larkspur developer demo; other organisations never see its counts.
+  if (!ctx.persona || ctx.persona.app !== 'backoffice' || !ctx.ownsSeedData) forbid(ctx);
   const inScope = (projectId: string) => isScopeOnly(ctx, projectId);
   const seesLeads = can(ctx, 'lead.view');
   const leads = seesLeads ? ctx.demo.leads(LEADS).filter((l) => inScope(l.projectId)) : [];

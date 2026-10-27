@@ -47,5 +47,42 @@
     "edition": "Editions",
     "partOf": "Now part of",
     "inPlatformHq": "in Platform HQ"
+  },
+  "access": {
+    "seePlan": "See your plan and modules",
+    "notInPlan": {
+      "title": "Not part of this workspace's plan",
+      "body": "{{module}} is not included in {{organisation}}'s plan, so it can't be opened here.",
+      "next": "Nothing from it is shown in this workspace. Your workspace administrator can see what the plan includes."
+    },
+    "site": {
+      "title": "Not licensed for this site",
+      "body": "{{module}} is licensed for other sites of {{organisation}}, not this one.",
+      "next": "Your workspace administrator can see which sites each module covers."
+    },
+    "role": {
+      "title": "Your role doesn't include this",
+      "body": "This part of {{organisation}}'s workspace is available to other roles.",
+      "next": "Ask your workspace administrator if you need it."
+    },
+    "suspended": {
+      "title": "This workspace is suspended",
+      "body": "{{organisation}}'s workspace is suspended. Financial history stays available; other work is paused.",
+      "next": "Your workspace administrator has the details."
+    },
+    "inactive": {
+      "title": "This workspace isn't active yet",
+      "body": "{{organisation}}'s workspace has not been activated.",
+      "next": "Your workspace administrator has the details."
+    },
+    "module_not_licensed": "This isn't part of your organisation's plan.",
+    "feature_not_licensed": "This feature isn't part of your organisation's plan.",
+    "site_not_licensed": "This isn't licensed for that site.",
+    "permission_missing": "Your role doesn't include access to this.",
+    "out_of_scope": "We couldn't find that record.",
+    "state_locked": "This record is locked and can't be changed.",
+    "separation_of_duties": "Someone else must approve what you prepared.",
+    "tenant_suspended": "The workspace is suspended; only financial history is available.",
+    "tenant_inactive": "The workspace isn't active."
   }
 }

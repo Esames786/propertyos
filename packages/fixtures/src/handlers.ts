@@ -2,6 +2,7 @@ import { ApiError, type Party, type Permission, type SearchRecord, type SearchRe
 import { CRM_HANDLERS } from './crm-handlers';
 import { buildDashboard } from './dashboard';
 import { can, forbid, isScopeOnly, matches, type Handler, type HandlerContext } from './handler-types';
+import { PLAN_HANDLERS } from './plan-handlers';
 import { PORTAL_HANDLERS } from './portal-handlers';
 import { WORKSPACE_HANDLERS } from './workspace-handlers';
 import { FLOORS, GARDEN_BLOCKS, PROJECTS, TOWERS, UNITS } from './inventory';
@@ -14,7 +15,7 @@ const readNotifications = new Set<string>();
 
 /** Parties the persona may see: those linked to leads/invoices in permitted projects (incl. this demo session's). */
 function visibleParties(ctx: HandlerContext): Party[] {
-  if (!can(ctx, 'customer.view') && !can(ctx, 'lead.view')) return [];
+  if (!ctx.ownsSeedData || (!can(ctx, 'customer.view') && !can(ctx, 'lead.view'))) return [];
   const ids = new Set<string>();
   ctx.demo.leads(LEADS).filter((l) => ctx.allowsProject(l.projectId)).forEach((l) => ids.add(l.partyId));
   INVOICES.filter((i) => ctx.allowsProject(i.projectId)).forEach((i) => ids.add(i.partyId));
@@ -30,11 +31,13 @@ const CORE_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/projects$/,
+    module: 'projects',
     handle: (ctx) => PROJECTS.filter((p) => isScopeOnly(ctx, p.id)),
   },
   {
     method: 'GET',
     pattern: /^\/projects\/(?<projectId>[\w-]+)\/towers$/,
+    module: 'projects',
     handle: (ctx) => {
       if (!isScopeOnly(ctx, ctx.params.projectId!)) forbid(ctx);
       return TOWERS.filter((t) => t.projectId === ctx.params.projectId);
@@ -43,6 +46,7 @@ const CORE_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/projects\/(?<projectId>[\w-]+)\/blocks$/,
+    module: 'projects',
     handle: (ctx) => {
       if (!isScopeOnly(ctx, ctx.params.projectId!)) forbid(ctx);
       return ctx.params.projectId === 'prj_gardens' ? [...GARDEN_BLOCKS] : [];
@@ -51,6 +55,7 @@ const CORE_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/towers\/(?<towerId>[\w-]+)\/floors$/,
+    module: 'projects',
     handle: (ctx) => {
       const tower = TOWERS.find((t) => t.id === ctx.params.towerId);
       if (!tower || !isScopeOnly(ctx, tower.projectId)) forbid(ctx);
@@ -60,6 +65,7 @@ const CORE_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/units$/,
+    module: 'inventory',
     handle: (ctx) => {
       if (!can(ctx, 'unit.view')) forbid(ctx);
       const { floorId, projectId, block, q } = ctx.req.query ?? {};
@@ -79,6 +85,7 @@ const CORE_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/parties$/,
+    module: 'core',
     handle: (ctx) => {
       const q = String(ctx.req.query?.q ?? '').trim();
       const limit = Number(ctx.req.query?.limit ?? 20);
@@ -89,9 +96,10 @@ const CORE_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/search$/,
+    module: 'core',
     handle: (ctx): SearchResponse => {
       const q = String(ctx.req.query?.q ?? '').trim();
-      if (q.length < 2) return { query: q, records: [] };
+      if (q.length < 2 || !ctx.ownsSeedData) return { query: q, records: [] };
       const records: SearchRecord[] = [];
       for (const p of visibleParties(ctx).filter((p) => matches(q, p.displayName, p.ref, p.phone, p.cnic)).slice(0, 5)) {
         records.push({ type: 'party', id: p.id, ref: p.ref, title: p.displayName, subtitle: p.phone, href: `/backoffice/cus/customer-360-workspace?record=${p.id}` });
@@ -122,16 +130,18 @@ const CORE_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/dashboard\/summary$/,
+    module: 'core',
     handle: (ctx) => {
       if (!ctx.persona || ctx.persona.app !== 'backoffice') forbid(ctx);
-      return buildDashboard({ persona: ctx.persona, allowsProject: ctx.allowsProject, range: ctx.req.query?.range });
+      // Another tenant gets no developer figures from the Larkspur seed (its home is built from its plan).
+      return buildDashboard({ persona: ctx.ownsSeedData ? ctx.persona : undefined, allowsProject: ctx.ownsSeedData ? ctx.allowsProject : () => false, range: ctx.req.query?.range });
     },
   },
   {
     method: 'GET',
     pattern: /^\/notifications$/,
     handle: (ctx) =>
-      NOTIFICATIONS.filter((n) => can(ctx, n.audience as Permission)).map((n) => ({
+      NOTIFICATIONS.filter((n) => ctx.ownsSeedData && can(ctx, n.audience as Permission)).map((n) => ({
         ...n,
         read: n.read || readNotifications.has(n.id),
       })),
@@ -148,13 +158,14 @@ const CORE_HANDLERS: readonly Handler[] = [
     method: 'POST',
     pattern: /^\/notifications\/read-all$/,
     handle: (ctx) => {
-      NOTIFICATIONS.filter((n) => can(ctx, n.audience as Permission)).forEach((n) => readNotifications.add(n.id));
+      NOTIFICATIONS.filter((n) => ctx.ownsSeedData && can(ctx, n.audience as Permission)).forEach((n) => readNotifications.add(n.id));
       return { ok: true };
     },
   },
   {
     method: 'POST',
     pattern: /^\/practice\/leads$/,
+    module: 'crm',
     handle: (ctx) => {
       if (!ctx.req.training) {
         throw new ApiError({ status: 403, code: 'training_only', messageKey: 'errors:api.trainingOnly', correlationId: ctx.correlationId, changed: false });
@@ -182,4 +193,4 @@ const CORE_HANDLERS: readonly Handler[] = [
 ];
 
 /** Core endpoints first; feature modules own their routes. First match wins. */
-export const HANDLERS: readonly Handler[] = [...CORE_HANDLERS, ...CRM_HANDLERS, ...PORTAL_HANDLERS, ...WORKSPACE_HANDLERS];
+export const HANDLERS: readonly Handler[] = [...CORE_HANDLERS, ...CRM_HANDLERS, ...PORTAL_HANDLERS, ...PLAN_HANDLERS, ...WORKSPACE_HANDLERS];

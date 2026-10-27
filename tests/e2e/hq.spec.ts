@@ -242,7 +242,7 @@ test.describe('Platform HQ (Gate B checkpoint 1)', () => {
   test('the dashboard shows the platform figures and opens what needs attention', async ({ page }) => {
     await seedHq(page);
     await page.goto(`${HQ}/hq`);
-    await expect(page.getByTestId('hq-kpi-mrr')).toContainText('Rs 59,780.00');
+    await expect(page.getByTestId('hq-kpi-mrr')).toContainText('Rs 62,840.00');
     await expect(page.getByTestId('hq-kpi-approvals')).toContainText('1');
     await page.getByTestId('attention-approval').click();
     await expect(page).toHaveURL(/tenant=tnt_kestrel/);
@@ -293,6 +293,58 @@ test.describe('Platform HQ (Gate B checkpoint 1)', () => {
     await expect(page.getByTestId('more-area-tenants')).toBeVisible();
   });
 
+  test('basic pricing by default; advanced adds dates and scheduled changes; complex terms stay folded until asked for', async ({ page }) => {
+    await seedHq(page);
+    await createUpToPricing(page, 'Basic Advanced Society (Demo)');
+    const builder = page.getByTestId('pricing-builder');
+    await expect(builder).toHaveAttribute('data-mode', 'basic');
+    await expect(builder.locator('[data-testid^="from-"]')).toHaveCount(0);
+    await expect(builder.locator('[data-testid^="schedule-"]')).toHaveCount(0);
+    await page.getByTestId('pricing-builder-advanced').click();
+    await expect(builder).toHaveAttribute('data-mode', 'advanced');
+    await expect(builder.locator('[data-testid^="from-"]').first()).toBeVisible();
+    // Scheduling a change gives that price its own dates, so they stay shown.
+    await builder.locator('[data-testid^="schedule-"]').first().click();
+    await expect(page.getByTestId('pricing-builder-dated')).toBeVisible();
+
+    await page.getByTestId('step-pricing-next').click();
+    await page.getByTestId('step-counts-next').click();
+    await expect(page.getByTestId('step-terms')).toBeVisible();
+    await expect(page.getByTestId('terms-more-toggle')).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.getByTestId('tax-code')).toBeHidden();
+    await page.getByTestId('terms-more-toggle').click();
+    await expect(page.getByTestId('tax-code')).toBeVisible();
+  });
+
+  test('guided help on the wizard spotlights its real controls (HQ-TOUR-002)', async ({ page }) => {
+    await seedHq(page);
+    await page.goto(`${HQ}/hq/tenants/new`);
+    await page.getByTestId('wizard-guide').click();
+    const card = page.getByTestId('tour-card');
+    await expect(card).toHaveAttribute('data-step-id', 'intro');
+    for (const [id, anchor] of [
+      ['progress', 'wizard-stepper'],
+      ['edition', 'edition-options'],
+    ] as const) {
+      await page.getByTestId('tour-next').click();
+      await expect(card).toHaveAttribute('data-step-id', id);
+      const target = page.locator(`[data-tour-id="${anchor}"]`).first();
+      const spot = page.getByTestId('tour-spotlight');
+      await expect
+        .poll(async () => {
+          const t = await target.boundingBox();
+          const s = await spot.boundingBox();
+          return !!t && !!s && s.x <= t.x + 3 && s.y <= t.y + 3 && s.x + s.width >= t.x + t.width - 3;
+        }, { message: `${id} spotlight` })
+        .toBe(true);
+    }
+    await page.getByTestId('tour-next').click();
+    await expect(card).toHaveAttribute('data-step-id', 'price');
+    await page.getByTestId('tour-next').click();
+    await expect(card).toHaveAttribute('data-step-id', 'save');
+    await expect(page.getByTestId('tour-spotlight')).toBeVisible();
+  });
+
   test('phone: the live price stays in view while pricing, and the simulator jumps to its results', async ({ page }) => {
     await page.setViewportSize(VIEWPORTS.phone);
     await seedHq(page);
@@ -319,7 +371,7 @@ test.describe('Platform HQ (Gate B checkpoint 1)', () => {
         await page.waitForTimeout(300);
         expect(await horizontalOverflow(page), label).toBeLessThanOrEqual(0);
       };
-      for (const path of ['/hq', '/hq/tenants', '/hq/tenants?tab=requests', '/hq/simulator', '/hq/more', '/hq/help/tours']) {
+      for (const path of ['/hq', '/hq/tenants', '/hq/tenants?tab=requests', '/hq/simulator', '/hq/more', '/hq/help/tours', '/hq/tenants/tnt_shalimar', '/hq/tenants/tnt_shalimar?tab=modules', '/hq/tenants/tnt_larkspur?tab=subscription', '/hq/tenants/tnt_shalimar/preview']) {
         await page.goto(`${HQ}${path}`);
         await page.locator('main h1').first().waitFor();
         await check(path);
@@ -356,6 +408,12 @@ test.describe('Platform HQ (Gate B checkpoint 1)', () => {
           ['more', '/hq/more', 'more-area-dashboard'],
           ['preferences', '/hq/preferences', null],
           ['planned', '/hq/catalogue', 'planned-screen'],
+          ['tenant-360', '/hq/tenants/tnt_kestrel', 'summary-approval'],
+          ['tenant-360-subscription', '/hq/tenants/tnt_shalimar?tab=subscription', 't360-components'],
+          ['tenant-360-modules', '/hq/tenants/tnt_shalimar?tab=modules', 't360-not-licensed'],
+          ['tenant-360-commercial', '/hq/tenants/tnt_kestrel?tab=commercial', 't360-approval'],
+          ['tenant-360-audit', '/hq/tenants/tnt_larkspur?tab=audit', 'audit-trail'],
+          ['preview', '/hq/tenants/tnt_shalimar/preview?role=facility_manager', 'preview-areas'],
         ] as const) {
           await page.goto(`${HQ}${path}`);
           await page.locator('main h1').first().waitFor();

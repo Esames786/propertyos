@@ -4,7 +4,6 @@ import {
   type ContractDraft,
   type EditionKey,
   type LicensedSite,
-  type ModuleKey,
   type ModuleSelection,
   type Persona,
   type PlatformAuditEvent,
@@ -12,9 +11,10 @@ import {
   type TenantDetail,
   type TenantOrganisation,
   type TenantStatus,
+  type TenantType,
   type WorkspaceRequest,
 } from '@repo/contracts';
-import { presetFor } from './catalog';
+import { directoryTenant } from '../tenant-directory';
 import { addDays, defaultContract } from './contracts';
 import { priceContract, type Quantities } from './pricing';
 
@@ -88,11 +88,16 @@ const org = (displayName: string, legalName: string, city: string, contactName: 
   contactPhone: `+92399${String(4100000 + n * 7351).padStart(7, '0')}`,
 });
 
-const grants = (modules: readonly ModuleKey[], sites: ModuleSelection['sites'] = 'all'): ModuleSelection[] => modules.map((module) => ({ module, sites }));
+/** Licensing facts (name, sites, modules, status) come from the shared tenant directory. */
+const fromDirectory = (id: string, n: number) => {
+  const d = directoryTenant(id)!;
+  return { id: d.id, edition: d.edition, status: d.status, type: d.type, organisation: org(d.name, d.legalName, d.city, d.contactName, n), sites: [...d.sites], modules: [...d.modules] };
+};
 
 interface Seed {
   id: string;
   edition: EditionKey;
+  type: TenantType;
   status: TenantStatus;
   billingStatus: TenantDetail['billingStatus'];
   organisation: TenantOrganisation;
@@ -126,7 +131,7 @@ function build(seed: Seed): TenantDetail {
     id: seed.id,
     displayName: seed.organisation.displayName,
     legalName: seed.organisation.legalName,
-    type: presetFor(seed.edition).tenantType,
+    type: seed.type,
     edition: seed.edition,
     status: seed.status,
     contractStatus,
@@ -149,20 +154,9 @@ function build(seed: Seed): TenantDetail {
   };
 }
 
-const developerModules = presetFor('developer').modules;
-const communityModules = presetFor('community').modules;
-
 const larkspur = build({
-  id: 'tnt_larkspur',
-  edition: 'developer',
-  status: 'active',
+  ...fromDirectory('tnt_larkspur', 1),
   billingStatus: 'current',
-  organisation: org('Larkspur Estates (Demo)', 'Larkspur Estates (Pvt) Ltd (Demo)', 'Lahore', 'Nadia Rahman', 1),
-  sites: [
-    { id: 'site_lk_heights', name: 'Larkspur Heights', city: 'Lahore', kind: 'residential', buildings: 3, declaredUnits: 336 },
-    { id: 'site_lk_gardens', name: 'Larkspur Gardens', city: 'Islamabad', kind: 'plots', buildings: 0, declaredUnits: 160 },
-  ],
-  modules: [...grants(developerModules), { module: 'online_payments', sites: ['site_lk_heights'] }],
   contract: (() => {
     const c = defaultContract('developer', { start: '2026-03-01' });
     c.components.push({ id: 'cmp_mod_online_payments', type: 'PER_MODULE', rateCardLineId: 'rc_mod_online_payments', module: 'online_payments', siteIds: ['site_lk_heights'], unitPrice: pkr('1500.00'), cadence: 'monthly', proration: 'actual_days', effectiveFrom: '2026-03-01' });
@@ -175,13 +169,8 @@ const larkspur = build({
 });
 
 const mapleCourt = build({
-  id: 'tnt_maple',
-  edition: 'community',
-  status: 'trial',
+  ...fromDirectory('tnt_maple', 2),
   billingStatus: 'none',
-  organisation: org('Maple Court Society (Demo)', 'Maple Court Owners Association (Demo)', 'Karachi', 'Sana Raza', 2),
-  sites: [{ id: 'site_maple', name: 'Maple Court', city: 'Karachi', kind: 'residential', buildings: 2, declaredUnits: 40 }],
-  modules: grants(communityModules),
   contract: defaultContract('community', { start: '2026-10-13', trial: true }),
   quantities: { 'units.eligible': 40, 'sites.licensed': 1 },
   createdAt: '2026-10-13T08:05:00Z',
@@ -191,17 +180,8 @@ const mapleCourt = build({
 });
 
 const riverbend = build({
-  id: 'tnt_riverbend',
-  edition: 'portfolio',
-  status: 'grace',
+  ...fromDirectory('tnt_riverbend', 3),
   billingStatus: 'overdue',
-  organisation: org('Riverbend Estate Managers (Demo)', 'Riverbend Estate Managers (Pvt) Ltd (Demo)', 'Islamabad', 'Faisal Butt', 3),
-  sites: [
-    { id: 'site_rb_heights', name: 'Riverbend Heights', city: 'Islamabad', kind: 'residential', buildings: 3, declaredUnits: 120 },
-    { id: 'site_rb_court', name: 'Riverbend Court', city: 'Rawalpindi', kind: 'residential', buildings: 2, declaredUnits: 64 },
-    { id: 'site_rb_villas', name: 'Riverbend Villas', city: 'Islamabad', kind: 'plots', buildings: 0, declaredUnits: 48 },
-  ],
-  modules: grants(presetFor('portfolio').modules),
   contract: defaultContract('portfolio', { start: '2026-05-01' }),
   quantities: { 'units.eligible': 232, 'sites.licensed': 3, 'buildings.active': 5 },
   createdAt: '2026-04-22T11:40:00Z',
@@ -210,13 +190,8 @@ const riverbend = build({
 });
 
 const cedarHills = build({
-  id: 'tnt_cedar',
-  edition: 'custom',
-  status: 'suspended',
+  ...fromDirectory('tnt_cedar', 4),
   billingStatus: 'overdue',
-  organisation: org('Cedar Hills Co-operative (Demo)', 'Cedar Hills Housing Co-operative (Demo)', 'Peshawar', 'Haris Mirza', 4),
-  sites: [{ id: 'site_cedar', name: 'Cedar Hills', city: 'Peshawar', kind: 'residential', buildings: 4, declaredUnits: 60 }],
-  modules: grants(['core', 'receivables', 'dues', 'residents', 'resident_portal', 'maintenance', 'communications', 'reports'] as ModuleKey[]),
   contract: (() => {
     const c = defaultContract('community', { start: '2026-02-01' });
     c.components = c.components.filter((x) => x.type !== 'ONE_TIME');
@@ -235,13 +210,8 @@ const kestrelContract = (() => {
 })();
 
 const kestrel = build({
-  id: 'tnt_kestrel',
-  edition: 'community',
-  status: 'draft',
+  ...fromDirectory('tnt_kestrel', 5),
   billingStatus: 'none',
-  organisation: org('Kestrel Point Residences (Demo)', 'Kestrel Point Residents Association (Demo)', 'Rawalpindi', 'Zara Iqbal', 5),
-  sites: [{ id: 'site_kestrel', name: 'Kestrel Point', city: 'Rawalpindi', kind: 'residential', buildings: 2, declaredUnits: 96 }],
-  modules: grants(communityModules),
   contract: kestrelContract,
   quantities: { 'units.eligible': 96, 'sites.licensed': 1 },
   createdAt: '2026-10-24T13:15:00Z',
@@ -264,7 +234,22 @@ export const SEED_APPROVALS: ContractApproval[] = [
 ];
 kestrel.approval = SEED_APPROVALS[0]!;
 
-export const SEED_TENANTS: readonly TenantDetail[] = [larkspur, mapleCourt, riverbend, cedarHills, kestrel];
+/** Maintenance-only client: core + maintenance, community rate card without onboarding (64 × 40 + 500). */
+const shalimar = build({
+  ...fromDirectory('tnt_shalimar', 6),
+  billingStatus: 'current',
+  contract: (() => {
+    const c = defaultContract('community', { start: '2026-08-01' });
+    c.components = c.components.filter((x) => x.type !== 'ONE_TIME');
+    return c;
+  })(),
+  quantities: { 'units.eligible': 64, 'sites.licensed': 1 },
+  createdAt: '2026-07-24T10:00:00Z',
+  activatedAt: '2026-08-01T05:00:00Z',
+  origin: 'sales',
+});
+
+export const SEED_TENANTS: readonly TenantDetail[] = [larkspur, mapleCourt, riverbend, cedarHills, kestrel, shalimar];
 
 export const SEED_REQUESTS: readonly WorkspaceRequest[] = [
   { id: 'req_sunfield', kind: 'approval', organisation: 'Sunfield Apartments Association (Demo)', contactName: 'Mehwish Akhtar', edition: 'community', expectedUnits: 48, city: 'Faisalabad', receivedAt: '2026-10-25T16:40:00Z', status: 'new' },
@@ -278,6 +263,7 @@ export const SEED_AUDIT: readonly PlatformAuditEvent[] = [
   { id: 'aud_5', at: '2026-10-20T07:00:00Z', actorName: 'System', actorId: 'system', action: 'graceStarted', tenantId: riverbend.id, tenantName: riverbend.displayName, params: {} },
   { id: 'aud_4', at: '2026-10-13T08:05:00Z', actorName: 'Sana Raza', actorId: 'usr_hq_0005', action: 'trialStarted', tenantId: mapleCourt.id, tenantName: mapleCourt.displayName, params: { days: '30' } },
   { id: 'aud_3', at: '2026-09-30T07:00:00Z', actorName: 'Hamza Qureshi', actorId: 'usr_hq_0001', action: 'tenantSuspended', tenantId: cedarHills.id, tenantName: cedarHills.displayName, params: {} },
+  { id: 'aud_1b', at: '2026-08-01T05:00:00Z', actorName: 'Hamza Qureshi', actorId: 'usr_hq_0001', action: 'contractActivated', tenantId: shalimar.id, tenantName: shalimar.displayName, params: { version: '1' } },
   { id: 'aud_2', at: '2026-05-01T05:00:00Z', actorName: 'Hamza Qureshi', actorId: 'usr_hq_0001', action: 'contractActivated', tenantId: riverbend.id, tenantName: riverbend.displayName, params: { version: '1' } },
   { id: 'aud_1', at: '2026-03-01T05:00:00Z', actorName: 'Hamza Qureshi', actorId: 'usr_hq_0001', action: 'contractActivated', tenantId: larkspur.id, tenantName: larkspur.displayName, params: { version: '1' } },
 ];
@@ -285,21 +271,21 @@ export const SEED_AUDIT: readonly PlatformAuditEvent[] = [
 /**
  * Illustrative platform revenue for the dashboard (platform finance itself is Gate G), consistent
  * with the seeded contracts: Larkspur 47,500 + Riverbend 12,280 (+15,000 onboarding in May) +
- * Cedar Hills 2,900 until its suspension at the end of September. Riverbend has not paid since
- * September (grace); Cedar Hills owes August and September.
+ * Shalimar Court 3,060 from August + Cedar Hills 2,900 until its suspension at the end of
+ * September. Riverbend has not paid since September (grace); Cedar Hills owes August and September.
  */
 export const SEED_REVENUE = [
   { month: '2026-05', invoiced: '77680.00', collected: '77680.00' },
   { month: '2026-06', invoiced: '62680.00', collected: '62680.00' },
   { month: '2026-07', invoiced: '62680.00', collected: '62680.00' },
-  { month: '2026-08', invoiced: '62680.00', collected: '59780.00' },
-  { month: '2026-09', invoiced: '62680.00', collected: '47500.00' },
-  { month: '2026-10', invoiced: '59780.00', collected: '47500.00' },
+  { month: '2026-08', invoiced: '65740.00', collected: '62840.00' },
+  { month: '2026-09', invoiced: '65740.00', collected: '50560.00' },
+  { month: '2026-10', invoiced: '62840.00', collected: '50560.00' },
 ] as const;
 
 /** Unpaid platform invoices: Riverbend Sep + Oct (24,560) and Cedar Hills Aug + Sep (5,800). */
 export const SEED_OUTSTANDING = '30360.00';
 /** September MRR, before Cedar Hills was suspended. */
-export const SEED_MRR_PREVIOUS = '62680.00';
+export const SEED_MRR_PREVIOUS = '65740.00';
 
 export const SEED_USAGE = { smsThisMonth: 3840 } as const;

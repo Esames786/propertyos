@@ -1,4 +1,4 @@
-import { Calculator, LayoutDashboard, LifeBuoy } from 'lucide-react';
+import { Building2, Calculator, LayoutDashboard, LifeBuoy } from 'lucide-react';
 import type { TourDefinition } from '../tourTypes';
 
 const k = (step: string, part: 'title' | 'body' | 'bodyMobile') => `platform:tour.${step}.${part}`;
@@ -54,5 +54,31 @@ export const HQ_TOUR: TourDefinition = {
       bodyKey: k('quickActions', 'body'),
     },
     { id: 'help', kind: 'EXPLAIN', targetId: 'global-help', art: { icon: LifeBuoy, hue: 'violet' }, titleKey: k('help', 'title'), bodyKey: k('help', 'body') },
+  ],
+};
+
+const c = (step: string, part: 'title' | 'body' | 'bodyMobile') => `platform:createTour.${step}.${part}`;
+const CREATE = '/hq/tenants/new';
+
+/**
+ * HQ-TOUR-002 "Create a tenant": guided help on the wizard's real controls (UX review of
+ * checkpoint 1). Offered on the first visit to the wizard and from its "Show me how" button.
+ */
+export const HQ_CREATE_TOUR: TourDefinition = {
+  id: 'HQ-TOUR-002',
+  version: 1,
+  app: 'platform',
+  applicablePersonas: '*',
+  moduleId: 'hq-create',
+  requiredPermission: 'platform.tenants.create',
+  nameKey: 'platform:createTour.name',
+  summaryKey: 'platform:createTour.summary',
+  steps: [
+    { id: 'intro', kind: 'EXPLAIN', route: CREATE, art: { icon: Building2, hue: 'emerald' }, titleKey: c('intro', 'title'), bodyKey: c('intro', 'body') },
+    { id: 'progress', kind: 'EXPLAIN', route: CREATE, targetId: 'wizard-stepper', fallback: 'explain', titleKey: c('progress', 'title'), bodyKey: c('progress', 'body') },
+    { id: 'edition', kind: 'EXPLAIN', route: CREATE, targetId: 'edition-options', fallback: 'explain', titleKey: c('edition', 'title'), bodyKey: c('edition', 'body') },
+    { id: 'price', kind: 'EXPLAIN', route: CREATE, art: { icon: Calculator, hue: 'sky' }, titleKey: c('price', 'title'), bodyKey: c('price', 'body'), mobileBodyKey: c('price', 'bodyMobile') },
+    { id: 'save', kind: 'EXPLAIN', route: CREATE, targetId: 'wizard-continue', fallback: 'explain', titleKey: c('save', 'title'), bodyKey: c('save', 'body') },
+    { id: 'help', kind: 'EXPLAIN', targetId: 'global-help', art: { icon: LifeBuoy, hue: 'violet' }, titleKey: c('help', 'title'), bodyKey: c('help', 'body') },
   ],
 };

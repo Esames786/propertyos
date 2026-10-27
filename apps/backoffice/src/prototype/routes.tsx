@@ -1,4 +1,4 @@
-import { LEADS } from '@repo/fixtures';
+import { LEADS, SHALIMAR } from '@repo/fixtures';
 import { DemoSignIn, Link, useT } from '@repo/ui';
 import type { ComponentType } from 'react';
 import { createBrowserRouter, Navigate, useLoaderData, useNavigate, useParams, useSearchParams, type RouteObject } from 'react-router';
@@ -59,6 +59,13 @@ function SignInRoute() {
     <DemoSignIn
       appName={t('common:app.backoffice')}
       onSignedIn={() => navigate(next, { replace: true })}
+      describe={(p) =>
+        p.tenantId === SHALIMAR.id
+          ? t('workspace:signIn.maintenancePlan')
+          : p.projectScope === 'all'
+            ? t('common:demo.scopeAll')
+            : t('common:demo.scopeOne', { project: 'Larkspur Heights' })
+      }
       footer={
         <p className="text-center text-sm text-muted">
           {t('start:signIn.newHere')}{' '}
@@ -80,7 +87,7 @@ const shellChildren: RouteObject[] = [
   { index: true, element: <StartRedirect /> },
   {
     path: 'home/role-aware-dashboard',
-    lazy: page(() => import('../pages/home/ManagementDashboard')),
+    lazy: page(() => import('../pages/home/HomePage')),
     handle: h({ title: (t) => t('nav:pages.dashboard') }),
   },
   { path: 'crm/sales-home', lazy: page(() => import('../pages/crm/SalesHome')), handle: h({ title: (t) => t('nav:pages.salesHome') }) },
@@ -90,6 +97,7 @@ const shellChildren: RouteObject[] = [
   { path: 'crm/new-lead-drawer', element: <Navigate to={`${LINKS.salesHome}?drawer=new-lead`} replace /> },
   { path: 'crm/schedule-visit-drawer', element: <Navigate to={`${LINKS.salesHome}?drawer=schedule-visit`} replace /> },
   { path: 'more', lazy: page(() => import('../pages/more/MorePage')), handle: h({ title: (t) => t('nav:pages.more') }) },
+  { path: 'adm/plan', lazy: page(() => import('../pages/adm/PlanPage')), handle: h({ title: (t) => t('nav:pages.plan') }) },
   { path: 'lab', lazy: page(() => import('../pages/lab/LabHome')), handle: h({ title: (t) => t('nav:pages.lab'), helpKey: 'lab' }) },
   { path: 'lab/tokens', lazy: page(() => import('../pages/lab/TokensLab')), handle: h({ title: (t) => t('nav:pages.labTokens'), helpKey: 'lab' }) },
   { path: 'lab/components', lazy: page(() => import('../pages/lab/ComponentsLab')), handle: h({ title: (t) => t('nav:pages.labComponents'), helpKey: 'lab' }) },

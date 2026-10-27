@@ -55,7 +55,7 @@ export function TenantSummaryDrawer() {
               <Calculator aria-hidden className="size-4" />
               {t('platform:summary.simulate')}
             </Link>
-            <Link variant="plain" href={`/hq/tenants/${d.id}`} className={buttonClass('quiet')} data-testid="summary-360">
+            <Link variant="plain" href={HQ.tenant360(d.id)} className={buttonClass('quiet')} data-testid="summary-360">
               {t('platform:summary.open360')}
             </Link>
           </div>
@@ -178,7 +178,7 @@ function Body({ tenant: d }: { tenant: TenantDetail }) {
 }
 
 /** D-14: pending approval with its reasons, and the decision for a permitted, different user. */
-function ApprovalPanel({ approval, tenant }: { approval: ContractApproval; tenant: TenantDetail }) {
+export function ApprovalPanel({ approval, tenant }: { approval: ContractApproval; tenant: TenantDetail }) {
   const { t } = useT();
   const fmt = useHqFormat();
   const can = useCan();

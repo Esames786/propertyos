@@ -1,4 +1,4 @@
-import type { Permission } from '@repo/contracts';
+import type { ModuleKey, Permission } from '@repo/contracts';
 import type { LucideIcon } from 'lucide-react';
 import { Button as AriaButton, Link } from 'react-aria-components';
 import { IconTile, type TileHue } from '../data/IconTile';
@@ -17,6 +17,8 @@ export interface QuickAction {
   /** … or run this (open a drawer, start a flow). Exactly one of href/onPress. */
   onPress?: () => void;
   permission?: Permission;
+  /** Module that must be licensed (defaults to the permission's module). */
+  module?: ModuleKey;
   testId?: string;
 }
 
@@ -34,8 +36,8 @@ const tileClass = cn(
  * F-5: a sideways scroller hid tiles behind the edge); wider screens fill the row.
  */
 export function QuickActions({ title, actions, tourId, testId = 'quick-actions' }: { title: string; actions: QuickAction[]; tourId?: string; testId?: string }) {
-  const { can } = useSession();
-  const visible = actions.filter((a) => !a.permission || can(a.permission));
+  const { allows } = useSession();
+  const visible = actions.filter(allows);
   if (!visible.length) return null;
   return (
     <section aria-labelledby={`${testId}-title`} data-tour-id={tourId} data-testid={testId}>

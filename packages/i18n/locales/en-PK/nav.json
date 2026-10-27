@@ -65,7 +65,8 @@
     "more": "More",
     "getStarted": "Get started",
     "demoLaunch": "Explore the demo",
-    "workspaceSetup": "Set up your workspace"
+    "workspaceSetup": "Set up your workspace",
+    "plan": "Your plan and modules"
   },
   "groups": {
     "workspace": "Workspace",

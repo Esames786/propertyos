@@ -36,7 +36,6 @@ import { useNavigation } from '../navigation/RouterAdapter';
 import { useGuidedTour } from '../onboarding/GuidedTourProvider';
 import { PRACTICE_LEAD_DRAWER } from '../onboarding/PracticeLeadDrawer';
 import { emitTourEvent } from '../onboarding/tourGuard';
-import { filterAllowed } from '../permissions/can';
 import { useSession } from '../permissions/SessionProvider';
 import { Spinner } from '../primitives/Spinner';
 import { useShell } from '../shell/ShellContext';
@@ -73,7 +72,7 @@ const itemClass =
 export function CommandPalette() {
   const { t } = useT();
   const { paletteOpen, setPaletteOpen, destinations, navItems, links } = useShell();
-  const { persona } = useSession();
+  const { allows, can } = useSession();
   const { navigate, location } = useNavigation();
   const { locale, setLocale } = useLocale();
   const tour = useGuidedTour();
@@ -95,12 +94,12 @@ export function CommandPalette() {
 
   const screens = useMemo(() => {
     const all = [
-      ...filterAllowed(persona, navItems).map((n) => ({ id: n.id, label: t(n.labelKey as 'nav:items.home'), href: n.href, keywords: '' })),
-      ...filterAllowed(persona, destinations),
+      ...navItems.filter(allows).map((n) => ({ id: n.id, label: t(n.labelKey as 'nav:items.home'), href: n.href, keywords: '' })),
+      ...destinations.filter(allows),
     ];
     const q = norm(query.trim());
     return (q ? all.filter((d) => norm(`${d.label} ${d.keywords ?? ''}`).includes(q)) : all).slice(0, 8);
-  }, [persona, navItems, destinations, query, t]);
+  }, [allows, navItems, destinations, query, t]);
 
   const otherLocale = SUPPORTED_LOCALES.find((l) => l !== locale)!;
   const essentials = tour.available.find((d) => d.id === 'GLOBAL-TOUR-001');
@@ -111,11 +110,11 @@ export function CommandPalette() {
       { id: 'prefs', label: t('common:command.openPreferences'), icon: Settings, run: () => navigate(links.preferences) },
     ];
     if (essentials) list.push({ id: 'tour', label: t('common:command.startTour'), icon: Compass, run: () => tour.start(essentials.id) });
-    if (persona?.permissions.includes('lead.create'))
+    if (can('lead.create'))
       list.push({ id: 'practice', label: t('common:command.practiceLead'), icon: GraduationCap, run: () => navigate(`${location.pathname}?drawer=${PRACTICE_LEAD_DRAWER}`) });
     const q = norm(query.trim());
     return q ? list.filter((a) => norm(a.label).includes(q)) : list;
-  }, [t, otherLocale, setLocale, navigate, location.pathname, links, essentials, tour, persona, query]);
+  }, [t, otherLocale, setLocale, navigate, location.pathname, links, essentials, tour, can, query]);
 
   const records = debounced.length >= 2 ? (search.data?.records ?? []) : [];
 

@@ -1,9 +1,14 @@
-import { ApiError, type ApiRequest, type Permission, type Persona } from '@repo/contracts';
+import { ApiError, type ApiRequest, type EffectiveAccess, type ModuleKey, type Permission, type Persona, type SuspensionClass } from '@repo/contracts';
 import type { DemoStore } from './demo-store';
 import type { TrainingStore } from './training-store';
 
 export interface HandlerContext {
   persona: Persona | undefined;
+  /** The signed-in person's tenant and effective access (tenant plane only). */
+  tenantId: string | undefined;
+  access: EffectiveAccess | null;
+  /** The seeded developer records (leads, units, invoices…) belong to Larkspur; nobody else may read them. */
+  ownsSeedData: boolean;
   /** Persona scope AND the header project filter. */
   allowsProject: (projectId: string) => boolean;
   correlationId: string;
@@ -17,6 +22,13 @@ export interface HandlerContext {
 export interface Handler {
   method: ApiRequest['method'];
   pattern: RegExp;
+  /**
+   * Module the endpoint belongs to: the transport refuses it (403 module_not_licensed, …) before the
+   * handler runs when the tenant has not licensed it, exactly as the backend will (V3.1 access).
+   */
+  module?: ModuleKey;
+  /** Suspension class (A1 §4): undeclared endpoints are operational and refused while suspended. */
+  suspension?: SuspensionClass;
   handle: (ctx: HandlerContext) => unknown;
 }
 

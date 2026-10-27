@@ -14,6 +14,7 @@ export const CRM_TOUR: TourDefinition = {
   app: 'backoffice',
   applicablePersonas: ['manager', 'sales'],
   moduleId: 'crm',
+  requiredPermission: 'lead.view',
   nameKey: 'onboarding:tours.CRM-TOUR-001.name',
   summaryKey: 'onboarding:tours.CRM-TOUR-001.summary',
   steps: [

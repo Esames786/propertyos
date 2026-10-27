@@ -8,6 +8,8 @@ import { createRandom, pad } from './seed';
  * - e-mail domains are RFC 2606 example.com.
  */
 export const TENANT = { id: 'tnt_larkspur', name: 'Larkspur Estates (Demo)' } as const;
+/** The owner's maintenance-only client (see tenant-directory.ts). */
+export const SHALIMAR = { id: 'tnt_shalimar', name: 'Shalimar Court Residents (Demo)' } as const;
 
 const FIRST_NAMES = [
   'Ahmed', 'Bilal', 'Faisal', 'Hamza', 'Imran', 'Kamran', 'Omar', 'Saad', 'Usman', 'Zain',
@@ -130,7 +132,34 @@ export const PERSONAS: readonly Persona[] = [
     projectScope: ['prj_heights'],
     partyId: 'pty_0001',
   },
+  // Shalimar Court Residents (Demo) licenses only core + maintenance (Gate B checkpoint 2). Their
+  // permissions are generous on purpose: licensing, not the role, keeps developer modules away.
+  {
+    id: 'facility_manager',
+    tenantId: SHALIMAR.id,
+    principalId: 'usr_shc_0001',
+    app: 'backoffice',
+    displayName: 'Saima Akram',
+    roleKey: 'common:persona.facility_manager',
+    email: 'saima.akram@example.com',
+    permissions: ['quickcreate.use', 'operations.view', 'residents.view', 'reports.view', 'lead.view', 'lead.create', 'booking.view', 'unit.view'],
+    projectScope: 'all',
+  },
+  {
+    id: 'society_admin',
+    tenantId: SHALIMAR.id,
+    principalId: 'usr_shc_0002',
+    app: 'backoffice',
+    displayName: 'Adnan Malik',
+    roleKey: 'common:persona.society_admin',
+    email: 'adnan.malik@example.com',
+    permissions: ALL_STAFF,
+    projectScope: 'all',
+  },
 ];
+
+/** Tenants that have backoffice demo identities. */
+export const BACKOFFICE_TENANTS = [TENANT, SHALIMAR] as const;
 
 export function findPersona(id: string | null | undefined): Persona | undefined {
   return PERSONAS.find((p) => p.id === id);

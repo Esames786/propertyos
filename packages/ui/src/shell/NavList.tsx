@@ -1,7 +1,6 @@
 import { motion } from 'motion/react';
 import { useId } from 'react';
 import { Link } from 'react-aria-components';
-import { filterAllowed } from '../permissions/can';
 import { useSession } from '../permissions/SessionProvider';
 import { cn } from '../lib/cn';
 import { useT } from '../lib/useT';
@@ -36,11 +35,11 @@ export function NavList({
   anchorPrefix?: string;
 }) {
   const { t } = useT();
-  const { persona } = useSession();
+  const { allows } = useSession();
   const { location } = useNavigation();
   const reduced = useReducedMotion();
   const markerId = useId();
-  const visible = filterAllowed(persona, items);
+  const visible = items.filter(allows);
   const groups = GROUP_ORDER.map((g) => ({ group: g, items: visible.filter((i) => i.group === g) })).filter((g) => g.items.length);
 
   return (

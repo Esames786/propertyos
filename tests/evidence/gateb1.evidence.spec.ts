@@ -90,6 +90,7 @@ async function wizard(page: Page, at: (step: string) => Promise<void>, opts: { n
   await at('done');
 }
 
+test.skip(true, 'Historical evidence for Gate B checkpoint 1 (commit d89e274); kept for reference, not re-run');
 test.describe.configure({ mode: 'parallel' });
 
 for (const locale of ['en-PK', 'ur-PK'] as Locale[]) {

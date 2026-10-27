@@ -1,4 +1,5 @@
-import type { FeatureKey, ModuleKey, TenantStatus, TenantType } from './access';
+import type { EffectiveAccess, FeatureKey, ModuleKey, TenantStatus, TenantType } from './access';
+import type { Permission } from './permissions';
 import type { Money } from './money';
 
 /**
@@ -493,4 +494,50 @@ export function componentFromLine(line: RateCardLine, id: string, effectiveFrom:
     proration: line.cadence === 'once' ? 'none' : 'actual_days',
     effectiveFrom,
   };
+}
+
+// ---------------------------------------------------------------- tenant workspace: plan (ADM-023)
+
+/** "Your plan & modules": what a tenant's subscription includes, read-only, from the tenant's side. */
+export interface WorkspacePlan {
+  tenant: { id: string; name: string; edition: EditionKey; status: TenantStatus; licensedFrom: string };
+  sites: ReadonlyArray<{ id: string; name: string; city: string; declaredUnits: number }>;
+  modules: ReadonlyArray<{
+    key: ModuleKey;
+    category: ModuleCategory;
+    licensed: boolean;
+    alwaysOn: boolean;
+    /** Sites the grant covers ('all' = every site); null when not licensed. */
+    sites: 'all' | readonly string[] | null;
+  }>;
+}
+
+// ---------------------------------------------------------------- HQ-009 preview as a tenant role
+
+/** A role a tenant's people can hold (template), used to preview what that role sees. */
+export interface TenantRoleTemplate {
+  id: string;
+  /** Translation key for the role title. */
+  labelKey: string;
+  permissions: readonly Permission[];
+}
+
+/**
+ * HQ-009 "Preview as client": a tenant's licence evaluated for one of its roles. It carries the
+ * effective access only, so Platform HQ can draw the client's real menus and availability; it never
+ * contains tenant records (AB-8), and nobody is signed in as the client.
+ */
+export interface PreviewSession {
+  tenant: { id: string; name: string; type: TenantType; edition: EditionKey; status: TenantStatus };
+  role: TenantRoleTemplate;
+  roles: readonly TenantRoleTemplate[];
+  access: EffectiveAccess;
+  /** The modules were changed for a what-if; nothing is saved and the tenant is unchanged. */
+  whatIf: boolean;
+  /** Dependency check of the previewed modules (a what-if may break a requirement). */
+  dependencies: DependencyCheckResult;
+  /** Always false: a preview never loads tenant records. */
+  containsTenantRecords: false;
+  /** Evaluation date for effective-dated grants. */
+  at: string;
 }

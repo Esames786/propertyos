@@ -1,4 +1,4 @@
-import type { OnboardingProfile, TourProgressRecord } from '@repo/contracts';
+import type { ModuleKey, OnboardingProfile, TourProgressRecord } from '@repo/contracts';
 import {
   createContext,
   useCallback,
@@ -87,6 +87,8 @@ export function GuidedTourProvider({
   children: ReactNode;
 }) {
   const session = useSession();
+  const { allows } = session;
+  const licensed = useCallback((m: ModuleKey) => allows({ module: m }), [allows]);
   const { preferences } = usePreferences();
   const { navigate, location } = useNavigation();
   const announce = useAnnounce();
@@ -112,7 +114,7 @@ export function GuidedTourProvider({
   );
   // eslint-disable-next-line react-hooks/exhaustive-deps -- `revision` re-reads the store after writes
   const profile = useMemo(() => (scope ? store.getProfile(scope) : null), [scope, store, revision]);
-  const available = useMemo(() => toursForPersona(tours, persona), [tours, persona]);
+  const available = useMemo(() => toursForPersona(tours, persona, session.can, licensed), [tours, persona, session.can, licensed]);
   const running = state.status === 'running' ? state : null;
   const currentStep = running ? (running.steps[running.index] ?? null) : null;
   const def = (id: string) => available.find((d) => d.id === id);
@@ -166,7 +168,7 @@ export function GuidedTourProvider({
         navigate(links.textGuide(tourId));
         return;
       }
-      const steps = resolveSteps(tour, session.can);
+      const steps = resolveSteps(tour, session.can, licensed);
       const prior = store.getProgress(scope, tour.id, tour.version);
       const resumeIndex = options.resume && prior?.lastStepId ? steps.findIndex((s) => s.id === prior.lastStepId) : 0;
       const index = Math.max(0, resumeIndex);
@@ -299,7 +301,7 @@ export function GuidedTourProvider({
     },
     resolvedSteps: (tourId) => {
       const tour = def(tourId);
-      return tour ? resolveSteps(tour, session.can) : [];
+      return tour ? resolveSteps(tour, session.can, licensed) : [];
     },
     setAutoOffer: (autoOffer) => {
       if (!profile) return;

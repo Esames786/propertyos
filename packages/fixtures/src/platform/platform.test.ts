@@ -161,12 +161,12 @@ describe('platform handlers', () => {
     await expect(support.request({ method: 'POST', path: '/platform/tenant-drafts', body: {} })).rejects.toMatchObject({ problem: { status: 403, code: 'permission_missing' } });
     await expect(support.request({ method: 'POST', path: '/platform/simulations/price', body: {} })).rejects.toMatchObject({ problem: { status: 403 } });
     const overview = await support.request<HqOverview>({ method: 'GET', path: '/platform/overview' });
-    expect(overview.tenants.total).toBe(5);
+    expect(overview.tenants.total).toBe(6);
   });
 
   it('the dashboard overview agrees with the seeded contracts', async () => {
     const overview = await transportAs('supreme_admin').request<HqOverview>({ method: 'GET', path: '/platform/overview' });
-    expect(overview.subscriptions.mrr.amount).toBe('59780.00'); // Larkspur 47,500 + Riverbend 12,280
+    expect(overview.subscriptions.mrr.amount).toBe('62840.00'); // Larkspur 47,500 + Riverbend 12,280 + Shalimar Court 3,060
     expect(overview.subscriptions.trials).toBe(1);
     expect(overview.tenants.awaitingApproval).toBe(1);
     expect(overview.attention.map((a) => a.kind)).toEqual(expect.arrayContaining(['approval', 'trial_ending', 'grace', 'suspended', 'request']));

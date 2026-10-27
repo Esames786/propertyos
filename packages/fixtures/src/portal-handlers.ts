@@ -70,6 +70,7 @@ export const PORTAL_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/portal\/home$/,
+    module: 'resident_portal',
     handle: (ctx) => {
       const { p, session } = owner(ctx);
       return buildPortalHome(p, session);
@@ -78,6 +79,7 @@ export const PORTAL_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/portal\/payments$/,
+    module: 'resident_portal',
     handle: (ctx) => {
       const { p, session } = owner(ctx);
       return buildPortalPayments(p, session);
@@ -86,6 +88,7 @@ export const PORTAL_HANDLERS: readonly Handler[] = [
   {
     method: 'POST',
     pattern: /^\/portal\/instalments\/(?<id>[\w-]+)\/proof$/,
+    module: 'resident_portal',
     handle: (ctx): InstalmentItem => {
       const { p, session } = owner(ctx);
       const item = payableInstalment(ctx, p, session);
@@ -117,6 +120,7 @@ export const PORTAL_HANDLERS: readonly Handler[] = [
     // Labelled simulation: no gateway is contacted and the instalment is NOT marked paid.
     method: 'POST',
     pattern: /^\/portal\/instalments\/(?<id>[\w-]+)\/simulate-online$/,
+    module: 'resident_portal',
     handle: (ctx): InstalmentItem => {
       const { p, session } = owner(ctx);
       const item = payableInstalment(ctx, p, session);
@@ -137,6 +141,7 @@ export const PORTAL_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/portal\/receipts\/(?<id>[\w-]+)$/,
+    module: 'resident_portal',
     handle: (ctx) => {
       const { p, session } = owner(ctx);
       return receiptDetail(p, session, ctx.params.id!) ?? notFound(ctx);
@@ -145,6 +150,7 @@ export const PORTAL_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/portal\/construction$/,
+    module: 'resident_portal',
     handle: (ctx) => {
       const { p } = owner(ctx);
       return p.construction;
@@ -153,6 +159,7 @@ export const PORTAL_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/portal\/documents$/,
+    module: 'resident_portal',
     handle: (ctx) => {
       const { p } = owner(ctx);
       return portalDocuments(p);
@@ -161,6 +168,7 @@ export const PORTAL_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/portal\/services$/,
+    module: 'resident_portal',
     handle: (ctx) => {
       const { p, session } = owner(ctx);
       return portalServices(p, session);
@@ -169,6 +177,7 @@ export const PORTAL_HANDLERS: readonly Handler[] = [
   {
     method: 'POST',
     pattern: /^\/portal\/service-requests$/,
+    module: 'resident_portal',
     handle: (ctx): ServiceRequest => {
       const { session } = owner(ctx);
       const input = body<CreateServiceRequestInput>(ctx);
@@ -196,6 +205,7 @@ export const PORTAL_HANDLERS: readonly Handler[] = [
   {
     method: 'POST',
     pattern: /^\/portal\/visitor-passes$/,
+    module: 'resident_portal',
     handle: (ctx): VisitorPass => {
       const { session } = owner(ctx);
       const input = body<CreateVisitorPassInput>(ctx);

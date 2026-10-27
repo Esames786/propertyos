@@ -1,7 +1,8 @@
-import { ApiError, type ApiRequest, type ApiTransport, type Persona } from '@repo/contracts';
+import { ApiError, decide, denyStatus, type ApiRequest, type ApiTransport, type Persona } from '@repo/contracts';
 import { DemoStore } from './demo-store';
 import { HANDLERS, type HandlerContext } from './handlers';
-import { findPersona } from './people';
+import { findPersona, TENANT } from './people';
+import { ACCESS_TODAY, effectiveAccessFor } from './tenant-directory';
 import { createRandom } from './seed';
 import { TrainingStore } from './training-store';
 
@@ -77,6 +78,13 @@ export class MockTransport implements ApiTransport {
       if (handler.method !== req.method) continue;
       const match = handler.pattern.exec(req.path);
       if (!match) continue;
+      // V3.1 effective access, before any data is read: tenant lifecycle, then the licensed module.
+      if (handler.module && ctx.access) {
+        const decision = decide(ctx.access, { module: handler.module, at: ACCESS_TODAY, suspension: handler.suspension ?? 'operational' });
+        if (!decision.allowed) {
+          throw new ApiError({ status: denyStatus(decision.reason), code: decision.reason, messageKey: `errors:access.${decision.reason}`, correlationId: ctx.correlationId, changed: false });
+        }
+      }
       return handler.handle({ ...ctx, req, params: match.groups ?? {}, training: this.training, demo: this.demo }) as T;
     }
     throw new ApiError({ status: 404, code: 'not_found', messageKey: 'errors:api.notFound', correlationId: nextCorrelationId(), changed: false });
@@ -93,7 +101,14 @@ export class MockTransport implements ApiTransport {
     const scope = persona?.projectScope ?? [];
     const allowed = (id: string) =>
       (scope === 'all' || scope.includes(id)) && (projectId === 'all' || projectId === id);
-    return { persona, allowsProject: allowed, correlationId: nextCorrelationId() };
+    return {
+      persona,
+      tenantId: persona?.tenantId,
+      access: persona ? effectiveAccessFor(persona) : null,
+      ownsSeedData: persona?.tenantId === TENANT.id,
+      allowsProject: allowed,
+      correlationId: nextCorrelationId(),
+    };
   }
 
   private delay(mode: MockMode, signal?: AbortSignal): Promise<void> {

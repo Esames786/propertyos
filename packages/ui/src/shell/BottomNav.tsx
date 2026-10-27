@@ -4,11 +4,10 @@ import { Link } from 'react-aria-components';
 import type { NavItem } from './types';
 import { useT } from '../lib/useT';
 import { useNavigation } from '../navigation/RouterAdapter';
-import { filterAllowed } from '../permissions/can';
 import { useSession } from '../permissions/SessionProvider';
 import { useReducedMotion } from '../preferences/PreferencesProvider';
 import { isCurrent } from './NavList';
-import { QuickCreateMenu } from './QuickCreateMenu';
+import { QuickCreateMenu, quickCreateAvailable } from './QuickCreateMenu';
 import { useShell } from './ShellContext';
 
 /**
@@ -20,12 +19,12 @@ import { useShell } from './ShellContext';
 export function BottomNav() {
   const { t } = useT();
   const { navItems, links, slots } = useShell();
-  const { persona, can } = useSession();
+  const { allows, can } = useSession();
   const { location } = useNavigation();
   const reduced = useReducedMotion();
-  const items = filterAllowed(persona, navItems.filter((i) => i.bottomBar)).slice(0, 3);
+  const items = navItems.filter((i) => i.bottomBar && allows(i)).slice(0, 3);
   const more: NavItem | null = links.more ? { id: 'more', labelKey: 'nav:more', href: links.more, icon: LayoutGrid, match: links.more } : null;
-  const hasFab = slots.create === undefined ? can('quickcreate.use') : slots.create !== null;
+  const hasFab = slots.create === undefined ? quickCreateAvailable(can) : slots.create !== null;
   const start = items.slice(0, 2);
   const end = [...items.slice(2), ...(more ? [more] : [])];
 

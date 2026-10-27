@@ -4,7 +4,7 @@ export const BO = 'http://localhost:5173';
 export const CU = 'http://localhost:5174';
 export const HQ = 'http://localhost:5175';
 
-export type PersonaId = 'manager' | 'sales' | 'finance' | 'resident' | 'supreme_admin' | 'commercial_approver' | 'platform_support';
+export type PersonaId = 'manager' | 'sales' | 'finance' | 'resident' | 'facility_manager' | 'society_admin' | 'supreme_admin' | 'commercial_approver' | 'platform_support';
 export type Locale = 'en-PK' | 'ur-PK';
 
 export interface SeedOptions {
@@ -18,6 +18,8 @@ export interface SeedOptions {
 }
 
 const TENANT = 'tnt_larkspur';
+/** Identities of the maintenance-only client (Gate B checkpoint 2). */
+const SHALIMAR_PERSONAS = new Set<string>(['facility_manager', 'society_admin']);
 
 /**
  * Seeds demo state once per browser context (later reloads keep whatever the test changed,
@@ -44,7 +46,7 @@ export async function seed(page: Page, options: SeedOptions = {}) {
         );
       }
     },
-    { persona, locale, onboarding, mock, app, tenant: app === 'platform' ? 'platform' : TENANT, a11y: a11y ?? null },
+    { persona, locale, onboarding, mock, app, tenant: app === 'platform' ? 'platform' : persona && SHALIMAR_PERSONAS.has(persona) ? 'tnt_shalimar' : TENANT, a11y: a11y ?? null },
   );
 }
 

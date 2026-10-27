@@ -46,7 +46,7 @@ export function TypeStep({ value, catalog, onSubmit, ...p }: StepProps & { value
   return (
     <StepFrame step="type" title={t('platform:wizard.type.title')} intro={t('platform:wizard.type.intro')} autoFocus={p.autoFocus} testId="step-type">
       <ErrorSummary errors={edition ? [] : [t('platform:wizard.type.required')]} attempt={attempt} />
-      <RadioGroup value={edition} onChange={(v) => setEdition(v as EditionKey)} aria-label={t('platform:wizard.type.label')} className="grid gap-3 md:grid-cols-2" data-testid="edition-options">
+      <RadioGroup value={edition} onChange={(v) => setEdition(v as EditionKey)} aria-label={t('platform:wizard.type.label')} className="grid gap-3 md:grid-cols-2" data-testid="edition-options" data-tour-id="edition-options">
         <Label className="sr-only">{t('platform:wizard.type.label')}</Label>
         {EDITIONS.map((e) => {
           const preset = catalog.presets.find((x) => x.key === e)!;

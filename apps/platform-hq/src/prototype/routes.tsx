@@ -1,4 +1,4 @@
-import { findScreen, findScreenByRegisterRoute, type ScreenEntry } from '@repo/contracts/screens';
+import { findScreenByRegisterRoute, type ScreenEntry } from '@repo/contracts/screens';
 import { NotFoundState, PlannedScreenView } from '@repo/ui';
 import { TextGuideView, TourLibraryView } from '@repo/ui/onboarding';
 import type { ComponentType } from 'react';
@@ -28,12 +28,16 @@ function RegisterResolver() {
   return data.screen ? <PlannedScreenView screen={data.screen} record={data.record} startHref={HQ.dashboard} /> : <NotFoundState headingLevel={1} />;
 }
 
-/** HQ-004 Tenant 360 is next in Gate B; its address works today and points back to the summary. */
-function Tenant360Planned() {
-  const { id } = useParams();
-  const screen = findScreen('HQ-004')!;
-  return <PlannedScreenView screen={screen} record={id ?? null} startHref={HQ.dashboard} secondary={id ? { label: screen.name, href: HQ.tenant(id) } : undefined} />;
-}
+/** Pages that take the tenant id from the address (the page itself stays router-free). */
+const withTenantId = (load: () => Promise<{ default: ComponentType<{ id: string }> }>) => async () => {
+  const { default: Page } = await load();
+  return {
+    Component: function TenantRoute() {
+      const { id } = useParams();
+      return <Page id={id ?? ''} />;
+    },
+  };
+};
 
 function SignInRoute() {
   const [params] = useSearchParams();
@@ -54,7 +58,8 @@ const shellChildren: RouteObject[] = [
   { index: true, lazy: page(() => import('../pages/dashboard/HqDashboard')), handle: h({ title: (t) => t('platform:pages.dashboard') }) },
   { path: 'tenants', lazy: page(() => import('../pages/tenants/TenantsPage')), handle: h({ title: (t) => t('platform:pages.tenants') }) },
   { path: 'tenants/new', lazy: page(() => import('../pages/create/CreateTenantPage')), handle: h({ title: (t) => t('platform:pages.createTenant') }) },
-  { path: 'tenants/:id', element: <Tenant360Planned />, handle: h({ title: () => findScreen('HQ-004')!.name, helpKey: 'planned' }) },
+  { path: 'tenants/:id', lazy: withTenantId(() => import('../pages/tenant360/Tenant360Page')), handle: h({ title: (t) => t('platform:pages.tenant360') }) },
+  { path: 'tenants/:id/preview', lazy: withTenantId(() => import('../pages/preview/PreviewPage')), handle: h({ title: (t) => t('platform:preview.title') }) },
   { path: 'simulator', lazy: page(() => import('../pages/simulator/SimulatorPage')), handle: h({ title: (t) => t('platform:pages.simulator') }) },
   { path: 'more', lazy: page(() => import('../pages/more/HqMorePage')), handle: h({ title: (t) => t('nav:pages.more') }) },
   { path: 'preferences', lazy: page(() => import('../pages/settings/PreferencesPage')), handle: h({ title: (t) => t('nav:pages.preferences'), helpKey: 'preferences' }) },

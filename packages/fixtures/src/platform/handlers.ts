@@ -12,6 +12,7 @@ import {
   type ModuleKey,
   type ModuleSelection,
   type Permission,
+  type PreviewSession,
   type Persona,
   type SearchResponse,
   type TenantDetail,
@@ -29,7 +30,9 @@ import { fromPaisa, priceContract, toPaisa, type Quantities } from './pricing';
 import { COMMERCIAL_POLICY, RATE_CARD, TAX_CODES } from './rate-card';
 import type { PlatformStore } from './store';
 import { SEED_MRR_PREVIOUS, SEED_OUTSTANDING, SEED_REVENUE, SEED_USAGE } from './tenants';
-import { contractProblems, draftPatchProblems, quantityProblems, type Problem, type Problems } from './validation';
+import { grantsOf } from '../tenant-directory';
+import { rolesFor } from './roles';
+import { contractProblems, draftPatchProblems, moduleProblems, quantityProblems, type Problem, type Problems } from './validation';
 
 export interface PlatformContext {
   persona: Persona | undefined;
@@ -311,6 +314,43 @@ function decideApproval(ctx: PlatformContext): ContractApproval {
   return decided;
 }
 
+/**
+ * HQ-009 Preview as client: the tenant's licence (or a what-if set of modules) evaluated for one of
+ * its roles. Only effective access is returned; no tenant record is read, and nobody is signed in as
+ * the client. Opening a preview is audited; what-ifs are not saved and not audited (like the simulator).
+ */
+function preview(ctx: PlatformContext): PreviewSession {
+  const t = ctx.store.tenant(ctx.params.id!) ?? notFound(ctx);
+  const { role: roleId, modules } = body<{ role?: unknown; modules?: unknown }>(ctx);
+  const roles = rolesFor(t.type);
+  if (roleId !== undefined && !roles.some((r) => r.id === roleId)) invalid(ctx, { role: 'platform:validation.role' });
+  const role = roles.find((r) => r.id === roleId) ?? roles[0]!;
+  const whatIf = modules !== undefined;
+  if (whatIf) refuse(ctx, moduleProblems(modules, new Set(t.sites.map((x) => x.id))));
+  const selections = whatIf ? (modules as ModuleSelection[]) : t.grants;
+  const from = (t.contract?.activatedAt ?? t.contract?.terms.start ?? t.createdAt).slice(0, 10);
+  if (!whatIf) {
+    ctx.store.addAudit({ at: now(), actorName: ctx.persona!.displayName, actorId: principalOf(ctx), action: 'previewOpened', tenantId: t.id, tenantName: t.displayName, params: {} });
+  }
+  return {
+    tenant: { id: t.id, name: t.displayName, type: t.type, edition: t.edition, status: t.status },
+    role,
+    roles,
+    access: {
+      tenant: { id: t.id, type: t.type, status: t.status, suspensionPolicy: { allowSettlement: true } },
+      grants: grantsOf(selections, from),
+      features: [],
+      permissions: role.permissions,
+      scopes: [{ type: 'all' }],
+      userId: `preview:${role.id}`,
+    },
+    whatIf,
+    dependencies: checkDependencies(selections),
+    containsTenantRecords: false,
+    at: today,
+  };
+}
+
 const SORTS = {
   name: (a: TenantSummary, b: TenantSummary) => a.displayName.localeCompare(b.displayName),
   created: (a: TenantSummary, b: TenantSummary) => b.createdAt.localeCompare(a.createdAt),
@@ -352,6 +392,7 @@ export const PLATFORM_HANDLERS: PlatformHandler[] = [
       return { ...clone(t), audit: ctx.store.audit().filter((a) => a.tenantId === t.id) };
     },
   },
+  { method: 'POST', pattern: /^\/platform\/tenants\/(?<id>[\w-]+)\/preview$/, permission: 'platform.preview.use', handle: (ctx) => preview(ctx) },
   // HQ never reads tenant records without an audited, consented support grant (A1 §4, AB-9).
   ...(['GET', 'POST', 'PATCH', 'DELETE'] as const).map(
     (method): PlatformHandler => ({ method, pattern: /^\/platform\/tenants\/[\w-]+\/records(\/.*)?$/, handle: (ctx) => fail(ctx, 403, 'support_grant_required', 'platform:errors.supportGrantRequired') }),

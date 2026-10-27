@@ -1,0 +1,45 @@
+{
+  "signIn": {
+    "maintenancePlan": "Maintenance-only plan · all of Shalimar Court"
+  },
+  "plan": {
+    "readOnly": "Read-only",
+    "intro": "What {{organisation}}'s PropertyOS subscription includes, and the sites each module covers. Changes are made on request by a contract amendment; nothing changes here.",
+    "open": "Open your plan and modules",
+    "facts": {
+      "plan": "Plan",
+      "status": "Status",
+      "since": "Licensed since",
+      "sites": "Sites"
+    },
+    "included_one": "Included in your plan ({{count}} module)",
+    "included_other": "Included in your plan ({{count}} modules)",
+    "includedHint": "Everyone in your workspace works within these modules; each person sees the parts their role allows.",
+    "notIncluded_one": "Not in your plan ({{count}} module)",
+    "notIncluded_other": "Not in your plan ({{count}} modules)",
+    "notIncludedHint": "These never appear in your workspace. To add one, ask your PropertyOS account manager.",
+    "notInPlanSr": "not in your plan",
+    "alwaysOn": "Always included",
+    "allSites": "All sites",
+    "someSites": "Sites: {{sites}}"
+  },
+  "home": {
+    "greeting": "Welcome back, {{name}}",
+    "subtitle": "Your workspace as of {{date}}: the work your plan and role include.",
+    "actionsTitle": "Quick actions",
+    "actions": {
+      "newRequest": "New request",
+      "requests": "Maintenance requests",
+      "technicians": "Technician board",
+      "preventive": "Preventive maintenance",
+      "assets": "Building assets"
+    },
+    "areasTitle": "Areas you can open",
+    "areasHint": "Limited by your organisation's plan and your role.",
+    "noAreas": "Your role has no work areas in this plan yet. Ask your workspace administrator.",
+    "planTitle": "In your plan",
+    "planHint": "The modules your organisation has licensed.",
+    "planAdmin": "You can see the full plan, with the sites each module covers.",
+    "planAsk": "Your workspace administrator can see the full plan."
+  }
+}

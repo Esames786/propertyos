@@ -23,7 +23,8 @@
     "dashboard": "Platform dashboard",
     "tenants": "Tenants",
     "createTenant": "Create tenant",
-    "simulator": "Pricing simulator"
+    "simulator": "Pricing simulator",
+    "tenant360": "Tenant 360"
   },
   "shell": {
     "createTenant": "Create tenant",
@@ -533,7 +534,8 @@
     "commentLength": "Keep the comment under 1,000 characters.",
     "serverTitle": "The platform did not accept these entries",
     "serverBody": "Nothing was saved. Correct the entries below and continue.",
-    "quoteUnavailable": "These entries cannot be priced yet. Correct them to see the price."
+    "quoteUnavailable": "These entries cannot be priced yet. Correct them to see the price.",
+    "role": "Choose one of this tenant's roles."
   },
   "builder": {
     "addGroups": {
@@ -568,7 +570,10 @@
     "overrideReason": "Reason for the price change (rate card {{price}})",
     "overrideReasonRequired": "Give a reason for the price change.",
     "add": "Add component",
-    "serverNote": "Prices are calculated by the platform server, never in your browser."
+    "serverNote": "Prices are calculated by the platform server, never in your browser.",
+    "advanced": "Advanced: dates and scheduled price changes",
+    "advancedHint": "Most contracts start every price with the contract. Turn this on to set dates or schedule a price change.",
+    "datedShown": "Dates are shown because some prices have their own dates (a trial or a scheduled change)."
   },
   "wizard": {
     "stepOf": "Step {{current}} of {{total}}",
@@ -739,7 +744,10 @@
         "percent": "Discount {{n}}: a percentage cannot be more than 100.",
         "reason": "Discount {{n}}: give a reason.",
         "reasonField": "Give a reason."
-      }
+      },
+      "more": "More commercial settings",
+      "moreDefault": "Tax, monthly minimum and cap: not set",
+      "moreSet": "Tax, monthly minimum or cap set"
     },
     "quote": {
       "title": "Quote",
@@ -849,7 +857,7 @@
   "summary": {
     "loading": "Loading tenant…",
     "simulate": "Simulate pricing",
-    "open360": "Tenant 360 (next in Gate B)",
+    "open360": "Open Tenant 360",
     "legalName": "Legal name",
     "type": "Tenant type",
     "origin": "Came from",
@@ -878,7 +886,8 @@
     "approvalReturned": "Contract returned for {{tenant}}",
     "graceStarted": "{{tenant}} entered its grace period",
     "tenantSuspended": "{{tenant}} was suspended",
-    "requestReceived": "New workspace request from {{organisation}}"
+    "requestReceived": "New workspace request from {{organisation}}",
+    "previewOpened": "{{actor}} previewed {{tenant}} as a client role (no tenant records)"
   },
   "notifications": {
     "approvalTitle": "Contract awaiting your approval",
@@ -967,5 +976,151 @@
   },
   "inputs": {
     "openCalendar": "Open calendar"
+  },
+  "t360": {
+    "tabsLabel": "Tenant sections",
+    "tabs": {
+      "overview": "Overview",
+      "subscription": "Subscription",
+      "modules": "Modules and sites",
+      "usage": "Usage",
+      "commercial": "Commercial",
+      "audit": "Audit"
+    },
+    "metrics": {
+      "edition": "Edition",
+      "flats": "Flats declared",
+      "modules": "Modules licensed"
+    },
+    "preview": "Preview as client",
+    "organisation": "Organisation",
+    "city": "City",
+    "activated": "Activated",
+    "state": "Lifecycle, contract and billing",
+    "stateHint": "Lifecycle, contract and billing are tracked separately: a tenant can be active with an overdue invoice, or in a trial with no contract billed yet.",
+    "suspendedTitle": "Suspended: financial history only",
+    "suspendedBody": "People in this workspace can read financial history; operational work is paused until the account is settled.",
+    "graceTitle": "Grace period",
+    "graceBody": "A platform invoice is overdue. The workspace keeps working during the grace period.",
+    "accessTitle": "Access at a glance",
+    "accessHint": "The modules this tenant's people work within. Preview a role to see exactly what it opens.",
+    "noContract": "No contract yet.",
+    "term": "Term",
+    "months_one": "{{count}} month",
+    "months_other": "{{count}} months",
+    "rolling": "Rolling",
+    "tax": "Tax code",
+    "minimum": "Monthly minimum",
+    "cap": "Monthly cap",
+    "createdBy": "Prepared by",
+    "components": "Price components",
+    "effective": "From {{from}}",
+    "until": "until {{to}}",
+    "amendmentsNext": "Changing a live contract creates a new version (amendment); that arrives in the next part of Gate B.",
+    "grantsTitle_one": "Licensed module ({{count}})",
+    "grantsTitle_other": "Licensed modules ({{count}})",
+    "grantsHint": "Each module, the sites it covers, when it took effect and what it needs.",
+    "module": "Module",
+    "sites": "Sites",
+    "since": "In force since",
+    "requires": "Requires",
+    "allSites": "All sites",
+    "notLicensed": "Not licensed",
+    "notLicensedHint": "Never shown in this tenant's workspace.",
+    "grantChangesNext": "Granting or removing a module is a contract amendment (next in Gate B). Try a change safely in Preview as client.",
+    "eligible": "Eligible flats",
+    "pricedCounts": "Counts used for pricing",
+    "pricedCountsHint": "Declared estimates before go-live; snapshots replace them once meters run.",
+    "metersTitle": "Meters and evidence",
+    "metersBody": "Usage meters, monthly snapshots and the counted-and-excluded evidence (without personal names) arrive with HQ-014 and HQ-015 later in Gate B.",
+    "approvalTitle": "Commercial approval",
+    "approvalStatus": "Status",
+    "approvalStatuses": {
+      "pending": "Awaiting decision",
+      "approved": "Approved",
+      "returned": "Returned"
+    },
+    "requestedBy": "Requested by",
+    "requestedOn": "Requested on",
+    "decidedBy": "Decided by",
+    "comment": "Comment",
+    "discounts": "Discounts",
+    "noDiscounts": "No discounts on this contract.",
+    "billing": "Platform billing",
+    "billingStatus": "Billing status",
+    "invoicesNext": "Central invoices, credits and payments (HQ-017) are part of Gate G.",
+    "auditTitle": "Audit trail",
+    "auditHint": "Every change to this tenant's licence, contract and approvals, with who and when."
+  },
+  "preview": {
+    "title": "Preview as client",
+    "crumb": "Preview",
+    "badge": "Preview",
+    "intro": "See what {{tenant}}'s people get: the menus, quick actions, search and areas each role can open under the tenant's plan.",
+    "bannerTitle": "Previewing {{tenant}} as {{role}}",
+    "bannerBody": "This shows availability only. No tenant records are loaded, and you are not signed in as anyone.",
+    "noRecords": "No tenant records",
+    "role": "Role",
+    "menuTitle": "Their menu",
+    "menuHint": "The sidebar this role sees, drawn from the same model as the workspace.",
+    "menuFrame": "Workspace menu preview",
+    "phoneBar": "Phone bar",
+    "areasTitle": "What this role can open",
+    "areasHint": "Every work area, and why it is or isn't available.",
+    "status": {
+      "available": "Available",
+      "notInPlan": "Not in plan",
+      "role": "Not for this role",
+      "site": "Not for this site",
+      "suspended": "Suspended",
+      "inactive": "Not active yet"
+    },
+    "gained": "Would gain",
+    "lost": "Would lose",
+    "quickCreate": "Quick create",
+    "search": "Search finds",
+    "addressTitle": "Check an address",
+    "addressHint": "What this role gets when it opens a workspace address (a link, a bookmark or a typed address).",
+    "address": "Workspace address",
+    "opens": "Opens normally",
+    "addressModule": "Module: {{module}}",
+    "whatIfPanel": "What if the plan changed?",
+    "whatIfHint": "Try another set of modules and see the effect on this role. Nothing is saved; changing a live plan is a contract amendment.",
+    "whatIfToggle": "Try different modules",
+    "whatIfTitle": "What-if: nothing is saved",
+    "whatIfBody": "The tenant's plan is unchanged. Labels show what would be gained or lost.",
+    "inPlanNow": "in plan now",
+    "dependencyTitle": "This set misses a requirement",
+    "needs": "{{module}} needs {{needs}}."
+  },
+  "createTour": {
+    "name": "Create a tenant",
+    "summary": "The nine steps, how drafts are saved, the edition presets and the live price.",
+    "showMe": "Show me how",
+    "intro": {
+      "title": "Set up a tenant in nine short steps",
+      "body": "Each step is saved as a draft on the platform, so you can leave and come back, or change language, without losing anything."
+    },
+    "progress": {
+      "title": "Your progress",
+      "body": "See where you are and reopen any step you have reached. Later steps open as you go."
+    },
+    "edition": {
+      "title": "Start from a preset",
+      "body": "An edition fills in sensible modules and prices from the rate card. Everything stays editable in the next steps."
+    },
+    "price": {
+      "title": "The live price follows you",
+      "body": "From the pricing step, the first invoice and a typical month are shown beside the form and update as you change anything.",
+      "bodyMobile": "From the pricing step, the first invoice and a typical month stay pinned at the top while you change anything."
+    },
+    "save": {
+      "title": "Continue saves the step",
+      "body": "If something needs fixing, the step lists it and nothing moves on until it is right."
+    },
+    "help": {
+      "title": "Help is always here",
+      "body": "Replay this guide or read it as text from Help and tours."
+    }
   }
 }

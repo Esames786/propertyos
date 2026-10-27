@@ -102,7 +102,7 @@ export function quantityProblems(quantities: unknown): Problems {
   return bad ? { quantities: v('quantities') } : {};
 }
 
-function moduleProblems(modules: unknown, siteIds: Set<string>): Problems {
+export function moduleProblems(modules: unknown, siteIds: Set<string>): Problems {
   if (!Array.isArray(modules)) return { modules: v('modules') };
   const p: Problems = {};
   (modules as ModuleSelection[]).forEach((m, i) => {

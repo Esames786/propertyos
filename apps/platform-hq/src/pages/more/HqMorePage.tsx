@@ -1,6 +1,5 @@
 import {
   Button,
-  filterAllowed,
   IconTile,
   LocaleToggle,
   PageHeader,
@@ -29,11 +28,11 @@ const cardClass =
  */
 export default function HqMorePage() {
   const { t } = useT();
-  const { persona, personas, signIn, signOut } = useSession();
+  const { persona, personas, signIn, signOut, allows } = useSession();
   const announce = useAnnounce();
   const toast = useToast();
   const reset = useApiMutation();
-  const areas = filterAllowed(persona, HQ_NAV);
+  const areas = HQ_NAV.filter(allows);
   const settings = [
     { id: 'preferences', label: t('nav:pages.preferences'), href: HQ.preferences, icon: Settings, hue: 'slate' as TileHue },
     { id: 'tours', label: t('nav:pages.tourLibrary'), href: HQ.tours, icon: Compass, hue: 'emerald' as TileHue },

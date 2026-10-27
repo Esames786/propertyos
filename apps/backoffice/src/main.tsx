@@ -1,4 +1,4 @@
-import { MockTransport, PERSONAS, TENANT } from '@repo/fixtures';
+import { ACCESS_TODAY, BACKOFFICE_TENANTS, effectiveAccessFor, MockTransport, PERSONAS, TENANT } from '@repo/fixtures';
 import { getMissingKeys } from '@repo/i18n';
 import { AppProviders } from '@repo/ui';
 import { StrictMode } from 'react';
@@ -22,7 +22,10 @@ createRoot(document.getElementById('root')!).render(
     <AppProviders
       app="backoffice"
       tenant={TENANT}
+      tenants={BACKOFFICE_TENANTS}
       personas={PERSONAS}
+      accessFor={effectiveAccessFor}
+      accessDate={ACCESS_TODAY}
       createTransport={(getContext, getMode) => {
         transport ??= new MockTransport({ getContext, getMode });
         window.__prototype = { transport, missingKeys: getMissingKeys };

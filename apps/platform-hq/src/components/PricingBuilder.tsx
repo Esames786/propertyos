@@ -7,7 +7,8 @@ import {
   type RateCardLine,
   type UsageDimension,
 } from '@repo/contracts';
-import { Badge, Button, cn, IconButton, MenuButton, SegmentedControl, SelectControl, useT, type MenuGroup } from '@repo/ui';
+import { Badge, Button, cn, IconButton, MenuButton, SegmentedControl, SelectControl, Switch, useT, type MenuGroup } from '@repo/ui';
+import { useState } from 'react';
 import { CalendarClock, Layers, Plus, Trash2 } from 'lucide-react';
 import { useHqFormat } from '../lib/format';
 import { componentName, dimensionLabel, moduleName } from '../lib/labels';
@@ -35,6 +36,9 @@ export function componentLabel(t: ReturnType<typeof useT>['t'], c: Pick<PricingC
  * HQ-012 pricing component table: one card per component with its basis, price and dates, the
  * rate-card price beside any override (which then needs a reason), and "Schedule a price change"
  * for versioned rates. No arithmetic happens here: the server prices the contract.
+ *
+ * Basic shows what most contracts change (each price and what it counts); Advanced adds effective
+ * dates and scheduled price changes. Prices that already carry their own dates keep them visible.
  */
 export function PricingBuilder({
   contract,
@@ -56,6 +60,9 @@ export function PricingBuilder({
   const fmt = useHqFormat();
   const lines = rateCard.lines.filter((l) => l.editions.includes(edition));
   const lineOf = (c: PricingComponent) => rateCard.lines.find((l) => l.id === c.rateCardLineId);
+  const [advancedChoice, setAdvanced] = useState(false);
+  const dated = contract.components.some((c) => c.type !== 'TRIAL' && (c.effectiveFrom !== contract.terms.start || !!c.effectiveTo));
+  const advanced = advancedChoice || dated;
 
   const update = (id: string, patch: Partial<PricingComponent>) =>
     onChange({ ...contract, components: contract.components.map((c) => (c.id === id ? { ...c, ...patch } : c)) });
@@ -89,7 +96,17 @@ export function PricingBuilder({
   }
 
   return (
-    <div className="space-y-3" data-testid={testId}>
+    <div className="space-y-3" data-testid={testId} data-mode={advanced ? 'advanced' : 'basic'}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        {dated ? (
+          <p className="text-sm text-muted" data-testid={`${testId}-dated`}>
+            <CalendarClock aria-hidden className="me-1 inline size-4" />
+            {t('platform:builder.datedShown')}
+          </p>
+        ) : (
+          <Switch isSelected={advancedChoice} onChange={setAdvanced} label={t('platform:builder.advanced')} description={t('platform:builder.advancedHint')} testId={`${testId}-advanced`} />
+        )}
+      </div>
       {contract.components.length === 0 && <p className="rounded-tile border border-dashed border-border p-4 text-sm text-muted">{t('platform:builder.empty')}</p>}
       <ul className="space-y-3">
         {contract.components.map((c) => {
@@ -110,7 +127,7 @@ export function PricingBuilder({
                 </div>
                 <div className="flex items-center gap-1">
                   {c.effectiveFrom > contract.terms.start && <Badge tone="info" icon={CalendarClock}>{t('platform:builder.scheduled', { date: fmt.date(c.effectiveFrom) })}</Badge>}
-                  {recurring && c.type !== 'FREE' && !c.effectiveTo && (
+                  {advanced && recurring && c.type !== 'FREE' && !c.effectiveTo && (
                     <IconButton label={t('platform:builder.schedule', { name })} icon={CalendarClock} onPress={() => schedule(c)} data-testid={`schedule-${c.id}`} />
                   )}
                   <IconButton label={t('platform:builder.remove', { name })} icon={Trash2} onPress={() => remove(c.id)} data-testid={`remove-${c.id}`} />
@@ -173,8 +190,8 @@ export function PricingBuilder({
                     {t('platform:builder.perSite', { count: c.siteIds.length })}
                   </p>
                 )}
-                <DateInput label={t('platform:builder.from')} value={c.effectiveFrom} onChange={(v) => v && update(c.id, { effectiveFrom: v })} testId={`from-${c.id}`} />
-                {recurring && (
+                {advanced && <DateInput label={t('platform:builder.from')} value={c.effectiveFrom} onChange={(v) => v && update(c.id, { effectiveFrom: v })} testId={`from-${c.id}`} />}
+                {advanced && recurring && (
                   <DateInput label={t('platform:builder.to')} optional value={c.effectiveTo ?? ''} onChange={(v) => update(c.id, { effectiveTo: v || undefined })} description={t('platform:builder.toHint')} testId={`to-${c.id}`} />
                 )}
               </div>

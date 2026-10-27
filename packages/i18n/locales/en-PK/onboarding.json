@@ -201,6 +201,7 @@
   },
   "modules": {
     "lab": "the design system lab",
-    "crm": "Sales"
+    "crm": "Sales",
+    "hq-create": "Create tenant"
   }
 }

@@ -1,4 +1,6 @@
+import { MODULE_KEYS } from '../../packages/contracts/src/access';
 import { SCREENS } from '../../packages/contracts/src/screens/register.generated';
+import { directoryTenant } from '../../packages/fixtures/src/tenant-directory';
 import { BO, CU, expect, HQ, seed, test } from '../support/fixtures';
 
 /**
@@ -15,6 +17,10 @@ const hostFor = (screen: (typeof SCREENS)[number]) => {
 };
 
 const OPENABLE = SCREENS.filter((s) => s.concrete && s.registerRoute);
+/** Modules Larkspur (the manager's tenant) licenses; other backoffice modules answer "not in your plan" (V3.1). */
+const LARKSPUR = new Set<string>(directoryTenant('tnt_larkspur')!.modules.map((m) => m.module));
+const outsidePlan = (screen: (typeof SCREENS)[number]) =>
+  screen.app === 'backoffice' && hostFor(screen) === BO && (MODULE_KEYS as readonly string[]).includes(screen.module) && !LARKSPUR.has(screen.module);
 const chunks = <T,>(list: readonly T[], size: number) => Array.from({ length: Math.ceil(list.length / size) }, (_, i) => list.slice(i * size, i * size + size));
 
 test.describe('Screen register coverage (V3.1)', () => {
@@ -42,7 +48,9 @@ test.describe('Screen register coverage (V3.1)', () => {
       for (const screen of group) {
         await page.goto(`${hostFor(screen)}${screen.registerRoute}`);
         await expect(page.locator('h1').first(), `${screen.id} ${screen.registerRoute}`).toBeVisible();
-        if (screen.status === 'planned') {
+        if (outsidePlan(screen)) {
+          await expect(page.getByTestId('access-outcome'), `${screen.id} outside the plan`).toHaveAttribute('data-module', screen.module);
+        } else if (screen.status === 'planned') {
           await expect(page.getByTestId('planned-screen'), `${screen.id} planned`).toHaveAttribute('data-screen-id', screen.id);
         } else {
           await expect(page.getByTestId('state-not-found'), `${screen.id} built`).toHaveCount(0);

@@ -60,6 +60,11 @@ browser tab; More → Reset demo data clears them.
 | Bilal Ahmed | Sales executive | Larkspur Heights only |
 | Farah Javed | Finance officer | All projects, finance permissions |
 | Usman Tariq | Owner and resident | Customer portal |
+| Saima Akram | Facility manager, *Shalimar Court Residents (Demo)* | A maintenance-only client: core + maintenance. Her role holds sales permissions on purpose; the licence still keeps developer modules away |
+| Adnan Malik | Committee administrator, Shalimar Court | Same plan; can read "Your plan and modules" |
+
+Every workspace address, menu, search, quick action and mock API call is checked against the
+organisation's licensed modules as well as the person's role (V3.1 effective access).
 
 The account menu (initials, top end) lets you switch identity, reset the first-login onboarding
 and choose a simulated network (normal, instant, slow, server error, offline).
@@ -75,6 +80,9 @@ for the browser tab, the same way the backoffice demo does.
 | Hamza Qureshi | Supreme Admin | Everything in HQ: create tenants, price contracts, approve another person's contract |
 | Ayesha Siddiqui | Commercial approver | Approve or return contracts that go beyond commercial policy |
 | Iqra Rana | Platform support | See tenants and licences; cannot create tenants, change prices or read tenant records |
+
+From a tenant, **Tenant 360** shows its licence, contract, usage, commercial record and audit, and
+**Preview as client** shows exactly what each of its roles can open, without loading any tenant record.
 
 ## Layout
 

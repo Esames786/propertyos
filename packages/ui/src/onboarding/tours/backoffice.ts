@@ -10,6 +10,9 @@ const DASHBOARD = '/backoffice/home/role-aware-dashboard';
  * centre, collections (finance roles only), search, quick create and help. Steps a role cannot use
  * are removed before the tour starts; a widget missing on screen falls back to a text explanation.
  */
+/** The dashboard figures and action centre come from these modules; a maintenance-only workspace has none. */
+const DEVELOPER_FIGURES = ['crm', 'inventory', 'sales', 'receivables'] as const;
+
 export const GLOBAL_TOUR: TourDefinition = {
   id: 'GLOBAL-TOUR-001',
   version: 2,
@@ -43,6 +46,7 @@ export const GLOBAL_TOUR: TourDefinition = {
       kind: 'EXPLAIN',
       route: DASHBOARD,
       targetId: 'dashboard-kpis',
+      anyModule: DEVELOPER_FIGURES,
       // On phones the four figures stack taller than the screen: frame the first one instead.
       mobileTargetId: 'dashboard-kpi-first',
       fallback: 'explain',
@@ -63,6 +67,7 @@ export const GLOBAL_TOUR: TourDefinition = {
       kind: 'EXPLAIN',
       route: DASHBOARD,
       targetId: 'dashboard-action-centre',
+      anyModule: DEVELOPER_FIGURES,
       fallback: 'explain',
       titleKey: k('actionCentre', 'title'),
       bodyKey: k('actionCentre', 'body'),

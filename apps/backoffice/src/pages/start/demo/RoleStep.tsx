@@ -22,7 +22,9 @@ export function RoleStep({
   onContinue: (role: DemoRole, fresh: boolean) => void;
 }) {
   const { t } = useT();
-  const { personas, persona, tenant } = useSession();
+  const { personas, persona, tenants } = useSession();
+  // The demo roles all belong to the developer demo tenant, whoever is signed in now.
+  const tenant = tenants.find((x) => x.id === personas.find((p) => p.id === 'manager')?.tenantId) ?? tenants[0]!;
   const [role, setRole] = useState<DemoRole>(isDemoRole(persona?.id) ? persona.id : 'manager');
   const [fresh, setFresh] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);

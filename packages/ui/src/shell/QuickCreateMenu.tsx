@@ -1,4 +1,4 @@
-import { Banknote, CalendarPlus, GraduationCap, Lock, Plus, Receipt, UserPlus } from 'lucide-react';
+import { Banknote, CalendarPlus, GraduationCap, Lock, Plus, Receipt, UserPlus, Wrench } from 'lucide-react';
 import { useRef } from 'react';
 import { Button as AriaButton, Menu, MenuItem, MenuSection, MenuTrigger, Popover, Header, Separator, Text } from 'react-aria-components';
 import type { Permission } from '@repo/contracts';
@@ -11,16 +11,21 @@ import { PRACTICE_LEAD_DRAWER } from '../onboarding/PracticeLeadDrawer';
 import { popoverClass } from '../overlays/Menu';
 import { useSession } from '../permissions/SessionProvider';
 
-const LIVE: Array<{ id: string; key: 'newLead' | 'scheduleVisit'; icon: typeof Plus; permission: Permission; drawer: string }> = [
+/** Quick create entries (shared with the Platform HQ preview of a tenant role). */
+export const LIVE: Array<{ id: string; key: 'newLead' | 'scheduleVisit'; icon: typeof Plus; permission: Permission; drawer: string }> = [
   { id: 'new-lead', key: 'newLead', icon: UserPlus, permission: 'lead.create', drawer: NEW_LEAD_DRAWER },
   { id: 'schedule-visit', key: 'scheduleVisit', icon: CalendarPlus, permission: 'visit.schedule', drawer: SCHEDULE_VISIT_DRAWER },
 ];
 
-const PLANNED: Array<{ id: string; key: 'holdUnit' | 'receivePayment' | 'newExpense'; icon: typeof Plus; permission: Permission }> = [
+export const PLANNED: Array<{ id: string; key: 'holdUnit' | 'receivePayment' | 'newExpense' | 'newServiceRequest'; icon: typeof Plus; permission: Permission }> = [
   { id: 'hold-unit', key: 'holdUnit', icon: Lock, permission: 'unit.hold' },
   { id: 'receive-payment', key: 'receivePayment', icon: Banknote, permission: 'payment.receive' },
   { id: 'new-expense', key: 'newExpense', icon: Receipt, permission: 'expense.create' },
+  { id: 'new-service-request', key: 'newServiceRequest', icon: Wrench, permission: 'operations.view' },
 ];
+
+/** Whether Quick create has anything to offer this person (plan and role). */
+export const quickCreateAvailable = (can: (p: Permission) => boolean) => can('quickcreate.use') && [...LIVE, ...PLANNED].some((p) => can(p.permission));
 
 const itemClass =
   'flex cursor-default items-start gap-3 rounded-control px-3 py-2 text-sm text-text outline-none data-focused:bg-primary-soft data-disabled:cursor-not-allowed data-disabled:text-muted pointer-coarse:py-3';
@@ -42,9 +47,10 @@ export function QuickCreateMenu({ variant = 'pill' }: { variant?: keyof typeof T
   const { can } = useSession();
   const [, setDrawer] = useQueryParam('drawer');
   const chose = useRef(false);
-  if (!can('quickcreate.use')) return null;
   const live = LIVE.filter((p) => can(p.permission));
   const planned = PLANNED.filter((p) => can(p.permission));
+  // Nothing this workspace's plan and this role allow: no button that opens an empty menu.
+  if (!quickCreateAvailable(can)) return null;
 
   return (
     <MenuTrigger

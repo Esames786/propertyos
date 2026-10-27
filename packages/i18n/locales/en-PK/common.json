@@ -52,7 +52,9 @@
     "manager": "Developer manager",
     "sales": "Sales executive",
     "finance": "Finance officer",
-    "resident": "Owner and resident"
+    "resident": "Owner and resident",
+    "facility_manager": "Facility manager",
+    "society_admin": "Committee administrator"
   },
   "welcomeBenefit": {
     "manager": "See every project, approve work and move anywhere quickly.",
@@ -61,7 +63,9 @@
     "resident": "Check payments, documents and services for your property in one place.",
     "supreme_admin": "You run the platform: tenants, modules, pricing and approvals, all in one place.",
     "commercial_approver": "You review contracts that need commercial approval and keep pricing within policy.",
-    "platform_support": "You can see every tenant's licence, usage and history, without access to their private records."
+    "platform_support": "You can see every tenant's licence, usage and history, without access to their private records.",
+    "facility_manager": "Keep your buildings running: maintenance, requests and work in one place.",
+    "society_admin": "Run your society's workspace: people, settings and the modules your plan includes."
   },
   "demo": {
     "signInTitle": "Choose a demo identity",
@@ -177,7 +181,8 @@
     "newExpense": "New expense",
     "demoGroup": "Create (demo data)",
     "newLeadDescription": "Adds a fictional lead to this demo session.",
-    "scheduleVisitDescription": "Books a site visit for a demo lead."
+    "scheduleVisitDescription": "Books a site visit for a demo lead.",
+    "newServiceRequest": "New maintenance request"
   },
   "command": {
     "title": "Search",

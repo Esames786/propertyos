@@ -191,6 +191,63 @@ export function decide(access: EffectiveAccess, req: AccessRequest): AccessDecis
   return { allowed: true };
 }
 
+/**
+ * The module each tenant-plane permission belongs to (illustrative prototype catalogue). Checking a
+ * permission therefore also checks that its module is licensed, so a role can never reach a
+ * module its organisation has not licensed. Platform (HQ) permissions belong to no tenant module.
+ */
+export const PERMISSION_MODULE: Partial<Record<Permission, ModuleKey>> = {
+  'project.context.use': 'projects',
+  'quickcreate.use': 'core',
+  'lead.view': 'crm',
+  'lead.create': 'crm',
+  'visit.schedule': 'crm',
+  'unit.view': 'inventory',
+  'unit.hold': 'sales',
+  'quote.create': 'sales',
+  'customer.view': 'core',
+  'booking.view': 'sales',
+  'invoice.view': 'receivables',
+  'payment.receive': 'receivables',
+  'finance.evidence.review': 'receivables',
+  'expense.create': 'payables',
+  'supplier.view': 'payables',
+  'procurement.view': 'procurement',
+  'hr.view': 'hr',
+  'operations.view': 'maintenance',
+  'residents.view': 'residents',
+  'reports.view': 'reports',
+  'admin.view': 'core',
+  'portal.use': 'resident_portal',
+};
+
+/** Something the UI offers (a menu item, action, tour step, link): its module and permission. */
+export interface AccessTarget {
+  module?: ModuleKey;
+  feature?: FeatureKey;
+  permission?: Permission | readonly Permission[];
+}
+
+/**
+ * Whether a UI target is available: every listed permission held, and the module licensed and in
+ * force (explicit, or the module of the first permission). Same layers as `decide`; menus use it
+ * so what is offered matches what the API will allow.
+ */
+export function decideTarget(access: EffectiveAccess, target: AccessTarget, at: string): AccessDecision {
+  const permissions: readonly Permission[] = target.permission === undefined ? [] : Array.isArray(target.permission) ? target.permission : [target.permission as Permission];
+  const module = target.module ?? permissions.map((p) => PERMISSION_MODULE[p]).find((m) => m !== undefined) ?? 'core';
+  const base = decide(access, { module, ...(target.feature ? { feature: target.feature } : {}), at, suspension: 'history_read' });
+  if (!base.allowed) return base;
+  for (const p of permissions) {
+    const own = PERMISSION_MODULE[p];
+    if (own && own !== module) {
+      const d = decide(access, { module: own, permission: p, at, suspension: 'history_read' });
+      if (!d.allowed) return d;
+    } else if (!access.permissions.includes(p)) return deny('permission_missing');
+  }
+  return { allowed: true };
+}
+
 /** HTTP status the API uses for a reason: out-of-scope records are "not found", so their existence is not confirmed. */
 export function denyStatus(reason: DenyReason): 403 | 404 | 409 {
   if (reason === 'out_of_scope') return 404;

@@ -6,7 +6,6 @@ import {
   RevealItem,
   SectionHeading,
   Stagger,
-  filterAllowed,
   useAnnounce,
   useApiMutation,
   useSession,
@@ -44,11 +43,11 @@ const cardClass =
  */
 export default function MorePage() {
   const { t } = useT();
-  const { persona, personas, signIn, signOut } = useSession();
+  const { persona, personas, signIn, signOut, allows } = useSession();
   const announce = useAnnounce();
   const toast = useToast();
   const reset = useApiMutation();
-  const areas = filterAllowed(persona, NAV_ITEMS);
+  const areas = NAV_ITEMS.filter(allows);
 
   const settings: Array<{ id: string; label: string; href: string; icon: typeof Settings; hue: TileHue }> = [
     { id: 'preferences', label: t('nav:pages.preferences'), href: LINKS.preferences, icon: Settings, hue: 'slate' },

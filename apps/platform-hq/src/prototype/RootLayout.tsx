@@ -1,5 +1,5 @@
 import { NavigationProvider } from '@repo/ui';
-import { GuidedTourProvider, HQ_TOUR } from '@repo/ui/onboarding';
+import { GuidedTourProvider, HQ_CREATE_TOUR, HQ_TOUR } from '@repo/ui/onboarding';
 import { useCallback } from 'react';
 import { Outlet, ScrollRestoration, useHref, useLocation, useNavigate } from 'react-router';
 import { HQ, HQ_TOUR_LINKS } from '../nav.config';
@@ -14,7 +14,7 @@ export function RootLayout() {
   const nav = useCallback((href: string, options?: { replace?: boolean }) => navigate(href, { replace: options?.replace }), [navigate]);
   return (
     <NavigationProvider navigate={nav} location={location} useHref={useHref}>
-      <GuidedTourProvider tours={[HQ_TOUR]} welcomeTourId={HQ_TOUR.id} suppressWelcome={location.pathname.startsWith(HQ.signIn)} links={HQ_TOUR_LINKS}>
+      <GuidedTourProvider tours={[HQ_TOUR, HQ_CREATE_TOUR]} welcomeTourId={HQ_TOUR.id} suppressWelcome={location.pathname.startsWith(HQ.signIn)} links={HQ_TOUR_LINKS}>
         <Outlet />
       </GuidedTourProvider>
       <ScrollRestoration />

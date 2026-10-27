@@ -417,7 +417,7 @@ export const SCREENS: readonly ScreenEntry[] = [
     "scope": "platform",
     "disposition": "supersede->HQ-004",
     "canonicalId": "HQ-004",
-    "gate": "B",
+    "gate": "built",
     "concrete": true
   },
   {
@@ -7206,7 +7206,7 @@ export const SCREENS: readonly ScreenEntry[] = [
     "uiTemplate": "index",
     "registerRoute": "",
     "route": "",
-    "status": "planned",
+    "status": "implemented",
     "stage": 0,
     "application": "backoffice",
     "edition": "ALL",
@@ -7215,7 +7215,7 @@ export const SCREENS: readonly ScreenEntry[] = [
     "scope": "-",
     "disposition": "new",
     "canonicalId": "GLOBAL-012",
-    "gate": "B",
+    "gate": "built",
     "concrete": false
   },
   {
@@ -7316,7 +7316,7 @@ export const SCREENS: readonly ScreenEntry[] = [
     "uiTemplate": "workspace",
     "registerRoute": "",
     "route": "",
-    "status": "partial",
+    "status": "implemented",
     "stage": 0,
     "application": "platform-hq",
     "edition": "HQ",
@@ -7325,7 +7325,7 @@ export const SCREENS: readonly ScreenEntry[] = [
     "scope": "platform (tenant metadata only)",
     "disposition": "new",
     "canonicalId": "HQ-004",
-    "gate": "B",
+    "gate": "built",
     "concrete": false
   },
   {
@@ -7404,7 +7404,7 @@ export const SCREENS: readonly ScreenEntry[] = [
     "uiTemplate": "form",
     "registerRoute": "",
     "route": "",
-    "status": "planned",
+    "status": "partial",
     "stage": 0,
     "application": "platform-hq",
     "edition": "HQ",
@@ -7413,7 +7413,7 @@ export const SCREENS: readonly ScreenEntry[] = [
     "scope": "platform (tenant metadata only)",
     "disposition": "new (state of HQ-004)",
     "canonicalId": "HQ-004",
-    "gate": "B",
+    "gate": "built",
     "concrete": false
   },
   {
@@ -7426,7 +7426,7 @@ export const SCREENS: readonly ScreenEntry[] = [
     "uiTemplate": "onboarding",
     "registerRoute": "",
     "route": "",
-    "status": "planned",
+    "status": "implemented",
     "stage": 0,
     "application": "platform-hq",
     "edition": "HQ",
@@ -7435,7 +7435,7 @@ export const SCREENS: readonly ScreenEntry[] = [
     "scope": "platform (tenant metadata only)",
     "disposition": "new",
     "canonicalId": "HQ-009",
-    "gate": "B",
+    "gate": "built",
     "concrete": false
   },
   {
@@ -7536,7 +7536,7 @@ export const SCREENS: readonly ScreenEntry[] = [
     "uiTemplate": "index",
     "registerRoute": "",
     "route": "",
-    "status": "planned",
+    "status": "partial",
     "stage": 0,
     "application": "platform-hq",
     "edition": "HQ",
@@ -7655,7 +7655,7 @@ export const SCREENS: readonly ScreenEntry[] = [
     "scope": "platform (tenant metadata only)",
     "disposition": "new (state of HQ-004)",
     "canonicalId": "HQ-004",
-    "gate": "B",
+    "gate": "built",
     "concrete": false
   },
   {
@@ -8328,7 +8328,7 @@ export const SCREENS: readonly ScreenEntry[] = [
     "uiTemplate": "index",
     "registerRoute": "/backoffice/adm/plan",
     "route": "/backoffice/adm/plan",
-    "status": "planned",
+    "status": "implemented",
     "stage": 0,
     "application": "backoffice",
     "edition": "ALL",
@@ -8337,7 +8337,7 @@ export const SCREENS: readonly ScreenEntry[] = [
     "scope": "tenant",
     "disposition": "new",
     "canonicalId": "ADM-023",
-    "gate": "B",
+    "gate": "built",
     "concrete": true
   },
   {

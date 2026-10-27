@@ -11,7 +11,9 @@ import {
   type WorkspaceRequest,
 } from '@repo/contracts';
 import { directionOf, useLocale } from '@repo/i18n';
-import { cn, dynamicT, ErrorState, InlineAlert, PageHeader, Skeleton, useAnnounce, useApiMutation, useApiQuery, useNavigation, useQueryParams, useReducedMotion, useT, useToast, useTransport } from '@repo/ui';
+import { Button, cn, dynamicT, ErrorState, InlineAlert, PageHeader, Skeleton, useAnnounce, useApiMutation, useApiQuery, useNavigation, useQueryParams, useReducedMotion, useT, useToast, useTransport } from '@repo/ui';
+import { HQ_CREATE_TOUR, useGuidedTour, useTourModule } from '@repo/ui/onboarding';
+import { Compass } from 'lucide-react';
 import { AnimatePresence, motion, type Variants } from 'motion/react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { LivePriceBar } from '../../components/quote';
@@ -106,6 +108,9 @@ function Wizard({
   const reduced = useReducedMotion();
   const announce = useAnnounce();
   const toast = useToast();
+  const tours = useGuidedTour();
+  // First visit to the wizard offers its guided help (HQ-TOUR-002), once, without blocking.
+  useTourModule('hq-create');
   const { transport } = useTransport();
   const save = useApiMutation<StoredDraft>();
   const activate = useApiMutation<ActivationResult>();
@@ -332,7 +337,17 @@ function Wizard({
   const showAside = (['pricing', 'counts', 'terms'] as Step[]).includes(step);
   return (
     <div className="space-y-5" data-testid="create-tenant">
-      <PageHeader title={t('platform:pages.createTenant')} breadcrumbs={[{ label: t('platform:nav.tenants'), href: HQ.tenants }, { label: t('platform:pages.createTenant') }]} />
+      <PageHeader
+        title={t('platform:pages.createTenant')}
+        breadcrumbs={[{ label: t('platform:nav.tenants'), href: HQ.tenants }, { label: t('platform:pages.createTenant') }]}
+        actions={
+          step === 'type' ? (
+            <Button variant="quiet" icon={Compass} onPress={() => tours.start(HQ_CREATE_TOUR.id)} data-testid="wizard-guide">
+              {t('platform:createTour.showMe')}
+            </Button>
+          ) : undefined
+        }
+      />
       <div className={cn('grid gap-5 lg:grid-cols-[15rem_minmax(0,1fr)]', showAside && 'xl:grid-cols-[15rem_minmax(0,1fr)_16rem]')}>
         <div className="lg:sticky lg:top-24 lg:self-start">
           <Stepper current={step} reached={reached} onGo={(s) => go(s)} />

@@ -13,6 +13,8 @@ export const HQ = {
   tours: '/hq/help/tours',
   tenant: (id: string) => `/hq/tenants?tenant=${encodeURIComponent(id)}`,
   resumeDraft: (id: string) => `/hq/tenants/new?draft=${encodeURIComponent(id)}`,
+  tenant360: (id: string, tab?: string) => `/hq/tenants/${encodeURIComponent(id)}${tab ? `?tab=${tab}` : ''}`,
+  preview: (id: string, role?: string) => `/hq/tenants/${encodeURIComponent(id)}/preview${role ? `?role=${role}` : ''}`,
 } as const;
 
 /**

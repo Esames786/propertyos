@@ -4,6 +4,7 @@ import { Info, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Switch } from 'react-aria-components';
 import { CountInput, DateInput, MoneyInput, TextInput } from '../../../components/inputs';
+import { Expandable } from '../../../components/Expandable';
 import { componentLabel, overridesMissingReason, PricingBuilder } from '../../../components/PricingBuilder';
 import { useHqFormat } from '../../../lib/format';
 import { dimensionLabel } from '../../../lib/labels';
@@ -220,6 +221,8 @@ export function TermsStep({
     ...contract.components.filter((c) => c.type !== 'TRIAL' && c.type !== 'FREE').map((c) => ({ id: c.id, label: componentLabel(t, c) })),
   ];
   const show = attempt > 0;
+  const moreSet = contract.terms.tax.code !== 'NONE' || !!contract.terms.minimumMonthly || !!contract.terms.capMonthly;
+  const moreSummary = moreSet ? t('platform:wizard.terms.moreSet') : t('platform:wizard.terms.moreDefault');
   return (
     <StepFrame step="terms" title={t('platform:wizard.terms.title')} intro={t('platform:wizard.terms.intro')} autoFocus={p.autoFocus} testId="step-terms">
       {show && errors.length > 0 && (
@@ -232,48 +235,7 @@ export function TermsStep({
         </InlineAlert>
       )}
 
-      <section aria-labelledby="tax-heading" className="rounded-tile border border-border/70 bg-raised p-4">
-        <h2 id="tax-heading" className="text-sm font-bold text-text">
-          {t('platform:wizard.terms.tax')}
-        </h2>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <SelectControl
-            label={t('platform:wizard.terms.taxCode')}
-            value={contract.terms.tax.code}
-            options={taxCodes.map((c) => ({ id: c.code, label: t(`platform:taxCodes.${c.code.replace(/-/g, '_') as 'NONE'}`, { rate: c.ratePct }) }))}
-            onChange={(v) => {
-              const code = taxCodes.find((c) => c.code === v);
-              if (code) onChange({ ...contract, terms: { ...contract.terms, tax: { code: code.code, ratePct: code.ratePct } } });
-            }}
-            description={t('platform:wizard.terms.taxHint')}
-            testId="tax-code"
-          />
-        </div>
-      </section>
-
-      <section aria-labelledby="limits-heading" className="mt-4 rounded-tile border border-border/70 bg-raised p-4">
-        <h2 id="limits-heading" className="text-sm font-bold text-text">
-          {t('platform:wizard.terms.limits')}
-        </h2>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <MoneyInput
-            label={t('platform:wizard.terms.minimum')}
-            description={t('platform:wizard.terms.minimumHint')}
-            value={contract.terms.minimumMonthly?.amount ?? ''}
-            onChange={(a) => onChange({ ...contract, terms: { ...contract.terms, minimumMonthly: a ? { amount: a, currency: 'PKR' } : undefined } })}
-            testId="terms-minimum"
-          />
-          <MoneyInput
-            label={t('platform:wizard.terms.cap')}
-            description={t('platform:wizard.terms.capHint')}
-            value={contract.terms.capMonthly?.amount ?? ''}
-            onChange={(a) => onChange({ ...contract, terms: { ...contract.terms, capMonthly: a ? { amount: a, currency: 'PKR' } : undefined } })}
-            testId="terms-cap"
-          />
-        </div>
-      </section>
-
-      <section aria-labelledby="discounts-heading" className="mt-4">
+      <section aria-labelledby="discounts-heading">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 id="discounts-heading" className="text-sm font-bold text-text">
             {t('platform:wizard.terms.discounts')}
@@ -340,6 +302,57 @@ export function TermsStep({
           </p>
         )}
       </section>
+
+      <div className="mt-6">
+        <Expandable
+          title={t('platform:wizard.terms.more')}
+          summary={moreSummary}
+          defaultExpanded={moreSet}
+          testId="terms-more"
+        >
+        <section aria-labelledby="tax-heading" className="border-t border-border/70 pt-4">
+          <h3 id="tax-heading" className="text-sm font-semibold text-text">
+            {t('platform:wizard.terms.tax')}
+          </h3>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <SelectControl
+              label={t('platform:wizard.terms.taxCode')}
+              value={contract.terms.tax.code}
+              options={taxCodes.map((c) => ({ id: c.code, label: t(`platform:taxCodes.${c.code.replace(/-/g, '_') as 'NONE'}`, { rate: c.ratePct }) }))}
+              onChange={(v) => {
+                const code = taxCodes.find((c) => c.code === v);
+                if (code) onChange({ ...contract, terms: { ...contract.terms, tax: { code: code.code, ratePct: code.ratePct } } });
+              }}
+              description={t('platform:wizard.terms.taxHint')}
+              testId="tax-code"
+            />
+          </div>
+        </section>
+
+        <section aria-labelledby="limits-heading" className="mt-4 border-t border-border/70 pt-4">
+          <h3 id="limits-heading" className="text-sm font-semibold text-text">
+            {t('platform:wizard.terms.limits')}
+          </h3>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <MoneyInput
+              label={t('platform:wizard.terms.minimum')}
+              description={t('platform:wizard.terms.minimumHint')}
+              value={contract.terms.minimumMonthly?.amount ?? ''}
+              onChange={(a) => onChange({ ...contract, terms: { ...contract.terms, minimumMonthly: a ? { amount: a, currency: 'PKR' } : undefined } })}
+              testId="terms-minimum"
+            />
+            <MoneyInput
+              label={t('platform:wizard.terms.cap')}
+              description={t('platform:wizard.terms.capHint')}
+              value={contract.terms.capMonthly?.amount ?? ''}
+              onChange={(a) => onChange({ ...contract, terms: { ...contract.terms, capMonthly: a ? { amount: a, currency: 'PKR' } : undefined } })}
+              testId="terms-cap"
+            />
+          </div>
+        </section>
+
+        </Expandable>
+      </div>
 
       <StepActions
         testId="step-terms"

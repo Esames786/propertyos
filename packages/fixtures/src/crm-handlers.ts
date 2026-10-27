@@ -136,6 +136,7 @@ export const CRM_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/crm\/summary$/,
+    module: 'crm',
     handle: (ctx): SalesSummary => {
       const leads = visibleLeads(ctx);
       const now = FIXTURE_NOW.getTime();
@@ -191,6 +192,7 @@ export const CRM_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/leads$/,
+    module: 'crm',
     handle: (ctx): LeadListResponse => {
       const { q, status = 'all', project, sort = 'recent', page = 1 } = (ctx.req.query ?? {}) as Record<string, string | number | undefined>;
       let items = [...practiceItems(ctx), ...visibleLeads(ctx).map((l) => listItem(ctx, l))];
@@ -209,6 +211,7 @@ export const CRM_HANDLERS: readonly Handler[] = [
   {
     method: 'POST',
     pattern: /^\/leads$/,
+    module: 'crm',
     handle: (ctx) => {
       if (!can(ctx, 'lead.create')) forbid(ctx);
       const input = (ctx.req.body ?? {}) as CreateLeadInput;
@@ -255,6 +258,7 @@ export const CRM_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/leads\/(?<leadId>[\w-]+)$/,
+    module: 'crm',
     handle: (ctx): LeadDetail => {
       const lead = findLead(ctx, ctx.params.leadId!) as Lead & { interestUnitId?: string };
       const party = partyById(ctx, lead.partyId)!;
@@ -288,6 +292,7 @@ export const CRM_HANDLERS: readonly Handler[] = [
   {
     method: 'POST',
     pattern: /^\/leads\/(?<leadId>[\w-]+)\/activity$/,
+    module: 'crm',
     handle: (ctx) => {
       const lead = findLead(ctx, ctx.params.leadId!);
       const input = (ctx.req.body ?? {}) as LogActivityInput;
@@ -306,6 +311,7 @@ export const CRM_HANDLERS: readonly Handler[] = [
   {
     method: 'POST',
     pattern: /^\/leads\/(?<leadId>[\w-]+)\/status$/,
+    module: 'crm',
     handle: (ctx) => {
       const lead = findLead(ctx, ctx.params.leadId!);
       const status = (ctx.req.body as { status?: LeadStatus })?.status;
@@ -318,6 +324,7 @@ export const CRM_HANDLERS: readonly Handler[] = [
   {
     method: 'POST',
     pattern: /^\/leads\/(?<leadId>[\w-]+)\/follow-up$/,
+    module: 'crm',
     handle: (ctx) => {
       const lead = findLead(ctx, ctx.params.leadId!);
       const { at, done } = (ctx.req.body ?? {}) as { at?: string; done?: boolean };
@@ -335,6 +342,7 @@ export const CRM_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/visits$/,
+    module: 'crm',
     handle: (ctx): SiteVisit[] => {
       if (!can(ctx, 'lead.view')) forbid(ctx);
       return visibleVisits(ctx).sort((a, b) => a.at.localeCompare(b.at));
@@ -343,6 +351,7 @@ export const CRM_HANDLERS: readonly Handler[] = [
   {
     method: 'POST',
     pattern: /^\/visits$/,
+    module: 'crm',
     handle: (ctx): SiteVisit => {
       if (!can(ctx, 'visit.schedule')) forbid(ctx);
       const input = (ctx.req.body ?? {}) as ScheduleVisitInput;
@@ -371,6 +380,7 @@ export const CRM_HANDLERS: readonly Handler[] = [
   {
     method: 'POST',
     pattern: /^\/visits\/(?<visitId>[\w-]+)\/status$/,
+    module: 'crm',
     handle: (ctx) => {
       const visit = visibleVisits(ctx).find((v) => v.id === ctx.params.visitId);
       if (!visit) notFound(ctx);
@@ -386,6 +396,7 @@ export const CRM_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/units\/(?<unitId>[\w-]+)$/,
+    module: 'inventory',
     handle: (ctx) => {
       if (!can(ctx, 'unit.view')) forbid(ctx);
       const unit = UNITS.find((u) => u.id === ctx.params.unitId);
@@ -398,6 +409,7 @@ export const CRM_HANDLERS: readonly Handler[] = [
   {
     method: 'POST',
     pattern: /^\/units\/(?<unitId>[\w-]+)\/hold$/,
+    module: 'sales',
     handle: (ctx) => {
       if (!can(ctx, 'unit.hold')) forbid(ctx);
       const unit = UNITS.find((u) => u.id === ctx.params.unitId);
@@ -413,6 +425,7 @@ export const CRM_HANDLERS: readonly Handler[] = [
   {
     method: 'POST',
     pattern: /^\/units\/(?<unitId>[\w-]+)\/release$/,
+    module: 'sales',
     handle: (ctx) => {
       if (!can(ctx, 'unit.hold')) forbid(ctx);
       const hold = ctx.demo.holds()[ctx.params.unitId!];
