@@ -47,15 +47,18 @@ export function TransportProvider({ createTransport, children }: { createTranspo
       }),
   );
 
-  // Query keys include the persona, so another identity never reads this cache. On a real identity
-  // change, drop inactive entries. (Clearing everything on mount would orphan queries that child
-  // components have just subscribed to, leaving them pending forever.)
+  // Query keys include the persona, so another identity never reads this cache (partitioned). On a
+  // real identity change (another person, possibly another organisation) every cached answer that
+  // belongs to someone else is dropped as well, with pending mutations: search results, lists and
+  // records of the previous identity cannot reappear (CP2 security correction 5). Runs after the
+  // new identity's queries have subscribed, so it never orphans them. Not on first mount.
   const personaId = session.persona?.id;
   const previousPersona = useRef(personaId);
   useEffect(() => {
     if (previousPersona.current === personaId) return;
     previousPersona.current = personaId;
-    queryClient.removeQueries({ type: 'inactive' });
+    queryClient.removeQueries({ predicate: (q) => queryOwner(q.queryKey) !== personaId });
+    queryClient.getMutationCache().clear();
   }, [personaId, queryClient]);
 
   const value: TransportContextValue = {
@@ -74,6 +77,13 @@ export function TransportProvider({ createTransport, children }: { createTranspo
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     </TransportContext.Provider>
   );
+}
+
+/** The identity a cached query belongs to (every query key names it; see useApiQuery). */
+export function queryOwner(key: readonly unknown[]): unknown {
+  if (key[0] === 'api') return key[1];
+  if (key[0] === 'async-select') return key[3];
+  return undefined;
 }
 
 export function useTransport(): TransportContextValue {

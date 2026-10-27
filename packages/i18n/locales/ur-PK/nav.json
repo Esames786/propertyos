@@ -66,7 +66,9 @@
     "getStarted": "آغاز کریں",
     "demoLaunch": "ڈیمو دیکھیں",
     "workspaceSetup": "اپنا ورک اسپیس ترتیب دیں",
-    "plan": "آپ کا پلان اور ماڈیولز"
+    "plan": "آپ کا پلان اور ماڈیولز",
+    "myAccess": "میری رسائی",
+    "invoices": "انوائسز"
   },
   "groups": {
     "workspace": "کاروبار",
@@ -79,5 +81,11 @@
   "more": "مزید",
   "quickCreateFab": "فوری اندراج",
   "demoEnvironment": "ڈیمو ماحول · فرضی ریکارڈ · کوئی حقیقی لین دین نہیں",
-  "demoShort": "ڈیمو"
+  "demoShort": "ڈیمو",
+  "party": {
+    "developer": "گاہک اور خریدار",
+    "society": "مالکان اور رہائشی",
+    "portfolio": "افراد اور جائیدادیں",
+    "contacts": "افراد اور رابطے"
+  }
 }

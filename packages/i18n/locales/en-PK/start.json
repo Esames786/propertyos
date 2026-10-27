@@ -383,7 +383,8 @@
       "nextTitle": "See what your workspace would look like",
       "nextBody": "Open <b>{{tenant}}</b>, a fictional workspace, as <b>{{name}}</b>, a developer manager, and take the guided tour.",
       "openDemo": "Open the demo workspace",
-      "fullProduct": "In the full product, this is where your own workspace would open, with your colleagues invited by email."
+      "fullProduct": "In the full product, this is where your own workspace would open, with your colleagues invited by email.",
+      "signup": "For a real signup, the signup policy in force ({{version}}) says: {{policy}}."
     }
   },
   "cities": {

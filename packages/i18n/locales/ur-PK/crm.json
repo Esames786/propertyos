@@ -161,7 +161,8 @@
     "apartment_3bed": "تین بیڈ روم اپارٹمنٹ",
     "penthouse": "پینٹ ہاؤس",
     "villa": "ولا",
-    "plot": "پلاٹ"
+    "plot": "پلاٹ",
+    "shop": "دکان"
   },
   "contact": {
     "callTitle": "{{name}} کو کال کریں",

@@ -221,12 +221,13 @@ describe('services: maintenance requests and visitor passes', () => {
 
 describe('access control', () => {
   it('only the customer-app resident may use portal endpoints', async () => {
-    for (const personaId of ['manager', 'sales', 'finance', null]) {
+    // Staff lack portal.use (403); a signed-out session is not authenticated at all (401).
+    for (const [personaId, status] of [['manager', 403], ['sales', 403], ['finance', 403], [null, 401]] as const) {
       const t = make({ personaId, projectId: 'all' });
       for (const path of ['/portal/home', '/portal/payments', '/portal/services', '/portal/documents', '/portal/construction']) {
-        expect((await rejection(get(t, path))).problem.status, `${personaId} ${path}`).toBe(403);
+        expect((await rejection(get(t, path))).problem.status, `${personaId} ${path}`).toBe(status);
       }
-      expect((await rejection(post(t, '/portal/visitor-passes', { visitorName: 'X Y', purpose: 'guest', visitDate: '2026-10-28' }))).problem.status).toBe(403);
+      expect((await rejection(post(t, '/portal/visitor-passes', { visitorName: 'X Y', purpose: 'guest', visitDate: '2026-10-28' }))).problem.status).toBe(status);
     }
   });
 

@@ -4,7 +4,18 @@ export type AppId = 'backoffice' | 'customer' | 'public' | 'platform';
 
 /** A fictional demo identity used to simulate sign-in and role scope in the prototype. */
 export interface Persona {
-  id: 'manager' | 'sales' | 'finance' | 'resident' | 'facility_manager' | 'society_admin' | 'supreme_admin' | 'commercial_approver' | 'platform_support';
+  id:
+    | 'manager'
+    | 'sales'
+    | 'finance'
+    | 'resident'
+    | 'facility_manager'
+    | 'society_admin'
+    | 'cb_manager'
+    | 'cedar_treasurer'
+    | 'supreme_admin'
+    | 'commercial_approver'
+    | 'platform_support';
   tenantId: string;
   app: AppId;
   /**
@@ -22,4 +33,6 @@ export interface Persona {
   projectScope: 'all' | readonly string[];
   /** For residents: the party they are. */
   partyId?: string;
+  /** Staff: the tenant role they hold (its permissions are theirs). */
+  roleId?: string;
 }

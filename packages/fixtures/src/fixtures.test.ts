@@ -93,9 +93,9 @@ describe('MockTransport', () => {
     expect(fin.records.filter((r) => r.type === 'invoice').length).toBeGreaterThan(0);
   });
 
-  it('rejects requests from a signed-out session', async () => {
+  it('rejects requests from a signed-out session with 401 (fail closed)', async () => {
     const anon = make({ personaId: null, projectId: 'all' });
-    await expect(anon.request({ method: 'GET', path: '/units' })).rejects.toMatchObject({ problem: { status: 403 } });
+    await expect(anon.request({ method: 'GET', path: '/units' })).rejects.toMatchObject({ problem: { status: 401, code: 'unauthenticated' } });
   });
 
   it('routes practice writes to the training store only', async () => {

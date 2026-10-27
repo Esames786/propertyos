@@ -31,14 +31,22 @@ test.describe('Effective access in the workspace (V3.1)', () => {
     await expect(page.getByTestId('plan-home')).toBeVisible();
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Welcome back, Saima');
 
-    // Menus: maintenance only (plus the prototype's help and lab).
+    // Menus: maintenance only (plus help). The design system lab is a prototype tool, not a client area.
     await expect(nav(page).getByRole('link', { name: 'Operations' })).toBeVisible();
-    for (const name of ['Sales', 'Projects', 'Customers', 'Finance', 'Residents', 'Reports', 'Administration']) {
+    await expect(nav(page).getByRole('link', { name: 'Design system lab' })).toHaveCount(0);
+    for (const name of ['Sales', 'Projects', 'People & Contacts', 'Finance', 'Residents', 'Reports', 'Administration']) {
       await expect(nav(page).getByRole('link', { name, exact: true }), name).toHaveCount(0);
     }
-    await expect(page.getByTestId('plan-home-modules')).toHaveText(/Core.*Maintenance/);
-    await expect(page.getByTestId('plan-qa-new-request')).toBeVisible();
+    // Owner decision (CP2): only administrators see the plan's modules; others get "My access".
+    await expect(page.getByTestId('plan-home-modules')).toHaveCount(0);
+    await expect(page.getByTestId('plan-home-open-access')).toBeVisible();
     await expect(page.getByTestId('plan-qa-plan')).toHaveCount(0);
+    await expect(page.getByTestId('plan-qa-my-access')).toBeVisible();
+    // Planned maintenance screens are listed as planned (with their gate), never as working actions.
+    await expect(page.getByTestId('plan-qa-new-request')).toHaveCount(0);
+    await expect(page.getByTestId('plan-home-planned')).toContainText('Maintenance requests');
+    await expect(page.getByTestId('plan-planned-requests')).toContainText('Planned · Gate D');
+    await expect(page.getByTestId('plan-home-planned').getByRole('link')).toHaveCount(0);
 
     // Quick create offers the maintenance request only; no lead, visit, hold or payment.
     await page.locator('[data-tour-id="quick-create"]:visible').click();
@@ -109,7 +117,7 @@ test.describe('Effective access in the workspace (V3.1)', () => {
     await seed(page, { persona: 'manager' });
     await page.goto(`${BO}/backoffice`);
     await expect(page.getByTestId('management-dashboard')).toBeVisible();
-    for (const name of ['Sales', 'Projects', 'Customers', 'Finance', 'Operations', 'Administration']) {
+    for (const name of ['Sales', 'Projects', 'Customers & Buyers', 'Finance', 'Operations', 'Administration']) {
       await expect(nav(page).getByRole('link', { name, exact: true }), name).toBeVisible();
     }
     expect(await apiCode(page, '/leads')).toBe('allowed');

@@ -37,5 +37,10 @@
   },
   "external": "opens in a new tab",
   "currentPage": "current page",
-  "scrollRegion": "{{label}}, scrollable"
+  "scrollRegion": "{{label}}, scrollable",
+  "prototypeTools": {
+    "title": "Prototype tools",
+    "label": "Show the design system lab in menus and search",
+    "description": "For people reviewing the prototype. Clients never see it in their workspace; its addresses keep working either way."
+  }
 }

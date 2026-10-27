@@ -1,3 +1,4 @@
+import type { SignupPolicy } from './platform';
 import type { ProjectKind } from './entities';
 
 /**
@@ -32,6 +33,8 @@ export interface WorkspaceProfile extends WorkspaceSetup {
   createdAt: string;
   /** Always true in the prototype: shown so no screen implies a real workspace exists. */
   simulated: true;
+  /** What the signup policy in force says happens next for a real signup like this one (D-8). */
+  signup?: { policy: SignupPolicy; version: string };
 }
 
 /**

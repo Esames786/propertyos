@@ -48,6 +48,8 @@ async function keepVideo(page: Page, name: string) {
 }
 
 test.describe.configure({ mode: 'parallel' });
+// Historical: the Gate B checkpoint 2 folder is the "before" set; Gate B final evidence lives in gatebfinal.evidence.spec.ts.
+test.skip(true, 'Historical evidence of Gate B checkpoint 2');
 
 for (const locale of ['en-PK', 'ur-PK'] as Locale[]) {
   const l = lang(locale);

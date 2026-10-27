@@ -1,17 +1,17 @@
-import type { ActivityEvent, Lead, SiteVisit, UnitSummary, UnitDetail, Unit } from '@repo/contracts';
-import { FLOORS, PROJECTS, TOWERS, UNITS } from './inventory';
-import { PARTIES, PERSONAS } from './people';
-import { LEADS } from './records';
+import type { ActivityEvent, Lead, Party, Project, SiteVisit, UnitSummary, UnitDetail, Unit } from '@repo/contracts';
+import type { TenantDataset } from './dataset-types';
+import { PERSONAS } from './people';
 import { createRandom, daysFromNow, pad, percentOf, FIXTURE_NOW } from './seed';
 
 /**
  * Deterministic CRM fixtures for Sales home: site visits and a believable per-lead history.
  * Everything is fictional and generated from fixed seeds (screenshots and tests stay stable).
+ * Every helper takes the tenant's own dataset, never another tenant's records.
  */
 
 export const ownerName = (personaId: string) => PERSONAS.find((p) => p.id === personaId)?.displayName ?? 'Nadia Rahman';
-export const projectName = (projectId: string) => PROJECTS.find((p) => p.id === projectId)?.name ?? projectId;
-export const partyOf = (partyId: string) => PARTIES.find((p) => p.id === partyId);
+export const projectName = (d: Pick<TenantDataset, 'projects'>, projectId: string) => d.projects.find((p) => p.id === projectId)?.name ?? projectId;
+export const partyOf = (d: Pick<TenantDataset, 'parties'>, partyId: string) => d.parties.find((p) => p.id === partyId);
 
 /** Karachi local hour (UTC+5) → ISO instant `days` from the fixture clock. */
 const localAt = (days: number, localHour: number, minute = 0) => {
@@ -19,23 +19,24 @@ const localAt = (days: number, localHour: number, minute = 0) => {
   return minute ? iso.replace(':00:00', `:${pad(minute, 2)}:00`) : iso;
 };
 
-function generateVisits(): SiteVisit[] {
-  const rnd = createRandom(5150);
-  const candidates = LEADS.filter((l) => ['contacted', 'qualified', 'converted'].includes(l.status));
-  return candidates.slice(0, 26).map((lead, i) => {
-    const party = partyOf(lead.partyId)!;
+/** Fictional site visits for one tenant's leads. */
+export function generateVisits(g: { seed: number; leads: readonly Lead[]; units: readonly Unit[]; parties: readonly Party[]; projects: readonly Project[]; count: number; idPrefix: string }): SiteVisit[] {
+  const rnd = createRandom(g.seed);
+  const candidates = g.leads.filter((l) => ['contacted', 'qualified', 'converted'].includes(l.status));
+  return candidates.slice(0, g.count).map((lead, i) => {
+    const party = g.parties.find((p) => p.id === lead.partyId)!;
     const days = i < 4 ? 0 : i < 14 ? rnd.int(1, 7) : -rnd.int(1, 12);
     const at = localAt(days, rnd.pick([10, 11, 12, 14, 15, 16, 17] as const), rnd.pick([0, 30] as const));
     const past = days < 0;
-    const unit = UNITS.find((u) => u.projectId === lead.projectId && u.status === 'available' && Number(u.price.amount) <= Number(lead.budget.amount) * 1.15);
+    const unit = g.units.find((u) => u.projectId === lead.projectId && u.status === 'available' && Number(u.price.amount) <= Number(lead.budget.amount) * 1.15);
     return {
-      id: `vst_${pad(i + 1, 3)}`,
+      id: `${g.idPrefix}${pad(i + 1, 3)}`,
       leadId: lead.id,
       leadRef: lead.ref,
       displayName: party.displayName,
       phone: party.phone,
       projectId: lead.projectId,
-      projectName: projectName(lead.projectId),
+      projectName: projectName(g, lead.projectId),
       ...(unit ? { unitRef: unit.ref } : {}),
       at,
       status: past ? (lead.status === 'converted' || rnd.chance(0.8) ? 'completed' : 'no_show') : rnd.chance(0.55) ? 'confirmed' : 'scheduled',
@@ -44,12 +45,10 @@ function generateVisits(): SiteVisit[] {
   });
 }
 
-export const VISITS: readonly SiteVisit[] = generateVisits();
-
 const hours = (iso: string, h: number) => new Date(new Date(iso).getTime() + h * 3_600_000).toISOString();
 
 /** A plausible history for a fixture lead, newest first. */
-export function leadHistory(lead: Lead): ActivityEvent[] {
+export function leadHistory(d: Pick<TenantDataset, 'visits'>, lead: Lead): ActivityEvent[] {
   const owner = ownerName(lead.ownerPersonaId);
   const events: ActivityEvent[] = [
     { id: `${lead.id}_h1`, at: lead.createdAt, actorName: 'System', messageKey: 'activity.created', params: { source: lead.source }, kind: 'system' },
@@ -67,7 +66,7 @@ export function leadHistory(lead: Lead): ActivityEvent[] {
   if (['qualified', 'converted'].includes(lead.status)) {
     events.push({ id: `${lead.id}_h4`, at: hours(lead.createdAt, 50), actorName: owner, messageKey: 'activity.statusChanged', params: { status: 'qualified' }, kind: 'status' });
   }
-  const visit = VISITS.find((v) => v.leadId === lead.id);
+  const visit = d.visits.find((v) => v.leadId === lead.id);
   if (visit) {
     events.push({ id: `${lead.id}_h5`, at: hours(lead.createdAt, 52), actorName: owner, messageKey: 'activity.visitBooked', params: { at: visit.at }, kind: 'visit' });
     if (visit.status === 'completed') events.push({ id: `${lead.id}_h6`, at: hours(visit.at, 1), actorName: owner, messageKey: 'activity.visitCompleted', params: {}, kind: 'visit' });
@@ -79,15 +78,15 @@ export function leadHistory(lead: Lead): ActivityEvent[] {
   return events.filter((e) => new Date(e.at).getTime() <= now).sort((a, b) => b.at.localeCompare(a.at));
 }
 
-export function unitSummary(unit: Unit, holds: Record<string, { leadRef: string; until: string }> = {}): UnitSummary {
-  const tower = unit.towerId ? TOWERS.find((t) => t.id === unit.towerId) : undefined;
-  const floor = unit.floorId ? FLOORS.find((f) => f.id === unit.floorId) : undefined;
+export function unitSummary(d: Pick<TenantDataset, 'towers' | 'floors' | 'projects'>, unit: Unit, holds: Record<string, { leadRef: string; until: string }> = {}): UnitSummary {
+  const tower = unit.towerId ? d.towers.find((t) => t.id === unit.towerId) : undefined;
+  const floor = unit.floorId ? d.floors.find((f) => f.id === unit.floorId) : undefined;
   const hold = holds[unit.id];
   return {
     id: unit.id,
     ref: unit.ref,
     projectId: unit.projectId,
-    projectName: projectName(unit.projectId),
+    projectName: projectName(d, unit.projectId),
     ...(tower ? { towerName: tower.name } : {}),
     ...(floor ? { floor: floor.level } : {}),
     ...(unit.block ? { block: unit.block } : {}),
@@ -100,18 +99,19 @@ export function unitSummary(unit: Unit, holds: Record<string, { leadRef: string;
 }
 
 /** Standard demo payment plan: 10 % down, the rest over 36 monthly instalments. */
-export function unitDetail(unit: Unit, holds: Record<string, { leadRef: string; until: string }> = {}): UnitDetail {
+export function unitDetail(d: Pick<TenantDataset, 'towers' | 'floors' | 'projects'>, unit: Unit, holds: Record<string, { leadRef: string; until: string }> = {}): UnitDetail {
   const down = percentOf(unit.price.amount, 10);
   const remaining = (BigInt(unit.price.amount.replace('.', '')) - BigInt(down.replace('.', ''))) / 36n;
   const per = remaining.toString().padStart(3, '0');
+  const kind = d.projects.find((p) => p.id === unit.projectId)?.kind;
   return {
-    ...unitSummary(unit, holds),
+    ...unitSummary(d, unit, holds),
     plan: {
       downPaymentPercent: 10,
       installments: 36,
       downPayment: { amount: down, currency: 'PKR' },
       perInstallment: { amount: `${per.slice(0, -2)}.${per.slice(-2)}`, currency: 'PKR' },
     },
-    imageKey: unit.projectId === 'prj_gardens' ? 'gardens-residences' : unit.type === 'penthouse' ? 'interior-living-bright' : 'heights-dusk',
+    imageKey: kind === 'plots' ? 'gardens-residences' : unit.type === 'penthouse' || unit.type === 'shop' ? 'interior-living-bright' : 'heights-dusk',
   };
 }

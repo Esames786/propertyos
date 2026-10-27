@@ -36,7 +36,7 @@ test.describe('Backoffice shell', () => {
     await expect(toggle).toHaveAttribute('aria-expanded', 'true');
     await toggle.click();
     await expect(page.getByRole('button', { name: 'Expand sidebar' })).toHaveAttribute('aria-expanded', 'false');
-    await expect(page.getByRole('link', { name: 'Customers' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Customers & Buyers' })).toBeVisible();
     await page.reload();
     await expect(page.getByRole('button', { name: 'Expand sidebar' })).toBeVisible();
   });
@@ -60,10 +60,31 @@ test.describe('Backoffice shell', () => {
     await expect(page).toHaveURL(/\/backoffice\/more$/);
     await expect(page.locator('main h1')).toHaveText('More');
     await expect(bar.getByTestId('bottom-nav-more')).toHaveAttribute('aria-current', 'page');
-    await page.getByTestId('more-area-lab').click();
-    await expect(page.locator('main h1')).toHaveText('Design system lab');
+    // Prototype tools are not part of a client's areas (owner, CP2 review).
+    await expect(page.getByTestId('more-area-lab')).toHaveCount(0);
+    await page.getByTestId('more-area-finance').click();
+    await expect(page.locator('main h1')).toHaveText('Invoices');
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
     expect(consoleErrors).toEqual([]);
+  });
+
+  test('prototype tools stay out of menus and search until switched on in Preferences', async ({ page }) => {
+    await seed(page);
+    await page.goto(`${BO}/backoffice/home/role-aware-dashboard`);
+    const nav = page.locator('[data-tour-id="nav-primary"]');
+    await expect(nav.getByRole('link', { name: 'Help and tours' })).toBeVisible();
+    await expect(nav.getByRole('link', { name: 'Design system lab' })).toHaveCount(0);
+    await page.keyboard.press('Control+k');
+    await page.getByTestId('command-palette').getByRole('searchbox').fill('Tokens');
+    await expect(page.getByTestId('command-palette').getByRole('menuitem', { name: /Tokens and typography/ })).toHaveCount(0);
+    await page.keyboard.press('Escape');
+
+    await page.goto(`${BO}/backoffice/settings/onboarding`);
+    await page.getByTestId('pref-prototype-tools').click();
+    await expect(nav.getByRole('link', { name: 'Design system lab' })).toBeVisible();
+    // The lab's own addresses work either way.
+    await page.goto(`${BO}/backoffice/lab/tokens`);
+    await expect(page.locator('main h1')).toHaveText('Tokens and typography');
   });
 
   test('More: switching the demo role changes what the shell offers', async ({ page }) => {

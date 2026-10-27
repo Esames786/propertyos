@@ -56,6 +56,8 @@ export interface ModuleCatalog {
 export interface ModuleSelection {
   module: ModuleKey;
   sites: 'all' | readonly string[];
+  /** In force from this date (a scheduled change); otherwise from the licence start. */
+  from?: string;
 }
 
 export interface DependencyIssue {
@@ -195,7 +197,7 @@ export interface ContractDraft {
   discounts: ContractDiscount[];
 }
 
-export type ContractStatus = 'draft' | 'pending_approval' | 'active' | 'superseded' | 'ended' | 'cancelled';
+export type ContractStatus = 'draft' | 'pending_approval' | 'scheduled' | 'active' | 'superseded' | 'ended' | 'cancelled' | 'returned';
 
 export interface SubscriptionContract extends ContractDraft {
   id: string;
@@ -207,6 +209,8 @@ export interface SubscriptionContract extends ContractDraft {
   createdAt: string;
   activatedAt?: string;
   supersedesId?: string;
+  /** An amendment applies from this date (version 1 applies from the contract start). */
+  effectiveFrom?: string;
 }
 
 /** Quantities the engine priced, and where each came from. */
@@ -435,6 +439,8 @@ export interface PlatformAuditEvent {
   tenantId?: string;
   tenantName?: string;
   params: Record<string, string>;
+  /** What changed, field by field (commercial audit trail). */
+  changes?: ReadonlyArray<{ path: string; before: string; after: string }>;
 }
 
 export interface HqAttentionItem {
@@ -509,17 +515,57 @@ export interface WorkspacePlan {
     alwaysOn: boolean;
     /** Sites the grant covers ('all' = every site); null when not licensed. */
     sites: 'all' | readonly string[] | null;
+    /** Licensed by an approved change that starts later (not in force yet). */
+    scheduledFrom: string | null;
   }>;
+}
+
+/**
+ * "My access" (owner decision, CP2 review): what the signed-in staff member can use, for people who
+ * are not workspace administrators. No edition, price, contract or unlicensed module is included.
+ */
+export interface MyAccess {
+  organisation: { id: string; name: string; status: TenantStatus };
+  person: { displayName: string; roleKey: string };
+  /** Areas the person can use: a licensed module in which they hold at least one permission. */
+  areas: ReadonlyArray<{
+    module: ModuleKey;
+    /** 'all' or the sites (by name) the organisation licenses this area for. */
+    sites: 'all' | ReadonlyArray<{ id: string; name: string }>;
+    permissions: readonly Permission[];
+  }>;
+  /** Where the person's work is limited to (all projects, or named ones). */
+  scope: { kind: 'all' } | { kind: 'projects'; names: readonly string[] } | { kind: 'own' };
 }
 
 // ---------------------------------------------------------------- HQ-009 preview as a tenant role
 
 /** A role a tenant's people can hold (template), used to preview what that role sees. */
+/** Starter role sets offered when a workspace is created (owner decision, CP2 review). */
+export const STARTER_ROLE_SETS = {
+  developer: ['administration', 'sales', 'project_management', 'inventory', 'finance', 'construction'],
+  society: ['administrator', 'manager', 'treasurer', 'maintenance', 'technician', 'security'],
+} as const;
+export type StarterRoleKey = (typeof STARTER_ROLE_SETS)[keyof typeof STARTER_ROLE_SETS][number];
+
+/**
+ * A role a tenant defines for its staff. Every workspace starts from a starter set for its kind of
+ * organisation and then owns its roles: it may rename them, change what they include, or add its
+ * own. The permissions here are what the role's holders get, so Platform HQ's preview of a role is
+ * the effective access of its people, never a separate allow-list. Portal (resident) roles are not
+ * staff roles; they are previewed in the customer PWA gate.
+ */
 export interface TenantRoleTemplate {
+  /** Unique within the tenant (used in preview addresses: ?role=sales). */
   id: string;
-  /** Translation key for the role title. */
+  tenantId: string;
+  /** The starter it came from, or null for a role the tenant defined itself. */
+  starter: StarterRoleKey | null;
+  /** Translation key for the role title (tenant-defined names are free text in production). */
   labelKey: string;
   permissions: readonly Permission[];
+  /** Staff holding the role in the demo (their permissions are this role's). */
+  holders: readonly string[];
 }
 
 /**

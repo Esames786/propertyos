@@ -5,6 +5,8 @@ import { readJson, writeJson } from '../lib/storage';
 interface StoredSession {
   personaId: string | null;
   projectId: string;
+  /** Site of the header project, when one is chosen (site-level licensing applies to it). */
+  siteId?: string;
 }
 
 export interface SessionTenant {
@@ -26,7 +28,9 @@ export interface SessionContextValue {
   returning: boolean;
   /** Header project context: 'all' or a project id inside the persona's scope. */
   projectId: string;
-  setProjectId: (projectId: string) => void;
+  /** The site of the header project (undefined for 'all'); menus and addresses are checked against it. */
+  siteId: string | undefined;
+  setProjectId: (projectId: string, siteId?: string) => void;
   /** Effective access (tenant lifecycle, licensed modules, permissions); null when the app has no tenant plane. */
   access: EffectiveAccess | null;
   /** Holds the permission AND its module is licensed for the tenant. */
@@ -87,7 +91,8 @@ export function SessionProvider({
     const at = accessDate ?? new Date().toISOString().slice(0, 10);
     const decide = (target: AccessTarget): AccessDecision => {
       if (!persona) return { allowed: false, reason: 'permission_missing' };
-      if (access) return decideTarget(access, target, at);
+      // With a project chosen in the header, its site must be licensed for what is offered.
+      if (access) return decideTarget(access, { ...(stored.siteId ? { siteId: stored.siteId } : {}), ...target }, at);
       // No tenant plane (e.g. Platform HQ): permissions alone.
       const required: readonly Permission[] = target.permission === undefined ? [] : Array.isArray(target.permission) ? target.permission : [target.permission as Permission];
       return required.every((p) => persona.permissions.includes(p)) ? { allowed: true } : { allowed: false, reason: 'permission_missing' };
@@ -107,7 +112,8 @@ export function SessionProvider({
       returning,
       signOut: () => persist({ personaId: null, projectId: 'all' }),
       projectId: stored.projectId,
-      setProjectId: (projectId) => persist({ ...stored, projectId }),
+      siteId: stored.siteId,
+      setProjectId: (projectId, siteId) => persist({ personaId: stored.personaId, projectId, ...(siteId ? { siteId } : {}) }),
       access,
       can: (permission) => allows({ permission }),
       allows,

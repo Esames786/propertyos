@@ -9,14 +9,15 @@ import {
   useAnnounce,
   useApiMutation,
   useSession,
+  useShell,
   useT,
   useToast,
   type NavItem,
   type TileHue,
 } from '@repo/ui';
-import { Accessibility, Bell, Compass, GraduationCap, LogOut, RotateCcw, Settings, ShieldCheck } from 'lucide-react';
+import { Accessibility, Bell, Compass, GraduationCap, LogOut, RotateCcw, Settings, ShieldCheck, KeyRound } from 'lucide-react';
 import { Link } from 'react-aria-components';
-import { LINKS, NAV_ITEMS } from '../../nav.config';
+import { LINKS } from '../../nav.config';
 
 const HUE: Record<string, TileHue> = {
   home: 'emerald',
@@ -47,10 +48,14 @@ export default function MorePage() {
   const announce = useAnnounce();
   const toast = useToast();
   const reset = useApiMutation();
-  const areas = NAV_ITEMS.filter(allows);
+  const { navItems } = useShell();
+  const areas = navItems.filter(allows);
+  // Another role of the same organisation; another organisation is a different sign-in (tenant switch).
+  const colleagues = personas.filter((p) => p.tenantId === persona?.tenantId);
 
   const settings: Array<{ id: string; label: string; href: string; icon: typeof Settings; hue: TileHue }> = [
     { id: 'preferences', label: t('nav:pages.preferences'), href: LINKS.preferences, icon: Settings, hue: 'slate' },
+    { id: 'my-access', label: t('nav:pages.myAccess'), href: LINKS.myAccess, icon: KeyRound, hue: 'emerald' },
     { id: 'accessibility', label: t('nav:pages.accessibility'), href: '/backoffice/global/accessibility-preferences', icon: Accessibility, hue: 'sky' },
     { id: 'notifications', label: t('nav:header.notifications'), href: '/backoffice/global/notifications', icon: Bell, hue: 'amber' },
     { id: 'tours', label: t('nav:pages.tourLibrary'), href: LINKS.tourLibrary, icon: Compass, hue: 'emerald' },
@@ -61,30 +66,32 @@ export default function MorePage() {
     <div className="space-y-8">
       <PageHeader title={t('nav:pages.more')} description={t('common:more.description')} />
 
-      <section aria-labelledby="more-role" className="rounded-card border border-border/70 bg-panel p-4 shadow-card">
-        <SectionHeading id="more-role" title={t('common:more.switchRole')} description={t('common:more.switchRoleHint')} />
-        <div className="grid grid-cols-3 gap-2" role="group" aria-labelledby="more-role">
-          {personas.map((p) => {
-            const current = p.id === persona?.id;
-            return (
-              <Button
-                key={p.id}
-                variant={current ? 'primary' : 'secondary'}
-                aria-pressed={current}
-                className="min-h-12 flex-col gap-0.5 px-2 text-center whitespace-normal"
-                onPress={() => {
-                  if (current) return;
-                  signIn(p.id);
-                  announce(t('a11y:announce.identityChanged', { name: p.displayName, role: t(p.roleKey as 'common:persona.manager') }));
-                }}
-                data-testid={`more-role-${p.id}`}
-              >
-                {t(p.roleKey as 'common:persona.manager')}
-              </Button>
-            );
-          })}
-        </div>
-      </section>
+      {colleagues.length > 1 && (
+        <section aria-labelledby="more-role" className="rounded-card border border-border/70 bg-panel p-4 shadow-card">
+          <SectionHeading id="more-role" title={t('common:more.switchRole')} description={t('common:more.switchRoleHint')} />
+          <div className="grid grid-cols-3 gap-2" role="group" aria-labelledby="more-role">
+            {colleagues.map((p) => {
+              const current = p.id === persona?.id;
+              return (
+                <Button
+                  key={p.id}
+                  variant={current ? 'primary' : 'secondary'}
+                  aria-pressed={current}
+                  className="min-h-12 flex-col gap-0.5 px-2 text-center whitespace-normal"
+                  onPress={() => {
+                    if (current) return;
+                    signIn(p.id);
+                    announce(t('a11y:announce.identityChanged', { name: p.displayName, role: t(p.roleKey as 'common:persona.manager') }));
+                  }}
+                  data-testid={`more-role-${p.id}`}
+                >
+                  {t(p.roleKey as 'common:persona.manager')}
+                </Button>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       <section aria-labelledby="more-areas">
         <SectionHeading id="more-areas" title={t('common:more.areas')} />

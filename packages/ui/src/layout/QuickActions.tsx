@@ -1,4 +1,4 @@
-import type { ModuleKey, Permission } from '@repo/contracts';
+import type { ModuleKey, Permission, SuspensionClass } from '@repo/contracts';
 import type { LucideIcon } from 'lucide-react';
 import { Button as AriaButton, Link } from 'react-aria-components';
 import { IconTile, type TileHue } from '../data/IconTile';
@@ -19,6 +19,8 @@ export interface QuickAction {
   permission?: Permission;
   /** Module that must be licensed (defaults to the permission's module). */
   module?: ModuleKey;
+  /** 'history_read' when it stays available while the organisation is suspended. */
+  suspension?: SuspensionClass;
   testId?: string;
 }
 

@@ -4,7 +4,18 @@ export const BO = 'http://localhost:5173';
 export const CU = 'http://localhost:5174';
 export const HQ = 'http://localhost:5175';
 
-export type PersonaId = 'manager' | 'sales' | 'finance' | 'resident' | 'facility_manager' | 'society_admin' | 'supreme_admin' | 'commercial_approver' | 'platform_support';
+export type PersonaId =
+  | 'manager'
+  | 'sales'
+  | 'finance'
+  | 'resident'
+  | 'facility_manager'
+  | 'society_admin'
+  | 'cb_manager'
+  | 'cedar_treasurer'
+  | 'supreme_admin'
+  | 'commercial_approver'
+  | 'platform_support';
 export type Locale = 'en-PK' | 'ur-PK';
 
 export interface SeedOptions {
@@ -18,8 +29,8 @@ export interface SeedOptions {
 }
 
 const TENANT = 'tnt_larkspur';
-/** Identities of the maintenance-only client (Gate B checkpoint 2). */
-const SHALIMAR_PERSONAS = new Set<string>(['facility_manager', 'society_admin']);
+/** Identities outside Larkspur: the maintenance-only client, the two-site developer and the suspended co-operative. */
+const TENANT_OF: Record<string, string> = { facility_manager: 'tnt_shalimar', society_admin: 'tnt_shalimar', cb_manager: 'tnt_crescent', cedar_treasurer: 'tnt_cedar' };
 
 /**
  * Seeds demo state once per browser context (later reloads keep whatever the test changed,
@@ -46,7 +57,7 @@ export async function seed(page: Page, options: SeedOptions = {}) {
         );
       }
     },
-    { persona, locale, onboarding, mock, app, tenant: app === 'platform' ? 'platform' : persona && SHALIMAR_PERSONAS.has(persona) ? 'tnt_shalimar' : TENANT, a11y: a11y ?? null },
+    { persona, locale, onboarding, mock, app, tenant: app === 'platform' ? 'platform' : (persona && TENANT_OF[persona]) || TENANT, a11y: a11y ?? null },
   );
 }
 

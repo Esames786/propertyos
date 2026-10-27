@@ -1,4 +1,4 @@
-import { LEADS, SHALIMAR } from '@repo/fixtures';
+import { CEDAR_HILLS, CRESCENT_BAY, LEADS, SHALIMAR } from '@repo/fixtures';
 import { DemoSignIn, Link, useT } from '@repo/ui';
 import type { ComponentType } from 'react';
 import { createBrowserRouter, Navigate, useLoaderData, useNavigate, useParams, useSearchParams, type RouteObject } from 'react-router';
@@ -62,7 +62,11 @@ function SignInRoute() {
       describe={(p) =>
         p.tenantId === SHALIMAR.id
           ? t('workspace:signIn.maintenancePlan')
-          : p.projectScope === 'all'
+          : p.tenantId === CRESCENT_BAY.id
+            ? t('workspace:signIn.twoSites')
+            : p.tenantId === CEDAR_HILLS.id
+              ? t('workspace:signIn.suspended')
+              : p.projectScope === 'all'
             ? t('common:demo.scopeAll')
             : t('common:demo.scopeOne', { project: 'Larkspur Heights' })
       }
@@ -98,6 +102,8 @@ const shellChildren: RouteObject[] = [
   { path: 'crm/schedule-visit-drawer', element: <Navigate to={`${LINKS.salesHome}?drawer=schedule-visit`} replace /> },
   { path: 'more', lazy: page(() => import('../pages/more/MorePage')), handle: h({ title: (t) => t('nav:pages.more') }) },
   { path: 'adm/plan', lazy: page(() => import('../pages/adm/PlanPage')), handle: h({ title: (t) => t('nav:pages.plan') }) },
+  { path: 'global/my-access', lazy: page(() => import('../pages/adm/MyAccessPage')), handle: h({ title: (t) => t('nav:pages.myAccess') }) },
+  { path: 'fin/invoices-list', lazy: page(() => import('../pages/fin/InvoicesPage')), handle: h({ title: (t) => t('nav:pages.invoices') }) },
   { path: 'lab', lazy: page(() => import('../pages/lab/LabHome')), handle: h({ title: (t) => t('nav:pages.lab'), helpKey: 'lab' }) },
   { path: 'lab/tokens', lazy: page(() => import('../pages/lab/TokensLab')), handle: h({ title: (t) => t('nav:pages.labTokens'), helpKey: 'lab' }) },
   { path: 'lab/components', lazy: page(() => import('../pages/lab/ComponentsLab')), handle: h({ title: (t) => t('nav:pages.labComponents'), helpKey: 'lab' }) },

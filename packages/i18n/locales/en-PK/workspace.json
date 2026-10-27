@@ -1,6 +1,8 @@
 {
   "signIn": {
-    "maintenancePlan": "Maintenance-only plan · all of Shalimar Court"
+    "maintenancePlan": "Maintenance-only plan · all of Shalimar Court",
+    "twoSites": "Two sites · Towers: sales and construction · Plaza: maintenance only",
+    "suspended": "Suspended workspace · financial history only"
   },
   "plan": {
     "readOnly": "Read-only",
@@ -40,6 +42,74 @@
     "planTitle": "In your plan",
     "planHint": "The modules your organisation has licensed.",
     "planAdmin": "You can see the full plan, with the sites each module covers.",
-    "planAsk": "Your workspace administrator can see the full plan."
+    "planAsk": "Your workspace administrator can see the full plan.",
+    "accessHint": "The areas and sites your role lets you use.",
+    "openAccess": "See what you can use",
+    "plannedTitle": "Maintenance work still to come",
+    "plannedHint": "Your plan includes maintenance. These screens are planned and not available in this prototype yet.",
+    "plannedFor": "Planned · Gate {{gate}}"
+  },
+  "suspended": {
+    "title": "{{organisation}}'s workspace is suspended",
+    "body": "Financial history stays available to read. Other work is paused until the workspace is reinstated; your administrator has the details.",
+    "history": "Open the invoices"
+  },
+  "invoices": {
+    "intro": "Invoices issued by {{organisation}} and what has been paid against them. This is financial history, so it stays available even while the workspace is suspended.",
+    "billed": "Billed",
+    "collected": "Collected",
+    "outstanding": "Outstanding",
+    "search": "Search invoices",
+    "searchPlaceholder": "Reference, name or unit",
+    "filter": "Payment status",
+    "all": "All",
+    "due": "Due",
+    "total": "Amount",
+    "paid": "Paid",
+    "emptyTitle": "No invoices match",
+    "emptyBody": "Try another search or payment status."
+  },
+  "myAccess": {
+    "intro": "What you can use in {{organisation}}'s workspace, and on which sites. It follows your role and your organisation's licence.",
+    "person": "Name",
+    "role": "Role",
+    "scope": "Projects",
+    "scopeAll": "All projects",
+    "scopeProjects": "Only {{projects}}",
+    "scopeOwn": "Your own records",
+    "areas_one": "{{count}} area you can use",
+    "areas_other": "{{count}} areas you can use",
+    "areasHint": "Each area shows the sites it covers and what your role lets you do there.",
+    "allSites": "All sites",
+    "onlySites": "Only at {{sites}}",
+    "canDo": "What you can do",
+    "askAdmin": "Need something that isn't listed? Ask your workspace administrator."
+  },
+  "permissions": {
+    "project.context.use": "Switch project",
+    "quickcreate.use": "Quick create",
+    "lead.view": "See leads",
+    "lead.create": "Add leads",
+    "visit.schedule": "Book site visits",
+    "unit.view": "See inventory",
+    "unit.hold": "Hold units",
+    "quote.create": "Prepare quotes",
+    "customer.view": "See people",
+    "booking.view": "See bookings",
+    "invoice.view": "See invoices",
+    "payment.receive": "Record payments",
+    "finance.evidence.review": "Verify payment proofs",
+    "expense.create": "Record expenses",
+    "supplier.view": "See suppliers",
+    "procurement.view": "See purchasing",
+    "hr.view": "See staff records",
+    "operations.view": "See maintenance work",
+    "residents.view": "See residents",
+    "reports.view": "See reports",
+    "admin.view": "Administer the workspace",
+    "portal.use": "Use the resident portal",
+    "construction.view": "See construction progress",
+    "workorder.update": "Update work orders",
+    "visitors.manage": "Manage gate and visitors"
   }
 }

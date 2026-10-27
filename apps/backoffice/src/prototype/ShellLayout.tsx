@@ -1,17 +1,22 @@
-import { AccessOutcomeView, AppShell, dynamicT, useSession, useT, workspaceRouteTarget, type Destination } from '@repo/ui';
+import type { AccessDecision, DenyReason, RecordAccess } from '@repo/contracts';
+import { AccessOutcomeView, AppShell, contextualNav, usePrototypeTools, withPrototypeTools, dynamicT, InlineAlert, Link, suspensionOf, useApiQuery, useSession, useT, workspaceRouteTarget, type Destination } from '@repo/ui';
 import { useMemo } from 'react';
-import { Navigate, Outlet, useLocation, useMatches } from 'react-router';
-import { LINKS, NAV_ITEMS } from '../nav.config';
+import { Navigate, Outlet, useLocation, useMatches, useSearchParams } from 'react-router';
+import { ACCESS_DATE, LINKS, NAV_ITEMS } from '../nav.config';
 import type { RouteHandle } from './handle';
 
 /**
  * Signed-in backoffice frame. Without a demo identity, first-time visitors go to Get started and
  * returning visitors to sign-in; the address they asked for is kept so they land there afterwards.
+ * Every address is checked before it renders: the area (module, permission, the header project's
+ * site, the suspension class) and, when it names a record (`?record=…`), that record too, by the
+ * server's own rule (site licence, scope, tenant). The server still checks every data request.
  */
 export function ShellLayout() {
   const { t } = useT();
-  const { persona, returning, tenant, decide, can } = useSession();
+  const { persona, returning, tenant, decide, can, access } = useSession();
   const location = useLocation();
+  const [params] = useSearchParams();
   const matches = useMatches();
   const appName = t('common:app.backoffice');
 
@@ -19,17 +24,27 @@ export function ShellLayout() {
   const handle = match?.handle as RouteHandle | undefined;
 
   const target = useMemo(() => workspaceRouteTarget(location.pathname), [location.pathname]);
-  const decision = persona ? decide(target) : { allowed: true as const };
+  // The organisation's own words for its areas (e.g. "Owners & Residents" in a society).
+  const [prototypeTools] = usePrototypeTools();
+  const navItems = useMemo(() => withPrototypeTools(contextualNav(NAV_ITEMS, access, ACCESS_DATE), prototypeTools), [access, prototypeTools]);
+  const area: AccessDecision = persona ? decide(target) : { allowed: true };
+  // A record named in the address is checked as a record (another tenant's id is simply not found).
+  const recordId = params.get('record');
+  const recordCheck = useApiQuery<RecordAccess>(persona && area.allowed && recordId ? { method: 'GET', path: '/access/record', query: { id: recordId } } : null);
+  const record = recordCheck.data?.record ? recordCheck.data : null;
+  const decision: AccessDecision = !area.allowed ? area : record && !record.decision.allowed ? record.decision : { allowed: true };
+  const deniedModule = !area.allowed ? target.module : record?.module;
   const pageTitle = !decision.allowed
-    ? dynamicT(t)(`errors:access.${decision.reason === 'module_not_licensed' || decision.reason === 'feature_not_licensed' ? 'notInPlan' : decision.reason === 'tenant_suspended' ? 'suspended' : 'role'}.title`)
+    ? dynamicT(t)(`errors:access.${OUTCOME_TITLE[decision.reason] ?? 'role'}.title`)
     : handle
       ? handle.title(t, match?.data)
       : appName;
 
   const destinations = useMemo<Destination[]>(
-    () => [
+    () => ([
       { id: 'leads', label: t('nav:pages.leadsList'), href: LINKS.leads, permission: 'lead.view', keywords: 'crm leads customers prospects' },
       { id: 'plan', label: t('nav:pages.plan'), href: LINKS.plan, permission: 'admin.view', keywords: 'plan modules licence subscription' },
+      { id: 'my-access', label: t('nav:pages.myAccess'), href: LINKS.myAccess, keywords: 'access permissions role sites modules' },
       { id: 'lab-tokens', label: t('nav:pages.labTokens'), href: '/backoffice/lab/tokens', keywords: 'colour contrast typography' },
       { id: 'lab-components', label: t('nav:pages.labComponents'), href: '/backoffice/lab/components', keywords: 'button dialog drawer toast' },
       { id: 'lab-forms', label: t('nav:pages.labForms'), href: '/backoffice/lab/forms', keywords: 'form validation unit picker' },
@@ -40,8 +55,11 @@ export function ShellLayout() {
       { id: 'preferences', label: t('nav:pages.preferences'), href: LINKS.preferences, keywords: 'language accessibility motion contrast' },
       { id: 'notifications', label: t('nav:header.notifications'), href: '/backoffice/global/notifications' },
       { id: 'quick-create', label: t('common:quickCreate.label'), href: '/backoffice/global/quick-create', permission: 'quickcreate.use' },
-    ],
-    [t],
+    ] as Destination[])
+      // Prototype tools are offered only when switched on in Preferences.
+      .filter((d) => prototypeTools || !d.href.startsWith('/backoffice/lab'))
+      .map((d) => ({ ...d, suspension: suspensionOf(d.href.split(/[?#]/)[0]!) })),
+    [t, prototypeTools],
   );
 
   if (!persona) {
@@ -49,14 +67,31 @@ export function ShellLayout() {
     return <Navigate to={`${returning ? LINKS.signIn : LINKS.getStarted}?next=${next}`} replace />;
   }
 
+  // Until the record check answers, nothing of the record's page is shown. If the check itself
+  // fails (offline, service error) the page renders and its own requests report the problem.
+  const pending = recordId !== null && area.allowed && recordCheck.isPending;
+  const suspended = access?.tenant.status === 'suspended';
+
   return (
-    <AppShell appName={appName} navItems={NAV_ITEMS} destinations={destinations} links={LINKS} pageTitle={pageTitle} helpKey={handle?.helpKey ?? 'default'}>
-      {decision.allowed ? (
+    <AppShell appName={appName} navItems={navItems} destinations={destinations} links={LINKS} pageTitle={pageTitle} helpKey={handle?.helpKey ?? 'default'}>
+      {suspended && (
+        <InlineAlert tone="warning" title={t('workspace:suspended.title', { organisation: tenant.name })} className="mb-6" role="status">
+          <p data-testid="suspended-banner">
+            {t('workspace:suspended.body')}{' '}
+            {can('invoice.view') || decide({ permission: 'invoice.view', suspension: 'history_read' }).allowed ? (
+              <Link href={LINKS.invoices}>{t('workspace:suspended.history')}</Link>
+            ) : null}
+          </p>
+        </InlineAlert>
+      )}
+      {pending ? (
+        <div aria-busy="true" data-testid="record-check-pending" className="min-h-40" />
+      ) : decision.allowed ? (
         <Outlet />
       ) : (
         <AccessOutcomeView
           reason={decision.reason}
-          {...(target.module ? { module: target.module } : {})}
+          {...(deniedModule ? { module: deniedModule } : {})}
           organisation={tenant.name}
           startHref={LINKS.start}
           {...(can('admin.view') ? { planHref: LINKS.plan } : {})}
@@ -65,3 +100,14 @@ export function ShellLayout() {
     </AppShell>
   );
 }
+
+/** Title of the access outcome for each reason (the page body says why). */
+const OUTCOME_TITLE: Partial<Record<DenyReason, string>> = {
+  module_not_licensed: 'notInPlan',
+  feature_not_licensed: 'notInPlan',
+  site_not_licensed: 'site',
+  site_context_missing: 'siteMissing',
+  out_of_scope: 'notFound',
+  tenant_suspended: 'suspended',
+  tenant_inactive: 'inactive',
+};

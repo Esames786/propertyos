@@ -92,6 +92,15 @@ export function DoneStep({
             </li>
           ))}
         </ul>
+        {profile.signup && (
+          <p className="mt-4 flex items-start gap-2 rounded-tile border border-border bg-raised p-3.5 text-sm text-text" data-testid="setup-signup-policy">
+            <Info aria-hidden className="mt-0.5 size-4 shrink-0 text-muted" />
+            <span>
+              {t('start:setup.done.signup', { policy: t(`platform:policy.modes.${profile.signup.policy}.name`), version: profile.signup.version })}{' '}
+              {t(`platform:policy.modes.${profile.signup.policy}.body`)}
+            </span>
+          </p>
+        )}
       </section>
 
       <section aria-labelledby="setup-next" className="mt-6 rounded-card border border-border bg-panel p-5 shadow-raised sm:p-6">

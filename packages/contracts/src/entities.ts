@@ -11,7 +11,7 @@ export interface Tenant {
   name: string;
 }
 
-export type ProjectKind = 'towers' | 'plots';
+export type ProjectKind = 'towers' | 'plots' | 'commercial';
 
 export interface Project {
   id: string;
@@ -19,6 +19,10 @@ export interface Project {
   name: string;
   city: string;
   kind: ProjectKind;
+  /** The licensed site the project is on: site-scoped modules are granted per site (V3.1). */
+  siteId: string;
+  /** The legal entity that sells and invoices for it (D-5: no cross-entity links). */
+  legalEntityId: string;
 }
 
 export interface Tower {
@@ -56,7 +60,8 @@ export type UnitType =
   | 'apartment_3bed'
   | 'penthouse'
   | 'villa'
-  | 'plot';
+  | 'plot'
+  | 'shop';
 
 export interface Unit {
   id: string;
@@ -125,6 +130,8 @@ export interface Invoice {
   partyId: string;
   unitId: string;
   projectId: string;
+  /** The account liable for the invoice (A2 §4.4); residents reach it only through a verified link. */
+  billingAccountId: string;
   kind: 'installment' | 'down_payment' | 'maintenance' | 'parking';
   total: Money;
   paid: Money;
@@ -155,4 +162,27 @@ export interface ActivityEvent {
   messageKey: string;
   params: Record<string, string>;
   kind: 'note' | 'call' | 'visit' | 'status' | 'document' | 'payment' | 'system';
+}
+
+/** One row of the read-only invoice history (FIN-002, financial history: readable while suspended). */
+export interface InvoiceHistoryItem {
+  id: string;
+  ref: string;
+  kind: Invoice['kind'];
+  partyName: string;
+  unitRef: string;
+  projectName: string;
+  total: Money;
+  paid: Money;
+  dueDate: string;
+  settlement: InvoiceSettlement;
+}
+
+export interface InvoiceHistoryResponse {
+  items: InvoiceHistoryItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  /** Sums over every matching invoice (not only this page). */
+  totals: { billed: Money; collected: Money; outstanding: Money };
 }

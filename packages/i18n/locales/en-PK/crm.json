@@ -161,7 +161,8 @@
     "apartment_3bed": "3-bed apartment",
     "penthouse": "Penthouse",
     "villa": "Villa",
-    "plot": "Plot"
+    "plot": "Plot",
+    "shop": "Shop"
   },
   "contact": {
     "callTitle": "Call {{name}}",

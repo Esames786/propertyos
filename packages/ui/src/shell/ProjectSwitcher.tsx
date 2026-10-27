@@ -23,7 +23,7 @@ export function ProjectSwitcher() {
       onSelectionChange={(key) => {
         const next = options.find((o) => o.id === key);
         if (!next) return;
-        setProjectId(next.id);
+        setProjectId(next.id, projects.data?.find((p) => p.id === next.id)?.siteId);
         announce(t('a11y:announce.projectChanged', { project: next.label }));
       }}
       className="min-w-0"

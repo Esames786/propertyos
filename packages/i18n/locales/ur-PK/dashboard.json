@@ -189,7 +189,8 @@
       "apartment_3bed": "تین بیڈروم رہائش گاہیں",
       "penthouse": "پینٹ ہاؤسز",
       "villa": "ولاز",
-      "plot": "رہائشی پلاٹ"
+      "plot": "رہائشی پلاٹ",
+      "shop": "دکانیں"
     },
     "available": "{{total}} میں سے {{available}} دستیاب",
     "availability": "{{percent}} دستیاب",

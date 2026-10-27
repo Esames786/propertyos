@@ -1,5 +1,5 @@
 import type { DenyReason, ModuleKey } from '@repo/contracts';
-import { CirclePause, Lock, MapPinOff, PackageX, type LucideIcon } from 'lucide-react';
+import { CirclePause, Lock, MapPinOff, PackageX, SearchX, type LucideIcon } from 'lucide-react';
 import { IconTile } from '../data/IconTile';
 import { dynamicT, useT } from '../lib/useT';
 import { buttonClass } from '../primitives/Button';
@@ -8,16 +8,18 @@ import { PageHeader } from './PageHeader';
 import { Panel } from './Panel';
 import type { TileHue } from '@repo/tokens';
 
-type Kind = 'notInPlan' | 'site' | 'role' | 'suspended' | 'inactive';
+type Kind = 'notInPlan' | 'site' | 'siteMissing' | 'role' | 'notFound' | 'suspended' | 'inactive';
 
 const KIND: Record<DenyReason, Kind> = {
   module_not_licensed: 'notInPlan',
   feature_not_licensed: 'notInPlan',
   site_not_licensed: 'site',
+  site_context_missing: 'siteMissing',
   permission_missing: 'role',
   separation_of_duties: 'role',
   state_locked: 'role',
-  out_of_scope: 'role',
+  // A record outside the person's scope (or another organisation's) is "not found": its existence is not confirmed.
+  out_of_scope: 'notFound',
   tenant_suspended: 'suspended',
   tenant_inactive: 'inactive',
 };
@@ -25,15 +27,18 @@ const KIND: Record<DenyReason, Kind> = {
 const LOOK: Record<Kind, [LucideIcon, TileHue]> = {
   notInPlan: [PackageX, 'slate'],
   site: [MapPinOff, 'slate'],
+  siteMissing: [MapPinOff, 'slate'],
   role: [Lock, 'amber'],
+  notFound: [SearchX, 'slate'],
   suspended: [CirclePause, 'rose'],
   inactive: [CirclePause, 'slate'],
 };
 
 /**
  * GLOBAL-012 access outcome: what someone sees when an address belongs to a module their
- * organisation has not licensed, a site outside the licence, or a role they do not hold. It says
- * why in plain words and offers a way on; it never shows the module's content or data.
+ * organisation has not licensed, a site outside the licence, a role they do not hold, or a record
+ * they cannot open. It says why in plain words and offers a way on; it never shows the module's
+ * content or data.
  */
 export function AccessOutcomeView({
   reason,

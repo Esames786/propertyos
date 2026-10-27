@@ -1,4 +1,4 @@
-import { AccessibilityPreferences, LanguagePreferences, PageHeader, Panel, TourPreferences, UrlTabs, useT } from '@repo/ui';
+import { AccessibilityPreferences, LanguagePreferences, PageHeader, Panel, PrototypeToolsPreference, TourPreferences, UrlTabs, useT } from '@repo/ui';
 
 /**
  * Preferences (GLOBAL-008/009/010, GUIDE-006). One page with tabs; each register URL opens its tab
@@ -22,7 +22,12 @@ export default function PreferencesPage({ defaultTab }: { defaultTab: 'language'
           <Panel className="max-w-2xl">
             {tab === 'language' && <LanguagePreferences />}
             {tab === 'accessibility' && <AccessibilityPreferences />}
-            {tab === 'tours' && <TourPreferences />}
+            {tab === 'tours' && (
+              <div className="space-y-8">
+                <TourPreferences />
+                <PrototypeToolsPreference />
+              </div>
+            )}
           </Panel>
         )}
       </UrlTabs>

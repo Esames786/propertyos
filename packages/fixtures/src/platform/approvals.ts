@@ -1,18 +1,22 @@
-import type { ApprovalCheck, ContractDraft, EditionKey, Money } from '@repo/contracts';
-import { COMMERCIAL_POLICY, rateCardLine } from './rate-card';
+import type { ApprovalCheck, CommercialPolicyConfig, ContractDraft, EditionKey, Money, RateCard } from '@repo/contracts';
+import { policyFor, SEED_POLICY } from './config';
+import { RATE_CARD } from './rate-card';
 
 /**
  * Commercial approval thresholds (Gate A review, correction 4 / D-14; A3 §7.1). A contract that
  * trips any rule cannot activate until an approver who is not its author approves it. The check is
- * pure and runs on every quote, so the builder shows the reasons as they arise.
+ * pure and runs on every quote, so the builder shows the reasons as they arise. The thresholds come
+ * from the policy version in force (with any exception for the edition), and floors from the rate
+ * card version in force: none of them is a constant here.
  */
 const paisa = (m: Money | undefined) => (m ? Math.round(Number(m.amount) * 100) : 0);
 const fmt = (p: number) => (p / 100).toFixed(2);
 const DAY = 86_400_000;
 const days = (from: string, to: string) => Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / DAY);
 
-export function checkApproval(contract: ContractDraft, ctx: { edition: EditionKey; firstYearValue: Money }): ApprovalCheck {
-  const p = COMMERCIAL_POLICY;
+export function checkApproval(contract: ContractDraft, ctx: { edition: EditionKey; firstYearValue: Money; policy?: CommercialPolicyConfig; rateCard?: RateCard }): ApprovalCheck {
+  const p = policyFor(ctx.policy ?? SEED_POLICY, ctx.edition, contract.terms.start);
+  const rateCardLine = (id: string) => (ctx.rateCard ?? RATE_CARD).lines.find((l) => l.id === id);
   const reasons: ApprovalCheck['reasons'] = [];
 
   // Discounts above the limit (percent, or an amount that is that large a share of its component).

@@ -1,5 +1,5 @@
-import type { DependencyCheckResult, DependencyIssue, ModuleKey, ModuleSelection } from '@repo/contracts';
-import { moduleEntry } from './catalog';
+import type { DependencyCheckResult, DependencyIssue, ModuleCatalogEntry, ModuleKey, ModuleSelection } from '@repo/contracts';
+import { MODULES } from './catalog';
 
 /**
  * Module dependency check (Gate A, A1 §6). Hard requirements must be granted for at least the same
@@ -19,7 +19,10 @@ function withCore(selection: readonly ModuleSelection[]): Map<ModuleKey, Sites> 
   return map;
 }
 
-function issuesOf(map: Map<ModuleKey, Sites>): DependencyIssue[] {
+type Entry = (key: ModuleKey) => ModuleCatalogEntry;
+const lookup = (modules: readonly ModuleCatalogEntry[]): Entry => (key) => modules.find((m) => m.key === key)!;
+
+function issuesOf(map: Map<ModuleKey, Sites>, moduleEntry: Entry): DependencyIssue[] {
   const issues: DependencyIssue[] = [];
   for (const [module, sites] of map) {
     for (const req of moduleEntry(module).requires) {
@@ -33,14 +36,16 @@ function issuesOf(map: Map<ModuleKey, Sites>): DependencyIssue[] {
   return issues;
 }
 
-export function checkDependencies(selection: readonly ModuleSelection[]): DependencyCheckResult {
+/** Checked against a catalogue version (the one in force; default: the seed catalogue). */
+export function checkDependencies(selection: readonly ModuleSelection[], modules: readonly ModuleCatalogEntry[] = MODULES): DependencyCheckResult {
+  const moduleEntry = lookup(modules);
   const original = withCore(selection);
-  const issues = issuesOf(original);
+  const issues = issuesOf(original, moduleEntry);
 
   // Close every gap transitively on a copy; what we had to add or widen is the fix list.
   const fixed = new Map(original);
   for (let guard = 0; guard < 30; guard++) {
-    const open = issuesOf(fixed);
+    const open = issuesOf(fixed, moduleEntry);
     if (open.length === 0) break;
     for (const i of open) {
       const scope = moduleEntry(i.requires).scope;

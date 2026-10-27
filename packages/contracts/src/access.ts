@@ -37,6 +37,24 @@ export const MODULE_KEYS = [
   'api_access',
 ] as const;
 export type ModuleKey = (typeof MODULE_KEYS)[number];
+
+/**
+ * Modules granted per site (A1 §5, the catalogue's "site" scope). A record of one of these modules
+ * is only reachable when its site is known and licensed: a missing site context is refused.
+ */
+export const SITE_SCOPED_MODULES: ReadonlySet<ModuleKey> = new Set<ModuleKey>([
+  'inventory',
+  'construction',
+  'handover',
+  'dues',
+  'residents',
+  'resident_portal',
+  'online_payments',
+  'maintenance',
+  'visitors',
+  'parking',
+  'amenities',
+]);
 export type FeatureKey = `${ModuleKey}.${string}`;
 
 export const TENANT_TYPES = ['developer', 'association', 'portfolio_manager', 'custom'] as const;
@@ -60,8 +78,22 @@ export type AccessScope =
   | { type: 'all' }
   | { type: 'legal_entity' | 'site' | 'building' | 'project' | 'team'; ids: readonly string[] }
   | { type: 'assigned' }
-  /** Residents: only units and billing accounts reached through a verified party link. */
-  | { type: 'party'; partyId: string; units: readonly string[]; billingAccounts: readonly string[] };
+  /** Residents: only what a verified, in-force party link reaches (A2 §4.4 unit liabilities). */
+  | { type: 'party'; partyId: string; links: readonly PartyLink[] };
+
+/**
+ * A resident's relationship to a flat and the billing account liable for it, as verified by the
+ * tenant. Liability is effective-dated: a record is reachable only for dates inside [from, to).
+ */
+export interface PartyLink {
+  unitId: string;
+  billingAccountId: string;
+  siteId: string;
+  legalEntityId: string;
+  verified: boolean;
+  from: string;
+  to?: string;
+}
 
 export interface EffectiveAccess {
   tenant: {
@@ -83,6 +115,7 @@ export const DENY_REASONS = [
   'tenant_suspended',
   'module_not_licensed',
   'site_not_licensed',
+  'site_context_missing',
   'feature_not_licensed',
   'permission_missing',
   'out_of_scope',
@@ -106,6 +139,8 @@ export interface AccessRecord {
   assignedTo?: string;
   unitId?: string;
   billingAccountId?: string;
+  /** The record's own date (due, issued, paid…), checked against effective-dated liability. */
+  asOf?: string;
 }
 
 export interface AccessRequest {
@@ -132,7 +167,26 @@ export function grantActive(grant: ModuleGrant, at: string): boolean {
   return day(grant.from) <= d && (grant.to === undefined || d < day(grant.to));
 }
 
-function inScope(scopes: readonly AccessScope[], record: AccessRecord, userId: string): boolean {
+/**
+ * A party link reaches a record when it is verified, in force on the record's date, and matches the
+ * record's flat and billing account. A financial record (one with a billing account) must also name
+ * its site and legal entity and match the link on both: no cross-site or cross-entity exposure.
+ */
+function linkReaches(l: PartyLink, record: AccessRecord, at: string): boolean {
+  const on = day(record.asOf ?? at);
+  if (!l.verified || on < day(l.from) || (l.to !== undefined && on >= day(l.to))) return false;
+  if (record.unitId === undefined && record.billingAccountId === undefined) return false;
+  if (record.unitId !== undefined && record.unitId !== l.unitId) return false;
+  if (record.billingAccountId !== undefined) {
+    if (record.billingAccountId !== l.billingAccountId) return false;
+    if (record.siteId === undefined || record.legalEntityId === undefined) return false;
+  }
+  if (record.siteId !== undefined && record.siteId !== l.siteId) return false;
+  if (record.legalEntityId !== undefined && record.legalEntityId !== l.legalEntityId) return false;
+  return true;
+}
+
+function inScope(scopes: readonly AccessScope[], record: AccessRecord, userId: string, at: string): boolean {
   return scopes.some((s) => {
     switch (s.type) {
       case 'all':
@@ -140,10 +194,7 @@ function inScope(scopes: readonly AccessScope[], record: AccessRecord, userId: s
       case 'assigned':
         return record.assignedTo !== undefined && record.assignedTo === userId;
       case 'party':
-        return (
-          (record.unitId !== undefined && s.units.includes(record.unitId)) ||
-          (record.billingAccountId !== undefined && s.billingAccounts.includes(record.billingAccountId))
-        );
+        return s.links.some((l) => linkReaches(l, record, at));
       case 'site':
         return record.siteId !== undefined && s.ids.includes(record.siteId);
       case 'building':
@@ -176,13 +227,15 @@ export function decide(access: EffectiveAccess, req: AccessRequest): AccessDecis
   // 3. Site and feature entitlement
   const siteId = req.siteId ?? req.record?.siteId;
   if (siteId !== undefined && !grants.some((g) => g.sites === 'all' || g.sites.includes(siteId))) return deny('site_not_licensed');
+  // Fail closed: a record of a site-scoped module must say which site it belongs to.
+  if (siteId === undefined && req.record !== undefined && SITE_SCOPED_MODULES.has(req.module)) return deny('site_context_missing');
   if (req.feature !== undefined && !access.features.includes(req.feature)) return deny('feature_not_licensed');
 
   // 4. Permission
   if (req.permission !== undefined && !access.permissions.includes(req.permission)) return deny('permission_missing');
 
   // 5. Data scope (records only; module-level questions such as "show the Sales menu?" stop at 4)
-  if (req.record !== undefined && !inScope(access.scopes, req.record, access.userId)) return deny('out_of_scope');
+  if (req.record !== undefined && !inScope(access.scopes, req.record, access.userId, req.at)) return deny('out_of_scope');
 
   // 6. Workflow state
   if (req.state?.locked) return deny('state_locked');
@@ -219,6 +272,9 @@ export const PERMISSION_MODULE: Partial<Record<Permission, ModuleKey>> = {
   'reports.view': 'reports',
   'admin.view': 'core',
   'portal.use': 'resident_portal',
+  'construction.view': 'construction',
+  'workorder.update': 'maintenance',
+  'visitors.manage': 'visitors',
 };
 
 /** Something the UI offers (a menu item, action, tour step, link): its module and permission. */
@@ -226,27 +282,39 @@ export interface AccessTarget {
   module?: ModuleKey;
   feature?: FeatureKey;
   permission?: Permission | readonly Permission[];
+  /** The site in context (the header project's site): the grant must cover it. */
+  siteId?: string;
+  /** Suspension class of what the target opens; undeclared targets are operational (fail closed). */
+  suspension?: SuspensionClass;
 }
 
 /**
  * Whether a UI target is available: every listed permission held, and the module licensed and in
- * force (explicit, or the module of the first permission). Same layers as `decide`; menus use it
- * so what is offered matches what the API will allow.
+ * force (explicit, or the module of the first permission), for the site in context when there is
+ * one, and allowed in the tenant's lifecycle for the target's suspension class (operational unless
+ * declared). Same layers as `decide`; menus use it so what is offered matches what the API allows.
  */
 export function decideTarget(access: EffectiveAccess, target: AccessTarget, at: string): AccessDecision {
   const permissions: readonly Permission[] = target.permission === undefined ? [] : Array.isArray(target.permission) ? target.permission : [target.permission as Permission];
   const module = target.module ?? permissions.map((p) => PERMISSION_MODULE[p]).find((m) => m !== undefined) ?? 'core';
-  const base = decide(access, { module, ...(target.feature ? { feature: target.feature } : {}), at, suspension: 'history_read' });
+  const context = { at, suspension: target.suspension ?? 'operational', ...(target.siteId ? { siteId: target.siteId } : {}) } as const;
+  const base = decide(access, { module, ...(target.feature ? { feature: target.feature } : {}), ...context });
   if (!base.allowed) return base;
   for (const p of permissions) {
     const own = PERMISSION_MODULE[p];
     if (own && own !== module) {
-      const d = decide(access, { module: own, permission: p, at, suspension: 'history_read' });
+      const d = decide(access, { module: own, permission: p, ...context });
       if (!d.allowed) return d;
     } else if (!access.permissions.includes(p)) return deny('permission_missing');
   }
   return { allowed: true };
 }
+
+/**
+ * Answer of GET /access/record?id=…: whether the signed-in person may open a record named in an
+ * address. `record: false` when the value is not a record id (a filter value, for example).
+ */
+export type RecordAccess = { record: false } | { record: true; module: ModuleKey; decision: AccessDecision };
 
 /** HTTP status the API uses for a reason: out-of-scope records are "not found", so their existence is not confirmed. */
 export function denyStatus(reason: DenyReason): 403 | 404 | 409 {

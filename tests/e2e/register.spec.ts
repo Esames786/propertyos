@@ -26,11 +26,12 @@ const chunks = <T,>(list: readonly T[], size: number) => Array.from({ length: Ma
 test.describe('Screen register coverage (V3.1)', () => {
   test('the register keeps every V2.1 screen and adds the V3.1 families', () => {
     const ids = new Set(SCREENS.map((s) => s.id));
-    expect(SCREENS.length).toBe(390);
+    // Gate B final adds GLOBAL-014 (My access) and HQ-026–028 (policy, requests and signup, audit log).
+    expect(SCREENS.length).toBe(394);
     for (const prefix of ['GLOBAL', 'AUTH', 'SAAS', 'CRM', 'PORTAL', 'WEB', 'HQ', 'SITE', 'BILL', 'ENTRY']) {
       expect([...ids].some((id) => id.startsWith(`${prefix}-`)), prefix).toBe(true);
     }
-    expect(SCREENS.filter((s) => s.canonicalId === s.id)).toHaveLength(331);
+    expect(SCREENS.filter((s) => s.canonicalId === s.id)).toHaveLength(335);
   });
 
   for (const [i, group] of chunks(OPENABLE, 25).entries()) {

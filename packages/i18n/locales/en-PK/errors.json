@@ -83,6 +83,18 @@
     "state_locked": "This record is locked and can't be changed.",
     "separation_of_duties": "Someone else must approve what you prepared.",
     "tenant_suspended": "The workspace is suspended; only financial history is available.",
-    "tenant_inactive": "The workspace isn't active."
+    "tenant_inactive": "The workspace isn't active.",
+    "site_context_missing": "This record doesn't say which site it belongs to, so it can't be opened.",
+    "no_effective_access": "Your organisation has no active access to PropertyOS.",
+    "siteMissing": {
+      "title": "This record has no site",
+      "body": "{{module}} is licensed per site, and this record of {{organisation}} doesn't name one, so it is not shown.",
+      "next": "Your workspace administrator can correct the record's site."
+    },
+    "notFound": {
+      "title": "We couldn't find that record",
+      "body": "It may not exist, or it isn't part of {{organisation}}'s records you can open.",
+      "next": "Check the address or search for the record."
+    }
   }
 }

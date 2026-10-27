@@ -1,4 +1,4 @@
-import { LogOut, RotateCcw, Settings, UserRoundCog } from 'lucide-react';
+import { LogOut, RotateCcw, Settings, UserRoundCog, KeyRound } from 'lucide-react';
 import { Dialog, DialogTrigger, Heading, Popover } from 'react-aria-components';
 import { MOCK_MODES_UI } from './mockModes';
 import { useTransport, type MockMode } from '../data/TransportProvider';
@@ -71,6 +71,19 @@ export function UserMenu() {
                 >
                   {t('common:userMenu.preferences')}
                 </Button>
+                {links.myAccess && (
+                  <Button
+                    variant="secondary"
+                    icon={KeyRound}
+                    onPress={() => {
+                      close();
+                      navigate(links.myAccess!);
+                    }}
+                    data-testid="user-menu-my-access"
+                  >
+                    {t('nav:pages.myAccess')}
+                  </Button>
+                )}
                 <Button
                   variant="secondary"
                   icon={UserRoundCog}

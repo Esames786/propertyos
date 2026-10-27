@@ -1,4 +1,5 @@
 import type { EditionKey, EffectiveAccess, LicensedSite, ModuleGrant, ModuleKey, ModuleSelection, Persona, TenantStatus, TenantType } from '@repo/contracts';
+import { datasetFor } from './datasets';
 import { presetFor } from './platform/catalog';
 import { FIXTURE_NOW } from './seed';
 
@@ -40,8 +41,35 @@ export const TENANT_DIRECTORY: readonly DirectoryTenant[] = [
       { id: 'site_lk_heights', name: 'Larkspur Heights', city: 'Lahore', kind: 'residential', buildings: 3, declaredUnits: 336 },
       { id: 'site_lk_gardens', name: 'Larkspur Gardens', city: 'Islamabad', kind: 'plots', buildings: 0, declaredUnits: 160 },
     ],
-    modules: [...all(presetFor('developer').modules), { module: 'online_payments', sites: ['site_lk_heights'] }],
+    // Online payments for Larkspur Heights were added by contract amendment 2 from 1 April 2026.
+    modules: [...all(presetFor('developer').modules), { module: 'online_payments', sites: ['site_lk_heights'], from: '2026-04-01' }],
     licensedFrom: '2026-03-01',
+    allowSettlement: true,
+  },
+  {
+    // Two sites, different grants (CP2 security correction 2): Crescent Bay Towers is a residential
+    // project with sales inventory, construction and handover; Crescent Bay Plaza is a commercial
+    // building the company only maintains. CRM, sales and receivables cover the whole company.
+    id: 'tnt_crescent',
+    name: 'Crescent Bay Developers (Demo)',
+    legalName: 'Crescent Bay Developers (Pvt) Ltd (Demo)',
+    type: 'developer',
+    edition: 'developer',
+    status: 'trial',
+    city: 'Karachi',
+    contactName: 'Zain Abbasi',
+    sites: [
+      { id: 'site_cb_towers', name: 'Crescent Bay Towers', city: 'Karachi', kind: 'residential', buildings: 2, declaredUnits: 48 },
+      { id: 'site_cb_plaza', name: 'Crescent Bay Plaza', city: 'Karachi', kind: 'commercial', buildings: 1, declaredUnits: 18 },
+    ],
+    modules: [
+      ...all(['core', 'crm', 'projects', 'sales', 'receivables', 'communications', 'reports']),
+      { module: 'inventory', sites: ['site_cb_towers'] },
+      { module: 'construction', sites: ['site_cb_towers'] },
+      { module: 'handover', sites: ['site_cb_towers'] },
+      { module: 'maintenance', sites: ['site_cb_plaza'] },
+    ],
+    licensedFrom: '2026-10-15',
     allowSettlement: true,
   },
   {
@@ -116,7 +144,8 @@ export const TENANT_DIRECTORY: readonly DirectoryTenant[] = [
     city: 'Lahore',
     contactName: 'Adnan Malik',
     sites: [{ id: 'site_shalimar', name: 'Shalimar Court', city: 'Lahore', kind: 'residential', buildings: 2, declaredUnits: 64 }],
-    modules: all(['core', 'maintenance']),
+    // Amendment 2 (approved, scheduled): a resident roster and gate passes from 1 November 2026.
+    modules: [...all(['core', 'maintenance']), { module: 'residents', sites: 'all', from: '2026-11-01' }, { module: 'visitors', sites: 'all', from: '2026-11-01' }],
     licensedFrom: '2026-08-01',
     allowSettlement: true,
   },
@@ -127,20 +156,26 @@ export const directoryTenant = (id: string) => TENANT_DIRECTORY.find((t) => t.id
 /** Today in the demo (fixtures are frozen in time). */
 export const ACCESS_TODAY = FIXTURE_NOW.toISOString().slice(0, 10);
 
-/** Module selections as effective-dated grants. */
+/** Module selections as effective-dated grants (a selection's own date wins over the licence start). */
 export function grantsOf(modules: readonly ModuleSelection[], from: string): ModuleGrant[] {
-  return modules.map((m) => ({ module: m.module, sites: m.sites, from, source: 'preset' as const }));
+  return modules.map((m) => ({ module: m.module, sites: m.sites, from: m.from ?? from, source: m.from ? ('override' as const) : ('preset' as const) }));
 }
 
-/** Effective access of a tenant-plane person: their tenant's lifecycle and grants plus their own permissions. */
+/**
+ * Effective access of a tenant-plane person: their tenant's lifecycle and grants plus their own
+ * permissions. A resident's data scope is their party links (verified, effective-dated liability);
+ * staff are scoped to all projects or the projects they are assigned to.
+ */
 export function effectiveAccessFor(persona: Persona, tenant = directoryTenant(persona.tenantId)): EffectiveAccess | null {
   if (!tenant) return null;
+  const partyId = persona.partyId;
+  const links = partyId ? (datasetFor(tenant.id)?.partyLinks ?? []).filter((l) => l.partyId === partyId).map(({ partyId: _owner, ...link }) => link) : [];
   return {
     tenant: { id: tenant.id, type: tenant.type, status: tenant.status, suspensionPolicy: { allowSettlement: tenant.allowSettlement } },
     grants: grantsOf(tenant.modules, tenant.licensedFrom),
     features: [],
     permissions: persona.permissions,
-    scopes: persona.projectScope === 'all' ? [{ type: 'all' }] : [{ type: 'project', ids: persona.projectScope }],
+    scopes: partyId ? [{ type: 'party', partyId, links }] : persona.projectScope === 'all' ? [{ type: 'all' }] : [{ type: 'project', ids: persona.projectScope }],
     userId: persona.principalId,
   };
 }

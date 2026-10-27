@@ -1,4 +1,4 @@
-import { decideTarget, type DashboardSummary, type SearchResponse, type WorkspacePlan } from '@repo/contracts';
+import { decideTarget, grantActive, type DashboardSummary, type DemoOverview, type SearchResponse, type WorkspacePlan } from '@repo/contracts';
 import { describe, expect, it } from 'vitest';
 import { DemoStore } from './demo-store';
 import { MockTransport, type MockContext } from './mock-transport';
@@ -30,9 +30,10 @@ describe('one tenant directory for HQ and the workspace', () => {
     }
   });
 
-  it('the maintenance-only client licenses core and maintenance only', () => {
+  it('the maintenance-only client licenses core and maintenance only (residents and visitors are scheduled)', () => {
     const access = effectiveAccessFor(findPersona('facility_manager')!)!;
-    expect(access.grants.map((g) => g.module).sort()).toEqual(['core', 'maintenance']);
+    expect(access.grants.filter((g) => grantActive(g, ACCESS_TODAY)).map((g) => g.module).sort()).toEqual(['core', 'maintenance']);
+    expect(access.grants.filter((g) => !grantActive(g, ACCESS_TODAY)).map((g) => [g.module, g.from])).toEqual([['residents', '2026-11-01'], ['visitors', '2026-11-01']]);
     expect(access.tenant).toMatchObject({ id: 'tnt_shalimar', status: 'active' });
   });
 });
@@ -75,7 +76,9 @@ describe('core endpoints never hand Larkspur records to another organisation', (
     const dashboard = await t.request<DashboardSummary>({ method: 'GET', path: '/dashboard/summary' });
     expect(dashboard.kpis).toEqual([]);
     expect(dashboard.collections).toBeNull();
-    await expect(t.request({ method: 'GET', path: '/demo/overview' })).rejects.toMatchObject(refusedWith(403, 'forbidden'));
+    // The demo overview describes Shalimar's own (empty) records, never Larkspur's.
+    const overview = await t.request<DemoOverview>({ method: 'GET', path: '/demo/overview' });
+    expect(overview).toMatchObject({ tenantName: 'Shalimar Court Residents (Demo)', projects: [], counts: { projects: 0, units: null, leads: null, siteVisits: null } });
   });
 
   it('the same calls still serve Larkspur’s own people', async () => {
@@ -89,11 +92,12 @@ describe('ADM-023 your plan & modules', () => {
     const plan = await as('society_admin').request<WorkspacePlan>({ method: 'GET', path: '/workspace/plan' });
     expect(plan.tenant).toMatchObject({ id: 'tnt_shalimar', name: 'Shalimar Court Residents (Demo)' });
     expect(plan.modules.filter((m) => m.licensed).map((m) => m.key).sort()).toEqual(['core', 'maintenance']);
+    expect(plan.modules.filter((m) => m.scheduledFrom).map((m) => [m.key, m.scheduledFrom])).toEqual([['residents', '2026-11-01'], ['visitors', '2026-11-01']]);
     expect(plan.modules).toHaveLength(27);
   });
 
   it('a role without administration may not open it', async () => {
-    await expect(as('facility_manager').request({ method: 'GET', path: '/workspace/plan' })).rejects.toMatchObject(refusedWith(403, 'forbidden'));
+    await expect(as('facility_manager').request({ method: 'GET', path: '/workspace/plan' })).rejects.toMatchObject(refusedWith(403, 'permission_missing'));
   });
 });
 

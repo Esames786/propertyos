@@ -26,9 +26,18 @@ export interface DemoOverlay {
   sections: Record<string, unknown>;
 }
 
-export const DEMO_STORE_KEY = 'demo:store:v1';
+export const DEMO_STORE_KEY = 'demo:store:v2';
+
+/** Partition for requests made before anyone signs in (the workspace-setup simulation). */
+export const VISITOR_PARTITION = 'visitor';
 
 type SessionStorageLike = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
+
+interface DemoSessionState {
+  version: 2;
+  /** One overlay per tenant (and one for visitors): another organisation's changes are never read. */
+  partitions: Record<string, DemoOverlay>;
+}
 
 const empty = (): DemoOverlay => ({
   version: 1,
@@ -51,43 +60,77 @@ function defaultStorage(): SessionStorageLike | undefined {
   }
 }
 
+/**
+ * The browser session's demo changes, partitioned by tenant (CP2 security correction 5). Handlers
+ * only ever receive the signed-in person's own partition, so switching identity or organisation can
+ * neither show nor change another tenant's session records.
+ */
 export class DemoStore {
-  private overlay: DemoOverlay;
+  private state: DemoSessionState;
   private readonly storage: SessionStorageLike | undefined;
 
   constructor(storage: SessionStorageLike | undefined = defaultStorage()) {
     this.storage = storage;
-    this.overlay = this.load();
+    this.state = this.load();
   }
 
-  private load(): DemoOverlay {
+  private load(): DemoSessionState {
     try {
       const raw = this.storage?.getItem(DEMO_STORE_KEY);
       if (raw) {
-        const parsed = JSON.parse(raw) as DemoOverlay;
-        if (parsed.version === 1) return { ...empty(), ...parsed };
+        const parsed = JSON.parse(raw) as DemoSessionState;
+        if (parsed.version === 2 && parsed.partitions && typeof parsed.partitions === 'object') {
+          return { version: 2, partitions: Object.fromEntries(Object.entries(parsed.partitions).map(([k, v]) => [k, { ...empty(), ...v }])) };
+        }
       }
     } catch {
       /* corrupt or unavailable: start clean */
     }
-    return empty();
+    return { version: 2, partitions: {} };
   }
 
   save(): void {
     try {
-      this.storage?.setItem(DEMO_STORE_KEY, JSON.stringify(this.overlay));
+      this.storage?.setItem(DEMO_STORE_KEY, JSON.stringify(this.state));
     } catch {
       /* memory copy is kept */
     }
   }
 
+  /** Discards every partition (the visitor's "Reset demo"). */
   reset(): void {
-    this.overlay = empty();
+    this.state = { version: 2, partitions: {} };
     try {
       this.storage?.removeItem(DEMO_STORE_KEY);
     } catch {
       /* ignore */
     }
+  }
+
+  /** The overlay of one tenant (or the visitor partition), created on first use. */
+  partition(key: string): DemoPartition {
+    return new DemoPartition(this, () => (this.state.partitions[key] ??= empty()));
+  }
+
+  /** Partitions that hold changes (tests and the leakage checks). */
+  partitionKeys(): string[] {
+    return Object.keys(this.state.partitions);
+  }
+}
+
+/** One tenant's view of the session overlay; every read and write stays inside it. */
+export class DemoPartition {
+  constructor(
+    private readonly store: DemoStore,
+    private readonly current: () => DemoOverlay,
+  ) {}
+
+  private get overlay(): DemoOverlay {
+    return this.current();
+  }
+
+  save(): void {
+    this.store.save();
   }
 
   /** Session-unique id with a readable prefix (`led_s3`, `vst_s4` …). */

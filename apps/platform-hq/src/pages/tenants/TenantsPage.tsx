@@ -1,4 +1,4 @@
-import type { EditionKey, TenantListResponse, TenantStatus, TenantSummary, WorkspaceRequest } from '@repo/contracts';
+import type { EditionKey, TenantListResponse, TenantStatus, TenantSummary } from '@repo/contracts';
 import { EDITIONS } from '@repo/contracts';
 import {
   Badge,
@@ -21,13 +21,14 @@ import {
   useQueryParams,
   useT,
 } from '@repo/ui';
-import { Mail, Plus, Search, Sparkles, UserPlus, X } from 'lucide-react';
+import { Plus, Search, Sparkles, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Button as AriaButton, Input, Label, SearchField } from 'react-aria-components';
 import { useHqFormat } from '../../lib/format';
 import { EDITION_HUE, EDITION_ICON, editionName, lifecycleOf, STATUS_ICON, STATUS_TONE } from '../../lib/labels';
 import { HQ } from '../../nav.config';
 import { TenantSummaryDrawer } from './TenantSummaryDrawer';
+import { RequestsList } from '../config/RequestsPage';
 
 type Filter = 'all' | TenantStatus | 'awaiting_approval';
 const FILTERS: Filter[] = ['all', 'active', 'trial', 'awaiting_approval', 'grace', 'suspended', 'draft'];
@@ -62,7 +63,7 @@ export default function TenantsPage() {
           { id: 'requests', label: t('platform:tenants.tabs.requests') },
         ]}
       >
-        {(tab) => (tab === 'requests' ? <RequestsTab /> : <TenantList />)}
+        {(tab) => (tab === 'requests' ? <RequestsList /> : <TenantList />)}
       </UrlTabs>
       <TenantSummaryDrawer />
     </div>
@@ -293,59 +294,5 @@ function TenantCard({ tenant: tn, onOpen }: { tenant: TenantSummary; onOpen: () 
         </span>
       </span>
     </AriaButton>
-  );
-}
-
-function RequestsTab() {
-  const { t } = useT();
-  const fmt = useHqFormat();
-  const can = useCan();
-  const requests = useApiQuery<WorkspaceRequest[]>({ method: 'GET', path: '/platform/requests' });
-  if (requests.isError) return <ErrorState error={requests.error} onRetry={() => void requests.refetch()} />;
-  if (!requests.data) return <Skeleton className="h-48 rounded-card" />;
-  return (
-    <div className="space-y-4">
-      <p className="text-sm text-muted">{t('platform:requests.intro')}</p>
-      <Stagger as="ul" className="grid gap-3 lg:grid-cols-2 [&>*]:min-w-0" testId="requests-list">
-        {requests.data.map((r) => (
-          <RevealItem as="li" key={r.id}>
-            <article className="flex h-full flex-col gap-3 rounded-card border border-border/70 bg-panel p-4 shadow-card" data-testid={`request-${r.id}`}>
-              <div className="flex items-start gap-3">
-                <IconTile icon={r.kind === 'sales' ? Mail : r.kind === 'trial' ? Sparkles : UserPlus} hue="sky" size="md" />
-                <div className="min-w-0 flex-1">
-                  <h3 className="font-bold text-text">
-                    <bdi>{r.organisation}</bdi>
-                  </h3>
-                  <p className="text-sm text-muted">
-                    <bdi>{r.contactName}</bdi> · {r.city} · {fmt.relative(r.receivedAt)}
-                  </p>
-                </div>
-                <Badge tone={r.status === 'new' ? 'info' : 'neutral'}>{t(`platform:requests.status.${r.status}`)}</Badge>
-              </div>
-              <dl className="grid grid-cols-3 gap-2 text-sm">
-                <div>
-                  <dt className="text-xs text-muted">{t('platform:requests.kindLabel')}</dt>
-                  <dd className="font-medium">{t(`platform:requests.kind.${r.kind}`)}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-muted">{t('platform:tenants.edition')}</dt>
-                  <dd className="font-medium">{editionName(t, r.edition)}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-muted">{t('platform:requests.units')}</dt>
-                  <dd className="font-medium tabular">{r.expectedUnits ? fmt.count(r.expectedUnits) : '—'}</dd>
-                </div>
-              </dl>
-              {can('platform.tenants.create') && r.status !== 'converted' && r.status !== 'declined' && (
-                <Link variant="plain" href={`${HQ.createTenant}?from=${r.id}`} className={`${buttonClass('secondary')} mt-auto self-start`} data-testid={`request-start-${r.id}`}>
-                  <Plus aria-hidden className="size-4" />
-                  {t('platform:requests.start')}
-                </Link>
-              )}
-            </article>
-          </RevealItem>
-        ))}
-      </Stagger>
-    </div>
   );
 }

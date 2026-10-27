@@ -11,3 +11,4 @@ export * from './workspace';
 export * from './portal';
 export * from './access';
 export * from './platform';
+export * from './commercial';

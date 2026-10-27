@@ -1,44 +1,42 @@
 import { ORGANISATION_TYPES, PROJECT_TYPES, WORKSPACE_ROLES, type DemoOverview, type Party, type WorkspaceProfile, type WorkspaceSetup } from '@repo/contracts';
-import { VISITS } from './crm-data';
-import { can, forbid, invalid, isScopeOnly, type Handler, type HandlerContext } from './handler-types';
-import { PROJECTS, UNITS } from './inventory';
-import { PARTIES, TENANT } from './people';
-import { INVOICES, LEADS } from './records';
+import { can, forbid, invalid, isScopeOnly, requires, unitPermitted, visitor, type Handler, type HandlerContext } from './handler-types';
+import { SEED_CONFIG, signupOf, versionAt } from './platform/config';
+import { ACCESS_TODAY, directoryTenant } from './tenant-directory';
 
 /** Lead statuses that still need someone to follow up. */
 const OPEN_LEAD = new Set(['new', 'assigned', 'contacted', 'qualified', 'dormant']);
 
 /**
  * "Your demo is ready" overview: what the demo environment holds for the signed-in identity,
- * computed from the fixtures plus this browser session's demo changes. Counts respect the
- * persona's project scope (not the header filter); kinds the role cannot see are `null`.
+ * computed from the signed-in organisation's own records plus its partition of this browser
+ * session's demo changes. Counts respect the persona's project scope (not the header filter) and
+ * licensed modules; kinds the role cannot see are `null`.
  */
 function demoOverview(ctx: HandlerContext): DemoOverview {
-  // The demo overview describes the Larkspur developer demo; other organisations never see its counts.
-  if (!ctx.persona || ctx.persona.app !== 'backoffice' || !ctx.ownsSeedData) forbid(ctx);
+  if (!ctx.persona || ctx.persona.app !== 'backoffice') forbid(ctx);
   const inScope = (projectId: string) => isScopeOnly(ctx, projectId);
   const seesLeads = can(ctx, 'lead.view');
-  const leads = seesLeads ? ctx.demo.leads(LEADS).filter((l) => inScope(l.projectId)) : [];
+  const leads = seesLeads ? ctx.demo.leads(ctx.data.leads).filter((l) => inScope(l.projectId)) : [];
 
   let customers: number | null = null;
   if (can(ctx, 'customer.view') || seesLeads) {
     const ids = new Set<string>();
     leads.forEach((l) => ids.add(l.partyId));
-    if (can(ctx, 'customer.view')) INVOICES.filter((i) => inScope(i.projectId)).forEach((i) => ids.add(i.partyId));
+    if (can(ctx, 'customer.view')) ctx.data.invoices.filter((i) => inScope(i.projectId)).forEach((i) => ids.add(i.partyId));
     const sessionParties = ctx.demo.section<{ parties: Party[] }>('crm', () => ({ parties: [] })).parties;
-    customers = [...sessionParties, ...PARTIES].filter((p) => ids.has(p.id)).length;
+    customers = [...sessionParties, ...ctx.data.parties].filter((p) => ids.has(p.id)).length;
   }
 
-  const projects = PROJECTS.filter((p) => inScope(p.id));
+  const projects = ctx.data.projects.filter((p) => inScope(p.id));
   return {
-    tenantName: TENANT.name,
+    tenantName: directoryTenant(ctx.tenantId ?? '')?.name ?? '',
     projects: projects.map((p) => ({ id: p.id, name: p.name, city: p.city, kind: p.kind })),
     counts: {
       projects: projects.length,
-      units: can(ctx, 'unit.view') ? UNITS.filter((u) => inScope(u.projectId)).length : null,
+      units: can(ctx, 'unit.view') ? ctx.data.units.filter((u) => inScope(u.projectId) && unitPermitted(ctx, u)).length : null,
       customers,
       leads: seesLeads ? leads.length : null,
-      siteVisits: seesLeads ? ctx.demo.visits(VISITS).filter((v) => inScope(v.projectId)).length : null,
+      siteVisits: seesLeads ? ctx.demo.visits(ctx.data.visits).filter((v) => inScope(v.projectId)).length : null,
       openFollowUps: seesLeads ? leads.filter((l) => l.nextFollowUp && OPEN_LEAD.has(l.status)).length : null,
     },
   };
@@ -67,12 +65,14 @@ function checkSetup(ctx: HandlerContext, setup: WorkspaceSetup): void {
 /**
  * Developer-workspace setup simulation (Stage 1.5R). The submitted profile is kept in the demo
  * session only: nothing is provisioned, no email or SMS is sent and no account exists afterwards.
- * Open to visitors without a persona: setup happens before anyone signs in.
+ * Open to visitors without a persona: setup happens before anyone signs in, so these endpoints
+ * keep their state in the visitor partition and never touch an organisation's records.
  */
 export const WORKSPACE_HANDLERS: readonly Handler[] = [
   {
     method: 'POST',
     pattern: /^\/workspace\/verify$/,
+    access: visitor('Workspace-setup simulation before sign-in: checks the prototype code only.'),
     handle: (ctx) => {
       const code = String((ctx.req.body as { code?: string })?.code ?? '');
       if (code !== '246810') invalid(ctx, 'code', 'forms:errors.codeInvalid');
@@ -82,10 +82,16 @@ export const WORKSPACE_HANDLERS: readonly Handler[] = [
   {
     method: 'POST',
     pattern: /^\/workspace$/,
+    access: visitor('Workspace-setup simulation before sign-in: stores the visitor’s own profile.'),
     handle: (ctx): WorkspaceProfile => {
       const setup = (ctx.req.body ?? {}) as WorkspaceSetup;
       checkSetup(ctx, setup);
-      const profile: WorkspaceProfile = { ...setup, invites: setup.invites ?? [], createdAt: new Date().toISOString(), simulated: true };
+      // The developer signup policy in force decides what a real signup would lead to (seeded version).
+      const version = versionAt(SEED_CONFIG, 'signup_policy', ACCESS_TODAY);
+      const signup = signupOf(version);
+      const declared = setup.project?.expectedUnits ?? 0;
+      const outcome = signup.byEdition.developer === 'self_service_trial' && declared > signup.maxSelfServiceUnits ? 'approval_required' : signup.byEdition.developer;
+      const profile: WorkspaceProfile = { ...setup, invites: setup.invites ?? [], createdAt: new Date().toISOString(), simulated: true, signup: { policy: outcome, version: version.label } };
       ctx.demo.workspace = profile;
       return profile;
     },
@@ -93,11 +99,13 @@ export const WORKSPACE_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/workspace$/,
+    access: visitor('Workspace-setup simulation before sign-in: returns the visitor’s own profile.'),
     handle: (ctx) => ctx.demo.workspace,
   },
   {
     method: 'GET',
     pattern: /^\/demo\/overview$/,
+    access: requires('core', 'signed_in', 'operational'),
     handle: demoOverview,
   },
 ];

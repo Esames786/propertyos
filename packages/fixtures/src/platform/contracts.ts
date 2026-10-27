@@ -1,6 +1,6 @@
-import { componentFromLine, type ContractDraft, type EditionKey, type PricingComponent } from '@repo/contracts';
+import { componentFromLine, type ContractDraft, type EditionKey, type PricingComponent, type RateCard } from '@repo/contracts';
 import { presetFor } from './catalog';
-import { RATE_CARD, rateCardLine } from './rate-card';
+import { RATE_CARD } from './rate-card';
 
 /** First day of the month after `iso` (contracts start on a billing boundary by default). */
 export function nextMonthStart(iso: string): string {
@@ -19,8 +19,10 @@ export function addDays(iso: string, days: number): string {
  * The edition preset's components priced from the rate card. With a trial, every charge (including
  * one-time onboarding) starts when the trial ends.
  */
-export function defaultContract(edition: EditionKey, options: { start: string; trial?: boolean }): ContractDraft {
+export function defaultContract(edition: EditionKey, options: { start: string; trial?: boolean; rateCard?: RateCard }): ContractDraft {
   const { start } = options;
+  // Prices come from the rate card version in force for the contract start.
+  const rateCardLine = (id: string) => (options.rateCard ?? RATE_CARD).lines.find((l) => l.id === id);
   const trialDays = options.trial ? (rateCardLine('rc_trial')?.trialDays ?? 30) : 0;
   const chargesFrom = trialDays ? addDays(start, trialDays) : start;
   const components: PricingComponent[] = [];

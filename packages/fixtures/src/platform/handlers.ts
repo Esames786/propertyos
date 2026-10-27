@@ -1,8 +1,6 @@
 import {
-  ApiError,
   pkr,
   type ActivationResult,
-  type ApiRequest,
   type AppNotification,
   type HqAttentionItem,
   type ContractApproval,
@@ -23,74 +21,48 @@ import {
   type TenantType,
 } from '@repo/contracts';
 import { FIXTURE_NOW } from '../seed';
-import { CATALOG, presetFor } from './catalog';
+import { presetFor } from './catalog';
+import { AMENDMENT_HANDLERS, configOn, onAmendmentDecided } from './amendments';
+import { AUDIT_HANDLERS } from './audit';
+import { catalogueFrom, presetsFrom, TODAY } from './config';
+import { CONFIG_HANDLERS, isApprover } from './config-handlers';
+import { USAGE_HANDLERS } from './usage';
 import { addDays, defaultContract, nextMonthStart } from './contracts';
 import { checkDependencies } from './dependencies';
 import { fromPaisa, priceContract, toPaisa, type Quantities } from './pricing';
-import { COMMERCIAL_POLICY, RATE_CARD, TAX_CODES } from './rate-card';
+import { TAX_CODES } from './rate-card';
+import { body, clone, fail, invalid, notFound, now, principalOf, q, refuse, type PlatformContext, type PlatformHandler } from './kit';
 import type { PlatformStore } from './store';
 import { SEED_MRR_PREVIOUS, SEED_OUTSTANDING, SEED_REVENUE, SEED_USAGE } from './tenants';
-import { grantsOf } from '../tenant-directory';
-import { rolesFor } from './roles';
-import { contractProblems, draftPatchProblems, moduleProblems, quantityProblems, type Problem, type Problems } from './validation';
+import { directoryTenant, grantsOf } from '../tenant-directory';
+import { rolesOf } from './roles';
+import { contractProblems, draftPatchProblems, moduleProblems, quantityProblems } from './validation';
 
-export interface PlatformContext {
-  persona: Persona | undefined;
-  req: ApiRequest;
-  params: Record<string, string>;
-  store: PlatformStore;
-  correlationId: string;
-}
-
-export interface PlatformHandler {
-  method: ApiRequest['method'];
-  pattern: RegExp;
-  /** Any one of these is enough. */
-  permission?: Permission | readonly Permission[];
-  handle: (ctx: PlatformContext) => unknown;
-}
-
-const fail = (ctx: PlatformContext, status: number, code: string, messageKey: string): never => {
-  throw new ApiError({ status, code, messageKey, correlationId: ctx.correlationId, changed: false });
-};
-const invalid = (ctx: PlatformContext, errors: Record<string, string | Problem>): never => {
-  throw new ApiError({
-    status: 422,
-    code: 'validation_failed',
-    messageKey: 'errors:validation.summary',
-    errors: Object.fromEntries(Object.entries(errors).map(([field, e]) => [field, [typeof e === 'string' ? { code: e } : e]])),
-    correlationId: ctx.correlationId,
-    changed: false,
-  });
-};
-const refuse = (ctx: PlatformContext, problems: Problems) => {
-  if (Object.keys(problems).length) invalid(ctx, problems);
-};
+export type { PlatformContext, PlatformHandler } from './kit';
 const EDITION_KEYS: readonly string[] = ['developer', 'community', 'portfolio', 'custom'];
 const DRAFT_FIELDS = ['edition', 'organisation', 'sites', 'modules', 'contract', 'quantities', 'step'] as const satisfies readonly (keyof TenantDraft)[];
+/** Configuration in force for a contract: the rate card and policy versions of its start date. */
+const configFor = (ctx: PlatformContext, contract: ContractDraft | null | undefined) => configOn(ctx.store, contract?.terms?.start && /^\d{4}-\d{2}-\d{2}$/.test(contract.terms.start) ? contract.terms.start : TODAY);
+
 /** What a pricing request must carry before the engine runs (the forms check the same). */
 function pricingInput(ctx: PlatformContext) {
   const { contract, quantities, edition } = body<{ contract: ContractDraft; quantities: Quantities; edition: EditionKey }>(ctx);
+  const config = configFor(ctx, contract);
   refuse(ctx, {
     ...(EDITION_KEYS.includes(edition) ? {} : { edition: { code: 'platform:validation.edition' } }),
-    ...contractProblems(contract, { commit: false, rateCard: RATE_CARD }),
+    ...contractProblems(contract, { commit: false, rateCard: config.rateCard }),
     ...quantityProblems(quantities ?? {}),
   });
-  return { contract, quantities: quantities ?? {}, edition };
+  // Builder, quote and simulator all price with the versions in force for the contract start.
+  return { contract, quantities: quantities ?? {}, edition, config: { policy: config.policy, rateCard: config.rateCard } };
 }
-/** Principal of the signed-in identity: maker-checker and audit compare these, never display names. */
-const principalOf = (ctx: PlatformContext) => ctx.persona?.principalId ?? fail(ctx, 401, 'unauthenticated', 'errors:api.unauthenticated');
-const notFound = (ctx: PlatformContext) => fail(ctx, 404, 'not_found', 'errors:api.notFound');
-
-const body = <T,>(ctx: PlatformContext) => (ctx.req.body ?? {}) as T;
-const q = (ctx: PlatformContext, key: string) => {
-  const v = ctx.req.query?.[key];
-  return v === undefined || v === '' ? undefined : String(v);
-};
-const now = () => new Date().toISOString();
 const today = FIXTURE_NOW.toISOString().slice(0, 10);
-const clone = <T,>(v: T): T => structuredClone(v);
 const norm = (s: string) => s.toLocaleLowerCase('en').replace(/\s+/g, ' ').trim();
+
+const atOf = (ctx: PlatformContext) => {
+  const at = q(ctx, 'at');
+  return at && /^\d{4}-\d{2}-\d{2}$/.test(at) ? at : TODAY;
+};
 
 const summaryOf = ({ organisation: _o, sites: _s, grants: _g, contract: _c, quote: _q, approval: _a, audit: _au, ...summary }: TenantDetail): TenantSummary => summary;
 
@@ -200,7 +172,7 @@ function validateDraft(ctx: PlatformContext, d: TenantDraft): asserts d is Tenan
   if (!d.organisation?.legalName?.trim()) errors.legalName = 'forms:errors.required';
   if (d.sites.length === 0) errors.sites = 'platform:errors.atLeastOneSite';
   if (d.sites.some((s) => !s.name.trim() || s.declaredUnits <= 0)) errors.sites = 'platform:errors.siteIncomplete';
-  if (!checkDependencies(d.modules).ok) errors.modules = 'platform:errors.dependencies';
+  if (!checkDependencies(d.modules, configOn(ctx.store, d.contract?.terms.start ?? TODAY).modules).ok) errors.modules = 'platform:errors.dependencies';
   if (!d.contract || d.contract.components.length === 0) errors.contract = 'platform:errors.noComponents';
   if (Object.keys(errors).length) invalid(ctx, errors);
 }
@@ -217,9 +189,10 @@ function activate(ctx: PlatformContext, draftId: string): ActivationResult {
   }
   validateDraft(ctx, draft);
   // The saved draft is checked again in full: activation never trusts what the forms let through.
-  refuse(ctx, { ...contractProblems(draft.contract, { commit: true, rateCard: RATE_CARD }), ...quantityProblems(draft.quantities) });
+  const config = configFor(ctx, draft.contract);
+  refuse(ctx, { ...contractProblems(draft.contract, { commit: true, rateCard: config.rateCard }), ...quantityProblems(draft.quantities) });
   const quantities = draftQuantities(draft);
-  const quote = priceContract({ contract: draft.contract, quantities, quantitySource: 'declared', edition: draft.edition });
+  const quote = priceContract({ contract: draft.contract, quantities, quantitySource: 'declared', edition: draft.edition, config: { policy: config.policy, rateCard: config.rateCard } });
   const needsApproval = quote.approval.required;
   const trial = draft.contract.components.find((c) => c.type === 'TRIAL');
   const status: TenantStatus = needsApproval ? 'draft' : trial ? 'trial' : 'active';
@@ -232,7 +205,7 @@ function activate(ctx: PlatformContext, draftId: string): ActivationResult {
     id,
     displayName: draft.organisation.displayName,
     legalName: draft.organisation.legalName,
-    type: presetFor(draft.edition).tenantType,
+    type: (presetsFrom(config.modules).find((p) => p.key === draft.edition) ?? presetFor(draft.edition)).tenantType,
     edition: draft.edition,
     status,
     contractStatus: needsApproval ? 'pending_approval' : 'active',
@@ -278,6 +251,8 @@ function decideApproval(ctx: PlatformContext): ContractApproval {
   if (comment !== undefined && typeof comment !== 'string') invalid(ctx, { comment: 'platform:validation.decision' });
   const note = typeof comment === 'string' ? comment.trim() : '';
   if (approval.status !== 'pending') fail(ctx, 409, 'invalid_transition', 'platform:errors.approvalDecided');
+  // Who may approve is part of the commercial policy in force (versioned, not hard-coded).
+  if (!isApprover(ctx)) fail(ctx, 403, 'approver_role_required', 'platform:config.errors.approverRole');
   // Maker ≠ checker (I-22): compared by principal, so a renamed maker is still refused and two
   // different people who share a name are not confused.
   const checkerId = principalOf(ctx);
@@ -295,6 +270,13 @@ function decideApproval(ctx: PlatformContext): ContractApproval {
     ...(note ? { comment: note } : {}),
   };
   store.saveApproval(decided);
+
+  // An amendment (contract version 2 or later) is scheduled or put in force; version 1 activates the tenant.
+  if (approval.contractVersion > 1) {
+    store.addAudit({ at, actorName: persona!.displayName, actorId: checkerId, action: decision === 'approve' ? 'approvalGranted' : 'approvalReturned', tenantId: approval.tenantId, tenantName: store.tenant(approval.tenantId)?.displayName ?? '', params: { version: String(approval.contractVersion), ...(note ? { comment: note } : {}) } });
+    onAmendmentDecided(store, decided, decision as 'approve' | 'return', { name: persona!.displayName, id: checkerId });
+    return decided;
+  }
 
   const tenant = clone(store.tenant(approval.tenantId) ?? notFound(ctx));
   const trial = tenant.contract?.components.find((c) => c.type === 'TRIAL');
@@ -321,8 +303,11 @@ function decideApproval(ctx: PlatformContext): ContractApproval {
  */
 function preview(ctx: PlatformContext): PreviewSession {
   const t = ctx.store.tenant(ctx.params.id!) ?? notFound(ctx);
-  const { role: roleId, modules } = body<{ role?: unknown; modules?: unknown }>(ctx);
-  const roles = rolesFor(t.type);
+  const { role: roleId, modules, at: asOf } = body<{ role?: unknown; modules?: unknown; at?: unknown }>(ctx);
+  // A preview may look at a later date (a scheduled change), never at the past.
+  const at = typeof asOf === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(asOf) && asOf >= today ? asOf : today;
+  // The tenant’s own roles: the preview of a role is the effective access of its holders.
+  const roles = rolesOf(t.id, t.type);
   if (roleId !== undefined && !roles.some((r) => r.id === roleId)) invalid(ctx, { role: 'platform:validation.role' });
   const role = roles.find((r) => r.id === roleId) ?? roles[0]!;
   const whatIf = modules !== undefined;
@@ -337,7 +322,7 @@ function preview(ctx: PlatformContext): PreviewSession {
     role,
     roles,
     access: {
-      tenant: { id: t.id, type: t.type, status: t.status, suspensionPolicy: { allowSettlement: true } },
+      tenant: { id: t.id, type: t.type, status: t.status, suspensionPolicy: { allowSettlement: directoryTenant(t.id)?.allowSettlement ?? true } },
       grants: grantsOf(selections, from),
       features: [],
       permissions: role.permissions,
@@ -345,9 +330,9 @@ function preview(ctx: PlatformContext): PreviewSession {
       userId: `preview:${role.id}`,
     },
     whatIf,
-    dependencies: checkDependencies(selections),
+    dependencies: checkDependencies(selections, configOn(ctx.store, at).modules),
     containsTenantRecords: false,
-    at: today,
+    at,
   };
 }
 
@@ -359,9 +344,21 @@ const SORTS = {
 
 export const PLATFORM_HANDLERS: PlatformHandler[] = [
   { method: 'GET', pattern: /^\/platform\/overview$/, permission: 'platform.dashboard.view', handle: (ctx) => overview(ctx.store, ctx.persona) },
-  { method: 'GET', pattern: /^\/platform\/catalog$/, permission: ['platform.catalog.view', 'platform.tenants.create'], handle: () => CATALOG },
-  { method: 'GET', pattern: /^\/platform\/rate-card$/, permission: ['platform.pricing.view', 'platform.tenants.create'], handle: () => ({ rateCard: RATE_CARD, policy: COMMERCIAL_POLICY, taxCodes: TAX_CODES }) },
-  { method: 'GET', pattern: /^\/platform\/requests$/, permission: 'platform.tenants.view', handle: (ctx) => ctx.store.requests() },
+  // The catalogue, rate card and policy in force (today, or on ?at= for a contract that starts later).
+  { method: 'GET', pattern: /^\/platform\/catalog$/, permission: ['platform.catalog.view', 'platform.tenants.create'], handle: (ctx) => catalogueFrom(ctx.store.configAt('catalogue', atOf(ctx))) },
+  {
+    method: 'GET',
+    pattern: /^\/platform\/rate-card$/,
+    permission: ['platform.pricing.view', 'platform.tenants.create'],
+    handle: (ctx) => {
+      const config = configOn(ctx.store, atOf(ctx));
+      return { rateCard: config.rateCard, policy: config.policy, taxCodes: TAX_CODES };
+    },
+  },
+  ...CONFIG_HANDLERS,
+  ...AMENDMENT_HANDLERS,
+  ...USAGE_HANDLERS,
+  ...AUDIT_HANDLERS,
 
   {
     method: 'GET',
@@ -402,7 +399,7 @@ export const PLATFORM_HANDLERS: PlatformHandler[] = [
     method: 'POST',
     pattern: /^\/platform\/entitlements\/check$/,
     permission: ['platform.tenants.create', 'platform.grants.manage'],
-    handle: (ctx) => checkDependencies(body<{ modules: ModuleSelection[] }>(ctx).modules ?? []),
+    handle: (ctx) => checkDependencies(body<{ modules: ModuleSelection[] }>(ctx).modules ?? [], configOn(ctx.store, TODAY).modules),
   },
   {
     method: 'POST',
@@ -412,7 +409,8 @@ export const PLATFORM_HANDLERS: PlatformHandler[] = [
       const { edition, start, trial } = body<{ edition: EditionKey; start?: string; trial?: boolean }>(ctx);
       if (!EDITION_KEYS.includes(edition)) invalid(ctx, { edition: 'platform:validation.edition' });
       if (start !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(start)) invalid(ctx, { start: 'platform:validation.start' });
-      return defaultContract(edition, { start: start ?? nextMonthStart(today), ...(trial ? { trial } : {}) });
+      const from = start ?? nextMonthStart(today);
+      return defaultContract(edition, { start: from, ...(trial ? { trial } : {}), rateCard: configOn(ctx.store, from).rateCard });
     },
   },
   {
@@ -452,7 +450,7 @@ export const PLATFORM_HANDLERS: PlatformHandler[] = [
       // Only the wizard's own fields can be written; ids, timestamps and activation state cannot.
       const sent = body<Partial<TenantDraft>>(ctx);
       const patch = Object.fromEntries(DRAFT_FIELDS.filter((k) => k in sent).map((k) => [k, sent[k]])) as Partial<TenantDraft>;
-      refuse(ctx, draftPatchProblems(patch, draft, RATE_CARD));
+      refuse(ctx, draftPatchProblems(patch, draft, configFor(ctx, patch.contract ?? draft.contract).rateCard));
       const next = { ...draft, ...patch, updatedAt: now() };
       ctx.store.saveDraft(next);
       return next;

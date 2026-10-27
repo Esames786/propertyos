@@ -7,8 +7,11 @@ import type {
   Lead,
   LeadSource,
   LeadStatus,
+  Party,
+  Unit,
 } from '@repo/contracts';
 import { buildIban } from '@repo/i18n/format';
+import { billingAccountOf } from './dataset-types';
 import { UNITS } from './inventory';
 import { PARTIES } from './people';
 import { calendarDaysFromNow, createRandom, daysFromNow, pad, percentOf } from './seed';
@@ -19,22 +22,38 @@ const LEAD_STATUS_WEIGHTS: ReadonlyArray<readonly [LeadStatus, number]> = [
 ];
 const LEAD_SOURCES: readonly LeadSource[] = ['website', 'walk_in', 'referral', 'social', 'broker', 'phone'];
 
-function generateLeads(): Lead[] {
-  const rnd = createRandom(4411);
-  const individuals = PARTIES.filter((p) => p.kind === 'individual');
-  return Array.from({ length: 120 }, (_, i) => {
+export interface LeadGeneration {
+  seed: number;
+  parties: readonly Party[];
+  count: number;
+  idPrefix: string;
+  refPrefix: string;
+  /** Most leads are for the primary project; the rest for the secondary one. */
+  primary: string;
+  secondary: string;
+  primaryShare: number;
+  /** Primary-project leads mostly belong to this owner; everything else to the fallback. */
+  owner: string;
+  fallbackOwner: string;
+}
+
+/** Fictional leads for one tenant (the same inputs always give the same leads). */
+export function generateLeads(g: LeadGeneration): Lead[] {
+  const rnd = createRandom(g.seed);
+  const individuals = g.parties.filter((p) => p.kind === 'individual');
+  return Array.from({ length: g.count }, (_, i) => {
     const party = individuals[i % individuals.length]!;
-    const projectId = rnd.chance(0.7) ? 'prj_heights' : 'prj_gardens';
+    const projectId = rnd.chance(g.primaryShare) ? g.primary : g.secondary;
     const status = rnd.weighted(LEAD_STATUS_WEIGHTS);
     const open = !['converted', 'lost', 'unqualified'].includes(status);
     return {
-      id: `led_${pad(i + 1, 4)}`,
-      ref: `LD-2026-${pad(i + 1, 5)}`,
+      id: `${g.idPrefix}${pad(i + 1, 4)}`,
+      ref: `${g.refPrefix}${pad(i + 1, 5)}`,
       partyId: party.id,
       projectId,
       status,
       source: rnd.pick(LEAD_SOURCES),
-      ownerPersonaId: projectId === 'prj_heights' && rnd.chance(0.75) ? 'sales' : 'manager',
+      ownerPersonaId: projectId === g.primary && rnd.chance(0.75) ? g.owner : g.fallbackOwner,
       budget: { amount: `${rnd.int(18, 160) * 500000}.00`, currency: 'PKR' },
       createdAt: daysFromNow(-rnd.int(1, 60), rnd.int(4, 14)),
       ...(open ? { nextFollowUp: daysFromNow(rnd.int(-3, 10), rnd.int(5, 12)) } : {}),
@@ -42,22 +61,37 @@ function generateLeads(): Lead[] {
   });
 }
 
-export const LEADS: readonly Lead[] = generateLeads();
+export const LEADS: readonly Lead[] = generateLeads({ seed: 4411, parties: PARTIES, count: 120, idPrefix: 'led_', refPrefix: 'LD-2026-', primary: 'prj_heights', secondary: 'prj_gardens', primaryShare: 0.7, owner: 'sales', fallbackOwner: 'manager' });
 
-function generateInvoices(): Invoice[] {
-  const rnd = createRandom(9090);
-  const sold = UNITS.filter((u) => ['booked', 'allocated', 'handover_ready', 'handed_over', 'occupied'].includes(u.status));
+export interface InvoiceGeneration {
+  seed: number;
+  units: readonly Unit[];
+  parties: readonly Party[];
+  /** How many sold units get a down payment and an instalment. */
+  count: number;
+  idPrefix: string;
+  refPrefix: string;
+  refBase: number;
+}
+
+export { billingAccountOf };
+
+/** Fictional invoices for one tenant: a paid down payment and a current instalment per sold unit. */
+export function generateInvoices(g: InvoiceGeneration): Invoice[] {
+  const rnd = createRandom(g.seed);
+  const sold = g.units.filter((u) => ['booked', 'allocated', 'handover_ready', 'handed_over', 'occupied'].includes(u.status));
   const invoices: Invoice[] = [];
-  sold.slice(0, 30).forEach((unit, i) => {
-    const party = PARTIES[i % PARTIES.length]!;
+  sold.slice(0, g.count).forEach((unit, i) => {
+    const party = g.parties[i % g.parties.length]!;
     const down = percentOf(unit.price.amount, 10);
     const installment = percentOf(unit.price.amount, 5);
     invoices.push({
-      id: `inv_${pad(invoices.length + 1, 4)}`,
-      ref: `INV-2026-${pad(1200 + invoices.length + 1, 6)}`,
+      id: `${g.idPrefix}${pad(invoices.length + 1, 4)}`,
+      ref: `${g.refPrefix}${pad(g.refBase + invoices.length + 1, 6)}`,
       partyId: party.id,
       unitId: unit.id,
       projectId: unit.projectId,
+      billingAccountId: billingAccountOf(unit.id),
       kind: 'down_payment',
       total: { amount: down, currency: 'PKR' },
       paid: { amount: down, currency: 'PKR' },
@@ -72,11 +106,12 @@ function generateInvoices(): Invoice[] {
         ? 'verified'
         : rnd.weighted<EvidenceStatus>([['none', 5], ['submitted', 2], ['under_review', 2], ['needs_information', 1]]);
     invoices.push({
-      id: `inv_${pad(invoices.length + 1, 4)}`,
-      ref: `INV-2026-${pad(1200 + invoices.length + 1, 6)}`,
+      id: `${g.idPrefix}${pad(invoices.length + 1, 4)}`,
+      ref: `${g.refPrefix}${pad(g.refBase + invoices.length + 1, 6)}`,
       partyId: party.id,
       unitId: unit.id,
       projectId: unit.projectId,
+      billingAccountId: billingAccountOf(unit.id),
       kind: 'installment',
       total: { amount: installment, currency: 'PKR' },
       paid: {
@@ -92,7 +127,7 @@ function generateInvoices(): Invoice[] {
   return invoices;
 }
 
-export const INVOICES: readonly Invoice[] = generateInvoices();
+export const INVOICES: readonly Invoice[] = generateInvoices({ seed: 9090, units: UNITS, parties: PARTIES, count: 30, idPrefix: 'inv_', refPrefix: 'INV-2026-', refBase: 1200 });
 
 /** Fictional collection account shown on DEMO payment screens (bank code DEMO does not exist). */
 export const DEMO_COLLECTION_ACCOUNT = {

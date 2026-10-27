@@ -19,11 +19,16 @@ import { ApiError } from '@repo/contracts';
 import { Calculator, Eye, MapPin } from 'lucide-react';
 import { componentLabel } from '../../components/PricingBuilder';
 import { AuditTrail } from '../../components/audit';
-import { ApprovalNotice, QuantitySources, QuoteBreakdown, QuoteTotals } from '../../components/quote';
-import { useHqFormat } from '../../lib/format';
+import { ApprovalNotice, QuoteBreakdown, QuoteTotals } from '../../components/quote';
+import { HQ_AS_OF, useHqFormat } from '../../lib/format';
+
+/** The demo's today (scheduled grants start after it). */
+const HQ_TODAY = HQ_AS_OF.slice(0, 10);
 import { editionName, lifecycleOf, moduleName, STATUS_ICON, STATUS_TONE } from '../../lib/labels';
 import { HQ } from '../../nav.config';
 import { ApprovalPanel } from '../tenants/TenantSummaryDrawer';
+import { ContractVersions } from './history';
+import { UsageTab } from './usage';
 
 /**
  * HQ-004 Tenant 360: one tenant's licence, subscription, modules and sites, usage, commercial
@@ -69,7 +74,7 @@ function Workspace({ tenant: d, t }: { tenant: TenantDetail; t: ReturnType<typeo
           { label: t('platform:summary.mrr'), value: <bdi dir="ltr">{fmt.money(d.mrr)}</bdi> },
           { label: t('platform:t360.metrics.edition'), value: editionName(t, d.edition) },
           { label: t('platform:t360.metrics.flats'), value: fmt.count(d.units.declared) },
-          { label: t('platform:t360.metrics.modules'), value: fmt.count(d.grants.length) },
+          { label: t('platform:t360.metrics.modules'), value: fmt.count(d.modules.length) },
         ]}
         actions={
           <>
@@ -94,7 +99,7 @@ function Workspace({ tenant: d, t }: { tenant: TenantDetail; t: ReturnType<typeo
             {tab === 'overview' && <Overview d={d} />}
             {tab === 'subscription' && <Subscription d={d} />}
             {tab === 'modules' && <Modules d={d} />}
-            {tab === 'usage' && <Usage d={d} />}
+            {tab === 'usage' && <UsageTab tenant={d} />}
             {tab === 'commercial' && <Commercial d={d} />}
             {tab === 'audit' && (
               <Panel title={t('platform:t360.auditTitle')} description={t('platform:t360.auditHint')}>
@@ -213,7 +218,7 @@ function Subscription({ d }: { d: TenantDetail }) {
           <QuoteBreakdown period={d.quote.regularPeriod} title={t('platform:quote.regularPeriod')} testId="t360-regular" />
         </div>
       </div>
-      <p className="text-sm text-muted">{t('platform:t360.amendmentsNext')}</p>
+      <ContractVersions tenant={d} />
     </>
   );
 }
@@ -257,7 +262,14 @@ function Modules({ d }: { d: TenantDetail }) {
                   <tr key={g.module} className="border-b border-border/60 last:border-0" data-testid={`t360-grant-${g.module}`}>
                     <th scope="row" className="py-2.5 pe-3 text-start font-medium text-text">{moduleName(t, g.module)}</th>
                     <td className="py-2.5 pe-3">{g.sites === 'all' ? t('platform:t360.allSites') : g.sites.map(siteName).join(', ')}</td>
-                    <td className="py-2.5 pe-3 whitespace-nowrap">{fmt.date(since)}</td>
+                    <td className="py-2.5 pe-3 whitespace-nowrap">
+                      {fmt.date(g.from ?? since)}
+                      {g.from && g.from > HQ_TODAY && (
+                        <span className="ms-2">
+                          <Badge tone="info">{t('platform:t360.scheduled')}</Badge>
+                        </span>
+                      )}
+                    </td>
                     <td className="py-2.5 text-muted">{entry && entry.requires.length ? entry.requires.map((r) => moduleName(t, r)).join(', ') : '—'}</td>
                   </tr>
                 );
@@ -298,36 +310,14 @@ function Modules({ d }: { d: TenantDetail }) {
           )}
         </Panel>
       </div>
-      <p className="text-sm text-muted">{t('platform:t360.grantChangesNext')}</p>
-    </>
-  );
-}
-
-function Usage({ d }: { d: TenantDetail }) {
-  const { t } = useT();
-  const fmt = useHqFormat();
-  return (
-    <>
-      <div className="grid gap-3 sm:grid-cols-3" data-testid="t360-usage">
-        {[
-          { id: 'flats', label: t('platform:t360.metrics.flats'), value: fmt.count(d.units.declared) },
-          { id: 'eligible', label: t('platform:t360.eligible'), value: d.units.eligible === null ? '—' : fmt.count(d.units.eligible) },
-          { id: 'sites', label: t('platform:summary.sites', { count: d.siteCount }), value: fmt.count(d.siteCount) },
-        ].map((m) => (
-          <div key={m.id} className="rounded-card border border-border/70 bg-panel p-4 shadow-card">
-            <p className="text-sm text-muted">{m.label}</p>
-            <p className="mt-1 text-2xl font-bold text-text tabular">{m.value}</p>
-          </div>
-        ))}
-      </div>
-      {d.quote && (
-        <Panel title={t('platform:t360.pricedCounts')} description={t('platform:t360.pricedCountsHint')}>
-          <QuantitySources quote={d.quote} />
-        </Panel>
+      {can('platform.grants.manage') && ['active', 'trial', 'grace'].includes(d.status) && (
+        <p className="text-sm text-muted">
+          {t('platform:t360.grantChangesHint')}{' '}
+          <Link href={HQ.amend(d.id)} data-testid="t360-change-modules">
+            {t('platform:t360.changeModules')}
+          </Link>
+        </p>
       )}
-      <InlineAlert tone="info" title={t('platform:t360.metersTitle')}>
-        {t('platform:t360.metersBody')}
-      </InlineAlert>
     </>
   );
 }

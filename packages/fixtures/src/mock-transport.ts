@@ -1,7 +1,10 @@
-import { ApiError, decide, denyStatus, type ApiRequest, type ApiTransport, type Persona } from '@repo/contracts';
-import { DemoStore } from './demo-store';
-import { HANDLERS, type HandlerContext } from './handlers';
-import { findPersona, TENANT } from './people';
+import { ApiError, decide, PERMISSION_MODULE, type AccessDecision, type ApiRequest, type ApiTransport, type EffectiveAccess, type Permission, type Persona } from '@repo/contracts';
+import type { TenantDataset } from './dataset-types';
+import { datasetFor } from './datasets';
+import { DemoStore, VISITOR_PARTITION } from './demo-store';
+import { HANDLERS, type Handler, type HandlerAccess, type HandlerContext } from './handlers';
+import { refused } from './handler-types';
+import { PERSONAS } from './people';
 import { ACCESS_TODAY, effectiveAccessFor } from './tenant-directory';
 import { createRandom } from './seed';
 import { TrainingStore } from './training-store';
@@ -29,21 +32,50 @@ interface MockTransportOptions {
   seed?: number;
   /** Session overlay; defaults to one persisted in sessionStorage (tests may inject a fresh one). */
   demo?: DemoStore;
+  /** Tests only: other identities, effective access or endpoints than the fixtures'. */
+  personas?: readonly Persona[];
+  accessFor?: (persona: Persona) => EffectiveAccess | null;
+  handlers?: readonly Handler[];
 }
 
 let correlation = 0;
 const nextCorrelationId = () => `demo-${(++correlation).toString(36).padStart(5, '0')}`;
 
+/** Records a visitor (no identity) may touch: none. */
+const NO_RECORDS: TenantDataset = { tenantId: '', projects: [], towers: [], floors: [], blocks: [], units: [], parties: [], leads: [], invoices: [], visits: [], notifications: [], partyLinks: [], refs: { party: '', lead: '', city: '' } };
+
+/**
+ * Whether the caller may use an endpoint at all: the declared module (and the module of each
+ * permission) licensed and in force, the tenant's lifecycle allowing the suspension class, and the
+ * permission held. Same layers as `decide`; the first refusal is returned.
+ */
+export function decideEndpoint(access: EffectiveAccess, declared: Extract<HandlerAccess, { kind: 'tenant' }>, at: string): AccessDecision {
+  const base = { at, suspension: declared.suspension } as const;
+  if (declared.permission === 'signed_in') return decide(access, { module: declared.module, ...base });
+  const options: readonly Permission[] = typeof declared.permission === 'string' ? [declared.permission] : declared.permission;
+  let first: AccessDecision | undefined;
+  for (const permission of options) {
+    const own = PERMISSION_MODULE[permission];
+    const decision = [decide(access, { module: declared.module, permission, ...base }), ...(own && own !== declared.module ? [decide(access, { module: own, permission, ...base })] : [])].find((d) => !d.allowed) ?? { allowed: true as const };
+    if (decision.allowed) return decision;
+    first ??= decision;
+  }
+  return first ?? { allowed: false, reason: 'permission_missing' };
+}
+
 /**
  * In-process stand-in for the future Laravel API (ADR-0001 §2.6). Deterministic latency so
- * skeletons and spinners are real; persona scope is enforced here, before the UI sees data,
- * mirroring how the backend must enforce it. Every mutation is logged; training writes go to
- * an isolated store and can never reach normal data.
+ * skeletons and spinners are real. Fail closed (CP2 security correction 1): every endpoint declares
+ * its access, a request without an identity is refused with 401, an identity without effective
+ * access with 403, and the declared module, permission and suspension class are checked before the
+ * handler runs, so a refused request reads and changes nothing. Handlers then see only the caller's
+ * own tenant records and demo partition. Every mutation is logged; training writes go to an
+ * isolated store and can never reach normal data.
  */
 export class MockTransport implements ApiTransport {
   readonly mutationLog: MutationLogEntry[] = [];
-  readonly training = new TrainingStore();
   readonly demo: DemoStore;
+  private readonly trainings = new Map<string, TrainingStore>();
   private readonly random;
   private readonly options: MockTransportOptions;
 
@@ -51,6 +83,17 @@ export class MockTransport implements ApiTransport {
     this.options = options;
     this.random = createRandom(options.seed ?? 1);
     this.demo = options.demo ?? new DemoStore();
+  }
+
+  /** Practice records of the current identity's organisation (each tenant has its own). */
+  get training(): TrainingStore {
+    return this.trainingFor(this.persona()?.tenantId ?? VISITOR_PARTITION);
+  }
+
+  private trainingFor(key: string): TrainingStore {
+    let store = this.trainings.get(key);
+    if (!store) this.trainings.set(key, (store = new TrainingStore()));
+    return store;
   }
 
   async request<T>(req: ApiRequest): Promise<T> {
@@ -63,7 +106,7 @@ export class MockTransport implements ApiTransport {
       throw new ApiError({ status: 503, code: 'service_unavailable', messageKey: 'errors:network.unavailable', correlationId: nextCorrelationId(), changed: false });
     }
 
-    const ctx = this.context();
+    const correlationId = nextCorrelationId();
     if (req.method !== 'GET') {
       this.mutationLog.push({
         at: new Date().toISOString(),
@@ -74,40 +117,68 @@ export class MockTransport implements ApiTransport {
       });
     }
 
-    for (const handler of HANDLERS) {
+    for (const handler of this.options.handlers ?? HANDLERS) {
       if (handler.method !== req.method) continue;
       const match = handler.pattern.exec(req.path);
       if (!match) continue;
-      // V3.1 effective access, before any data is read: tenant lifecycle, then the licensed module.
-      if (handler.module && ctx.access) {
-        const decision = decide(ctx.access, { module: handler.module, at: ACCESS_TODAY, suspension: handler.suspension ?? 'operational' });
-        if (!decision.allowed) {
-          throw new ApiError({ status: denyStatus(decision.reason), code: decision.reason, messageKey: `errors:access.${decision.reason}`, correlationId: ctx.correlationId, changed: false });
-        }
-      }
-      return handler.handle({ ...ctx, req, params: match.groups ?? {}, training: this.training, demo: this.demo }) as T;
+      const ctx = this.authorize(handler, correlationId);
+      return handler.handle({ ...ctx, req, params: match.groups ?? {} }) as T;
     }
-    throw new ApiError({ status: 404, code: 'not_found', messageKey: 'errors:api.notFound', correlationId: nextCorrelationId(), changed: false });
+    throw new ApiError({ status: 404, code: 'not_found', messageKey: 'errors:api.notFound', correlationId, changed: false });
   }
+
+  private readonly resetDemo = () => {
+    this.demo.reset();
+    this.trainings.clear();
+  };
 
   /** Mutations that were not training writes; practice tasks must leave this unchanged. */
   liveMutations(): MutationLogEntry[] {
     return this.mutationLog.filter((m) => !m.training);
   }
 
-  private context(): Omit<HandlerContext, 'req' | 'params' | 'training' | 'demo'> {
-    const { personaId, projectId } = this.options.getContext();
-    const persona: Persona | undefined = findPersona(personaId);
-    const scope = persona?.projectScope ?? [];
-    const allowed = (id: string) =>
-      (scope === 'all' || scope.includes(id)) && (projectId === 'all' || projectId === id);
+  private persona(): Persona | undefined {
+    const { personaId } = this.options.getContext();
+    return (this.options.personas ?? PERSONAS).find((p) => p.id === personaId);
+  }
+
+  /** The gate in front of every handler; returns the context it may use, or throws the refusal. */
+  private authorize(handler: Handler, correlationId: string): Omit<HandlerContext, 'req' | 'params'> {
+    const { projectId } = this.options.getContext();
+    const persona = this.persona();
+    const declared = handler.access;
+
+    if (declared.kind === 'visitor') {
+      return {
+        persona: undefined, tenantId: undefined, access: null, data: NO_RECORDS, allowsProject: () => false,
+        at: ACCESS_TODAY, suspension: 'operational', correlationId,
+        training: this.trainingFor(VISITOR_PARTITION), demo: this.demo.partition(VISITOR_PARTITION), resetDemo: this.resetDemo,
+      };
+    }
+    if (!persona) {
+      throw new ApiError({ status: 401, code: 'unauthenticated', messageKey: 'errors:api.unauthenticated', correlationId, changed: false });
+    }
+    const access = (this.options.accessFor ?? effectiveAccessFor)(persona);
+    const data = datasetFor(persona.tenantId);
+    if (!access || !data || access.tenant.id !== persona.tenantId) {
+      throw new ApiError({ status: 403, code: 'no_effective_access', messageKey: 'errors:access.no_effective_access', correlationId, changed: false });
+    }
+    const decision = decideEndpoint(access, declared, ACCESS_TODAY);
+    if (!decision.allowed) refused(decision, correlationId);
+
+    const scope = persona.projectScope;
     return {
       persona,
-      tenantId: persona?.tenantId,
-      access: persona ? effectiveAccessFor(persona) : null,
-      ownsSeedData: persona?.tenantId === TENANT.id,
-      allowsProject: allowed,
-      correlationId: nextCorrelationId(),
+      tenantId: persona.tenantId,
+      access,
+      data,
+      allowsProject: (id) => (scope === 'all' || scope.includes(id)) && (projectId === 'all' || projectId === id),
+      at: ACCESS_TODAY,
+      suspension: declared.suspension,
+      correlationId,
+      training: this.trainingFor(persona.tenantId),
+      demo: this.demo.partition(persona.tenantId),
+      resetDemo: this.resetDemo,
     };
   }
 

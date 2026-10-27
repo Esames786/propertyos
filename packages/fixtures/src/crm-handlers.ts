@@ -20,17 +20,15 @@ import {
   type VisitStatus,
 } from '@repo/contracts';
 import { normalizePkPhone } from '@repo/i18n/format';
-import { leadHistory, ownerName, projectName, unitDetail, unitSummary, VISITS } from './crm-data';
-import { can, forbid, invalid, isScopeOnly, matches, notFound, type Handler, type HandlerContext } from './handler-types';
-import { PROJECTS, UNITS } from './inventory';
-import { PARTIES } from './people';
-import { LEADS } from './records';
+import { leadHistory, ownerName, projectName, unitDetail, unitSummary } from './crm-data';
+import { authorize, can, forbid, invalid, isScopeOnly, matches, notFound, projectRecord, requires, unitPermitted, type Handler, type HandlerContext } from './handler-types';
 import { FIXTURE_NOW, pad } from './seed';
 
 /**
  * Sales / CRM endpoints over the demo store (Stage 1.5R). Reads merge fixtures with this session's
  * changes; writes land in the session overlay only. Persona scope and the header project filter are
- * enforced here, before the UI sees anything, as the real backend must.
+ * enforced here, before the UI sees anything, as the real backend must. Leads are tenant-wide (CRM),
+ * but a unit is inventory: it is shown, matched or held only on a site whose inventory is licensed.
  */
 
 const PAGE_SIZE = 12;
@@ -43,21 +41,35 @@ interface CrmSection {
 const crm = (ctx: HandlerContext) => ctx.demo.section<CrmSection>('crm', () => ({ parties: [] }));
 
 function partyById(ctx: HandlerContext, id: string): Party | undefined {
-  return crm(ctx).parties.find((p) => p.id === id) ?? PARTIES.find((p) => p.id === id);
+  return crm(ctx).parties.find((p) => p.id === id) ?? ctx.data.parties.find((p) => p.id === id);
 }
 
 /** Leads the persona may see: scope + header project filter (+ own leads only for sales). */
 function visibleLeads(ctx: HandlerContext): Lead[] {
   if (!can(ctx, 'lead.view')) forbid(ctx);
-  return ctx.demo.leads(LEADS).filter((l) => ctx.allowsProject(l.projectId));
+  return ctx.demo.leads(ctx.data.leads).filter((l) => ctx.allowsProject(l.projectId));
 }
 
 function visibleVisits(ctx: HandlerContext): SiteVisit[] {
-  return ctx.demo.visits(VISITS).filter((v) => ctx.allowsProject(v.projectId));
+  return ctx.demo.visits(ctx.data.visits).filter((v) => ctx.allowsProject(v.projectId));
 }
 
 const stageOf = (status: LeadStatus): PipelineStageId =>
   PIPELINE_STAGES.find((s) => PIPELINE_STATUSES[s].includes(status)) ?? 'new';
+
+/** A unit of this tenant on a site whose inventory the person may see. */
+function permittedUnit(ctx: HandlerContext, unitId: string | undefined) {
+  const unit = unitId ? ctx.data.units.find((u) => u.id === unitId) : undefined;
+  return unit && unitPermitted(ctx, unit) ? unit : undefined;
+}
+
+/** A unit named in a request: not found outside this tenant, refused on an unlicensed site. */
+function requestedUnit(ctx: HandlerContext, unitId: string | undefined) {
+  const unit = ctx.data.units.find((u) => u.id === unitId);
+  if (!unit) notFound(ctx);
+  authorize(ctx, 'inventory', projectRecord(ctx, unit.projectId), 'unit.view');
+  return unit;
+}
 
 function listItem(ctx: HandlerContext, lead: Lead): LeadListItem {
   const party = partyById(ctx, lead.partyId);
@@ -68,7 +80,7 @@ function listItem(ctx: HandlerContext, lead: Lead): LeadListItem {
     status: lead.status,
     source: lead.source,
     projectId: lead.projectId,
-    projectName: projectName(lead.projectId),
+    projectName: projectName(ctx.data, lead.projectId),
     partyId: lead.partyId,
     displayName: party?.displayName ?? '—',
     phone: party?.phone ?? '',
@@ -76,7 +88,7 @@ function listItem(ctx: HandlerContext, lead: Lead): LeadListItem {
     ownerName: ownerName(lead.ownerPersonaId),
     createdAt: lead.createdAt,
     ...(lead.nextFollowUp ? { nextFollowUp: lead.nextFollowUp } : {}),
-    ...(interest ? { interestUnitRef: UNITS.find((u) => u.id === interest)?.ref } : {}),
+    ...(permittedUnit(ctx, interest) ? { interestUnitRef: permittedUnit(ctx, interest)!.ref } : {}),
     ...(ctx.demo.isSessionLead(lead.id) ? { createdInSession: true } : {}),
   };
 }
@@ -86,15 +98,15 @@ function practiceItems(ctx: HandlerContext): LeadListItem[] {
   if (!ctx.req.training) return [];
   return ctx.training.list().map((r) => {
     const data = r.data as { fullName?: string; phone?: string; unitId?: string };
-    const unit = UNITS.find((u) => u.id === data.unitId);
-    const projectId = unit?.projectId ?? 'prj_heights';
+    const unit = permittedUnit(ctx, data.unitId);
+    const projectId = unit?.projectId ?? ctx.data.projects[0]?.id ?? '';
     return {
       id: r.id,
       ref: `PRACTICE-${r.id.slice(4).padStart(3, '0')}`,
       status: 'new',
       source: 'walk_in',
       projectId,
-      projectName: projectName(projectId),
+      projectName: projectName(ctx.data, projectId),
       partyId: '',
       displayName: data.fullName ?? '—',
       phone: normalizePkPhone(data.phone ?? '') ?? data.phone ?? '',
@@ -126,7 +138,7 @@ function activityEvent(ctx: HandlerContext, kind: ActivityEvent['kind'], message
 }
 
 function findLead(ctx: HandlerContext, id: string): Lead {
-  const lead = ctx.demo.leads(LEADS).find((l) => l.id === id);
+  const lead = ctx.demo.leads(ctx.data.leads).find((l) => l.id === id);
   if (!lead) notFound(ctx);
   if (!can(ctx, 'lead.view') || !ctx.allowsProject(lead.projectId)) forbid(ctx);
   return lead;
@@ -136,7 +148,7 @@ export const CRM_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/crm\/summary$/,
-    module: 'crm',
+    access: requires('crm', 'lead.view', 'operational'),
     handle: (ctx): SalesSummary => {
       const leads = visibleLeads(ctx);
       const now = FIXTURE_NOW.getTime();
@@ -157,7 +169,7 @@ export const CRM_HANDLERS: readonly Handler[] = [
           leadRef: l.ref,
           displayName: party?.displayName ?? '—',
           phone: party?.phone ?? '',
-          projectName: projectName(l.projectId),
+          projectName: projectName(ctx.data, l.projectId),
           dueAt: l.nextFollowUp!,
           overdue: new Date(l.nextFollowUp!).getTime() < now,
           status: l.status,
@@ -192,7 +204,7 @@ export const CRM_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/leads$/,
-    module: 'crm',
+    access: requires('crm', 'lead.view', 'operational'),
     handle: (ctx): LeadListResponse => {
       const { q, status = 'all', project, sort = 'recent', page = 1 } = (ctx.req.query ?? {}) as Record<string, string | number | undefined>;
       let items = [...practiceItems(ctx), ...visibleLeads(ctx).map((l) => listItem(ctx, l))];
@@ -211,7 +223,7 @@ export const CRM_HANDLERS: readonly Handler[] = [
   {
     method: 'POST',
     pattern: /^\/leads$/,
-    module: 'crm',
+    access: requires('crm', 'lead.create', 'operational'),
     handle: (ctx) => {
       if (!can(ctx, 'lead.create')) forbid(ctx);
       const input = (ctx.req.body ?? {}) as CreateLeadInput;
@@ -219,7 +231,9 @@ export const CRM_HANDLERS: readonly Handler[] = [
       const phone = normalizePkPhone(input.phone ?? '');
       if (!phone) invalid(ctx, 'phone', 'forms:errors.phoneInvalid');
       if (!input.projectId || !isScopeOnly(ctx, input.projectId)) invalid(ctx, 'projectId');
-      const unit = input.unitId ? UNITS.find((u) => u.id === input.unitId) : undefined;
+      if (!ctx.data.projects.some((p) => p.id === input.projectId)) invalid(ctx, 'projectId');
+      const unit = input.unitId ? permittedUnit(ctx, input.unitId) : undefined;
+      if (input.unitId && !unit) invalid(ctx, 'unitId', 'forms:errors.unitUnavailable');
       if (ctx.req.training) {
         const record = ctx.training.add('lead', { fullName: input.fullName, phone, unitId: input.unitId });
         return { id: record.id, ref: `PRACTICE-${record.id.slice(4).padStart(3, '0')}`, training: true };
@@ -227,18 +241,18 @@ export const CRM_HANDLERS: readonly Handler[] = [
       const n = ctx.demo.counter + 1;
       const party: Party = {
         id: ctx.demo.nextId('pty'),
-        ref: `CUS-${pad(20000 + n, 5)}`,
+        ref: `${ctx.data.refs.party}${pad(20000 + n, 5)}`,
         kind: 'individual',
         displayName: input.fullName.trim(),
         phone,
         email: input.email?.trim() || '',
-        city: PROJECTS.find((p) => p.id === input.projectId)?.city ?? 'Lahore',
+        city: ctx.data.projects.find((p) => p.id === input.projectId)?.city ?? ctx.data.refs.city,
       };
       crm(ctx).parties.unshift(party);
       const id = ctx.demo.nextId('led');
       const lead: Lead & { interestUnitId?: string } = {
         id,
-        ref: `LD-2026-${pad(LEADS.length + n, 5)}`,
+        ref: `${ctx.data.refs.lead}${pad(ctx.data.leads.length + n, 5)}`,
         partyId: party.id,
         projectId: input.projectId,
         status: 'new',
@@ -258,31 +272,32 @@ export const CRM_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/leads\/(?<leadId>[\w-]+)$/,
-    module: 'crm',
+    access: requires('crm', 'lead.view', 'operational'),
     handle: (ctx): LeadDetail => {
       const lead = findLead(ctx, ctx.params.leadId!) as Lead & { interestUnitId?: string };
       const party = partyById(ctx, lead.partyId)!;
       const holds = ctx.demo.holds();
       const holdView = Object.fromEntries(Object.entries(holds).map(([k, v]) => [k, { leadRef: v.leadRef, until: v.until }]));
-      const interest = lead.interestUnitId ? UNITS.find((u) => u.id === lead.interestUnitId) : undefined;
+      const interest = permittedUnit(ctx, lead.interestUnitId);
       const budget = Number(lead.budget.amount);
       // Within 15 % of the budget; without a budget, the project's available units in price order.
-      const matched = UNITS.filter(
+      const matched = ctx.data.units.filter(
         (u) =>
           u.projectId === lead.projectId &&
+          unitPermitted(ctx, u) &&
           (u.status === 'available' || holds[u.id]?.leadId === lead.id) &&
           (budget <= 0 || Math.abs(Number(u.price.amount) - budget) <= budget * 0.15),
       )
         .sort((a, b) => (budget <= 0 ? Number(a.price.amount) - Number(b.price.amount) : 0))
         .slice(0, 6)
-        .map((u) => unitSummary(u, holdView));
-      const base = ctx.demo.isSessionLead(lead.id) ? [] : leadHistory(lead);
+        .map((u) => unitSummary(ctx.data, u, holdView));
+      const base = ctx.demo.isSessionLead(lead.id) ? [] : leadHistory(ctx.data, lead);
       return {
         lead: { ...lead, ...(ctx.demo.isSessionLead(lead.id) ? { createdInSession: true } : {}) },
         party,
-        project: PROJECTS.find((p) => p.id === lead.projectId)!,
+        project: ctx.data.projects.find((p) => p.id === lead.projectId)!,
         ownerName: ownerName(lead.ownerPersonaId),
-        interestUnit: interest ? unitSummary(interest, holdView) : null,
+        interestUnit: interest ? unitSummary(ctx.data, interest, holdView) : null,
         activity: [...ctx.demo.sessionActivity(lead.id), ...base],
         visits: visibleVisits(ctx).filter((v) => v.leadId === lead.id).sort((a, b) => b.at.localeCompare(a.at)),
         matchedUnits: matched,
@@ -292,7 +307,7 @@ export const CRM_HANDLERS: readonly Handler[] = [
   {
     method: 'POST',
     pattern: /^\/leads\/(?<leadId>[\w-]+)\/activity$/,
-    module: 'crm',
+    access: requires('crm', 'lead.view', 'operational'),
     handle: (ctx) => {
       const lead = findLead(ctx, ctx.params.leadId!);
       const input = (ctx.req.body ?? {}) as LogActivityInput;
@@ -311,7 +326,7 @@ export const CRM_HANDLERS: readonly Handler[] = [
   {
     method: 'POST',
     pattern: /^\/leads\/(?<leadId>[\w-]+)\/status$/,
-    module: 'crm',
+    access: requires('crm', 'lead.view', 'operational'),
     handle: (ctx) => {
       const lead = findLead(ctx, ctx.params.leadId!);
       const status = (ctx.req.body as { status?: LeadStatus })?.status;
@@ -324,7 +339,7 @@ export const CRM_HANDLERS: readonly Handler[] = [
   {
     method: 'POST',
     pattern: /^\/leads\/(?<leadId>[\w-]+)\/follow-up$/,
-    module: 'crm',
+    access: requires('crm', 'lead.view', 'operational'),
     handle: (ctx) => {
       const lead = findLead(ctx, ctx.params.leadId!);
       const { at, done } = (ctx.req.body ?? {}) as { at?: string; done?: boolean };
@@ -342,7 +357,7 @@ export const CRM_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/visits$/,
-    module: 'crm',
+    access: requires('crm', 'lead.view', 'operational'),
     handle: (ctx): SiteVisit[] => {
       if (!can(ctx, 'lead.view')) forbid(ctx);
       return visibleVisits(ctx).sort((a, b) => a.at.localeCompare(b.at));
@@ -351,14 +366,15 @@ export const CRM_HANDLERS: readonly Handler[] = [
   {
     method: 'POST',
     pattern: /^\/visits$/,
-    module: 'crm',
+    access: requires('crm', 'visit.schedule', 'operational'),
     handle: (ctx): SiteVisit => {
       if (!can(ctx, 'visit.schedule')) forbid(ctx);
       const input = (ctx.req.body ?? {}) as ScheduleVisitInput;
       const lead = findLead(ctx, input.leadId);
       if (!input.at || Number.isNaN(new Date(input.at).getTime())) invalid(ctx, 'at');
       const party = partyById(ctx, lead.partyId);
-      const unit = input.unitId ? UNITS.find((u) => u.id === input.unitId) : undefined;
+      const unit = input.unitId ? permittedUnit(ctx, input.unitId) : undefined;
+      if (input.unitId && !unit) invalid(ctx, 'unitId', 'forms:errors.unitUnavailable');
       const visit: SiteVisit = {
         id: ctx.demo.nextId('vst'),
         leadId: lead.id,
@@ -366,7 +382,7 @@ export const CRM_HANDLERS: readonly Handler[] = [
         displayName: party?.displayName ?? '—',
         phone: party?.phone ?? '',
         projectId: lead.projectId,
-        projectName: projectName(lead.projectId),
+        projectName: projectName(ctx.data, lead.projectId),
         ...(unit ? { unitRef: unit.ref } : {}),
         at: input.at,
         status: 'scheduled',
@@ -380,7 +396,7 @@ export const CRM_HANDLERS: readonly Handler[] = [
   {
     method: 'POST',
     pattern: /^\/visits\/(?<visitId>[\w-]+)\/status$/,
-    module: 'crm',
+    access: requires('crm', 'visit.schedule', 'operational'),
     handle: (ctx) => {
       const visit = visibleVisits(ctx).find((v) => v.id === ctx.params.visitId);
       if (!visit) notFound(ctx);
@@ -396,24 +412,19 @@ export const CRM_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/units\/(?<unitId>[\w-]+)$/,
-    module: 'inventory',
+    access: requires('inventory', 'unit.view', 'operational'),
     handle: (ctx) => {
-      if (!can(ctx, 'unit.view')) forbid(ctx);
-      const unit = UNITS.find((u) => u.id === ctx.params.unitId);
-      if (!unit) notFound(ctx);
-      if (!isScopeOnly(ctx, unit.projectId)) forbid(ctx);
+      const unit = requestedUnit(ctx, ctx.params.unitId);
       const holds = Object.fromEntries(Object.entries(ctx.demo.holds()).map(([k, v]) => [k, { leadRef: v.leadRef, until: v.until }]));
-      return unitDetail(unit, holds);
+      return unitDetail(ctx.data, unit, holds);
     },
   },
   {
     method: 'POST',
     pattern: /^\/units\/(?<unitId>[\w-]+)\/hold$/,
-    module: 'sales',
+    access: requires('sales', 'unit.hold', 'operational'),
     handle: (ctx) => {
-      if (!can(ctx, 'unit.hold')) forbid(ctx);
-      const unit = UNITS.find((u) => u.id === ctx.params.unitId);
-      if (!unit) notFound(ctx);
+      const unit = requestedUnit(ctx, ctx.params.unitId);
       const lead = findLead(ctx, (ctx.req.body as { leadId?: string })?.leadId ?? '');
       if (unit.status !== 'available' || ctx.demo.holds()[unit.id]) invalid(ctx, 'unit', 'forms:errors.unitUnavailable');
       const until = new Date(Date.now() + 2 * DAY).toISOString();
@@ -425,23 +436,13 @@ export const CRM_HANDLERS: readonly Handler[] = [
   {
     method: 'POST',
     pattern: /^\/units\/(?<unitId>[\w-]+)\/release$/,
-    module: 'sales',
+    access: requires('sales', 'unit.hold', 'operational'),
     handle: (ctx) => {
-      if (!can(ctx, 'unit.hold')) forbid(ctx);
-      const hold = ctx.demo.holds()[ctx.params.unitId!];
+      const unit = requestedUnit(ctx, ctx.params.unitId);
+      const hold = ctx.demo.holds()[unit.id];
       if (!hold) notFound(ctx);
-      ctx.demo.release(ctx.params.unitId!);
-      const unit = UNITS.find((u) => u.id === ctx.params.unitId);
-      ctx.demo.addActivity(hold.leadId, activityEvent(ctx, 'status', 'activity.unitReleased', { unit: unit?.ref ?? '' }));
-      return { ok: true };
-    },
-  },
-  {
-    method: 'POST',
-    pattern: /^\/demo\/reset$/,
-    handle: (ctx) => {
-      ctx.demo.reset();
-      ctx.training.clear();
+      ctx.demo.release(unit.id);
+      ctx.demo.addActivity(hold.leadId, activityEvent(ctx, 'status', 'activity.unitReleased', { unit: unit.ref }));
       return { ok: true };
     },
   },

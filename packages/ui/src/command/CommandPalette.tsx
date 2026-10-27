@@ -93,10 +93,11 @@ export function CommandPalette() {
   );
 
   const screens = useMemo(() => {
+    // One entry per address (a menu area and a destination may share one): keys must be unique.
     const all = [
       ...navItems.filter(allows).map((n) => ({ id: n.id, label: t(n.labelKey as 'nav:items.home'), href: n.href, keywords: '' })),
       ...destinations.filter(allows),
-    ];
+    ].filter((d, i, list) => list.findIndex((x) => x.href === d.href) === i);
     const q = norm(query.trim());
     return (q ? all.filter((d) => norm(`${d.label} ${d.keywords ?? ''}`).includes(q)) : all).slice(0, 8);
   }, [allows, navItems, destinations, query, t]);

@@ -1,5 +1,6 @@
 import {
   pkr,
+  type CommercialPolicyConfig,
   type ComponentType,
   type ContractDraft,
   type ContractDiscount,
@@ -9,6 +10,7 @@ import {
   type QuotePeriod,
   type QuotePreview,
   type QuoteQuantity,
+  type RateCard,
   type UsageDimension,
 } from '@repo/contracts';
 import { checkApproval } from './approvals';
@@ -262,10 +264,12 @@ export interface QuoteInput {
   quantities: Quantities;
   quantitySource: QuoteQuantity['source'];
   edition: Parameters<typeof checkApproval>[1]['edition'];
+  /** Policy and rate card versions in force for the contract (defaults: the seeds, version 1). */
+  config?: { policy?: CommercialPolicyConfig; rateCard?: RateCard };
 }
 
 /** Twelve billing periods, the first one from the contract start. */
-export function priceContract({ contract, quantities, quantitySource, edition }: QuoteInput): QuotePreview {
+export function priceContract({ contract, quantities, quantitySource, edition, config }: QuoteInput): QuotePreview {
   const periods = billingPeriods(contract.terms.start, contract.terms.billingFrequency, 12);
   const priced = periods.map((p) => pricePeriod(contract, p, quantities));
   const hasOneTime = (qp: QuotePeriod) => qp.lines.some((l) => l.type === 'ONE_TIME');
@@ -289,5 +293,5 @@ export function priceContract({ contract, quantities, quantitySource, edition }:
     firstYearValue: fromPaisa(firstYearNet),
     quantities: [...used].map((dimension) => ({ dimension, value: quantities[dimension] ?? 0, source: quantitySource })),
   };
-  return { ...preview, approval: checkApproval(contract, { edition, firstYearValue: preview.firstYearValue }) };
+  return { ...preview, approval: checkApproval(contract, { edition, firstYearValue: preview.firstYearValue, ...(config?.policy ? { policy: config.policy } : {}), ...(config?.rateCard ? { rateCard: config.rateCard } : {}) }) };
 }

@@ -189,7 +189,8 @@
       "apartment_3bed": "Three-bedroom residences",
       "penthouse": "Penthouses",
       "villa": "Villas",
-      "plot": "Residential plots"
+      "plot": "Residential plots",
+      "shop": "Shops"
     },
     "available": "{{available}} of {{total}} available",
     "availability": "{{percent}} available",

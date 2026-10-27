@@ -7,6 +7,9 @@ import { TENANT_NAV, type NavItem } from '@repo/ui';
  */
 export const NAV_ITEMS: NavItem[] = TENANT_NAV;
 
+/** The demo's frozen "today" (fixtures' ACCESS_TODAY); access and labels are evaluated on it. */
+export const ACCESS_DATE = '2026-10-26';
+
 export const LINKS = {
   start: '/backoffice/home/role-aware-dashboard',
   preferences: '/backoffice/global/profile--preferences',
@@ -19,8 +22,12 @@ export const LINKS = {
   leads: '/backoffice/crm/leads-list',
   leadWorkspace: (leadId: string) => `/backoffice/crm/lead-360-workspace?record=${leadId}`,
   more: '/backoffice/more',
-  /** ADM-023 Your plan & modules (read-only). */
+  /** ADM-023 Your plan & modules (read-only, administrators). */
   plan: '/backoffice/adm/plan',
+  /** My access: what this person can use, for everyone (no commercial information). */
+  myAccess: '/backoffice/global/my-access',
+  /** FIN-002 invoices (read-only financial history). */
+  invoices: '/backoffice/fin/invoices-list',
 } as const;
 
 export const TOUR_LINKS = {

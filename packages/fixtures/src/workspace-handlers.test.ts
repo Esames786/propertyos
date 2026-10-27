@@ -1,6 +1,6 @@
 import type { DemoOverview, WorkspaceProfile, WorkspaceSetup } from '@repo/contracts';
 import { describe, expect, it } from 'vitest';
-import { DemoStore } from './demo-store';
+import { DemoStore, VISITOR_PARTITION } from './demo-store';
 import { MockTransport, type MockContext } from './index';
 
 const memory = () => {
@@ -41,11 +41,11 @@ describe('GET /demo/overview', () => {
     const demo = new DemoStore(memory());
     const manager = make({ personaId: 'manager', projectId: 'all' }, demo);
     const before = await manager.request<DemoOverview>({ method: 'GET', path: '/demo/overview' });
-    demo.addLead({ id: 'led_s1', ref: 'LD-DEMO-1', partyId: 'pty_0001', projectId: 'prj_heights', status: 'new', source: 'website', ownerPersonaId: 'manager', budget: { amount: '1000000.00', currency: 'PKR' }, createdAt: '2026-10-26T00:00:00Z', nextFollowUp: '2026-10-27T00:00:00Z' });
+    demo.partition('tnt_larkspur').addLead({ id: 'led_s1', ref: 'LD-DEMO-1', partyId: 'pty_0001', projectId: 'prj_heights', status: 'new', source: 'website', ownerPersonaId: 'manager', budget: { amount: '1000000.00', currency: 'PKR' }, createdAt: '2026-10-26T00:00:00Z', nextFollowUp: '2026-10-27T00:00:00Z' });
     const after = await manager.request<DemoOverview>({ method: 'GET', path: '/demo/overview' });
     expect(after.counts.leads).toBe(before.counts.leads! + 1);
     expect(after.counts.openFollowUps).toBe(before.counts.openFollowUps! + 1);
-    await expect(make({ personaId: null, projectId: 'all' }).request({ method: 'GET', path: '/demo/overview' })).rejects.toMatchObject({ problem: { status: 403 } });
+    await expect(make({ personaId: null, projectId: 'all' }).request({ method: 'GET', path: '/demo/overview' })).rejects.toMatchObject({ problem: { status: 401, code: 'unauthenticated' } });
   });
 });
 
@@ -63,7 +63,7 @@ describe('workspace setup simulation', () => {
     const anon = make({ personaId: null, projectId: 'all' }, demo);
     const profile = await anon.request<WorkspaceProfile>({ method: 'POST', path: '/workspace', body: SETUP });
     expect(profile.simulated).toBe(true);
-    expect(demo.workspace?.organisation.name).toBe('Crescent Builders (Demo)');
+    expect(demo.partition(VISITOR_PARTITION).workspace?.organisation.name).toBe('Crescent Builders (Demo)');
     await expect(
       anon.request({ method: 'POST', path: '/workspace', body: { ...SETUP, invites: [{ email: 'not-an-email', role: 'sales' }] } }),
     ).rejects.toMatchObject({ problem: { status: 422 } });

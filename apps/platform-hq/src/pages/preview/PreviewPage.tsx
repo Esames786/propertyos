@@ -1,6 +1,7 @@
 import { ApiError, type AccessDecision, type EffectiveAccess, type ModuleCatalog, type ModuleKey, type ModuleSelection, type PreviewSession, type TenantDetail } from '@repo/contracts';
 import {
   Badge,
+  contextualNav,
   dynamicT,
   ErrorState,
   evaluate,
@@ -28,6 +29,8 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Eye, LayoutGrid, Plus, ShieldCheck } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Checkbox, CheckboxGroup, Label } from 'react-aria-components';
+import { DateInput } from '../../components/inputs';
+import { HQ_AS_OF } from '../../lib/format';
 import { moduleName } from '../../lib/labels';
 import { HQ } from '../../nav.config';
 
@@ -76,19 +79,21 @@ export default function PreviewPage({ id }: { id: string }) {
   const { transport } = useTransport();
   const { persona } = useSession();
   const [roleParam, setRoleParam] = useQueryParam('role');
+  // A later date shows a scheduled change (e.g. modules from 1 November) as the client will see it.
+  const [atParam, setAtParam] = useQueryParam('at');
   const [whatIf, setWhatIf] = useState<ModuleSelection[] | null>(null);
   const detail = useApiQuery<TenantDetail>({ method: 'GET', path: `/platform/tenants/${id}` });
 
   const request = (modules: ModuleSelection[] | null) =>
-    transport.request<PreviewSession>({ method: 'POST', path: `/platform/tenants/${id}/preview`, body: { ...(roleParam ? { role: roleParam } : {}), ...(modules ? { modules } : {}) } });
+    transport.request<PreviewSession>({ method: 'POST', path: `/platform/tenants/${id}/preview`, body: { ...(roleParam ? { role: roleParam } : {}), ...(atParam ? { at: atParam } : {}), ...(modules ? { modules } : {}) } });
   const actual = useQuery({
-    queryKey: ['hq-preview', persona?.id, id, roleParam],
+    queryKey: ['hq-preview', persona?.id, id, roleParam, atParam],
     queryFn: () => request(null),
     staleTime: Infinity,
     refetchOnWindowFocus: false,
   });
   const tried = useQuery({
-    queryKey: ['hq-preview-whatif', persona?.id, id, roleParam, JSON.stringify(whatIf)],
+    queryKey: ['hq-preview-whatif', persona?.id, id, roleParam, atParam, JSON.stringify(whatIf)],
     queryFn: () => request(whatIf),
     enabled: whatIf !== null,
     staleTime: Infinity,
@@ -133,6 +138,9 @@ export default function PreviewPage({ id }: { id: string }) {
           onChange={(v) => setRoleParam(v)}
           testId="preview-role"
         />
+        <div className="w-56">
+          <DateInput label={t('platform:preview.on')} value={atParam ?? session.at} onChange={(d) => setAtParam(d && d !== HQ_AS_OF.slice(0, 10) ? d : null)} description={t('platform:preview.onHint')} testId="preview-at" />
+        </div>
       </div>
 
       {whatIf && (
@@ -174,7 +182,8 @@ function MenuPreview({ session }: { session: PreviewSession }) {
   const { t } = useT();
   const tr = dynamicT(t);
   const decide = useDecide(session);
-  const items = TENANT_NAV.filter((i) => i.id !== 'lab' && decide(i).allowed);
+  // The client's own words for its areas (e.g. a society's “Owners & Residents”).
+  const items = contextualNav(TENANT_NAV, session.access, session.at).filter((i) => i.id !== 'lab' && decide(i).allowed);
   const bar = items.filter((i) => i.bottomBar).slice(0, 3);
   const create = TENANT_QUICK_CREATE.some((q) => decide({ permission: q.permission }).allowed) && decide({ permission: 'quickcreate.use' }).allowed;
   return (
@@ -235,7 +244,7 @@ function AreaTable({ session, baseline }: { session: PreviewSession; baseline: P
   return (
     <Panel title={t('platform:preview.areasTitle')} description={t('platform:preview.areasHint')}>
       <ul className="divide-y divide-border/70" data-testid="preview-areas">
-        {AREAS.map((a) => {
+        {contextualNav(AREAS, session.access, session.at).map((a) => {
           const status = statusOf(decide(a));
           const was = statusOf(before(a));
           const changed = baseline && status !== was;

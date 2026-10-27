@@ -66,7 +66,9 @@
     "getStarted": "Get started",
     "demoLaunch": "Explore the demo",
     "workspaceSetup": "Set up your workspace",
-    "plan": "Your plan and modules"
+    "plan": "Your plan and modules",
+    "myAccess": "My access",
+    "invoices": "Invoices"
   },
   "groups": {
     "workspace": "Workspace",
@@ -79,5 +81,11 @@
   "more": "More",
   "quickCreateFab": "Quick create",
   "demoEnvironment": "Demo environment · fictional records · no real transactions",
-  "demoShort": "Demo"
+  "demoShort": "Demo",
+  "party": {
+    "developer": "Customers & Buyers",
+    "society": "Owners & Residents",
+    "portfolio": "People & Properties",
+    "contacts": "People & Contacts"
+  }
 }

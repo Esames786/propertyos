@@ -11,7 +11,7 @@ test.describe('Permission-aware UI with demo personas (J9)', () => {
     await seed(page, { persona: 'sales' });
     await page.goto(`${BO}/backoffice/lab`);
     const nav = await navNames(page);
-    expect(nav).toEqual(expect.arrayContaining(['Home', 'Sales', 'Projects', 'Customers']));
+    expect(nav).toEqual(expect.arrayContaining(['Home', 'Sales', 'Projects', 'Customers & Buyers']));
     expect(nav).not.toContain('Finance');
     expect(nav).not.toContain('Administration');
 
@@ -31,7 +31,7 @@ test.describe('Permission-aware UI with demo personas (J9)', () => {
     await seed(page, { persona: 'finance' });
     await page.goto(`${BO}/backoffice/lab`);
     const nav = await navNames(page);
-    expect(nav).toEqual(expect.arrayContaining(['Finance', 'Reports', 'Customers']));
+    expect(nav).toEqual(expect.arrayContaining(['Finance', 'Reports', 'Customers & Buyers']));
     expect(nav).not.toContain('Sales');
     await page.locator('[data-tour-id="quick-create"]:visible').click();
     await expect(page.getByTestId('quick-create-practice-lead')).toHaveCount(0);
@@ -41,7 +41,7 @@ test.describe('Permission-aware UI with demo personas (J9)', () => {
   test('the workspace record is refused for a persona without lead access', async ({ page }) => {
     await seed(page, { persona: 'finance' });
     await page.goto(`${BO}/backoffice/lab/workspace`);
-    await expect(page.getByTestId('state-forbidden')).toContainText('Finance officer');
+    await expect(page.getByTestId('state-forbidden')).toContainText('Finance');
   });
 
   test('switching identity changes the session and shows that persona’s first-login welcome', async ({ page }) => {

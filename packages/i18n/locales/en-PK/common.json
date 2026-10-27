@@ -54,7 +54,8 @@
     "finance": "Finance officer",
     "resident": "Owner and resident",
     "facility_manager": "Facility manager",
-    "society_admin": "Committee administrator"
+    "society_admin": "Committee administrator",
+    "treasurer": "Treasurer"
   },
   "welcomeBenefit": {
     "manager": "See every project, approve work and move anywhere quickly.",
@@ -65,7 +66,9 @@
     "commercial_approver": "You review contracts that need commercial approval and keep pricing within policy.",
     "platform_support": "You can see every tenant's licence, usage and history, without access to their private records.",
     "facility_manager": "Keep your buildings running: maintenance, requests and work in one place.",
-    "society_admin": "Run your society's workspace: people, settings and the modules your plan includes."
+    "society_admin": "Run your society's workspace: people, settings and the modules your plan includes.",
+    "cb_manager": "Run both Crescent Bay sites: sales at the Towers and upkeep at the Plaza, each within its licence.",
+    "cedar_treasurer": "Your workspace is suspended. You can still read the co-operative's financial history."
   },
   "demo": {
     "signInTitle": "Choose a demo identity",
@@ -94,7 +97,8 @@
     "apartment_3bed": "3-bed apartment",
     "penthouse": "Penthouse",
     "villa": "Villa",
-    "plot": "Plot"
+    "plot": "Plot",
+    "shop": "Shop"
   },
   "entity": {
     "party": "Customer",
@@ -232,5 +236,19 @@
     "demoBody": "Everything here is fictional. Changes you make (new leads, logged calls, visits, holds) last for this browser tab and can be reset.",
     "reset": "Reset demo data",
     "resetDone": "Demo data reset. Fixtures are back to their starting state."
+  },
+  "roles": {
+    "administration": "Administration",
+    "sales": "Sales",
+    "project_management": "Project management",
+    "inventory": "Inventory",
+    "finance": "Finance",
+    "construction": "Construction",
+    "administrator": "Administrator",
+    "manager": "Manager",
+    "treasurer": "Treasurer",
+    "maintenance": "Maintenance",
+    "technician": "Technician",
+    "security": "Security"
   }
 }

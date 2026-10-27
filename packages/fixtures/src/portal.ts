@@ -1,8 +1,10 @@
 import type {
+  AccessRecord,
   EvidenceStatus,
   InstalmentItem,
   InstalmentStatus,
   Money,
+  PartyLink,
   PaymentMethod,
   PaymentProof,
   PlanSummary,
@@ -21,9 +23,9 @@ import type {
   ServiceRequest,
   VisitorPass,
 } from '@repo/contracts';
-import { FLOORS, PROJECTS, TOWERS, UNITS } from './inventory';
-import { PARTIES, PERSONAS } from './people';
-import { DEMO_COLLECTION_ACCOUNT, INVOICES } from './records';
+import type { TenantDataset } from './dataset-types';
+import { PERSONAS } from './people';
+import { DEMO_COLLECTION_ACCOUNT } from './records';
 import { FIXTURE_NOW, calendarDaysFromNow, createRandom, daysFromNow, pad, percentOf } from './seed';
 
 /**
@@ -108,6 +110,8 @@ const HEIGHTS_MILESTONES: ProjectMilestone[] = [
 const TECHNICIAN_PHONE = '+923994418207';
 
 interface Portfolio {
+  /** The verified liability the portfolio is built from (flat, billing account, site, legal entity). */
+  link: PartyLink;
   owner: PortalOwner;
   property: PortalProperty;
   /** Fixture schedule with evidence (statuses are derived on read). */
@@ -183,15 +187,15 @@ function buildSchedule(unitRef: string, price: string, bookedOn: string): Instal
   return items;
 }
 
-function buildPortfolio(partyId: string): Portfolio | null {
-  const invoice = INVOICES.find((i) => i.partyId === partyId);
-  const unit = invoice && UNITS.find((u) => u.id === invoice.unitId);
-  const party = PARTIES.find((p) => p.id === partyId);
-  const persona = PERSONAS.find((p) => p.partyId === partyId);
+function buildPortfolio(d: TenantDataset, partyId: string, link: PartyLink): Portfolio | null {
+  const unit = d.units.find((u) => u.id === link.unitId);
+  const party = d.parties.find((p) => p.id === partyId);
+  const persona = PERSONAS.find((p) => p.tenantId === d.tenantId && p.partyId === partyId);
   if (!unit || !party) return null;
-  const project = PROJECTS.find((p) => p.id === unit.projectId)!;
-  const tower = TOWERS.find((t) => t.id === unit.towerId);
-  const floor = FLOORS.find((f) => f.id === unit.floorId);
+  const project = d.projects.find((p) => p.id === unit.projectId);
+  if (!project || project.siteId !== link.siteId || project.legalEntityId !== link.legalEntityId) return null;
+  const tower = d.towers.find((t) => t.id === unit.towerId);
+  const floor = d.floors.find((f) => f.id === unit.floorId);
   const bookedOn = monthDate(-PORTAL_PLAN.bookedMonthsAgo, 7);
 
   const owner: PortalOwner = {
@@ -273,6 +277,7 @@ function buildPortfolio(partyId: string): Portfolio | null {
   ];
 
   return {
+    link,
     owner,
     property,
     schedule: buildSchedule(unit.ref, unit.price.amount, bookedOn),
@@ -285,11 +290,24 @@ function buildPortfolio(partyId: string): Portfolio | null {
 
 const portfolios = new Map<string, Portfolio | null>();
 
-/** The owner's fixture portfolio (cached: fixtures are immutable). Null when the party owns nothing. */
-export function portfolioFor(partyId: string): Portfolio | null {
-  if (!portfolios.has(partyId)) portfolios.set(partyId, buildPortfolio(partyId));
-  return portfolios.get(partyId)!;
+/**
+ * The owner's fixture portfolio for one liability (cached: fixtures are immutable). Null when the
+ * link does not match the tenant's records (unknown flat, or a site or legal entity that disagrees).
+ */
+export function portfolioFor(d: TenantDataset, partyId: string, link: PartyLink): Portfolio | null {
+  const key = `${d.tenantId}:${partyId}:${link.billingAccountId}`;
+  if (!portfolios.has(key)) portfolios.set(key, buildPortfolio(d, partyId, link));
+  return portfolios.get(key)!;
 }
+
+/** Access facts of a portfolio record dated `asOf`: the full liability (flat, account, site, entity). */
+export const liabilityRecord = (link: PartyLink, asOf: string): AccessRecord => ({
+  unitId: link.unitId,
+  billingAccountId: link.billingAccountId,
+  siteId: link.siteId,
+  legalEntityId: link.legalEntityId,
+  asOf,
+});
 
 export type { Portfolio };
 

@@ -2,8 +2,8 @@ import type { Floor, Project, Tower, Unit, UnitStatus, UnitType } from '@repo/co
 import { createRandom, pad } from './seed';
 
 export const PROJECTS: readonly Project[] = [
-  { id: 'prj_heights', ref: 'LH', name: 'Larkspur Heights', city: 'Lahore', kind: 'towers' },
-  { id: 'prj_gardens', ref: 'LG', name: 'Larkspur Gardens', city: 'Islamabad', kind: 'plots' },
+  { id: 'prj_heights', ref: 'LH', name: 'Larkspur Heights', city: 'Lahore', kind: 'towers', siteId: 'site_lk_heights', legalEntityId: 'le_larkspur' },
+  { id: 'prj_gardens', ref: 'LG', name: 'Larkspur Gardens', city: 'Islamabad', kind: 'plots', siteId: 'site_lk_gardens', legalEntityId: 'le_larkspur' },
 ];
 
 export const TOWERS: readonly Tower[] = [
@@ -41,6 +41,7 @@ const AREA: Record<UnitType, [number, number]> = {
   penthouse: [3200, 3600],
   villa: [3500, 5000],
   plot: [1125, 4500],
+  shop: [220, 900],
 };
 
 /** Price in whole rupees rounded to the nearest thousand, as a 2-decimal string. */

@@ -26,6 +26,9 @@ export const PERMISSIONS = [
   'reports.view',
   'admin.view',
   'portal.use',
+  'construction.view',
+  'workorder.update',
+  'visitors.manage',
   // Platform HQ (central plane, V3.1). Operators are a separate principal type from tenant staff.
   'platform.dashboard.view',
   'platform.tenants.view',
@@ -41,6 +44,8 @@ export const PERMISSIONS = [
   'platform.preview.use',
   'platform.audit.view',
   'platform.requests.manage',
+  // Supreme Admin: draft and schedule versions of rate cards, policies, the catalogue and signup rules.
+  'platform.config.manage',
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];

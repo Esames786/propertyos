@@ -1,7 +1,10 @@
-import type { ContractApproval, PlatformAuditEvent, SignupPolicy, TenantDetail, TenantDraft, WorkspaceRequest } from '@repo/contracts';
-import { SEED_APPROVALS, SEED_AUDIT, SEED_REQUESTS, SEED_TENANTS } from './tenants';
+import type { ConfigKind, ConfigVersion, ContractApproval, PlatformAuditEvent, SignupPolicy, TenantDetail, TenantDraft, WorkspaceRequest, WorkspaceRequestDetail } from '@repo/contracts';
+import { displayStatus, SEED_CONFIG, signupOf, TODAY, versionAt } from './config';
+import { SEED_APPROVALS, SEED_AUDIT, SEED_CONTRACT_HISTORY, SEED_REQUESTS, SEED_TENANTS, type ContractRecord } from './tenants';
 
-export const PLATFORM_STORE_KEY = 'demo:platform:v1';
+export const PLATFORM_STORE_KEY = 'demo:platform:v2';
+
+type RequestState = Pick<WorkspaceRequestDetail, 'history' | 'draftId'>;
 
 interface Overlay {
   v: 1;
@@ -16,10 +19,15 @@ interface Overlay {
   audit: PlatformAuditEvent[];
   readNotifications: string[];
   requests: Record<string, WorkspaceRequest['status']>;
-  signupPolicy: SignupPolicy;
+  /** Decisions taken on workspace requests in this session (history, created draft). */
+  requestState: Record<string, RequestState>;
+  /** Configuration versions drafted or decided in this session (by id). */
+  config: Record<string, ConfigVersion>;
+  /** Contract versions created or changed in this session, per tenant (by contract id). */
+  contracts: Record<string, Record<string, ContractRecord>>;
 }
 
-const empty = (): Overlay => ({ v: 1, seq: 0, drafts: {}, created: [], patched: {}, approvals: {}, audit: [], readNotifications: [], requests: {}, signupPolicy: 'approval_required' });
+const empty = (): Overlay => ({ v: 1, seq: 0, drafts: {}, created: [], patched: {}, approvals: {}, audit: [], readNotifications: [], requests: {}, requestState: {}, config: {}, contracts: {} });
 
 const storage = (): Storage | null => {
   try {
@@ -127,8 +135,46 @@ export class PlatformStore {
   requests(): WorkspaceRequest[] {
     return SEED_REQUESTS.map((r) => ({ ...r, status: this.state.requests[r.id] ?? r.status }));
   }
+  requestState(id: string): RequestState {
+    return this.state.requestState[id] ?? { history: [] };
+  }
+  saveRequest(id: string, status: WorkspaceRequest['status'], state: RequestState) {
+    this.state.requests[id] = status;
+    this.state.requestState[id] = state;
+    this.save();
+  }
+  /** How community workspaces start, under the signup policy in force today (dashboard summary). */
   signupPolicy(): SignupPolicy {
-    return this.state.signupPolicy;
+    return signupOf(this.configAt('signup_policy', TODAY)).byEdition.community;
+  }
+
+  // Versioned configuration (rate cards, commercial policy, catalogue, signup policy)
+  configVersions(kind?: ConfigKind): ConfigVersion[] {
+    const all = [...SEED_CONFIG.map((v) => this.state.config[v.id] ?? v), ...Object.values(this.state.config).filter((v) => !SEED_CONFIG.some((s) => s.id === v.id))];
+    const withStatus = all.map((v) => ({ ...v, status: displayStatus(v, all) }));
+    return (kind ? withStatus.filter((v) => v.kind === kind) : withStatus).sort((a, b) => b.version - a.version);
+  }
+  configVersion(id: string): ConfigVersion | undefined {
+    return this.configVersions().find((v) => v.id === id);
+  }
+  saveConfigVersion(version: ConfigVersion) {
+    this.state.config[version.id] = version;
+    this.save();
+  }
+  /** The approved version of a kind in force on a date. */
+  configAt(kind: ConfigKind, at: string): ConfigVersion {
+    return versionAt(this.configVersions(kind), kind, at);
+  }
+
+  // Contract versions (amendments)
+  contractHistory(tenantId: string): ContractRecord[] {
+    const seeded = (SEED_CONTRACT_HISTORY[tenantId] ?? []).map((r) => this.state.contracts[tenantId]?.[r.contract.id] ?? r);
+    const session = Object.values(this.state.contracts[tenantId] ?? {}).filter((r) => !seeded.some((s) => s.contract.id === r.contract.id));
+    return [...seeded, ...session].sort((a, b) => a.contract.version - b.contract.version);
+  }
+  saveContractRecord(tenantId: string, record: ContractRecord) {
+    this.state.contracts[tenantId] = { ...this.state.contracts[tenantId], [record.contract.id]: record };
+    this.save();
   }
 
   reset() {

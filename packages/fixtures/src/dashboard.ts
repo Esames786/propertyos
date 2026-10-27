@@ -11,22 +11,22 @@ import {
   type InventoryRow,
   type KpiId,
   type Permission,
-  type Persona,
   type ProjectMilestone,
   type ProjectShowcase,
   type ResidenceSummary,
+  type Unit,
   type UnitStatus,
   type UnitType,
 } from '@repo/contracts';
-import { GARDEN_BLOCKS, PROJECTS, TOWERS, UNITS } from './inventory';
-import { PARTIES } from './people';
-import { INVOICES, LEADS } from './records';
+import type { TenantDataset } from './dataset-types';
 import { FIXTURE_NOW, createRandom, daysFromNow } from './seed';
 
 /**
  * HOME-001 dashboard read model. Snapshot figures (inventory, prices, holds, follow-ups, proofs)
  * come straight from the other fixtures; flows over time (enquiries, bookings, collections) are a
  * deterministic 24-month synthetic history per project, so every range has a comparison period.
+ * Built from the signed-in tenant's own records only; inventory figures (units, availability,
+ * residences, holds, project cards) cover only sites whose inventory module is licensed.
  */
 
 const MONTHS = 24; // Nov 2024 … Oct 2026; index 23 is the current month
@@ -76,12 +76,16 @@ interface Month {
 const PROFILE: Record<string, { seed: number; enquiries: number; bookings: number; avgBooking: number; scheduled: number; growth: number }> = {
   prj_heights: { seed: 3101, enquiries: 78, bookings: 4.6, avgBooking: 30_500_000, scheduled: 112_000_000, growth: 0.016 },
   prj_gardens: { seed: 3102, enquiries: 44, bookings: 3.1, avgBooking: 23_500_000, scheduled: 49_000_000, growth: 0.011 },
+  prj_cb_towers: { seed: 3201, enquiries: 36, bookings: 2.4, avgBooking: 27_000_000, scheduled: 41_000_000, growth: 0.013 },
+  prj_cb_plaza: { seed: 3202, enquiries: 12, bookings: 0.8, avgBooking: 21_000_000, scheduled: 9_000_000, growth: 0.006 },
 };
+/** A project without a profile still gets a modest, deterministic history (never a crash). */
+const DEFAULT_PROFILE = { seed: 3999, enquiries: 10, bookings: 0.5, avgBooking: 15_000_000, scheduled: 5_000_000, growth: 0.005 };
 
 const thousand = (n: number) => Math.round(n / 1000) * 1000;
 
 function history(projectId: string): Month[] {
-  const p = PROFILE[projectId]!;
+  const p = PROFILE[projectId] ?? DEFAULT_PROFILE;
   const rnd = createRandom(p.seed);
   return Array.from({ length: MONTHS }, (_, i) => {
     const season = 1 + 0.12 * Math.sin(((i + 2) / 12) * 2 * Math.PI);
@@ -99,7 +103,11 @@ function history(projectId: string): Month[] {
   });
 }
 
-const HISTORY: Record<string, Month[]> = Object.fromEntries(PROJECTS.map((p) => [p.id, history(p.id)]));
+const HISTORY = new Map<string, Month[]>();
+const historyOf = (projectId: string): Month[] => {
+  if (!HISTORY.has(projectId)) HISTORY.set(projectId, history(projectId));
+  return HISTORY.get(projectId)!;
+};
 
 const BUCKET_OF: Partial<Record<UnitStatus, InventoryBucket>> = {
   available: 'available',
@@ -112,7 +120,15 @@ const BUCKET_OF: Partial<Record<UnitStatus, InventoryBucket>> = {
   occupied: 'handedOver',
 };
 
-const SHOWCASE: Record<string, { imageKey: string; progress: number; completion: string; milestones: ProjectMilestone[] }> = {
+interface Showcase {
+  imageKey: string;
+  progress: number;
+  completion: string;
+  milestones: ProjectMilestone[];
+  report: { titleKey: string; bodyKey: string; params: Record<string, string> };
+}
+
+const SHOWCASE: Record<string, Showcase> = {
   prj_heights: {
     imageKey: 'heights-dusk',
     progress: 0.64,
@@ -125,6 +141,7 @@ const SHOWCASE: Record<string, { imageKey: string; progress: number; completion:
       { key: 'interiors', progress: 0.08, date: '2027-12-31' },
       { key: 'handover', progress: 0, date: '2028-06-30' },
     ],
+    report: { titleKey: 'construction.reports.heights.title', bodyKey: 'construction.reports.heights.body', params: { tower: 'B', floor: '12' } },
   },
   prj_gardens: {
     imageKey: 'gardens-residences',
@@ -137,6 +154,21 @@ const SHOWCASE: Record<string, { imageKey: string; progress: number; completion:
       { key: 'landscaping', progress: 0.12, date: '2027-06-30' },
       { key: 'possession', progress: 0, date: '2027-09-30' },
     ],
+    report: { titleKey: 'construction.reports.gardens.title', bodyKey: 'construction.reports.gardens.body', params: { phase: 'Phase 2' } },
+  },
+  prj_cb_towers: {
+    imageKey: 'heights-dusk',
+    progress: 0.38,
+    completion: '2028-12-31',
+    milestones: [
+      { key: 'land', progress: 1, date: '2025-02-28' },
+      { key: 'foundation', progress: 1, date: '2025-11-30' },
+      { key: 'structure', progress: 0.46, date: '2027-06-30' },
+      { key: 'facade', progress: 0, date: '2028-03-31' },
+      { key: 'interiors', progress: 0, date: '2028-09-30' },
+      { key: 'handover', progress: 0, date: '2028-12-31' },
+    ],
+    report: { titleKey: 'construction.reports.heights.title', bodyKey: 'construction.reports.heights.body', params: { tower: 'A', floor: '4' } },
   },
 };
 
@@ -147,6 +179,7 @@ const RESIDENCE_IMAGE: Record<UnitType, string | null> = {
   penthouse: 'view-dusk-window',
   villa: 'gardens-residences',
   plot: null,
+  shop: null,
 };
 
 const ROUTES = {
@@ -164,32 +197,39 @@ const ROUTES = {
 };
 
 const money = (n: number) => ({ amount: `${Math.round(n)}.00`, currency: 'PKR' as const });
-const partyName = (id: string) => PARTIES.find((p) => p.id === id)?.displayName ?? '';
-
 export interface DashboardContext {
-  persona: Persona | undefined;
+  /** The signed-in tenant's own records. */
+  data: TenantDataset;
+  /** Permission held and its module licensed. */
+  can: (permission: Permission) => boolean;
+  /** Persona scope and the header project filter. */
   allowsProject: (projectId: string) => boolean;
+  /** The project's site has inventory licensed (and the person may see it). */
+  inventoryOn: (projectId: string) => boolean;
+  /** The project's site has construction licensed. */
+  constructionOn: (projectId: string) => boolean;
   range: unknown;
 }
 
 export function buildDashboard(ctx: DashboardContext): DashboardSummary {
   const range: DashboardRange = DASHBOARD_RANGES.includes(ctx.range as DashboardRange) ? (ctx.range as DashboardRange) : '6m';
-  const can = (p: Permission) => ctx.persona?.permissions.includes(p) ?? false;
-  const projects = PROJECTS.filter((p) => ctx.allowsProject(p.id));
-  const units = UNITS.filter((u) => ctx.allowsProject(u.projectId));
+  const { can, data } = ctx;
+  const partyName = (id: string) => data.parties.find((p) => p.id === id)?.displayName ?? '';
+  const projects = data.projects.filter((p) => ctx.allowsProject(p.id));
+  const units = data.units.filter((u) => ctx.allowsProject(u.projectId) && ctx.inventoryOn(u.projectId));
   const { current, previous } = rangeMonths(range);
 
   /** Sum a monthly measure over allowed projects for [from, to] month indexes. */
   const sum = (key: keyof Month, [from, to]: [number, number]) =>
-    projects.reduce((total, p) => total + HISTORY[p.id]!.slice(from, to + 1).reduce((s, m) => s + m[key], 0), 0);
+    projects.reduce((total, p) => total + historyOf(p.id).slice(from, to + 1).reduce((s, m) => s + m[key], 0), 0);
   const series = (key: keyof Month) =>
     Array.from({ length: 12 }, (_, k) => {
       const i = CURRENT - 11 + k;
-      return projects.reduce((s, p) => s + HISTORY[p.id]![i]![key], 0);
+      return projects.reduce((s, p) => s + historyOf(p.id)[i]![key], 0);
     });
 
   const availableNow = units.filter((u) => u.status === 'available').length;
-  const openLeads = LEADS.filter((l) => ctx.allowsProject(l.projectId) && !['converted', 'lost', 'unqualified'].includes(l.status));
+  const openLeads = data.leads.filter((l) => ctx.allowsProject(l.projectId) && !['converted', 'lost', 'unqualified'].includes(l.status));
 
   const kpi: Record<KpiId, () => DashboardKpi> = {
     salesBooked: () => ({
@@ -240,7 +280,7 @@ export function buildDashboard(ctx: DashboardContext): DashboardSummary {
     }),
     receivables: () => {
       const outstanding = (to: number) =>
-        42_000_000 + projects.reduce((s, p) => s + HISTORY[p.id]!.slice(Math.max(0, to - 11), to + 1).reduce((a, m) => a + Math.max(0, m.scheduled - m.collected), 0), 0);
+        42_000_000 + projects.reduce((s, p) => s + historyOf(p.id).slice(Math.max(0, to - 11), to + 1).reduce((a, m) => a + Math.max(0, m.scheduled - m.collected), 0), 0);
       return {
         id: 'receivables', format: 'money', better: 'down', href: ROUTES.receivables, reference: null,
         value: money(thousand(outstanding(current[1]))).amount,
@@ -249,7 +289,7 @@ export function buildDashboard(ctx: DashboardContext): DashboardSummary {
       };
     },
     verifications: () => {
-      const pending = INVOICES.filter((i) => ctx.allowsProject(i.projectId) && ['submitted', 'under_review', 'needs_information'].includes(i.evidence)).length;
+      const pending = data.invoices.filter((i) => ctx.allowsProject(i.projectId) && ['submitted', 'under_review', 'needs_information'].includes(i.evidence)).length;
       return {
         id: 'verifications', format: 'count', better: 'down', href: ROUTES.verificationQueue, reference: null,
         value: String(pending), previous: null,
@@ -290,10 +330,10 @@ export function buildDashboard(ctx: DashboardContext): DashboardSummary {
 
   const inventory: InventoryRow[] | null = can('unit.view')
     ? [
-        ...TOWERS.filter((t) => ctx.allowsProject(t.projectId)).map((t) => inventoryRow(t.id, t.projectId, t.name, 'tower', units.filter((u) => u.towerId === t.id))),
-        ...(ctx.allowsProject('prj_gardens')
-          ? GARDEN_BLOCKS.map((b, i) => inventoryRow(`blk_lg_p${i + 1}`, 'prj_gardens', b, 'phase', units.filter((u) => u.block === b)))
-          : []),
+        ...data.towers.filter((t) => ctx.allowsProject(t.projectId) && ctx.inventoryOn(t.projectId)).map((t) => inventoryRow(t.id, t.projectId, t.name, 'tower', units.filter((u) => u.towerId === t.id))),
+        ...data.blocks
+          .filter((b) => ctx.allowsProject(b.projectId) && ctx.inventoryOn(b.projectId))
+          .map((b) => inventoryRow(b.id, b.projectId, b.label, 'phase', units.filter((u) => u.projectId === b.projectId && u.block === b.label))),
       ]
     : null;
 
@@ -304,52 +344,54 @@ export function buildDashboard(ctx: DashboardContext): DashboardSummary {
       }))
     : null;
 
-  const showcase: ProjectShowcase[] = projects.map((p) => {
-    const own = UNITS.filter((u) => u.projectId === p.id);
+  // Project cards show unit figures, so only projects on sites with licensed inventory get one.
+  const carded = projects.filter((p) => ctx.inventoryOn(p.id) && SHOWCASE[p.id]);
+  const showcase: ProjectShowcase[] = carded.map((p) => {
+    const own = data.units.filter((u) => u.projectId === p.id);
     const sold = own.filter((u) => BUCKET_OF[u.status] === 'sold' || BUCKET_OF[u.status] === 'handedOver');
     const available = own.filter((u) => u.status === 'available');
     const s = SHOWCASE[p.id]!;
+    const built = ctx.constructionOn(p.id);
     return {
-      id: p.id, ref: p.ref, name: p.name, city: p.city, kind: p.kind,
-      imageKey: s.imageKey, progress: s.progress, completion: s.completion, milestones: s.milestones,
+      // A commercial building is presented like a tower block (floors and units).
+      id: p.id, ref: p.ref, name: p.name, city: p.city, kind: p.kind === 'plots' ? 'plots' : 'towers',
+      imageKey: s.imageKey, progress: built ? s.progress : 0, completion: s.completion, milestones: built ? s.milestones : [],
       units: { total: own.length, available: available.length, sold: sold.length },
       salesValue: money(sold.reduce((sum, u) => sum + Number(u.price.amount), 0)),
-      fromPrice: money(Math.min(...available.map((u) => Number(u.price.amount)))),
+      fromPrice: money(available.length ? Math.min(...available.map((u) => Number(u.price.amount))) : 0),
       href: `${ROUTES.project}?record=${p.id}`,
     };
   });
 
   const residences: ResidenceSummary[] | null = can('unit.view')
-    ? (['apartment_1bed', 'apartment_2bed', 'apartment_3bed', 'penthouse', 'villa', 'plot'] as const)
-        .map((type) => {
+    ? (['apartment_1bed', 'apartment_2bed', 'apartment_3bed', 'penthouse', 'villa', 'plot'] as const).flatMap((type): ResidenceSummary[] => {
           const ofType = units.filter((u) => u.type === type);
-          if (!ofType.length) return null;
+          if (!ofType.length) return [];
           const available = ofType.filter((u) => u.status === 'available');
           const pool = available.length ? available : ofType;
-          const project = PROJECTS.find((p) => p.id === ofType[0]!.projectId)!;
-          return {
+          const project = data.projects.find((p) => p.id === ofType[0]!.projectId)!;
+          return [{
             type, projectId: project.id, projectName: project.name,
             total: ofType.length, available: available.length,
             fromPrice: money(Math.min(...pool.map((u) => Number(u.price.amount)))),
             avgArea: Math.round(ofType.reduce((s, u) => s + u.areaSqft, 0) / ofType.length),
             imageKey: RESIDENCE_IMAGE[type],
             href: `${ROUTES.unitMatrix}?record=${type}`,
-          } satisfies ResidenceSummary;
+          }];
         })
-        .filter((r): r is ResidenceSummary => r !== null)
     : null;
 
   const attention: Partial<Record<AttentionKind, AttentionItem[]>> = {};
   const now = FIXTURE_NOW.getTime();
   if (can('finance.evidence.review')) {
-    attention.verification = INVOICES.filter((i) => ctx.allowsProject(i.projectId) && ['submitted', 'under_review', 'needs_information'].includes(i.evidence)).map((i, k) => ({
+    attention.verification = data.invoices.filter((i) => ctx.allowsProject(i.projectId) && ['submitted', 'under_review', 'needs_information'].includes(i.evidence)).map((i, k) => ({
       id: `att_v_${i.id}`, kind: 'verification', ref: i.ref, name: partyName(i.partyId),
       amount: i.total, at: daysFromNow(-(k % 3), 8 + ((k * 3) % 7)), urgent: i.evidence === 'needs_information',
       href: `${ROUTES.verificationQueue}?record=${i.id}`,
     }));
   }
   if (salesSide) {
-    attention.followUp = LEADS.filter((l) => ctx.allowsProject(l.projectId) && l.nextFollowUp && new Date(l.nextFollowUp).getTime() <= now + 36 * 3600_000)
+    attention.followUp = data.leads.filter((l) => ctx.allowsProject(l.projectId) && l.nextFollowUp && new Date(l.nextFollowUp).getTime() <= now + 36 * 3600_000)
       .sort((a, b) => a.nextFollowUp!.localeCompare(b.nextFollowUp!))
       .slice(0, 8)
       .map((l) => ({
@@ -369,7 +411,7 @@ export function buildDashboard(ctx: DashboardContext): DashboardSummary {
   }
   if (financeSide) {
     const today = FIXTURE_NOW.toISOString().slice(0, 10);
-    attention.overdue = INVOICES.filter((i) => ctx.allowsProject(i.projectId) && i.settlement !== 'paid' && i.dueDate < today)
+    attention.overdue = data.invoices.filter((i) => ctx.allowsProject(i.projectId) && i.settlement !== 'paid' && i.dueDate < today)
       .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
       .slice(0, 8)
       .map((i) => ({
@@ -379,15 +421,16 @@ export function buildDashboard(ctx: DashboardContext): DashboardSummary {
       }));
   }
 
-  const lead = projects[0];
+  // The latest site report comes from the first project whose site has construction licensed.
+  const lead = projects.find((p) => SHOWCASE[p.id] && ctx.constructionOn(p.id));
   const construction = lead
     ? {
         id: `upd_${lead.id}`,
         projectId: lead.id,
         projectName: lead.name,
-        titleKey: lead.id === 'prj_heights' ? 'construction.reports.heights.title' : 'construction.reports.gardens.title',
-        bodyKey: lead.id === 'prj_heights' ? 'construction.reports.heights.body' : 'construction.reports.gardens.body',
-        params: (lead.id === 'prj_heights' ? { tower: 'B', floor: '12' } : { phase: 'Phase 2' }) as Record<string, string>,
+        titleKey: SHOWCASE[lead.id]!.report.titleKey,
+        bodyKey: SHOWCASE[lead.id]!.report.bodyKey,
+        params: SHOWCASE[lead.id]!.report.params,
         imageKey: 'construction-cranes',
         at: daysFromNow(-1, 11),
         progress: SHOWCASE[lead.id]!.progress,
@@ -410,7 +453,7 @@ export function buildDashboard(ctx: DashboardContext): DashboardSummary {
   };
 }
 
-function inventoryRow(id: string, projectId: string, label: string, kind: 'tower' | 'phase', units: typeof UNITS): InventoryRow {
+function inventoryRow(id: string, projectId: string, label: string, kind: 'tower' | 'phase', units: readonly Unit[]): InventoryRow {
   const counts: Record<InventoryBucket, number> = { available: 0, onHold: 0, sold: 0, handedOver: 0 };
   let other = 0;
   for (const u of units) {

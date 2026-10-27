@@ -30,7 +30,8 @@ test.describe('Tenant 360 (HQ-004)', () => {
 
     await page.getByRole('tab', { name: 'Modules and sites' }).click();
     await expect(page.getByTestId('t360-grant-maintenance')).toContainText('All sites');
-    await expect(page.getByTestId('t360-grants').locator('tbody tr')).toHaveCount(2);
+    // Two modules in force, two scheduled from 1 November (approved amendment).
+    await expect(page.getByTestId('t360-grants').locator('tbody tr')).toHaveCount(4);
     await expect(page.getByTestId('t360-not-licensed')).toContainText('Sales CRM');
     await expect(page.getByTestId('t360-sites')).toContainText('64 flats');
 
@@ -73,7 +74,8 @@ test.describe('Preview as client (HQ-009)', () => {
     await page.goto(`${HQ}/hq/tenants/tnt_shalimar`);
     await page.getByTestId('t360-preview').click();
     const preview = page.getByTestId('preview-page');
-    await expect(preview).toHaveAttribute('data-role', 'society_admin');
+    // Shalimar's own roles (owner decision): the starter "Administrator" first, then its own "Facility manager".
+    await expect(preview).toHaveAttribute('data-role', 'administrator');
     await expect(page.getByTestId('preview-no-records')).toBeVisible();
 
     await page.getByTestId('preview-role').getByText('Facility manager').click();
@@ -106,7 +108,8 @@ test.describe('Preview as client (HQ-009)', () => {
 
   test('what-if modules change the preview, are not saved and not audited; opening is audited', async ({ page }) => {
     await seedHq(page);
-    await page.goto(`${HQ}/hq/tenants/tnt_shalimar/preview`);
+    // Shalimar's own facility manager role carries lead permissions; only the licence stops them.
+    await page.goto(`${HQ}/hq/tenants/tnt_shalimar/preview?role=facility_manager`);
     await expect(page.getByTestId('preview-page')).toBeVisible();
     const writes = await page.evaluate(() => window.__hq!.transport.storeWrites());
 
@@ -125,7 +128,8 @@ test.describe('Preview as client (HQ-009)', () => {
     await page.goto(`${HQ}/hq/tenants/tnt_shalimar?tab=audit`);
     await expect(page.getByTestId('audit-trail')).toContainText('previewed Shalimar Court Residents (Demo) as a client role (no tenant records)');
     await page.getByRole('tab', { name: 'Modules and sites' }).click();
-    await expect(page.getByTestId('t360-grants').locator('tbody tr')).toHaveCount(2);
+    // Two modules in force, two scheduled from 1 November (approved amendment).
+    await expect(page.getByTestId('t360-grants').locator('tbody tr')).toHaveCount(4);
   });
 
   test('a developer tenant: the sales role has sales but not finance', async ({ page }) => {

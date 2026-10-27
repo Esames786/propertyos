@@ -407,7 +407,7 @@ test.describe('Platform HQ (Gate B checkpoint 1)', () => {
           ['simulator', '/hq/simulator', 'sim-results'],
           ['more', '/hq/more', 'more-area-dashboard'],
           ['preferences', '/hq/preferences', null],
-          ['planned', '/hq/catalogue', 'planned-screen'],
+          ['planned', '/hq/users', 'planned-screen'],
           ['tenant-360', '/hq/tenants/tnt_kestrel', 'summary-approval'],
           ['tenant-360-subscription', '/hq/tenants/tnt_shalimar?tab=subscription', 't360-components'],
           ['tenant-360-modules', '/hq/tenants/tnt_shalimar?tab=modules', 't360-not-licensed'],

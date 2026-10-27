@@ -1,12 +1,13 @@
 // Providers and seams
 export { AppProviders } from './providers/AppProviders';
 export { NavigationProvider, useNavigation, useQueryParam, useQueryParams, type AppLocation, type NavigateOptions } from './navigation/RouterAdapter';
-export { TransportProvider, useTransport, useApiQuery, MOCK_MODE_KEY, type MockMode, type TransportFactory } from './data/TransportProvider';
+export { TransportProvider, useTransport, useApiQuery, queryOwner, MOCK_MODE_KEY, type MockMode, type TransportFactory } from './data/TransportProvider';
 export { useApiMutation, useApiPrefetch } from './data/useApi';
 export { SessionProvider, useSession, useCan } from './permissions/SessionProvider';
 export { PermissionGate } from './permissions/PermissionGate';
 export { allowed, filterAllowed } from './permissions/can';
 export { PreferencesProvider, usePreferences, useReducedMotion, PREFERENCES_KEY } from './preferences/PreferencesProvider';
+export { usePrototypeTools, PrototypeToolsPreference, PROTOTYPE_TOOLS_KEY } from './preferences/prototypeTools';
 export { LanguagePreferences, AccessibilityPreferences, TourPreferences } from './preferences/PreferencesForm';
 
 // Accessibility
@@ -93,7 +94,7 @@ export { LocaleToggle } from './shell/LocaleSwitcher';
 export { NotificationList } from './shell/NotificationsPanel';
 export { ShortcutList } from './shell/HelpMenu';
 export { QuickCreateMenu, quickCreateAvailable } from './shell/QuickCreateMenu';
-export { TENANT_NAV, TENANT_QUICK_CREATE, TENANT_SEARCH_SCOPES, navItemFor, evaluate, workspaceRouteTarget } from './workspace/tenantWorkspace';
+export { PROTOTYPE_NAV, withPrototypeTools, TENANT_NAV, TENANT_QUICK_CREATE, TENANT_SEARCH_SCOPES, navItemFor, evaluate, workspaceRouteTarget, suspensionOf, partyAreaLabelKey, contextualNav } from './workspace/tenantWorkspace';
 export { AccessOutcomeView } from './layout/AccessOutcomeView';
 export { CommandPalette } from './command/CommandPalette';
 export type { NavItem, Destination, HelpKey, ShellLinks } from './shell/types';

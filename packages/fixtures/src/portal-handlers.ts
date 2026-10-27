@@ -14,12 +14,13 @@ import {
   type VisitorPass,
 } from '@repo/contracts';
 import { normalizePkPhone } from '@repo/i18n/format';
-import { forbid, invalid, notFound, type Handler, type HandlerContext } from './handler-types';
+import { authorize, forbid, invalid, notFound, permits, requires, type Handler, type HandlerContext } from './handler-types';
 import {
   buildPortalHome,
   buildPortalPayments,
   emptyPortalSession,
   isPayable,
+  liabilityRecord,
   passCode,
   portalDocuments,
   portalSchedule,
@@ -34,20 +35,33 @@ import { pad } from './seed';
 
 /**
  * Customer portal endpoints (Stage 1.5R). Owned by the portal slice; state lives in
- * `ctx.demo.section('portal', …)`. Proof uploads end at "Awaiting verification", never "Paid".
- * Only a customer-app persona linked to a party (the resident) may call them.
+ * `ctx.demo.section('portal:<billing account>', …)`. Proof uploads end at "Awaiting verification",
+ * never "Paid". Only a customer-app persona linked to a party (the resident) may call them, and only
+ * for the flat and billing account a verified link in force covers (CP2 security correction 3):
+ * every record is checked against the full liability (flat, account, site and legal entity) on the
+ * record's own date. Payments and history stay readable while the organisation is suspended;
+ * settling issued instalments follows its suspension policy; everything else is paused.
  */
 
 const CALENDAR_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 function owner(ctx: HandlerContext): { p: Portfolio; session: PortalSessionState } {
   const persona = ctx.persona;
-  if (!persona || persona.app !== 'customer' || !persona.partyId || !persona.permissions.includes('portal.use')) forbid(ctx);
-  const p = portfolioFor(persona.partyId);
-  if (!p) notFound(ctx);
-  if (!ctx.allowsProject(p.property.projectId)) forbid(ctx);
-  return { p, session: ctx.demo.section<PortalSessionState>(PORTAL_SECTION, emptyPortalSession) };
+  if (!persona || persona.app !== 'customer' || !persona.partyId) forbid(ctx);
+  const partyId = persona.partyId;
+  // The liability in force today that the resident's verified links reach (unverified or ended links never do).
+  const link = ctx.data.partyLinks.filter((l) => l.partyId === partyId).find((l) => permits(ctx, 'resident_portal', liabilityRecord(l, ctx.at)));
+  if (!link) notFound(ctx);
+  const base = portfolioFor(ctx.data, partyId, link);
+  if (!base) notFound(ctx);
+  if (!ctx.allowsProject(base.property.projectId)) forbid(ctx);
+  // Effective-dated: only instalments dated inside the liability period are the resident's.
+  const p = { ...base, schedule: base.schedule.filter((i) => permits(ctx, 'resident_portal', liabilityRecord(link, i.dueDate))) };
+  return { p, session: ctx.demo.section<PortalSessionState>(`${PORTAL_SECTION}:${link.billingAccountId}`, emptyPortalSession) };
 }
+
+/** The resident's flat as an access record today (for module checks such as maintenance or visitors). */
+const flatToday = (ctx: HandlerContext, p: Portfolio) => liabilityRecord(p.link, ctx.at);
 
 function payableInstalment(ctx: HandlerContext, p: Portfolio, session: PortalSessionState): InstalmentItem {
   const item = portalSchedule(p, session).find((i) => i.id === ctx.params.id);
@@ -70,7 +84,7 @@ export const PORTAL_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/portal\/home$/,
-    module: 'resident_portal',
+    access: requires('resident_portal', 'portal.use', 'history_read'),
     handle: (ctx) => {
       const { p, session } = owner(ctx);
       return buildPortalHome(p, session);
@@ -79,7 +93,7 @@ export const PORTAL_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/portal\/payments$/,
-    module: 'resident_portal',
+    access: requires('resident_portal', 'portal.use', 'history_read'),
     handle: (ctx) => {
       const { p, session } = owner(ctx);
       return buildPortalPayments(p, session);
@@ -88,7 +102,7 @@ export const PORTAL_HANDLERS: readonly Handler[] = [
   {
     method: 'POST',
     pattern: /^\/portal\/instalments\/(?<id>[\w-]+)\/proof$/,
-    module: 'resident_portal',
+    access: requires('resident_portal', 'portal.use', 'settlement'),
     handle: (ctx): InstalmentItem => {
       const { p, session } = owner(ctx);
       const item = payableInstalment(ctx, p, session);
@@ -120,9 +134,11 @@ export const PORTAL_HANDLERS: readonly Handler[] = [
     // Labelled simulation: no gateway is contacted and the instalment is NOT marked paid.
     method: 'POST',
     pattern: /^\/portal\/instalments\/(?<id>[\w-]+)\/simulate-online$/,
-    module: 'resident_portal',
+    access: requires('resident_portal', 'portal.use', 'settlement'),
     handle: (ctx): InstalmentItem => {
       const { p, session } = owner(ctx);
+      // The simulation stands in for online payments, which are licensed per site.
+      authorize(ctx, 'online_payments', flatToday(ctx, p));
       const item = payableInstalment(ctx, p, session);
       const now = new Date();
       session.proofs[item.id] = {
@@ -141,7 +157,7 @@ export const PORTAL_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/portal\/receipts\/(?<id>[\w-]+)$/,
-    module: 'resident_portal',
+    access: requires('resident_portal', 'portal.use', 'history_read'),
     handle: (ctx) => {
       const { p, session } = owner(ctx);
       return receiptDetail(p, session, ctx.params.id!) ?? notFound(ctx);
@@ -150,16 +166,17 @@ export const PORTAL_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/portal\/construction$/,
-    module: 'resident_portal',
+    access: requires('resident_portal', 'portal.use', 'operational'),
     handle: (ctx) => {
       const { p } = owner(ctx);
+      authorize(ctx, 'construction', flatToday(ctx, p));
       return p.construction;
     },
   },
   {
     method: 'GET',
     pattern: /^\/portal\/documents$/,
-    module: 'resident_portal',
+    access: requires('resident_portal', 'portal.use', 'history_read'),
     handle: (ctx) => {
       const { p } = owner(ctx);
       return portalDocuments(p);
@@ -168,7 +185,7 @@ export const PORTAL_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/portal\/services$/,
-    module: 'resident_portal',
+    access: requires('resident_portal', 'portal.use', 'operational'),
     handle: (ctx) => {
       const { p, session } = owner(ctx);
       return portalServices(p, session);
@@ -177,9 +194,10 @@ export const PORTAL_HANDLERS: readonly Handler[] = [
   {
     method: 'POST',
     pattern: /^\/portal\/service-requests$/,
-    module: 'resident_portal',
+    access: requires('resident_portal', 'portal.use', 'operational'),
     handle: (ctx): ServiceRequest => {
-      const { session } = owner(ctx);
+      const { p, session } = owner(ctx);
+      authorize(ctx, 'maintenance', flatToday(ctx, p));
       const input = body<CreateServiceRequestInput>(ctx);
       if (!input.category || !SERVICE_CATEGORIES.includes(input.category)) invalid(ctx, 'category', 'forms:errors.selectOne');
       const description = String(input.description ?? '').trim();
@@ -205,9 +223,10 @@ export const PORTAL_HANDLERS: readonly Handler[] = [
   {
     method: 'POST',
     pattern: /^\/portal\/visitor-passes$/,
-    module: 'resident_portal',
+    access: requires('resident_portal', 'portal.use', 'operational'),
     handle: (ctx): VisitorPass => {
-      const { session } = owner(ctx);
+      const { p, session } = owner(ctx);
+      authorize(ctx, 'visitors', flatToday(ctx, p));
       const input = body<CreateVisitorPassInput>(ctx);
       const visitorName = String(input.visitorName ?? '').trim();
       if (visitorName.length < 2) invalid(ctx, 'visitorName', 'forms:errors.required');
