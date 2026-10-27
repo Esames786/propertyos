@@ -10,13 +10,15 @@ export interface NavItem {
   permission?: Permission;
   /** Path prefix that marks the item as current. */
   match?: string;
+  /** Current only on exactly this path (a start page whose path prefixes every other page). */
+  exact?: boolean;
   /** Rail section; items without a group render first, unlabelled. */
   group?: NavGroup;
   /** Offered in the phone bottom bar (first four the persona may use). */
   bottomBar?: boolean;
 }
 
-export type NavGroup = 'workspace' | 'operations' | 'insights' | 'prototype';
+export type NavGroup = 'workspace' | 'operations' | 'insights' | 'support' | 'prototype';
 
 /** A screen reachable from Ctrl+K. */
 export interface Destination {

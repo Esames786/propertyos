@@ -58,7 +58,7 @@ export function DemoEnvironmentPill({ className }: { className?: string }) {
  */
 export function AppHeader({ tenantName }: { tenantName: string }) {
   const { t } = useT();
-  const { setPaletteOpen } = useShell();
+  const { setPaletteOpen, slots } = useShell();
   const scrolled = useScrolled();
   return (
     <header
@@ -76,9 +76,7 @@ export function AppHeader({ tenantName }: { tenantName: string }) {
       <span className="flex min-w-0 md:hidden">
         <BrandBlock tenantName={tenantName} compact className="gap-2" />
       </span>
-      <span className="min-w-0 max-md:flex-1">
-        <ProjectSwitcher />
-      </span>
+      <span className="min-w-0 max-md:flex-1">{slots.context === undefined ? <ProjectSwitcher /> : slots.context}</span>
       <AriaButton
         data-tour-id="command-search"
         onPress={() => setPaletteOpen(true)}
@@ -99,12 +97,8 @@ export function AppHeader({ tenantName }: { tenantName: string }) {
         <span className="max-xs:hidden">
           <DemoEnvironmentPill />
         </span>
-        <span className="hidden md:inline-flex lg:hidden">
-          <QuickCreateMenu variant="compact" />
-        </span>
-        <span className="hidden lg:inline-flex">
-          <QuickCreateMenu />
-        </span>
+        <span className="hidden md:inline-flex lg:hidden">{slots.create === undefined ? <QuickCreateMenu variant="compact" /> : slots.create?.compact}</span>
+        <span className="hidden lg:inline-flex">{slots.create === undefined ? <QuickCreateMenu /> : slots.create?.header}</span>
         <span className="hidden md:inline-flex">
           <LocaleToggle />
         </span>

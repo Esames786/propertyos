@@ -19,13 +19,13 @@ import { useShell } from './ShellContext';
  */
 export function BottomNav() {
   const { t } = useT();
-  const { navItems, links } = useShell();
+  const { navItems, links, slots } = useShell();
   const { persona, can } = useSession();
   const { location } = useNavigation();
   const reduced = useReducedMotion();
   const items = filterAllowed(persona, navItems.filter((i) => i.bottomBar)).slice(0, 3);
   const more: NavItem | null = links.more ? { id: 'more', labelKey: 'nav:more', href: links.more, icon: LayoutGrid, match: links.more } : null;
-  const hasFab = can('quickcreate.use');
+  const hasFab = slots.create === undefined ? can('quickcreate.use') : slots.create !== null;
   const start = items.slice(0, 2);
   const end = [...items.slice(2), ...(more ? [more] : [])];
 
@@ -68,9 +68,7 @@ export function BottomNav() {
         {start.map(cell)}
         {hasFab && (
           <li className="relative flex w-[4.5rem] shrink-0 justify-center">
-            <span className="absolute -top-6">
-              <QuickCreateMenu variant="fab" />
-            </span>
+            <span className="absolute -top-6">{slots.create ? slots.create.fab : <QuickCreateMenu variant="fab" />}</span>
           </li>
         )}
         {end.map(cell)}

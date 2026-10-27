@@ -11,6 +11,7 @@ import enStatus from '../locales/en-PK/status.json';
 import enStart from '../locales/en-PK/start.json';
 import enCrm from '../locales/en-PK/crm.json';
 import enPortal from '../locales/en-PK/portal.json';
+import enPlatform from '../locales/en-PK/platform.json';
 import urA11y from '../locales/ur-PK/a11y.json';
 import urCommon from '../locales/ur-PK/common.json';
 import urDashboard from '../locales/ur-PK/dashboard.json';
@@ -24,6 +25,7 @@ import urStatus from '../locales/ur-PK/status.json';
 import urStart from '../locales/ur-PK/start.json';
 import urCrm from '../locales/ur-PK/crm.json';
 import urPortal from '../locales/ur-PK/portal.json';
+import urPlatform from '../locales/ur-PK/platform.json';
 
 export const NAMESPACES = [
   'common',
@@ -39,6 +41,7 @@ export const NAMESPACES = [
   'start',
   'crm',
   'portal',
+  'platform',
 ] as const;
 
 export type Namespace = (typeof NAMESPACES)[number];
@@ -57,6 +60,7 @@ const en = {
   start: enStart,
   crm: enCrm,
   portal: enPortal,
+  platform: enPlatform,
 };
 
 const ur: typeof en = {
@@ -73,6 +77,7 @@ const ur: typeof en = {
   start: urStart,
   crm: urCrm,
   portal: urPortal,
+  platform: urPlatform,
 };
 
 export const resources = { 'en-PK': en, 'ur-PK': ur };

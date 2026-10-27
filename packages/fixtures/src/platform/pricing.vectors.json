@@ -1,0 +1,216 @@
+{
+  "description": "Golden pricing vectors (Gate A, A3 §5 and §9). Every expected figure is worked by hand in the 'why' field. Totals include tax. These become the Laravel contract tests at Gate H.",
+  "alnoor": [
+    { "id": "base", "type": "FIXED_RECURRING", "line": "rc_comm_base", "unitPrice": "0.00" },
+    { "id": "flats", "type": "PER_UNIT", "line": "rc_unit_eligible", "dimension": "units.eligible", "unitPrice": "40.00" },
+    { "id": "site", "type": "PER_SITE", "line": "rc_site", "unitPrice": "500.00" },
+    { "id": "onboarding", "type": "ONE_TIME", "line": "rc_onboarding_comm", "unitPrice": "15000.00" }
+  ],
+  "vectors": [
+    {
+      "name": "V3.1 example: Al-Noor Residency, 80 eligible flats",
+      "why": "first: 0 + 80 × 40 + 500 + 15,000 = 18,700; later months: 3,200 + 500 = 3,700; first year: 18,700 + 11 × 3,700 = 59,400",
+      "start": "2026-11-01",
+      "use": "alnoor",
+      "quantities": { "units.eligible": 80, "sites.licensed": 1 },
+      "expect": { "first": "18700.00", "next": "3700.00", "regular": "3700.00", "firstYear": "59400.00", "approval": [] }
+    },
+    {
+      "name": "Count occupied flats instead (76 occupied, 4 vacant)",
+      "why": "76 × 40 + 500 = 3,540; first 3,540 + 15,000 = 18,540",
+      "start": "2026-11-01",
+      "use": "alnoor",
+      "patch": { "flats": { "dimension": "units.occupied" } },
+      "quantities": { "units.occupied": 76, "units.eligible": 80, "sites.licensed": 1 },
+      "expect": { "first": "18540.00", "next": "3540.00", "approval": [] }
+    },
+    {
+      "name": "Contract starts mid-month (16 Nov: 15 of 30 days)",
+      "why": "15,000 + 3,200 × 15/30 + 500 × 15/30 = 15,000 + 1,600 + 250 = 16,850; December 3,700; first year 16,850 + 11 × 3,700 = 57,550",
+      "start": "2026-11-16",
+      "use": "alnoor",
+      "quantities": { "units.eligible": 80, "sites.licensed": 1 },
+      "expect": { "first": "16850.00", "next": "3700.00", "regular": "3700.00", "firstYear": "57550.00", "approval": [] }
+    },
+    {
+      "name": "Scheduled price change: flat fee PKR 45 from 1 Jan 2027 (versioned rate)",
+      "why": "Nov 18,700; Dec 3,700; Jan 80 × 45 + 500 = 4,100",
+      "start": "2026-11-01",
+      "use": "alnoor",
+      "patch": { "flats": { "effectiveTo": "2027-01-01" } },
+      "add": [{ "id": "flats_v2", "type": "PER_UNIT", "line": "rc_unit_eligible", "dimension": "units.eligible", "unitPrice": "45.00", "effectiveFrom": "2027-01-01" }],
+      "quantities": { "units.eligible": 80, "sites.licensed": 1 },
+      "expect": { "schedule": { "0": "18700.00", "1": "3700.00", "2": "4100.00", "11": "4100.00" }, "approval": [] }
+    },
+    {
+      "name": "Tiered, graduated: 1–50 at 45, 51+ at 35",
+      "why": "50 × 45 + 30 × 35 = 2,250 + 1,050 = 3,300",
+      "start": "2026-11-01",
+      "components": [{ "id": "tiered", "type": "TIERED", "line": "rc_unit_tiered", "dimension": "units.eligible", "tierMethod": "graduated", "tiers": [[50, "45.00"], [null, "35.00"]] }],
+      "quantities": { "units.eligible": 80 },
+      "expect": { "first": "3300.00", "next": "3300.00", "approval": [] }
+    },
+    {
+      "name": "Tiered, volume: all 80 at the band reached (35)",
+      "why": "80 × 35 = 2,800",
+      "start": "2026-11-01",
+      "components": [{ "id": "tiered", "type": "TIERED", "line": "rc_unit_tiered", "dimension": "units.eligible", "tierMethod": "volume", "tiers": [[50, "45.00"], [null, "35.00"]] }],
+      "quantities": { "units.eligible": 80 },
+      "expect": { "first": "2800.00", "approval": [] }
+    },
+    {
+      "name": "Usage with allowance: 740 SMS, 500 included, PKR 1.50 each",
+      "why": "(740 − 500) × 1.50 = 360 every period; first 18,700 + 360 = 19,060; later 3,700 + 360 = 4,060",
+      "start": "2026-11-01",
+      "use": "alnoor",
+      "add": [{ "id": "sms", "type": "USAGE", "line": "rc_sms", "dimension": "sms.sent", "unitPrice": "1.50", "allowance": 500 }],
+      "quantities": { "units.eligible": 80, "sites.licensed": 1, "sms.sent": 740 },
+      "expect": { "first": "19060.00", "next": "4060.00", "approval": [] }
+    },
+    {
+      "name": "10 % discount on recurring components (within the 15 % limit)",
+      "why": "recurring 3,700 − 10 % = 3,330; first 15,000 + 3,330 = 18,330; onboarding not discounted",
+      "start": "2026-11-01",
+      "use": "alnoor",
+      "discounts": [{ "id": "d10", "target": "recurring", "kind": "percent", "value": "10", "from": "2026-11-01" }],
+      "quantities": { "units.eligible": 80, "sites.licensed": 1 },
+      "expect": { "first": "18330.00", "next": "3330.00", "approval": [] }
+    },
+    {
+      "name": "20 % discount needs commercial approval",
+      "why": "3,700 × 0.8 = 2,960; first 17,960; 20 % > 15 % limit",
+      "start": "2026-11-01",
+      "use": "alnoor",
+      "discounts": [{ "id": "d20", "target": "recurring", "kind": "percent", "value": "20", "from": "2026-11-01" }],
+      "quantities": { "units.eligible": 80, "sites.licensed": 1 },
+      "expect": { "first": "17960.00", "next": "2960.00", "approval": ["discount_above_limit"] }
+    },
+    {
+      "name": "Fixed amount off onboarding (5,000 of 15,000 = 33 %) needs approval",
+      "why": "first 15,000 − 5,000 + 3,700 = 13,700; 33.3 % > 15 %",
+      "start": "2026-11-01",
+      "use": "alnoor",
+      "discounts": [{ "id": "dob", "target": "onboarding", "kind": "amount", "value": "5000.00", "from": "2026-11-01" }],
+      "quantities": { "units.eligible": 80, "sites.licensed": 1 },
+      "expect": { "first": "13700.00", "next": "3700.00", "approval": ["discount_above_limit"] }
+    },
+    {
+      "name": "Free plan, open-ended: zero price, needs approval beyond 30 days",
+      "why": "FREE component charges nothing; open-ended free terms exceed the 30-day limit",
+      "start": "2026-11-01",
+      "components": [{ "id": "free", "type": "FREE", "line": "rc_free", "unitPrice": "0.00" }],
+      "quantities": {},
+      "expect": { "first": "0.00", "next": "0.00", "firstYear": "0.00", "approval": ["free_beyond_trial"] }
+    },
+    {
+      "name": "30-day trial, then the Al-Noor price (charges start when the trial ends)",
+      "why": "Nov: trial, 0; Dec: 18,700 (onboarding at conversion); Jan onwards 3,700; first year 0 + 18,700 + 10 × 3,700 = 55,700",
+      "start": "2026-11-01",
+      "use": "alnoor",
+      "chargesFrom": "2026-12-01",
+      "add": [{ "id": "trial", "type": "TRIAL", "line": "rc_trial", "trialDays": 30, "effectiveFrom": "2026-11-01", "effectiveTo": "2026-12-01" }],
+      "quantities": { "units.eligible": 80, "sites.licensed": 1 },
+      "expect": { "first": "0.00", "next": "18700.00", "regular": "3700.00", "firstYear": "55700.00", "approval": [] }
+    },
+    {
+      "name": "Contract minimum PKR 5,000 a month",
+      "why": "recurring 3,700 < 5,000 → +1,300 adjustment; first 15,000 + 5,000 = 20,000",
+      "start": "2026-11-01",
+      "use": "alnoor",
+      "terms": { "minimumMonthly": "5000.00" },
+      "quantities": { "units.eligible": 80, "sites.licensed": 1 },
+      "expect": { "first": "20000.00", "next": "5000.00", "approval": [] }
+    },
+    {
+      "name": "Contract cap PKR 3,000 a month",
+      "why": "recurring 3,700 > 3,000 → −700 adjustment; first 15,000 + 3,000 = 18,000",
+      "start": "2026-11-01",
+      "use": "alnoor",
+      "terms": { "capMonthly": "3000.00" },
+      "quantities": { "units.eligible": 80, "sites.licensed": 1 },
+      "expect": { "first": "18000.00", "next": "3000.00", "approval": [] }
+    },
+    {
+      "name": "Tax per line (illustrative 10 % demo rate)",
+      "why": "lines 3,200 + 500 + 15,000 taxed 320 + 50 + 1,500 = 1,870 → first 20,570; later 3,700 + 370 = 4,070",
+      "start": "2026-11-01",
+      "use": "alnoor",
+      "terms": { "tax": { "code": "DEMO-10", "ratePct": "10" } },
+      "quantities": { "units.eligible": 80, "sites.licensed": 1 },
+      "expect": { "first": "20570.00", "next": "4070.00", "approval": [] }
+    },
+    {
+      "name": "Unit price 25 % below the rate card needs approval",
+      "why": "80 × 30 + 500 = 2,900; 30 is below 40 × 0.9 = 36",
+      "start": "2026-11-01",
+      "use": "alnoor",
+      "patch": { "flats": { "unitPrice": "30.00" } },
+      "quantities": { "units.eligible": 80, "sites.licensed": 1 },
+      "expect": { "next": "2900.00", "approval": ["price_below_floor"] }
+    },
+    {
+      "name": "Onboarding waived needs approval",
+      "why": "first 3,700 only; a 100 % cut exceeds the 50 % limit",
+      "start": "2026-11-01",
+      "use": "alnoor",
+      "patch": { "onboarding": { "unitPrice": "0.00" } },
+      "quantities": { "units.eligible": 80, "sites.licensed": 1 },
+      "expect": { "first": "3700.00", "approval": ["onboarding_reduced"] }
+    },
+    {
+      "name": "48-month term needs approval",
+      "why": "48 > 36 months",
+      "start": "2026-11-01",
+      "use": "alnoor",
+      "terms": { "termMonths": 48 },
+      "quantities": { "units.eligible": 80, "sites.licensed": 1 },
+      "expect": { "next": "3700.00", "approval": ["term_too_long"] }
+    },
+    {
+      "name": "Small society below the minimum first-year value",
+      "why": "5 × 40 + 500 = 700; first 15,700; first year 15,700 + 11 × 700 = 23,400 < 25,000",
+      "start": "2026-11-01",
+      "use": "alnoor",
+      "quantities": { "units.eligible": 5, "sites.licensed": 1 },
+      "expect": { "first": "15700.00", "next": "700.00", "firstYear": "23400.00", "approval": ["first_year_below_minimum"] }
+    },
+    {
+      "name": "Developer edition: base fee, 12 staff seats, onboarding",
+      "why": "25,000 + 12 × 1,500 = 43,000 a month; first 43,000 + 75,000 = 118,000",
+      "start": "2026-11-01",
+      "components": [
+        { "id": "base", "type": "FIXED_RECURRING", "line": "rc_dev_base", "unitPrice": "25000.00" },
+        { "id": "seats", "type": "PER_SEAT", "line": "rc_dev_seat", "dimension": "seats.staff_active", "unitPrice": "1500.00" },
+        { "id": "onboarding", "type": "ONE_TIME", "line": "rc_onboarding_dev", "unitPrice": "75000.00" }
+      ],
+      "quantities": { "seats.staff_active": 12 },
+      "expect": { "first": "118000.00", "next": "43000.00", "approval": [] }
+    },
+    {
+      "name": "Site-scoped module add-on for two sites",
+      "why": "online payments 2 sites × 1,500 = 3,000; with Al-Noor recurring 3,700 → 6,700",
+      "start": "2026-11-01",
+      "use": "alnoor",
+      "add": [{ "id": "online", "type": "PER_MODULE", "line": "rc_mod_online_payments", "module": "online_payments", "unitPrice": "1500.00", "siteIds": ["s1", "s2"] }],
+      "quantities": { "units.eligible": 80, "sites.licensed": 1 },
+      "expect": { "next": "6700.00", "approval": [] }
+    },
+    {
+      "name": "Quarterly billing of monthly prices",
+      "why": "(3,200 + 500) × 3 = 11,100 a quarter; first 11,100 + 15,000 = 26,100",
+      "start": "2026-11-01",
+      "use": "alnoor",
+      "terms": { "billingFrequency": "quarterly" },
+      "quantities": { "units.eligible": 80, "sites.licensed": 1 },
+      "expect": { "first": "26100.00", "next": "11100.00", "approval": [] }
+    },
+    {
+      "name": "Proration rounds half away from zero to the paisa",
+      "why": "7 × 40 = 280 a month; 17 Nov → 14 of 30 days: 280 × 14/30 = 130.666… → 130.67",
+      "start": "2026-11-17",
+      "components": [{ "id": "flats", "type": "PER_UNIT", "line": "rc_unit_eligible", "dimension": "units.eligible", "unitPrice": "40.00" }],
+      "quantities": { "units.eligible": 7 },
+      "expect": { "first": "130.67", "next": "280.00", "approval": ["first_year_below_minimum"] }
+    }
+  ]
+}

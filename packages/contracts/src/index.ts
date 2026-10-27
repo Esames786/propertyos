@@ -9,3 +9,5 @@ export * from './dashboard';
 export * from './crm';
 export * from './workspace';
 export * from './portal';
+export * from './access';
+export * from './platform';

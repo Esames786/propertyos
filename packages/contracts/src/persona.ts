@@ -1,10 +1,10 @@
 import type { Permission } from './permissions';
 
-export type AppId = 'backoffice' | 'customer' | 'public';
+export type AppId = 'backoffice' | 'customer' | 'public' | 'platform';
 
 /** A fictional demo identity used to simulate sign-in and role scope in the prototype. */
 export interface Persona {
-  id: 'manager' | 'sales' | 'finance' | 'resident';
+  id: 'manager' | 'sales' | 'finance' | 'resident' | 'supreme_admin' | 'commercial_approver' | 'platform_support';
   tenantId: string;
   app: AppId;
   /** Person's name as entered (free text is never translated). */

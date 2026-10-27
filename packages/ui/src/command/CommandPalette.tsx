@@ -6,6 +6,8 @@ import {
   FileText,
   GraduationCap,
   Home,
+  Inbox,
+  Landmark,
   Languages,
   LifeBuoy,
   Search,
@@ -45,6 +47,8 @@ const RECORD_ICON: Record<SearchRecord['type'], LucideIcon> = {
   unit: Building2,
   invoice: FileText,
   project: Building2,
+  tenant: Landmark,
+  request: Inbox,
 };
 
 const norm = (s: string) => s.toLocaleLowerCase().normalize('NFKD');

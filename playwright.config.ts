@@ -39,5 +39,11 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       timeout: 180_000,
     },
+    {
+      command: 'npm run build -w @repo/platform-hq && npm run preview -w @repo/platform-hq',
+      url: 'http://localhost:5175/hq',
+      reuseExistingServer: !process.env.CI,
+      timeout: 180_000,
+    },
   ],
 });

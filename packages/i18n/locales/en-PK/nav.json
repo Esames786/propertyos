@@ -71,7 +71,8 @@
     "workspace": "Workspace",
     "operations": "Operations",
     "insights": "Insights",
-    "prototype": "Prototype"
+    "prototype": "Prototype",
+    "support": "Help and support"
   },
   "bottomBarLabel": "Quick navigation",
   "more": "More",

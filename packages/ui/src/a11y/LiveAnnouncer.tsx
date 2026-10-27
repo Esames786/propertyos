@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
 type Politeness = 'polite' | 'assertive';
 type Announce = (message: string, politeness?: Politeness) => void;
@@ -41,6 +41,8 @@ export function LiveAnnouncerProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(() => announce, [announce]);
 
+  useEffect(() => resolveReferenceAnnouncements(), []);
+
   return (
     <AnnouncerContext.Provider value={value}>
       {children}
@@ -52,6 +54,44 @@ export function LiveAnnouncerProvider({ children }: { children: ReactNode }) {
       </div>
     </AnnouncerContext.Provider>
   );
+}
+
+/**
+ * React Aria announces some messages by reference: a `role="img"` node in its own live region
+ * (`[data-live-announcer]`) labelled by the source element, e.g. a button entering its pending
+ * state. When that source then disappears (a dialog closing, a wizard step moving on), the node is
+ * left pointing at nothing for seven seconds: an empty announcement and an axe `role-img-alt`
+ * failure. Each such node is turned into the referenced text the moment it is added, so it reads
+ * the same and never dangles. Returns the cleanup.
+ */
+export function resolveReferenceAnnouncements(): () => void {
+  const resolve = (node: Node) => {
+    if (!(node instanceof HTMLElement) || node.getAttribute('role') !== 'img') return;
+    const ids = node.getAttribute('aria-labelledby');
+    if (!ids) return;
+    const text = ids
+      .split(/\s+/)
+      .map((id) => document.getElementById(id)?.textContent?.trim())
+      .filter(Boolean)
+      .join(' ');
+    node.removeAttribute('role');
+    node.removeAttribute('aria-labelledby');
+    node.textContent = text;
+  };
+  const logs = new MutationObserver((records) => records.forEach((r) => r.addedNodes.forEach(resolve)));
+  const watch = (el: Element | null) => {
+    if (el) logs.observe(el, { childList: true, subtree: true });
+  };
+  // React Aria creates its region on first use and prepends it to <body>.
+  watch(document.querySelector('[data-live-announcer]'));
+  const body = new MutationObserver((records) =>
+    records.forEach((r) => r.addedNodes.forEach((n) => n instanceof HTMLElement && n.dataset.liveAnnouncer && watch(n))),
+  );
+  body.observe(document.body, { childList: true });
+  return () => {
+    logs.disconnect();
+    body.disconnect();
+  };
 }
 
 export function useAnnounce(): Announce {

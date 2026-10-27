@@ -1,10 +1,10 @@
 # PropertyOS (codename): UI-first prototype
 
-Multi-tenant real-estate developer platform: backoffice, customer web/PWA and shared design system.
+Multi-tenant real-estate developer platform: backoffice, customer web/PWA, Platform HQ and shared design system.
 **Prototype only.** Every person, amount, account and document is fictional; nothing moves money,
 sends messages or writes to a real backend.
 
-- Blueprint: [`docs/blueprint/v2.1/`](docs/blueprint/v2.1/)
+- Blueprint: [`docs/blueprint/v3.1/`](docs/blueprint/v3.1/) (V3.1, with the Gate A review in [`gate-a/`](docs/blueprint/v3.1/gate-a/)); earlier [`v2.1/`](docs/blueprint/v2.1/)
 - Architecture decisions: [`docs/adr/`](docs/adr/)
 - Stage reports and evidence: [`docs/status/`](docs/status/)
 - Screen register with build status: [`docs/ui/screen-register.csv`](docs/ui/screen-register.csv)
@@ -31,9 +31,9 @@ $env:PATH = "D:\laragon2\bin\nodejs\node-v20.20.1-win-x64;$env:PATH"
 | Command | What it does |
 |---|---|
 | `npm install` | Install all workspaces |
-| `npm run dev` | Backoffice at http://localhost:5173/backoffice (first visit: Get started; afterwards the dashboard) and customer portal at http://localhost:5174/customer/portal |
-| `npm run dev:backoffice` / `npm run dev:customer` | Run one app |
-| `npm run build` | Production build of both apps |
+| `npm run dev` | Backoffice at http://localhost:5173/backoffice (first visit: Get started; afterwards the dashboard), customer portal at http://localhost:5174/customer/portal and Platform HQ at http://localhost:5175/hq |
+| `npm run dev:backoffice` / `npm run dev:customer` / `npm run dev:hq` | Run one app |
+| `npm run build` | Production build of all three apps |
 | `npm run preview` | Serve the production builds on the same ports |
 | `npm run typecheck` | TypeScript across all packages and apps |
 | `npm run lint` | ESLint (no hard-coded UI text, router seam), RTL logical-CSS guard, i18n key parity |
@@ -64,16 +64,29 @@ browser tab; More → Reset demo data clears them.
 The account menu (initials, top end) lets you switch identity, reset the first-login onboarding
 and choose a simulated network (normal, instant, slow, server error, offline).
 
+### Platform HQ (central platform operator)
+
+Platform HQ is a separate app for the platform operator, not for any tenant. It shows tenant metadata
+(licences, contracts, counts) and never reads a tenant's people or finance records. Its demo data lasts
+for the browser tab, the same way the backoffice demo does.
+
+| Identity | Role | Can |
+|---|---|---|
+| Hamza Qureshi | Supreme Admin | Everything in HQ: create tenants, price contracts, approve another person's contract |
+| Ayesha Siddiqui | Commercial approver | Approve or return contracts that go beyond commercial policy |
+| Iqra Rana | Platform support | See tenants and licences; cannot create tenants, change prices or read tenant records |
+
 ## Layout
 
 ```text
-apps/backoffice      Staff backoffice + SaaS HQ + staff sign-in (Vite + React; Inertia client later)
+apps/backoffice      Staff backoffice + staff sign-in (Vite + React; Inertia client later)
 apps/customer-web    Customer / owner / resident web app (PWA in Stage 4)
+apps/platform-hq     Platform HQ for the central operator: tenants, tenant creation, pricing, approvals
 packages/tokens      Design tokens v3 (Limestone & Evergreen, Clarity; Tailwind v4 theme), fonts, contrast tests
 packages/assets      Typed registry of licensed imagery (see docs/design/ASSET_REGISTRY.md)
 packages/i18n        en-PK / ur-PK dictionaries, locale provider, money/date/phone/CNIC/IBAN formatters
-packages/contracts   Entity, API-error, permission and screen-register types
-packages/fixtures    Fictional dataset, demo personas, mock transport with a session demo store (CRM, portal, workspace)
+packages/contracts   Entity, API-error, permission, access-decision, platform-pricing and screen-register types
+packages/fixtures    Fictional dataset, demo personas, mock transports with session demo stores (CRM, portal, workspace, platform pricing engine)
 packages/ui          Components, shells, chart kit, command palette, guided-tour engine
 tests                Playwright e2e, accessibility and evidence specs
 scripts              Register sync, i18n parity, logical-CSS guard

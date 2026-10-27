@@ -64,7 +64,7 @@ export interface EffectiveAccess {
 }
 
 export type DenyReason =
-  | 'tenant_inactive' | 'module_not_licensed' | 'site_not_licensed' | 'feature_not_licensed'
+  | 'tenant_inactive' | 'tenant_suspended' | 'module_not_licensed' | 'site_not_licensed' | 'feature_not_licensed'
   | 'permission_missing' | 'out_of_scope' | 'state_locked' | 'separation_of_duties';
 
 export interface AccessRequest {
@@ -75,8 +75,10 @@ export interface AccessRequest {
   record?: { siteId?: string; projectId?: string; buildingId?: string; assignedTo?: string; billingAccountId?: string; unitId?: string };
   state?: { locked?: boolean; makerUserId?: string };   // e.g. posted invoice; billing run creator
   at: string;                                             // evaluation date (effective-dated grants)
-  write?: boolean;                                        // suspended tenants are read-only
+  /** Suspension class (A1 §4): undeclared = 'operational' = blocked while suspended. */
+  suspension?: 'history_read' | 'settlement' | 'operational';
 }
+// EffectiveAccess.tenant also carries `suspensionPolicy: { allowSettlement: boolean }` (D-20).
 
 /** Pure, table-tested. Evaluates layers 1–6 in order (A1 §4); the first failure is the reason. */
 export declare function decide(access: EffectiveAccess, req: AccessRequest):
@@ -168,6 +170,14 @@ export interface QuotePreview {
   nextPeriod?: { period: { start: string; end: string }; total: Money };
 }
 export interface PreviewSession { tenantId: string; roleKey: string; readOnly: true; containsTenantRecords: false; expiresAt: string }
+
+// Commercial approvals (D-14, A3 §7.1)
+export interface ApprovalCheck { required: boolean; reasons: Array<{ ruleKey: string; params: Record<string, string> }>; policyVersion: string }
+export interface ContractApproval { id: string; contractId: string; contractVersion: number; reasons: ApprovalCheck['reasons']; requestedBy: string; requestedAt: string; status: 'pending' | 'approved' | 'returned'; decidedBy?: string; decidedAt?: string; comment?: string }
+
+// Onboarding policies (D-8, A1 §8)
+export type SignupPolicy = 'self_service_trial' | 'approval_required' | 'invitation_only' | 'sales_assisted';
+export interface WorkspaceRequest { id: string; kind: 'approval' | 'sales' | 'trial'; organisation: string; contactName: string; edition: 'developer' | 'community' | 'portfolio' | 'custom'; expectedUnits?: number; city: string; receivedAt: string; status: 'new' | 'contacted' | 'approved' | 'declined' | 'converted' }
 export interface PlatformAuditEvent { id: string; at: string; actor: string; action: string; tenantId: string; before?: unknown; after?: unknown; reason?: string }
 ```
 
@@ -184,11 +194,15 @@ export interface UnitCore {
   id: string; siteId: string; buildingId?: string; floorId?: string; code: string; typeId: string; areaSqft: number;
   active: 'active' | 'merged' | 'demolished' | 'archived'; occupancy: 'vacant' | 'owner_occupied' | 'tenant_occupied';
 }
-export interface PartyPeriod { partyId: string; displayName: string; share?: string; role?: string; from: string; to?: string }
+export interface UnitLiability {
+  partyId: string; displayName: string; role: 'primary_payer' | 'co_payer' | 'guarantor';
+  liabilityType: 'proportional' | 'joint'; share?: string;   // proportional shares sum to 100 per unit and period
+  from: string; to?: string;
+}
 export interface BillingAccount {
   id: string; accountNo: string; kind: 'dues' | 'sales_contract' | 'service'; siteId: string; legalEntityId: string;
-  units: Array<{ unitId: string; unitCode: string; from: string; to?: string }>;
-  parties: PartyPeriod[];                    // liable parties, effective-dated, shares sum to 100 per period
+  // Liability is per covered unit (A2 §4.5): no account-wide percentages.
+  units: Array<{ unitId: string; unitCode: string; from: string; to?: string; liabilities: UnitLiability[] }>;
   balance: Money; credit: Money;
 }
 
@@ -234,8 +248,19 @@ export interface PaymentSubmission {
   state: SubmissionState; supersedesId?: string; messages: Array<{ at: string; by: 'resident' | 'finance'; textKey?: string; text?: string }>;
 }
 export interface VerificationDecision { submissionId: string; decision: 'verified' | 'rejected' | 'needs_information'; bankTransactionId?: string; reasonKey?: string; by: string; at: string }
-export interface Payment { id: string; ref: string; billingAccountId: string; amount: Money; receivedOn: string; source: 'submission' | 'gateway' | 'office'; bankTransactionId?: string; receiptId: string; allocations: Array<{ invoiceId: string; amount: Money }>; unapplied: Money }
-export interface BankTransaction { id: string; accountId: string; bookedOn: string; amount: Money; reference: string; status: 'unmatched' | 'suggested' | 'matched'; matchedPaymentId?: string }
+export interface Payment {
+  id: string; ref: string; legalEntityId: string; billingAccountId: string; payerPartyId?: string; amount: Money; receivedOn: string;
+  source: 'submission' | 'gateway' | 'office'; bankTransactionId?: string; receiptId: string;
+  allocations: Array<{ invoiceId: string; invoiceLineId: string; unitCode: string; amount: Money }>;   // line level, same entity only
+  unapplied: Money;
+}
+export interface BankTransaction {
+  id: string; bankAccountId: string; legalEntityId: string;
+  // Identity is scoped to the account (A2 §5.2): provider id, or an import fingerprint when there is none.
+  identity: { source: 'provider_feed'; providerTransactionId: string } | { source: 'statement_import'; fingerprint: string; importBatchId: string; lineSequence: number };
+  bookedOn: string; amount: Money; direction: 'credit' | 'debit'; narrative: string;   // narrative/reference = matching hint only
+  status: 'unmatched' | 'suggested' | 'matched'; matchedPaymentId?: string;            // one transaction confirms at most one payment
+}
 export interface BeneficiaryProfile {
   id: string; siteId: string; legalEntityName: string; bankName: string; accountTitle: string;
   iban: string;                      // fictional: bank code DEMO, enforced by fixtures.test
@@ -340,7 +365,8 @@ Each row lists the `requires` (module / permission) that `MockTransport` checks 
 **New `ApiProblem.code` values**
 - the `DenyReason` set;
 - `support_grant_required`, `invalid_transition`, `stale_preview`, `duplicate_period`;
-- `maker_checker_required`, `duplicate_bank_reference`, `allocation_exceeds_payment`;
+- `maker_checker_required`, `bank_transaction_already_matched`, `allocation_exceeds_payment`, `cross_entity_forbidden`;
+- `tenant_suspended`, `approval_required`, `invitation_invalid`, `signup_policy_closed`;
 - `method_not_allowed_for_site`, `beneficiary_unverified`, `import_has_errors`.
 
 Each has a translation key and states whether anything changed (`changed: false` unless stated).

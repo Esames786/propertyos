@@ -12,10 +12,11 @@ import type { NavGroup, NavItem } from './types';
 
 export function isCurrent(pathname: string, item: NavItem): boolean {
   const prefix = item.match ?? item.href;
+  if (item.exact) return pathname === prefix;
   return pathname === prefix || pathname.startsWith(`${prefix}/`);
 }
 
-const GROUP_ORDER: Array<NavGroup | undefined> = [undefined, 'workspace', 'operations', 'insights', 'prototype'];
+const GROUP_ORDER: Array<NavGroup | undefined> = [undefined, 'workspace', 'operations', 'insights', 'support', 'prototype'];
 
 /**
  * Main navigation links, filtered by the persona's permissions and grouped into labelled rail

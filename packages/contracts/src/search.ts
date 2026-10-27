@@ -1,4 +1,4 @@
-export type SearchRecordType = 'party' | 'lead' | 'unit' | 'invoice' | 'project';
+export type SearchRecordType = 'party' | 'lead' | 'unit' | 'invoice' | 'project' | 'tenant' | 'request';
 
 /** A record hit for Ctrl+K. Scope filtering happens in the transport, before the UI sees it. */
 export interface SearchRecord {

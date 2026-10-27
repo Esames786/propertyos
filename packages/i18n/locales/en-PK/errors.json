@@ -39,6 +39,12 @@
     "stage": "Planned stage",
     "status": "Status",
     "record": "Requested record",
-    "registerRoute": "Register address"
+    "registerRoute": "Register address",
+    "introGate": "This screen is planned for Gate {{gate}} of the V3.1 plan. Its address already works so links and bookmarks stay valid.",
+    "gate": "Planned gate",
+    "module": "Module",
+    "edition": "Editions",
+    "partOf": "Now part of",
+    "inPlatformHq": "in Platform HQ"
   }
 }

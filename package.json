@@ -11,11 +11,12 @@
     "node": ">=20.19.0"
   },
   "scripts": {
-    "dev": "concurrently -k -n backoffice,customer -c blue,magenta \"npm:dev:backoffice\" \"npm:dev:customer\"",
+    "dev": "concurrently -k -n backoffice,customer,hq -c blue,magenta,green \"npm:dev:backoffice\" \"npm:dev:customer\" \"npm:dev:hq\"",
     "dev:backoffice": "npm run dev -w @repo/backoffice",
     "dev:customer": "npm run dev -w @repo/customer-web",
-    "build": "npm run build -w @repo/backoffice && npm run build -w @repo/customer-web",
-    "preview": "concurrently -k -n backoffice,customer \"npm run preview -w @repo/backoffice\" \"npm run preview -w @repo/customer-web\"",
+    "dev:hq": "npm run dev -w @repo/platform-hq",
+    "build": "npm run build -w @repo/backoffice && npm run build -w @repo/customer-web && npm run build -w @repo/platform-hq",
+    "preview": "concurrently -k -n backoffice,customer,hq \"npm run preview -w @repo/backoffice\" \"npm run preview -w @repo/customer-web\" \"npm run preview -w @repo/platform-hq\"",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint . && node scripts/check-logical-css.mjs && node scripts/check-i18n.mjs",
     "test": "vitest run",

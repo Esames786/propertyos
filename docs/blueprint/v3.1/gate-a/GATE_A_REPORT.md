@@ -1,6 +1,19 @@
 # PropertyOS V3.1: Gate A report (architecture and screen-register reconciliation)
 
-**Status: Gate A complete. STOPPED for product-owner approval.**
+**Status: Gate A APPROVED WITH REQUIRED CORRECTIONS (owner review of `cc7ed1c`). Gate B authorized, with a mandatory checkpoint.**
+
+**The six required corrections, now made in the documents**
+
+| # | Correction | Where |
+|---|---|---|
+| 1 | **D-5 financial entity isolation:** every invoice, payment, bank transaction, settlement, allocation and posting carries its legal entity; cross-entity links are impossible (composite keys) | A2 §3, §5.1, I-19; A4 §5.4 |
+| 2 | **Billing liability per unit:** multi-flat accounts keep a responsible payer per flat (`unit_liabilities`); no account-wide percentages; allocation by invoice line | A2 §4.4–4.5, I-5, I-18; A4 §1, §5.4, §8; A6 §4 |
+| 3 | **D-8 signup modes:** self-service trial, approval required, invitation only, sales assisted; Get started adapts | A1 §8; A2 central entities, R-19; A6 §3 |
+| 4 | **D-14 commercial approvals:** thresholds, pending-approval state and maker ≠ approver, shown and enforced in the Gate B mock | A3 §7.1; A2 I-22; A6 §3; A7 AB-15 |
+| 5 | **Suspended tenants:** permitted financial-history reads plus policy-controlled settlement only; operational mutations blocked | A1 §4; A3 §3; A2 I-21; A6 §2; new **D-20** |
+| 6 | **Bank transaction deduplication:** identity scoped to account and provider (or import fingerprint); one transaction confirms one payment; references are hints only; maker-checker and verified-beneficiary safeguards kept | A2 §5.2, I-20; A4 §5.1; A6 §4 |
+
+**Original status at `cc7ed1c`: Gate A complete. STOPPED for product-owner approval.**
 - **Branch and baseline:** `feature/stage-1.5-premium-design`, commit `c9f7274` (V3.1 handoff) on top of Stage 1.5R.
 - **This report:** the commit that adds this folder.
 - **What Gate A did:**
@@ -67,7 +80,7 @@ Key corrections to the logical model:
   - global sign-in identities;
   - tenant users linked to people.
 - **Personal accessibility settings** live with the global identity. Appearance settings that depend on the tenant live in the tenant DB.
-- **Invariants:** 18 are listed (I-1…I-18), each with its production enforcement and how the prototype proves it. Among them:
+- **Invariants:** 22 are listed (I-1…I-22; I-19 to I-22 added after the review), each with its production enforcement and how the prototype proves it. Among them:
   - no duplicate billing on retry (unique idempotency keys);
   - submitted ≠ paid;
   - immutable snapshots and posted records;
@@ -187,21 +200,22 @@ Key corrections to the logical model:
 | D-2 | Editions | **Presets of grants; access decided only by grants** | A1 §2 |
 | D-3 | Property hierarchy | **Site-rooted; projects attach to sites** | A2 §4 |
 | D-4 | Unit status | **Split into inventory / delivery / occupancy** | A2 §4.2 |
-| D-5 | Invoicing | **One engine with source types; billing accounts by kind; units and liable parties split** | A2 §4–5 |
+| D-5 | Invoicing and entity isolation | **One engine with source types; billing accounts by kind; liability per unit (`unit_liabilities`); line-level allocation; every financial record bound to its legal entity, with cross-entity links impossible** (corrected) | A2 §4–5.1 |
 | D-6 | Legal entities | **Books, payee and numbering per legal entity; no commingling inside a tenant** | A2 §9.4 |
 | D-7 | Proration and snapshots | **Billed in advance; snapshot at period start; actual-day proration; downgrades next period** | A3 §3 |
-| D-8 | Self-serve "Set up my workspace" | **Becomes a workspace request that the Supreme Admin approves in HQ**. Alternative: automatic free trial | A2 R-19 |
+| D-8 | Signup and onboarding | **A configurable platform onboarding policy: self-service trial, approval required, invitation only or sales assisted. Get started adapts; the demo stays available** (corrected) | A1 §8 |
 | D-9 | Support access | **Tenant-admin consent per grant; read-only; 4 h default, 24 h maximum; visible to the tenant** | A1 §4 |
 | D-10 | Tax | **Configured per jurisdiction and legal entity; your tax adviser confirms codes and rates** | A2 §9.4 |
 | D-11 | Late fees | **Off by default; only after legal review and bylaws** | A4 §2 |
 | D-12 | Society demo name | Keep **"Al-Noor Residency (Demo)"** to match your example, or pick a more distinctive fictional name (real buildings may share it) | A1 §3 |
 | D-13 | Beneficiary changes | **Maker-checker + 24 h cooling-off + resident notice** | A4 §6 |
-| D-14 | Contract activation | A second approver above a price-override threshold? I recommend **yes, later (Gate G)**; not needed for the Gate B demo | A3 §7 |
+| D-14 | Commercial approvals | **Versioned thresholds (illustrative defaults: discount > 15 %, price > 10 % below the rate card, free beyond 30 days…); pending-approval state and approver ≠ author shown and enforced in the Gate B mock; full production matrix at Gate H** (corrected) | A3 §7.1 |
 | D-15 | Collection by a portfolio manager on an association's behalf | **Only with written authority; default off** | A4 §6 |
 | D-16 | Payer change mid-period | **Effective next period; a split is a manual staff action** | A4 §8 |
 | D-17 | Identity | **One global sign-in per person, with memberships in several tenants** | A2 §9.1 |
 | D-18 | Gate C delivery | **Two halves with a short checkpoint after C.1** | A7 C.1 |
 | D-19 | Register switch | **The proposed register replaces the live one at the start of Gate B** (with resolver and tests updated together) | A5 |
+| D-20 *(new, from correction 5)* | Settlement while suspended | **Allowed by default:** residents may still settle already-issued invoices and finance may verify them. Everything operational is blocked | A1 §4 |
 
 ### Risks
 

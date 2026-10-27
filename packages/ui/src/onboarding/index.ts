@@ -14,3 +14,5 @@ export { GLOBAL_TOUR } from './tours/backoffice';
 export { LAB_TOUR } from './tours/lab';
 export { CRM_TOUR } from './tours/crm';
 export { PORTAL_TOUR } from './tours/portal';
+export { HQ_TOUR } from './tours/hq';
+export { TourLibraryView, TextGuideView } from './TourLibraryView';

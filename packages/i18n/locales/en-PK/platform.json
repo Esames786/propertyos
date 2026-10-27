@@ -1,0 +1,928 @@
+{
+  "app": {
+    "name": "Platform HQ",
+    "operator": "PropertyOS Platform (Demo)"
+  },
+  "personas": {
+    "supremeAdmin": "Supreme Admin",
+    "commercialApprover": "Commercial approver",
+    "support": "Platform support"
+  },
+  "personaScope": {
+    "supreme_admin": "Every platform permission: tenants, pricing and approvals",
+    "commercial_approver": "Reviews and approves contracts that go beyond policy",
+    "platform_support": "Read-only: licences, usage and history"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "tenants": "Tenants",
+    "simulator": "Pricing simulator",
+    "help": "Help and tours"
+  },
+  "pages": {
+    "dashboard": "Platform dashboard",
+    "tenants": "Tenants",
+    "createTenant": "Create tenant",
+    "simulator": "Pricing simulator"
+  },
+  "shell": {
+    "createTenant": "Create tenant",
+    "plane": "Central platform"
+  },
+  "dashboard": {
+    "eyebrow": "Platform HQ",
+    "greeting": {
+      "morning": "Good morning, {{name}}",
+      "afternoon": "Good afternoon, {{name}}",
+      "evening": "Good evening, {{name}}"
+    },
+    "subtitle": "{{operator}} · Figures as of {{date}}",
+    "kpisLabel": "Platform figures",
+    "kpi": {
+      "mrr": "Monthly recurring revenue",
+      "mrrUp": "Up {{amount}} on last month",
+      "mrrDown": "Down {{amount}} on last month",
+      "mrrFlat": "Same as last month",
+      "arr": "Annual run rate",
+      "arrCaption": "MRR × 12, before tax",
+      "paying": "Paying tenants",
+      "payingCaption": "of {{total}} tenants",
+      "trials": "Active trials",
+      "trialsCaption": "Next one ends in {{days}} days",
+      "trialsNone": "No active trials",
+      "approvals": "Awaiting approval",
+      "approvalsCaption": "Contracts beyond policy",
+      "units": "Flats under management",
+      "unitsCaption": "{{sites}} sites · {{seats}} staff seats"
+    },
+    "quick": {
+      "title": "Quick actions",
+      "approvals": "Review approvals",
+      "requests": "Workspace requests"
+    },
+    "revenue": {
+      "title": "Platform billing",
+      "summary": "Collected {{collected}} of {{invoiced}} invoiced over six months ({{percent}}). Outstanding: {{outstanding}}. Illustrative figures: platform finance arrives in Gate G.",
+      "collected": "Collected",
+      "invoiced": "Invoiced",
+      "caption": "Platform billing by month",
+      "month": "Month",
+      "rate": "Collected share",
+      "point": "{{month}}: collected {{collected}} of {{invoiced}} ({{percent}})"
+    },
+    "mix": {
+      "title": "Tenant mix",
+      "subtitle_one": "{{count}} tenant by edition and status",
+      "subtitle_other": "{{count}} tenants by edition and status",
+      "byStatus": "Tenants by status"
+    },
+    "modules": {
+      "title": "Module adoption",
+      "subtitle_one": "Live tenants using each module ({{count}} live tenant)",
+      "subtitle_other": "Live tenants using each module ({{count}} live tenants)",
+      "ofTenants_one": "{{count}} of {{total}}",
+      "ofTenants_other": "{{count}} of {{total}}"
+    },
+    "pipeline": {
+      "title": "Trials and requests",
+      "subtitle": "Who is about to convert, and who is waiting to start",
+      "trials": "Trials ending",
+      "endsIn": "{{days}} days · {{date}}",
+      "requests_one": "New workspace requests ({{count}})",
+      "requests_other": "New workspace requests ({{count}})",
+      "allRequests": "All workspace requests"
+    },
+    "activity": {
+      "title": "Recent activity",
+      "subtitle": "Every change to tenants, licences and prices is recorded"
+    }
+  },
+  "attention": {
+    "title": "Needs your attention",
+    "subtitle": "Approvals, trials ending, overdue tenants and new requests",
+    "count_one": "{{count}} item",
+    "count_other": "{{count}} items",
+    "none": "Nothing needs your attention.",
+    "approval": "Requested by {{by}} · policy rules to review: {{count}}",
+    "trialEnding": "Trial ends {{date}} ({{days}} days left)",
+    "grace": "Platform invoice overdue · grace period",
+    "suspended": "Suspended: financial history only",
+    "request_approval": "Asked for a workspace · {{units}} flats · {{city}}",
+    "request_sales": "Asked to talk to sales · {{units}} units · {{city}}",
+    "request_trial": "Asked for a trial · {{units}} flats · {{city}}",
+    "draft": "Setup not finished: resume where you left off",
+    "kind": {
+      "approval": "Approval",
+      "trial_ending": "Trial",
+      "grace": "Grace",
+      "suspended": "Suspended",
+      "request": "Request",
+      "draft": "Draft"
+    }
+  },
+  "policy": {
+    "title": "Onboarding policy",
+    "subtitle": "What Get started offers new organisations (D-8)",
+    "allModes": "All signup modes",
+    "note": "Changing the policy comes next in Gate B. In this prototype the backoffice previews each mode with a labelled demo control.",
+    "modes": {
+      "self_service_trial": {
+        "name": "Self-service trial",
+        "body": "Organisations start a 30-day trial straight away."
+      },
+      "approval_required": {
+        "name": "Approval required",
+        "body": "Requests wait for a platform admin to approve them."
+      },
+      "invitation_only": {
+        "name": "Invitation only",
+        "body": "Only people with an invitation code can sign up."
+      },
+      "sales_assisted": {
+        "name": "Sales-assisted",
+        "body": "Organisations contact the platform team, who set them up."
+      }
+    }
+  },
+  "status": {
+    "draft": "Draft",
+    "trial": "Trial",
+    "active": "Active",
+    "grace": "Grace period",
+    "suspended": "Suspended",
+    "cancelled": "Cancelled",
+    "archived": "Archived",
+    "awaiting_approval": "Awaiting approval"
+  },
+  "contractStatus": {
+    "draft": "Contract draft",
+    "pending_approval": "Contract awaiting approval",
+    "active": "Contract active",
+    "superseded": "Contract superseded",
+    "ended": "Contract ended",
+    "cancelled": "Contract cancelled",
+    "none": "No contract"
+  },
+  "billingStatus": {
+    "current": "Billing current",
+    "overdue": "Billing overdue",
+    "disputed": "Billing disputed",
+    "none": "Not billed yet"
+  },
+  "tenantTypes": {
+    "developer": "Developer",
+    "association": "Owners' association",
+    "portfolio_manager": "Portfolio manager",
+    "custom": "Custom"
+  },
+  "origins": {
+    "hq": "Created in HQ",
+    "self_service": "Self-service signup",
+    "request": "Workspace request",
+    "sales": "Sales-assisted",
+    "invitation": "Invitation"
+  },
+  "editions": {
+    "developer": {
+      "name": "Full Developer ERP",
+      "description": "CRM to handover, finance, construction, HR and resident services for property developers."
+    },
+    "community": {
+      "name": "Community / Building",
+      "description": "Maintenance-only societies: flats, owners and payers, monthly dues, collections and services. No sales CRM."
+    },
+    "portfolio": {
+      "name": "Portfolio Manager",
+      "description": "Several sites, each with its own association, books and bank, run by one management company."
+    },
+    "custom": {
+      "name": "Custom modular",
+      "description": "Start from core and choose any modules that pass the dependency check."
+    }
+  },
+  "moduleCategories": {
+    "foundation": "Foundation",
+    "community": "Community and residents",
+    "finance": "Finance",
+    "sales": "Sales",
+    "property": "Property and projects",
+    "people": "People",
+    "channels": "Channels and add-ons"
+  },
+  "modules": {
+    "core": {
+      "name": "Core",
+      "description": "Identity, roles, people, sites and units, documents, approvals, notifications, audit, help and tours."
+    },
+    "crm": {
+      "name": "Sales CRM",
+      "description": "Leads, opportunities, site visits and follow-ups."
+    },
+    "projects": {
+      "name": "Projects",
+      "description": "Development projects on sites, phases and analytics."
+    },
+    "inventory": {
+      "name": "Sales inventory",
+      "description": "Unit matrix, price versions and holds."
+    },
+    "sales": {
+      "name": "Sales and bookings",
+      "description": "Quotes, reservations, bookings, buyers, payment plans and transfers."
+    },
+    "construction": {
+      "name": "Construction",
+      "description": "Milestones, site updates and customer publication."
+    },
+    "handover": {
+      "name": "Handover",
+      "description": "Clearances, inspections, snags and handover."
+    },
+    "receivables": {
+      "name": "Receivables",
+      "description": "Billing accounts, invoices, proof verification, receipts, statements and collections."
+    },
+    "dues": {
+      "name": "Community dues",
+      "description": "Charges, rate versions, overrides and monthly billing runs."
+    },
+    "residents": {
+      "name": "Residents",
+      "description": "Ownership, occupancy, households and the resident roster."
+    },
+    "resident_portal": {
+      "name": "Resident portal",
+      "description": "The app for owners and residents."
+    },
+    "online_payments": {
+      "name": "Online payments",
+      "description": "Merchant connections, payment intents and gateway webhooks."
+    },
+    "banking": {
+      "name": "Banking",
+      "description": "Bank accounts, verified payees, bank feeds and reconciliation."
+    },
+    "accounting": {
+      "name": "Accounting",
+      "description": "Chart of accounts, periods, journals and statements."
+    },
+    "payables": {
+      "name": "Payables",
+      "description": "Suppliers, bills, supplier payments and expenses."
+    },
+    "procurement": {
+      "name": "Procurement",
+      "description": "Purchase requests, quotations, orders and receipts."
+    },
+    "hr": {
+      "name": "HR",
+      "description": "Employees, attendance and advances."
+    },
+    "payroll": {
+      "name": "Payroll",
+      "description": "Payroll runs, disbursement status and posting."
+    },
+    "maintenance": {
+      "name": "Maintenance",
+      "description": "Requests, work orders, technicians, SLAs and building assets."
+    },
+    "visitors": {
+      "name": "Visitors and security",
+      "description": "Visitor passes and gate check-in."
+    },
+    "parking": {
+      "name": "Parking",
+      "description": "Spaces, allocations, vehicles and guest parking."
+    },
+    "amenities": {
+      "name": "Amenities",
+      "description": "Amenities, rules and bookings."
+    },
+    "communications": {
+      "name": "Communications",
+      "description": "Notices, messages, templates and delivery status."
+    },
+    "reports": {
+      "name": "Reports",
+      "description": "The report centre; each report needs its source module."
+    },
+    "public_website": {
+      "name": "Public website",
+      "description": "Luxury project sites; enquiries become leads."
+    },
+    "white_label": {
+      "name": "White label",
+      "description": "Custom domain and branded theme, within accessibility guardrails."
+    },
+    "api_access": {
+      "name": "API access",
+      "description": "API keys for integrations."
+    }
+  },
+  "components": {
+    "FREE": {
+      "name": "Free plan",
+      "description": "A zero-price plan; limits and history are still recorded."
+    },
+    "TRIAL": {
+      "name": "Free trial",
+      "description": "No charges until the trial ends."
+    },
+    "ONE_TIME": {
+      "name": "One-time fee",
+      "description": "Charged once, on the first invoice."
+    },
+    "FIXED_RECURRING": {
+      "name": "Base platform fee",
+      "description": "A fixed price every billing period."
+    },
+    "PER_SITE": {
+      "name": "Per site",
+      "description": "Price × licensed sites."
+    },
+    "PER_BUILDING": {
+      "name": "Per building",
+      "description": "Price × active buildings."
+    },
+    "PER_UNIT": {
+      "name": "Per flat / unit",
+      "description": "Price × the chosen flat count.",
+      "withBasis": "Per flat ({{basis}})"
+    },
+    "PER_SEAT": {
+      "name": "Per staff seat",
+      "description": "Price × active staff users."
+    },
+    "PER_MODULE": {
+      "name": "Module add-on",
+      "description": "A priced module; per site when the module is site-scoped."
+    },
+    "TIERED": {
+      "name": "Tiered per flat",
+      "description": "Bands of flats at different prices.",
+      "withBasis": "Tiered per flat ({{basis}})"
+    },
+    "USAGE": {
+      "name": "Usage",
+      "description": "Billed in arrears for use above the allowance."
+    }
+  },
+  "dimensions": {
+    "units_registered": "Registered flats",
+    "units_active": "Active flats",
+    "units_occupied": "Occupied flats",
+    "units_eligible": "Eligible flats",
+    "units_licensed_capacity": "Licensed capacity",
+    "sites_licensed": "Licensed sites",
+    "buildings_active": "Active buildings",
+    "seats_staff_active": "Staff seats",
+    "sms_sent": "SMS sent per month",
+    "storage_gb_month": "Storage (GB per month)",
+    "gateway_authorized_events": "Online payment events",
+    "api_calls": "API calls"
+  },
+  "dimensionHelp": {
+    "units_registered": "Every flat recorded for the licensed sites.",
+    "units_active": "Registered flats that are in use.",
+    "units_occupied": "Flats with an owner or tenant living in them.",
+    "units_eligible": "Flats the contract charges for: active flats in licensed sites, minus exclusions the contract lists.",
+    "units_licensed_capacity": "The number written in the contract.",
+    "sites_licensed": "Sites in the contract.",
+    "buildings_active": "Active buildings in licensed sites.",
+    "seats_staff_active": "Staff users active during the month.",
+    "sms_sent": "Messages the provider accepted during the month.",
+    "storage_gb_month": "Average storage used during the month.",
+    "gateway_authorized_events": "Authorised online payments processed for the tenant.",
+    "api_calls": "Calls made with the tenant's API keys."
+  },
+  "cadence": {
+    "once": "One-time",
+    "monthly": "Monthly",
+    "quarterly": "Quarterly",
+    "annual": "Annual"
+  },
+  "siteKinds": {
+    "residential": "Residential",
+    "mixed": "Mixed use",
+    "commercial": "Commercial",
+    "plots": "Plots and villas"
+  },
+  "taxCodes": {
+    "NONE": "No tax (exempt or not configured)",
+    "DEMO_10": "Illustrative services tax {{rate}} % (demo)"
+  },
+  "quote": {
+    "moduleAddOn": "{{module}} add-on",
+    "firstPeriod": "First invoice",
+    "nextPeriod": "Second invoice",
+    "regularPeriod": "A typical month",
+    "firstYear": "First-year value",
+    "periodRange": "{{from}} – {{to}}",
+    "regularNote": "From {{month}}",
+    "firstYearNote": "Twelve months of billing, before tax",
+    "source": {
+      "declared": "Declared estimates (until go-live):",
+      "snapshot": "From usage snapshots:",
+      "scenario": "Simulation quantities:"
+    },
+    "tableLabel": "{{period}}: price breakdown",
+    "col": {
+      "component": "Component",
+      "gross": "Price",
+      "discount": "Discount",
+      "tax": "Tax",
+      "total": "Total"
+    },
+    "total": "Total",
+    "adjustment": {
+      "minimum": "Contract minimum",
+      "cap": "Contract cap"
+    },
+    "explain": {
+      "trial": "Free for {{days}} days",
+      "free": "No charge",
+      "band": "{{quantity}} × {{price}}",
+      "usage": "{{used}} used, {{allowance}} included: {{billable}} × {{price}}",
+      "qtyPrice": "{{quantity}} × {{price}}",
+      "prorated": "{{days}} of {{of}} days",
+      "discount": "{{amount}} off",
+      "tax": "tax {{amount}}"
+    }
+  },
+  "approval": {
+    "title": "Commercial approval",
+    "withinPolicy": "Within commercial policy: no approval needed.",
+    "requiredTitle": "Needs commercial approval",
+    "requiredBody": "This contract goes beyond policy. It can be submitted, but it becomes active only once an approver who is not you approves it.",
+    "badgeRequired": "Needs approval",
+    "badgeOk": "Within policy",
+    "rules": {
+      "discount_above_limit": "A discount of {{value}} % is above the {{limit}} % limit.",
+      "price_below_floor": "The unit price {{price}} is more than {{limit}} % below the rate card ({{list}}).",
+      "free_beyond_trial": "Free terms of {{days}} days go beyond the {{limit}}-day trial.",
+      "onboarding_reduced": "The onboarding fee is reduced by {{value}} % (limit {{limit}} %).",
+      "term_too_long": "A {{months}}-month term is longer than {{limit}} months.",
+      "first_year_below_minimum": "The first-year value {{value}} is below the minimum of {{minimum}}."
+    },
+    "pendingTitle": "Awaiting commercial approval",
+    "requested": "Requested by {{by}} on {{date}}",
+    "approve": "Approve",
+    "return": "Return with a comment",
+    "ownRequest": "You requested this approval, so another approver must decide it.",
+    "noPermission": "Only a commercial approver can decide this.",
+    "approveTitle": "Approve the contract for {{name}}?",
+    "approveEffect": "The contract becomes active and the tenant starts (simulation: nothing is provisioned).",
+    "returnTitle": "Return the contract for {{name}}?",
+    "returnEffect": "The contract goes back to draft with your comment.",
+    "returnReason": "Comment for the requester",
+    "approvedToast": "Contract approved for {{name}}",
+    "returnedToast": "Contract returned for {{name}}",
+    "failed": "The decision could not be saved. Nothing changed.",
+    "decided": {
+      "approved": "Approved by {{by}}",
+      "returned": "Returned by {{by}}"
+    }
+  },
+  "errors": {
+    "atLeastOneSite": "Add at least one site.",
+    "siteIncomplete": "Every site needs a name and a number of flats.",
+    "dependencies": "Some modules are missing what they need.",
+    "noComponents": "The contract has no components.",
+    "approvalDecided": "This approval has already been decided.",
+    "makerChecker": "You requested this approval; another approver must decide it.",
+    "draftActivated": "This setup has already been activated.",
+    "supportGrantRequired": "Platform HQ cannot open tenant records without an audited, consented support grant."
+  },
+  "builder": {
+    "addGroups": {
+      "recurring": "Recurring",
+      "addons": "Module add-ons",
+      "other": "One-time, usage and trial"
+    },
+    "tiered": "Tiered",
+    "trialDays": "{{days}}-day trial",
+    "empty": "No components yet. Add the first one from the rate card.",
+    "until": "until {{date}}",
+    "scheduled": "From {{date}}",
+    "schedule": "Schedule a price change for {{name}}",
+    "remove": "Remove {{name}}",
+    "basis": "Charge flats by",
+    "pricePerUse": "Price per unit used",
+    "oneTimePrice": "Fee",
+    "unitPrice": "Unit price",
+    "listPrice": "Rate card: {{price}}",
+    "tierMethod": "Tier method",
+    "graduated": "Graduated",
+    "volume": "Volume",
+    "tierRest": "{{from}}+ flats",
+    "tierUpTo": "Up to {{upTo}} flats",
+    "allowance": "Included each month",
+    "trialLength": "Trial length (days)",
+    "perSite_one": "Charged for {{count}} site",
+    "perSite_other": "Charged for {{count}} sites",
+    "from": "Effective from",
+    "to": "Effective until",
+    "toHint": "Leave empty for no end date",
+    "overrideReason": "Reason for the price change (rate card {{price}})",
+    "overrideReasonRequired": "Give a reason for the price change.",
+    "add": "Add component",
+    "serverNote": "Prices are calculated by the platform server, never in your browser."
+  },
+  "wizard": {
+    "stepOf": "Step {{current}} of {{total}}",
+    "stepPrefix": "Step {{current}} of {{total}}:",
+    "progress": "Setup progress",
+    "stepDone": "(done)",
+    "stepLocked": "(not yet available)",
+    "back": "Back",
+    "continue": "Continue",
+    "liveQuote": "Live price",
+    "repricing": "Updating…",
+    "notInvoice": "A preview, never an invoice.",
+    "saved": "Saved",
+    "steps": {
+      "type": "Type and edition",
+      "organisation": "Organisation",
+      "sites": "Sites",
+      "modules": "Modules",
+      "pricing": "Pricing",
+      "counts": "Usage and counts",
+      "terms": "Tax and discounts",
+      "quote": "Quote",
+      "review": "Review"
+    },
+    "errors": {
+      "title_one": "Fix {{count}} problem to continue",
+      "title_other": "Fix {{count}} problems to continue",
+      "activate": "The tenant could not be activated. Nothing was created."
+    },
+    "type": {
+      "title": "What kind of organisation is this?",
+      "intro": "The edition pre-selects modules and prices. You can change both in the next steps; access always follows the modules you grant.",
+      "label": "Edition",
+      "required": "Choose an edition.",
+      "modules_one": "{{count}} module pre-selected",
+      "modules_other": "{{count}} modules pre-selected",
+      "customModules": "Start from core and choose",
+      "presetNote": "An edition is a starting point, not a limit (D-2)."
+    },
+    "org": {
+      "title": "Organisation details",
+      "intro": "Who the tenant is and who to contact. Use fictional details in this demo.",
+      "displayName": "Display name",
+      "displayNameHint": "Shown in the app, for example Al-Noor Residency (Demo)",
+      "legalName": "Legal name",
+      "city": "City",
+      "language": "Default language",
+      "contactName": "Contact person",
+      "contactEmail": "Contact email",
+      "contactPhone": "Contact mobile",
+      "phoneHint": "Pakistani mobile, for example 0300 1234567",
+      "fictional": "This prototype holds fictional data only. Nothing is sent to these contacts.",
+      "errors": {
+        "displayName": "Enter a display name.",
+        "legalName": "Enter the legal name.",
+        "contactName": "Enter a contact person.",
+        "contactEmail": "Enter a valid email address.",
+        "contactPhone": "Enter a valid Pakistani mobile number."
+      }
+    },
+    "sites": {
+      "title": "Sites",
+      "intro": "The places this tenant manages. Flat counts are declared estimates until the tenant imports its flats.",
+      "siteN": "Site {{n}}",
+      "remove": "Remove site {{n}}",
+      "name": "Site name",
+      "kind": "Type",
+      "buildings": "Buildings",
+      "units": "Flats / units",
+      "unitsHint": "Declared estimate; usage snapshots replace it after go-live",
+      "add": "Add another site",
+      "total_one": "{{count}} site · {{units}} flats/units",
+      "total_other": "{{count}} sites · {{units}} flats/units",
+      "errors": {
+        "none": "Add at least one site.",
+        "name": "Site {{n}}: enter a name.",
+        "units": "Site {{n}}: enter the number of flats or units.",
+        "nameField": "Enter a site name.",
+        "unitsField": "Enter a number above zero."
+      }
+    },
+    "modules": {
+      "title": "Modules and site entitlements",
+      "intro": "The edition's modules are switched on. Add or remove modules; every requirement is checked as you go.",
+      "ok_one": "All requirements met · {{count}} module",
+      "ok_other": "All requirements met · {{count}} modules",
+      "integrations_one": "{{count}} integration will connect",
+      "integrations_other": "{{count}} integrations will connect",
+      "issuesTitle_one": "{{count}} module needs another",
+      "issuesTitle_other": "{{count}} modules need others",
+      "missing": "{{module}} needs {{requires}}.",
+      "siteGap": "{{module}} needs {{requires}} on: {{sites}}.",
+      "allSites": "all sites",
+      "fix": "Add {{modules}}",
+      "alwaysOn": "Always on",
+      "included": "In edition",
+      "addon": "Priced add-on",
+      "notTypical": "Not usual for this edition",
+      "siteScoped": "Per site",
+      "requires": "Needs {{modules}}",
+      "sitesFor": "Sites for {{module}}",
+      "blocked": "Resolve the module requirements first.",
+      "showOthers_one": "Show {{count}} more module not usual for this edition",
+      "showOthers_other": "Show {{count}} more modules not usual for this edition",
+      "hideOthers": "Hide modules not usual for this edition"
+    },
+    "pricing": {
+      "title": "Pricing",
+      "intro": "Start from the edition's rate card. Change any price, add components or schedule a price change. Every change is re-priced on the server.",
+      "terms": "Contract terms",
+      "start": "Start date",
+      "term": "Term",
+      "rolling": "Rolling (no end date)",
+      "months_one": "{{count}} month",
+      "months_other": "{{count}} months",
+      "frequency": "Billing frequency",
+      "trial": "Start with a 30-day free trial",
+      "trialHint": "Charges, including onboarding, start when the trial ends.",
+      "components": "Components",
+      "errors": {
+        "none": "Add at least one component.",
+        "reason": "Give a reason for every price that differs from the rate card."
+      }
+    },
+    "counts": {
+      "title": "Usage and unit counts",
+      "intro": "How many of each thing the contract charges for. Before go-live these are declared estimates.",
+      "estimateTitle": "Declared estimates until go-live",
+      "estimateBody": "Once the tenant imports its flats, invoices use usage snapshots with evidence (flat codes only, never names). Differences show in the usage tab and are corrected with adjustment lines, never by editing.",
+      "compareTitle": "Unit counts are not interchangeable",
+      "compareBody": "Registered, active, occupied, eligible and licensed capacity can all differ. The contract charges for the highlighted one only.",
+      "priced": "Charged",
+      "duesNote": "An association can exempt its own office flat from dues; it still counts for the platform fee unless the contract excludes it.",
+      "fromSites": "From the sites step: {{sites}} sites, {{buildings}} buildings."
+    },
+    "terms": {
+      "title": "Tax and discounts",
+      "intro": "Tax is configured per jurisdiction. Discounts need a reason and may need approval.",
+      "tax": "Tax",
+      "taxCode": "Tax code",
+      "taxHint": "Illustrative codes only. Real codes and rates come from the owner's tax adviser (D-10).",
+      "limits": "Contract minimum and cap",
+      "minimum": "Minimum per month",
+      "minimumHint": "Optional. Recurring charges are topped up to this amount.",
+      "cap": "Cap per month",
+      "capHint": "Optional. Recurring charges are reduced to this amount.",
+      "discounts": "Discounts",
+      "addDiscount": "Add discount",
+      "noDiscounts": "No discounts.",
+      "discountN": "Discount {{n}}",
+      "removeDiscount": "Remove discount {{n}}",
+      "target": "Applies to",
+      "targets": {
+        "recurring": "All recurring components",
+        "contract": "The whole contract"
+      },
+      "kind": "Type",
+      "percent": "Percent",
+      "amount": "Amount",
+      "percentValue": "Percent off",
+      "amountValue": "Amount off",
+      "reason": "Reason",
+      "approvalHint_one": "This contract needs commercial approval ({{count}} rule). You can still continue.",
+      "approvalHint_other": "This contract needs commercial approval ({{count}} rules). You can still continue.",
+      "errors": {
+        "value": "Discount {{n}}: enter a value above zero.",
+        "percent": "Discount {{n}}: a percentage cannot be more than 100.",
+        "reason": "Discount {{n}}: give a reason.",
+        "reasonField": "Give a reason."
+      }
+    },
+    "quote": {
+      "title": "Quote",
+      "intro": "Every line explained: basis, quantity, price, proration, discount and tax.",
+      "preview": "This is a preview for the customer, not an invoice.",
+      "print": "Print"
+    },
+    "review": {
+      "title": "Review and activate",
+      "intro": "Check everything once more. Edit any section and you return here afterwards.",
+      "edit": "Edit {{section}}",
+      "siteUnits_one": "{{count}} flat/unit",
+      "siteUnits_other": "{{count}} flats/units",
+      "modules_one": "{{count}} module",
+      "modules_other": "{{count}} modules",
+      "terms": "Starts {{start}} · billed {{frequency}}",
+      "discounts_one": "{{count}} discount",
+      "discounts_other": "{{count}} discounts",
+      "simulationTitle": "Activation is a simulation",
+      "simulationBody": "The tenant appears in HQ with its licence and contract. No database is provisioned, no email is sent and no invoice is issued.",
+      "activate": "Activate demo tenant",
+      "submitForApproval": "Submit for approval",
+      "confirmTitle": "Activate this tenant?",
+      "confirmEffect": "{{name}} will appear as active (or on trial) with this contract. Simulation only.",
+      "confirmApprovalTitle": "Submit for commercial approval?",
+      "confirmApprovalEffect": "{{name}} will wait for an approver who is not you. Nothing starts until then."
+    },
+    "done": {
+      "title": "{{name}} is set up",
+      "pendingTitle": "{{name}} is waiting for approval",
+      "body_active": "The tenant is active with its modules and contract (simulation).",
+      "body_trial": "The tenant is on a 30-day trial; charges start when it ends (simulation).",
+      "pendingBody": "A commercial approver will review the contract. You will find it under Awaiting approval.",
+      "openTenant": "View tenant",
+      "simulate": "Open in simulator",
+      "another": "Create another tenant",
+      "simulated": "Simulation: no tenant database, email or invoice was created."
+    }
+  },
+  "tenants": {
+    "description": "Every tenant's licence, contract and status. Metadata only, never tenant records.",
+    "tabs": {
+      "tenants": "Tenants",
+      "requests": "Workspace requests"
+    },
+    "search": "Search tenants",
+    "searchPlaceholder": "Name, legal name or city",
+    "edition": "Edition",
+    "allEditions": "All editions",
+    "sort": "Sort",
+    "sorts": {
+      "created": "Newest first",
+      "name": "Name",
+      "mrr": "Highest MRR"
+    },
+    "statusFilter": "Status",
+    "filters": {
+      "all": "All",
+      "draft": "Draft",
+      "trial": "Trial",
+      "active": "Active",
+      "grace": "Grace period",
+      "suspended": "Suspended",
+      "cancelled": "Cancelled",
+      "archived": "Archived",
+      "awaiting_approval": "Awaiting approval"
+    },
+    "updated_one": "{{count}} tenant",
+    "updated_other": "{{count}} tenants",
+    "emptyTitle": "No tenants match",
+    "emptyBody": "Change the search or the filters.",
+    "showing_one": "{{count}} tenant",
+    "showing_other": "{{count}} tenants",
+    "tableLabel": "Tenants",
+    "col": {
+      "tenant": "Tenant",
+      "edition": "Edition",
+      "status": "Status",
+      "units": "Flats",
+      "modules": "Modules",
+      "mrr": "MRR",
+      "created": "Created"
+    },
+    "new": "New",
+    "sites_one": "{{count}} site",
+    "sites_other": "{{count}} sites",
+    "metadataOnly": "HQ shows licences and counts only (as of {{date}}). Tenant records need an audited support grant."
+  },
+  "requests": {
+    "intro": "Organisations that asked for a workspace, a trial or a conversation with sales. Start setup to create the tenant from a request.",
+    "kind": {
+      "approval": "Workspace request",
+      "sales": "Sales enquiry",
+      "trial": "Trial signup"
+    },
+    "kindLabel": "Type",
+    "status": {
+      "new": "New",
+      "contacted": "Contacted",
+      "approved": "Approved",
+      "declined": "Declined",
+      "converted": "Converted"
+    },
+    "units": "Flats / units",
+    "start": "Start setup"
+  },
+  "summary": {
+    "loading": "Loading tenant…",
+    "simulate": "Simulate pricing",
+    "open360": "Tenant 360 (next in Gate B)",
+    "legalName": "Legal name",
+    "type": "Tenant type",
+    "origin": "Came from",
+    "created": "Created",
+    "trialEnds": "Trial ends",
+    "mrr": "Monthly recurring revenue",
+    "contact": "Contact",
+    "sites_one": "Site ({{count}})",
+    "sites_other": "Sites ({{count}})",
+    "modules_one": "Module ({{count}})",
+    "modules_other": "Modules ({{count}})",
+    "moduleSites_one": "{{module}} · {{count}} site",
+    "moduleSites_other": "{{module}} · {{count}} sites",
+    "contract": "Contract, version {{version}}",
+    "discount": "Discount",
+    "audit": "History",
+    "noAudit": "No changes recorded yet.",
+    "metadataOnly": "Licensing and commercial data only. Tenant people, flats and payments are never shown here."
+  },
+  "audit": {
+    "tenantCreated": "{{tenant}} was created",
+    "contractActivated": "Contract version {{version}} activated for {{tenant}}",
+    "trialStarted": "{{tenant}} started a {{days}}-day trial",
+    "approvalRequested": "Approval requested for {{tenant}}",
+    "approvalGranted": "Contract approved for {{tenant}}",
+    "approvalReturned": "Contract returned for {{tenant}}",
+    "graceStarted": "{{tenant}} entered its grace period",
+    "tenantSuspended": "{{tenant}} was suspended",
+    "requestReceived": "New workspace request from {{organisation}}"
+  },
+  "notifications": {
+    "approvalTitle": "Contract awaiting your approval",
+    "approvalBody": "{{tenant}}, requested by {{by}}",
+    "trialTitle": "Trial ending",
+    "trialBody": "{{tenant}}: {{days}} days left",
+    "graceTitle": "Platform invoice overdue",
+    "graceBody": "{{tenant}} is in its grace period",
+    "requestTitle": "New workspace request",
+    "requestBody": "{{organisation}}, {{city}}"
+  },
+  "simulator": {
+    "description": "Try prices without touching any contract: counts, unit basis, dates, components, tiers and discounts.",
+    "badge": "Simulation",
+    "bannerTitle": "Nothing is saved",
+    "bannerBody": "Every scenario is priced by the platform server and then discarded. Contracts and invoices are never changed here.",
+    "startFrom": "Start from",
+    "sources": {
+      "example": "V3.1 example: Al-Noor Residency (80 flats)",
+      "tenant": "A tenant's current contract",
+      "edition": "{{edition}} template"
+    },
+    "tenant": "Tenant",
+    "chooseTenant": "Choose a tenant",
+    "pickTenant": "Choose a tenant to load its contract.",
+    "reset": "Back to the starting point",
+    "results": "Results",
+    "seeResults": "See the results",
+    "counts": "Counts",
+    "basis": "Charge flats by",
+    "terms": "Dates and billing",
+    "quickDiscount": "Discount on recurring charges",
+    "quickDiscountReason": "Simulator what-if",
+    "components": "Components and prices",
+    "componentsHint": "Edit prices, add components or schedule a price change.",
+    "delta": "Against the starting point: {{month}} a month, {{year}} in the first year",
+    "chartTitle": "First twelve billing periods",
+    "chartSummary": "First invoice {{first}}, then {{regular}} in a typical month; {{year}} in the first year.",
+    "scenario": "Scenario",
+    "baseline": "Starting point",
+    "chartCaption": "Totals per billing period",
+    "point": "{{month}}: scenario {{scenario}}, starting point {{baseline}}"
+  },
+  "more": {
+    "description": "Your areas, settings and demo controls.",
+    "switchRole": "View HQ as",
+    "switchRoleHint": "The same HQ through another platform role.",
+    "demoBody": "Everything here is fictional. Tenants you create last for this browser tab and can be reset."
+  },
+  "tour": {
+    "name": "Platform HQ essentials",
+    "summary": "What needs attention, the figures, creating tenants, navigation, search and quick actions.",
+    "welcome": {
+      "title": "Welcome to Platform HQ",
+      "body": "This is where the platform team runs the SaaS: tenants, modules, pricing and approvals. Each tenant's own records stay private to that tenant."
+    },
+    "attention": {
+      "title": "Start with what needs you",
+      "body": "Approvals, trials ending, overdue tenants and new requests. Each item opens the right place."
+    },
+    "figures": {
+      "title": "The platform at a glance",
+      "body": "Monthly recurring revenue, paying tenants, trials, approvals and flats under management. Each card opens the list behind it."
+    },
+    "create": {
+      "title": "Create a tenant",
+      "body": "Set up a developer, society, portfolio or custom tenant: modules, sites, pricing, quote and activation."
+    },
+    "navigation": {
+      "title": "Find your way",
+      "body": "Dashboard, tenants and the pricing simulator. Only areas that work appear here.",
+      "bodyMobile": "The bottom bar holds the main areas; More has settings and the demo controls."
+    },
+    "search": {
+      "title": "Search everything",
+      "body": "Press Ctrl+K to find tenants, requests and HQ screens."
+    },
+    "quickActions": {
+      "title": "Quick actions",
+      "body": "Create a tenant, try prices in the simulator, and review approvals and requests."
+    },
+    "help": {
+      "title": "Help is always here",
+      "body": "Replay this tour, read it as text, or change your preferences."
+    }
+  },
+  "inputs": {
+    "openCalendar": "Open calendar"
+  }
+}

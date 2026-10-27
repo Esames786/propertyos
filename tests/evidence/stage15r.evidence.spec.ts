@@ -54,6 +54,7 @@ async function keepVideo(page: Page, name: string) {
   copyFileSync(await video.path(), `${VIDEO}/${name}.webm`);
 }
 
+test.skip(true, 'Historical evidence for Stage 1.5R milestone 1 (commit 11de1a8); kept for reference, not re-run');
 test.describe.configure({ mode: 'parallel' });
 
 for (const locale of ['en-PK', 'ur-PK'] as Locale[]) {

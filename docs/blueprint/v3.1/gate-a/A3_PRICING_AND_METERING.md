@@ -52,7 +52,7 @@
 | One-time components | Never prorated; billed once on the first invoice after the effective date | — |
 | Upgrade (price increase) mid-period | Prorated charge for the remainder of the period, on the next invoice | Immediate invoice |
 | Downgrade or removal mid-period | Effective at the **next** period; no refund of the current period unless the amendment says so | Prorated credit |
-| Grace and suspension | Overdue platform invoice → `grace` (full access, banner) → `suspended` (read-only; finance history and residents' payment paths stay available) | Days are a contract setting |
+| Grace and suspension | Overdue platform invoice → `grace` (full access, banner) → `suspended`: only permitted financial-history reads, plus settlement of already-issued invoices if the suspension policy allows it (A1 §4, D-20). All operational mutations are blocked | Days are a contract setting |
 
 ## 4. Metering policy: unit counts are not interchangeable
 
@@ -147,12 +147,36 @@ V3.1: a flat may be **registered, active, occupied, eligible or licensed capacit
 | Action | Who | Effect |
 |---|---|---|
 | Draft or edit a contract | Supreme Admin, platform billing | Draft version; the preview is non-authoritative |
-| Activate | Supreme Admin. **D-14** asks whether a second approver is needed above an override threshold | Version becomes active and immutable; grants follow it |
+| Activate | Supreme Admin, **unless the contract trips a commercial-approval threshold** (§7.1); then a commercial approver who is not the author must approve first | Version becomes active and immutable; grants follow it |
 | Amend (price, components, term) | Supreme Admin | New version with an effective date. Future-dated amendments appear as "Scheduled" |
 | Put on a free plan, extend a trial | Supreme Admin | Amendment |
 | Waive or credit an invoice | Supreme Admin, with a reason | Adjustment or credit note; the original invoice remains |
 | Suspend / reinstate / cancel | Supreme Admin, by explicit policy | Tenant status changes; data retained; finance history never deleted |
 | Dispute a count | Tenant admin or Supreme Admin | Snapshot `disputed` → correction flow (§4) |
+
+### 7.1 Commercial approval thresholds (D-14, required correction: shown and enforced in the Gate B mock)
+
+A versioned `commercial_policy` sets the thresholds. **Illustrative defaults** (the owner sets the real values):
+
+| Trigger | Default threshold |
+|---|---|
+| Any discount | more than **15 %** on a component or the contract |
+| Unit price below the rate card | more than **10 %** below the rate-card line (manual override) |
+| Free or zero-price recurring terms | beyond the standard trial length (**30 days**) |
+| One-time onboarding fee waived or reduced | more than **50 %** |
+| Contract term | more than **36 months**, or a price lock longer than 12 months |
+| Estimated first-year value | below **PKR 25,000** for a paid edition (minimum-deal rule) |
+
+**How it works**
+- **Live in the builder.** The builder evaluates the policy on every change. The quote and the review step list each tripped rule in plain language ("Discount 20 % exceeds the 15 % limit").
+- **Activation when a rule is tripped:**
+  1. The contract becomes `pending_approval` and the tenant shows *Awaiting commercial approval*.
+  2. The approval request records the reasons, the requester and the contract version.
+  3. Only someone holding `platform.contracts.approve`, who is **not** the requester, can approve or return it with a comment.
+  4. Approval activates the version. A return sends it back to draft.
+- **Prototype vs production.**
+  - The Gate B mock **enforces** this state machine.
+  - Production enforcement (Gate H) adds delegation limits by amount and a full approval matrix, which are out of scope now.
 
 **Separations**
 - Tenant lifecycle status (trial, active, suspended…) is separate from billing status (current, overdue, in dispute). Effective licence access is always auditable.

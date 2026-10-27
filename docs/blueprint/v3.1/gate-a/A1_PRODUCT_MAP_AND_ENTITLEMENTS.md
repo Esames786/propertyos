@@ -80,12 +80,23 @@ An action on a record is allowed only when **all six layers** allow it. The mock
 
 | # | Layer | Question | Source | Failure reason code |
 |---|---|---|---|---|
-| 1 | Tenant lifecycle | Is the tenant `trial`, `active` or `grace`? (`suspended` means read-only for finance history, no operations) | central `tenants.status` | `tenant_inactive` |
+| 1 | Tenant lifecycle | Is the tenant `trial`, `active` or `grace`? `suspended` allows **only** endpoints explicitly marked for suspension access (see below); `draft`, `cancelled` and `archived` allow nothing | central `tenants.status` | `tenant_inactive` / `tenant_suspended` |
 | 2 | Module grant | Is the module granted and inside its effective dates? | `tenant_module_grants` | `module_not_licensed` |
 | 3 | Site / feature entitlement | Is this site inside the grant, and the feature granted? | `tenant_site_grants`, `tenant_feature_grants` | `site_not_licensed` / `feature_not_licensed` |
 | 4 | Permission | Does one of the user's roles hold the permission? | `user_roles` → `role_permissions` | `permission_missing` |
 | 5 | Data scope | Is the record inside the user's scopes (legal entity, site, building, project, team, assigned) or, for residents, a **verified** ownership / occupancy / billing-account link? | `access_scopes`, `party_user_links` | `out_of_scope` |
 | 6 | Workflow state | Does the record's state allow the action? (Posted invoices cannot be edited; the maker cannot approve their own run) | the record | `state_locked` / `separation_of_duties` |
+
+**Suspended tenants (required correction).** Every endpoint and screen action declares a `suspension` class:
+
+| Class | Allowed while suspended? | Examples |
+|---|---|---|
+| `history_read` | **Yes**, for users who already hold the read permission | Statements, invoices, receipts, payment history, ledgers, documents, audit |
+| `settlement` | **Only if** the platform's suspension policy allows settlement (**D-20**; recommended *on*, because blocking residents from paying their association harms third parties) | Resident proof submission for an *already-issued* invoice; finance verification of those submissions |
+| `operational` (default) | **No** → `tenant_suspended` | Creating leads, billing runs, imports, rule changes, new invoices, visitor passes, user invitations |
+
+- Undeclared endpoints default to `operational`, so they are blocked.
+- The suspended banner says what still works and who to contact.
 
 **Rules**
 - **The same function decides everything:**
@@ -190,3 +201,20 @@ An action on a record is allowed only when **all six layers** allow it. The mock
 | Dashboard | Sales and collections | Collections and services |
 
 - **Prototype-only areas.** Design system lab and Practice sandbox move behind a "Prototype tools" switch, visible to the demo operator but not in a customer demo (see A5 §5, flaw F-6).
+
+## 8. Signup and onboarding policies (D-8, as corrected)
+
+The Supreme Admin sets the platform's **onboarding policy** (central `platform_onboarding_policies`, optionally per edition). Get started adapts to it:
+
+| Policy | What Get started offers | What happens |
+|---|---|---|
+| **Self-service trial** | "Start a free trial": account → verify → organisation → edition | A trial tenant is created at once on the trial contract (free, time-limited) and appears in HQ as *Trial*. Usage limits apply |
+| **Approval required** | "Request a workspace" (today's wizard, re-labelled) | A `workspace_request` lands in HQ as *Pending request*; the Supreme Admin approves (→ tenant draft) or declines with a reason |
+| **Invitation only** | "I have an invitation code" | A valid single-use code (edition, expiry) opens the setup wizard; without one, only the demo is offered |
+| **Sales-assisted** | "Talk to our team": contact form with edition interest and size | A `workspace_request` of kind *sales*; the platform team creates the tenant in HQ (HQ-003) |
+
+- **"Explore the demo" is always available.** It never creates anything.
+- **The wording and the steps come from the policy, not from separate pages:** ENTRY-001 and ENTRY-003 read the policy.
+- **Prototype limitation, stated on screen:** Platform HQ and the backoffice run as separate apps without a shared server, so they share no demo data.
+  - HQ seeds example requests.
+  - Get started shows a labelled demo control to preview each policy.

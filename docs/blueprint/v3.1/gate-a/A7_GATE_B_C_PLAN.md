@@ -83,6 +83,39 @@ One high-fidelity, clickable, end-to-end operator journey (V3.1 doc 06 Gate B) i
 | AB-13 | HQ tour: every step frames a real control at 1440 / 390 / 320 |
 | AB-14 (manual) | NVDA + Chrome pass of the wizard and quote; findings listed honestly |
 
+### B.5a Additions from the Gate A review (approved with corrections)
+- **AB-15 Commercial approvals.**
+  - Contracts tripping a threshold (A3 §7.1) show the reasons in the builder and on review.
+  - Activation leads to *Awaiting commercial approval*.
+  - Only a different user holding `platform.contracts.approve` can approve or return it.
+- **AB-16 Suspended tenant.** Access vectors cover:
+  - history reads allowed;
+  - settlement allowed only when the policy allows it;
+  - operational mutations refused with `tenant_suspended`.
+- **AB-17 Onboarding policies.**
+  - Get started renders the four policy variants (self-service trial, approval required, invitation only, sales assisted).
+  - HQ shows the policy and the seeded requests.
+
+### B.5b Mandatory checkpoint (owner instruction): build first, then stop
+1. **HQ shell:** `apps/platform-hq` with sidebar, header, phone bars, More page, demo sign-in for platform personas, search, notifications, help, preferences and an HQ tour.
+2. **HQ dashboard.**
+3. **Tenant-creation flow**, including:
+   - edition;
+   - sites and site-level module entitlements with dependency checks;
+   - the full pricing builder;
+   - the declared-count preview;
+   - discounts, tax and approval checks;
+   - the quote;
+   - review;
+   - simulated activation or pending approval.
+4. **Tenants list** with a tenant summary.
+5. **Pricing simulator.**
+6. **Foundations:** `decide()` with its vectors, including suspension; the pricing engine with golden vectors; the commercial-policy check; atomic adoption of the V3.1 register with legacy routes preserved.
+
+**Then STOP for owner review.**
+
+**After review:** Tenant 360, preview-as-client, the access foundation across backoffice menus, search and handlers, and the Get-started policy variants.
+
 ### B.6 Not in Gate B
 Central invoices, payments and dunning (HQ-017); support-grant workflow (HQ-020); branding and domains (HQ-021); platform users (HQ-023); real sign-in and MFA; tenant provisioning (activation is simulated); full personalization (Gate D).
 
@@ -108,7 +141,8 @@ V3.1 Gate C: building setup and import → payers → charge plan → preview an
 | Opening balances | 10 accounts in arrears, including **A-101: PKR 1,000** |
 | Payee | Al-Noor Residency Owners' Association (Demo), Demo Bank, IBAN with bank code `DEMO`, verified |
 | Bank feed | 12 incoming transfers; 9 match submissions, 1 is A-101's, 2 are unidentified |
-| Proof queue | 6 submissions, including 1 duplicate reference and 1 that needs information |
+| Proof queue | 6 submissions, including 1 pointing at a bank transaction that is already matched, 1 sharing a reference string with a *different* genuine transfer, and 1 that needs information |
+| Multi-flat account | One owner holds A-201 and A-202 on one account. A-202 is rented and its tenant pays for A-202 only (per-unit liability, A2 §4.5) |
 | Personas | Building manager, Committee treasurer, Accounts officer, Security guard, A-101 owner-resident, A-102 tenant-payer (A4 §9) |
 
 ### C.3 Storyline
@@ -183,7 +217,9 @@ V3.1 Gate C: building setup and import → payers → charge plan → preview an
 | AC-8 | Statement: A-101 = 1,000 + 4,200 = 5,200; the invoice total is 4,200 (the previous balance is not an invoice line) |
 | AC-9 | **Submitted ≠ paid:** the resident sees Pending verification until VERIFIED; only verification creates the payment and receipt |
 | AC-10 | Allocation: 5,200 → both paid; 3,000 → 2,200 outstanding; 6,000 → 800 credit |
-| AC-11 | Duplicate bank reference refused; needs-information → resubmission keeps history; rejection reason shown to the resident |
+| AC-11 | Reusing an already-matched bank transaction is refused; a different transfer that shares a reference is accepted; needs-information → resubmission keeps history; rejection reason shown to the resident |
+| AC-11a | **Per-unit liability:** on the A-201/A-202 account, the tenant's payment settles only A-202 lines; overriding needs a reason |
+| AC-11b | **Entity isolation:** engine vectors with a second association entity; any cross-entity allocation or match returns `cross_entity_forbidden` |
 | AC-12 | The payee shown is always the verified beneficiary of the issuing association. **The platform's account never appears**; an unverified beneficiary change is invisible to residents |
 | AC-13 | Office cash obeys the site's method rules and the staff permission |
 | AC-14 | Reconciliation marks the verified payment matched; collection dashboard and aging totals agree with the invoices and payments |

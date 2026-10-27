@@ -16,11 +16,12 @@ import { AppHeader } from './AppHeader';
 import { BottomNav } from './BottomNav';
 import { HelpDrawer } from './HelpDrawer';
 import { useLanguageAnnouncement } from './LocaleSwitcher';
-import { ShellContext, type ShellContextValue } from './ShellContext';
+import { ShellContext, type ShellContextValue, type ShellSlots } from './ShellContext';
 import { Sidebar } from './Sidebar';
 import type { Destination, HelpKey, NavItem, ShellLinks } from './types';
 
 const SIDEBAR_KEY = 'pref:sidebar';
+const EMPTY_SLOTS: ShellSlots = {};
 
 /**
  * Backoffice application shell: skip link, white rail (tablet/desktop) or floating top bar + bottom
@@ -35,6 +36,8 @@ export function AppShell({
   links,
   pageTitle,
   helpKey = 'default',
+  slots = EMPTY_SLOTS,
+  overlays,
   children,
 }: {
   appName: string;
@@ -43,6 +46,10 @@ export function AppShell({
   links: ShellLinks;
   pageTitle: string;
   helpKey?: HelpKey;
+  /** Header context and create action; the defaults are the backoffice's (project switcher, Quick create). */
+  slots?: ShellSlots;
+  /** Global overlays; undefined = the backoffice's New lead / Schedule visit / practice drawers. */
+  overlays?: ReactNode;
   children: ReactNode;
 }) {
   const { tenant } = useSession();
@@ -57,8 +64,8 @@ export function AppShell({
   useCommandHotkey(useCallback(() => setPaletteOpen((o) => !o), []));
 
   const value = useMemo<ShellContextValue>(
-    () => ({ appName, navItems, destinations, links, helpKey, paletteOpen, setPaletteOpen }),
-    [appName, navItems, destinations, links, helpKey, paletteOpen],
+    () => ({ appName, navItems, destinations, links, helpKey, paletteOpen, setPaletteOpen, slots }),
+    [appName, navItems, destinations, links, helpKey, paletteOpen, slots],
   );
 
   return (
@@ -89,9 +96,15 @@ export function AppShell({
       </div>
       <CommandPalette />
       <HelpDrawer />
-      <NewLeadDrawer />
-      <ScheduleVisitDrawer />
-      <PracticeLeadDrawer />
+      {overlays === undefined ? (
+        <>
+          <NewLeadDrawer />
+          <ScheduleVisitDrawer />
+          <PracticeLeadDrawer />
+        </>
+      ) : (
+        overlays
+      )}
     </ShellContext.Provider>
   );
 }

@@ -2,7 +2,7 @@
 /**
  * Gate A (V3.1) documentation tool, not part of the build.
  *
- * Reads the live register (docs/ui/screen-register.csv, which the apps and tests use) and writes the
+ * HISTORICAL (Gate A). Reads the archived V2.1 tracking register (docs/ui/archive/…) and writes the
  * PROPOSED reconciled register docs/blueprint/v3.1/gate-a/screen-register-v3.1-proposed.csv with the
  * fields V3.1 doc 06 requires. The live register is not modified; after owner approval the proposal
  * replaces it at the start of Gate B (with register.generated.ts and register.spec updated together).
@@ -11,7 +11,8 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 
-const LIVE = 'docs/ui/screen-register.csv';
+// Historical input: the V2.1 tracking register as it was at Gate A (archived when the V3.1 register was adopted).
+const LIVE = 'docs/ui/archive/screen-register-v2.1-tracking.csv';
 const OUT = 'docs/blueprint/v3.1/gate-a/screen-register-v3.1-proposed.csv';
 
 // ---------------------------------------------------------------- CSV helpers
@@ -173,8 +174,8 @@ const L = {
     tests: 'Gate C: queue counts; scope by site' },
   'FIN-009': { gate: 'C', surface: 'workspace', name: 'Proof review and verification', perm: 'finance.evidence.review',
     actions: 'Start review; match bank transaction; adjust allocation; verify; reject (reason); request information',
-    validation: 'Amount/date window; destination = shown beneficiary; bank transaction not already used; allocations <= payment',
-    mock_api: 'POST /payment-submissions/:id/{start-review,verify,reject,request-info}', tests: 'Gate C: verify -> payment -> receipt -> statement; duplicate reference refused; reject path' },
+    validation: 'Amount/date window; destination = verified beneficiary of the same legal entity; bank transaction (account-scoped identity) not already matched; line allocations <= payment; no cross-entity allocation',
+    mock_api: 'POST /payment-submissions/:id/{start-review,verify,reject,request-info}', tests: 'Gate C: verify -> payment -> receipt -> statement; reuse of a matched bank transaction refused; reject path' },
   'FIN-011': { gate: 'C', notes: 'Gate C shows unapplied credit; refunds are Gate E' },
   'FIN-012': { d: 'supersede->BILL-005', notes: 'Replaced by the dues billing family' },
   'BANK-003': { gate: 'C', name: 'Bank transaction feed (mock import)', mock_api: 'GET /bank-transactions?account=&status=' },
@@ -319,7 +320,7 @@ site({ screen_id: 'SITE-008', name: 'Site onboarding checklist', min_permission:
 const bill = (r) => add({ application: 'backoffice', tenant_edition: 'COMM (+DEV service charges)', module: 'dues', data_scope: 'site', sr_mobile_rtl_evidence: EVIDENCE_TODO, gate: C, ...r });
 bill({ screen_id: 'BILL-001', name: 'Billing accounts', module: 'receivables', tenant_edition: 'DEV+COMM', min_permission: 'billing_account.view', surface: 'page', route: '/backoffice/billing/accounts', core_entity: 'billing_account', mock_api: 'GET /billing-accounts?site=&q=', tests: 'Gate C: kinds dues vs sales_contract' });
 bill({ screen_id: 'BILL-002', name: 'Billing account workspace', module: 'receivables', tenant_edition: 'DEV+COMM', min_permission: 'billing_account.view', surface: 'workspace', route: '/backoffice/billing/accounts/:id?tab=', core_entity: 'billing_account',
-  tabs: 'Overview; Units (effective-dated); Liable parties (shares, effective-dated); Invoices; Statement; Payments; Credit; History',
+  tabs: 'Overview; Units (effective-dated); Liable parties per flat (effective-dated, A2 4.5); Invoices; Statement; Payments; Credit; History',
   actions: 'Change payer from a date (drawer); open statement', validation: 'Shares = 100 % per period; no overlapping periods',
   mock_api: 'GET /billing-accounts/:id; POST /billing-accounts/:id/parties', tests: 'Gate C: payer change does not alter October invoice' });
 bill({ screen_id: 'BILL-003', name: 'Charge categories & rate versions', min_permission: 'charges.manage', surface: 'page', route: '/backoffice/billing/charges', core_entity: 'charge_rate_version',

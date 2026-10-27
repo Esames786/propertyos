@@ -71,6 +71,8 @@ erDiagram
 | `rate_card_versions` / `rate_card_lines` | The operator's price list. V3.1 `plan_versions`, `rate_card_lines` and `pricing_rule_versions` are merged: a "plan" is a rate-card version plus an edition preset |
 | `subscription_contracts` | Status draft → pending_approval → active → superseded \| ended \| cancelled. An **amendment creates a new version** (`supersedes_id`); an active version is immutable |
 | `subscription_components` | One row per priced component (A3 §2): type, dimension, scope, pricing method, price/tiers, allowance, minimum, cap, cadence, proration rule, tax code, effective dates, override reason |
+| `commercial_policies` (versioned), `contract_approvals` | Thresholds that make a contract or override need approval (A3 §7, D-14). Each approval records: contract version, reasons triggered, requested by, decided by (≠ requester), decision, comment, time |
+| `platform_onboarding_policies`, `workspace_requests`, `tenant_invitations` | Signup mode (D-8, A1 §8): self-service trial \| approval required \| invitation only \| sales assisted. Optional per edition. Requests record kind, applicant, edition sought and status (new → contacted → approved \| declined → converted). Invitations are single-use codes with edition, expiry and issuer |
 | `usage_dimensions`, `usage_count_definitions` (versioned rule), `usage_snapshots` (immutable), `usage_snapshot_corrections`, `usage_meter_events` (`source_event_id` unique) | A3 §4 |
 | `billing_previews` | Optional non-authoritative cache; safe to drop |
 | `platform_invoices` and related | SaaS money only. Never touches tenant ledgers (A4 §6) |
@@ -108,6 +110,7 @@ erDiagram
 - **`party_user_links`**: replaces V3.1 `resident_portal_user_links`. Resident access needs `verified_at` and a verification method, because a resident sees data only for units reached through a **verified** link.
 - **`party_roles`**: a registry for search and filters (lead, customer, buyer, owner, occupant, resident, payer, supplier, employee, broker, technician). The facts live in their own tables (ownerships, occupancies, billing-account parties, bookings), so **identity is never duplicated per module**.
 - **`legal_entities`**: kind developer_company \| association \| management_company. **Books, payee identity and number sequences are per legal entity** (§9.4).
+  - Every financial record carries `legal_entity_id` and can never be linked to another entity's records (§5.1, I-19). This holds even when two associations share one tenant DB.
 - **`beneficiary_profiles`**: the *verified* payee details shown to payers.
   - Status: draft → pending_verification → verified → retired.
   - A change requires a **second approver** (open decision D-13).
@@ -136,8 +139,8 @@ erDiagram
   parties ||--o{ occupancy_parties : occupies
   billing_accounts ||--o{ billing_account_units : covers
   units ||--o{ billing_account_units : "billed via"
-  billing_accounts ||--o{ billing_account_parties : "liable parties"
-  parties ||--o{ billing_account_parties : pays
+  billing_account_units ||--o{ unit_liabilities : "liable parties"
+  parties ||--o{ unit_liabilities : pays
   legal_entities ||--o{ billing_accounts : "payee of"
 ```
 
@@ -167,13 +170,29 @@ erDiagram
 | Sale | `bookings` (developer only) | none (built years ago) |
 | Ownership | `ownerships` + `ownership_parties` (shares sum to 100) | Owner: Mr X, 100 % |
 | Occupancy | `occupancies` + `occupancy_parties` (head, member) | Tenant family Y since Mar 2026 |
-| Liability | `billing_accounts` + `billing_account_units` + `billing_account_parties` (shares sum to 100 per period) | Payer: Y from Mar 2026 by lease arrangement; X before that |
+| Liability | `billing_accounts` + `billing_account_units` + **`unit_liabilities`** (per unit; shares sum to 100 per unit and period) | Payer: Y from Mar 2026 by lease arrangement; X before that |
 
-**4.5 Correction to V3.1 (part of D-5).** V3.1 lists `billing_account_units (liable parties with effective dates and percentages)`, which merges two facts. They are separated:
-- `billing_account_units`: which units the account covers, effective-dated;
-- `billing_account_parties`: who is liable, what share, effective-dated.
+**4.5 Liability is per unit, not per account (part of D-5; corrected after the Gate A review).**
 
-This allows one account for several flats, joint liability, and a change of payer **without rewriting history**.
+V3.1 lists `billing_account_units (liable parties with effective dates and percentages)`, which merges two facts. They are separated, and liability is attached to **each covered unit**:
+- **`billing_account_units`:** which units the account covers, effective-dated.
+- **`unit_liabilities`:**
+  - who is liable *for that unit*, effective-dated;
+  - columns: `billing_account_unit_id`, `party_id`, `role` (primary_payer \| co_payer \| guarantor), `liability_type` (proportional \| joint), `share_pct` (proportional only).
+
+**There are no account-wide percentages.**
+- A Gate A draft had `billing_account_parties` with one share across all covered units. That was ambiguous: it could split flat B's charge between flat A's payers. It is withdrawn.
+- One account can still group several flats, with a **different responsible payer per flat**.
+
+**How charges and payments follow the unit**
+1. Every invoice line carries `unit_id`.
+2. The line's liable parties are that unit's `unit_liabilities` on the line's period start date.
+3. Payments allocate to **invoice lines** (§5), and the default allocation only touches lines the paying party is liable for. Overriding that needs a reason, which is audited.
+4. Per-party statements are computed from line-level liability:
+   - proportional liability: line amount × share;
+   - joint liability: the full line amount, for each joint party.
+
+A change of payer is a new `unit_liabilities` period **without rewriting history**.
 
 **4.6 `billing_accounts.kind`**
 - `dues`: society charges.
@@ -204,11 +223,13 @@ erDiagram
   payment_submissions ||--o{ payment_evidence : attaches
   payment_submissions ||--o{ verification_decisions : "decided by"
   verification_decisions |o--o| payments : confirms
-  bank_transactions |o--o{ payments : "settles"
+  bank_transactions |o--o| payments : "settles"
+  legal_entities ||--o{ payments : receives
+  bank_accounts ||--o{ bank_transactions : records
   payment_intents ||--o{ gateway_transactions : "attempted as"
   gateway_transactions |o--o| payments : confirms
   payments ||--o{ payment_allocations : allocates
-  customer_invoices ||--o{ payment_allocations : "settled by"
+  customer_invoice_lines ||--o{ payment_allocations : "settled by"
   payments ||--|| receipts : evidences
   payments ||--o{ refunds : "refunded by"
   bank_transactions ||--o{ bank_reconciliation_matches : "matched by"
@@ -230,10 +251,49 @@ erDiagram
 | `billing_runs` | DRAFT → PREVIEWED → APPROVAL_PENDING → APPROVED → POSTED → NOTIFIED (CANCELLED only before POSTED). `posting_version` and `rules_snapshot_hash` |
 | `billing_run_items` | Rule version, winning scope, quantity, rate, amount, exemption, meter reading, **`idempotency_key` unique** (§8) |
 | `payment_submissions` | Payer evidence. States SUBMITTED → UNDER_REVIEW → NEEDS_INFORMATION \| REJECTED \| VERIFIED; a resubmission links `supersedes_id`. **A submission is never a payment** |
-| `payments` (V3.1 `confirmed_payments`) | Exist **only once confirmed**: after verification, a verified gateway event, or an authorized office receipt |
+| `payments` (V3.1 `confirmed_payments`) | Exist **only once confirmed**: after verification, a verified gateway event, or an authorized office receipt. They carry `legal_entity_id` (§5.1) |
+| `payment_allocations` | `payment_id`, **`invoice_line_id`**, `legal_entity_id`, amount. Allocation is at line level so unit-specific liability is respected (§4.5) |
 | Unapplied credit | Derived: `payment.amount − Σ allocations` |
 | Account statement | A **derived view** (opening balance, invoices, credits, payments, closing). It is stored only as a document when sent |
 | `collections_cases`, `reminder_events`, `promise_to_pay` | Recovery work |
+
+### 5.1 Financial entity isolation (D-5, required correction)
+
+**These records carry a non-null `legal_entity_id`:**
+- `customer_invoices` (+ lines), `credit_notes`, `payment_submissions`, `payments`, `payment_allocations`, `receipts`, `refunds`;
+- `bank_accounts` (and through them `bank_transactions` and `bank_reconciliation_matches`);
+- `beneficiary_profiles`, `merchant_connections`, `payment_intents`, `gateway_transactions`;
+- `journal_entries`, `fiscal_periods`, `gl_accounts`, `number_sequences`.
+
+**Cross-entity links are impossible by construction:**
+- `payment_allocations` has composite foreign keys `(payment_id, legal_entity_id)` → `payments(id, legal_entity_id)` and `(invoice_line_id, legal_entity_id)` → `customer_invoice_lines(id, legal_entity_id)`. Each parent has a UNIQUE `(id, legal_entity_id)`. An allocation between two associations cannot be stored, even inside one tenant DB.
+- A reconciliation match requires `bank_transaction.bank_account.legal_entity_id = payment.legal_entity_id`. The same composite-key technique applies.
+- A submission is confirmed only against a bank transaction of the **same entity as the beneficiary that was shown** to the payer.
+- Journals post only to `gl_accounts` of their own entity. Posting rules are per entity.
+
+**Money between entities is never an allocation.**
+- Examples: a portfolio manager's fee, or one association paying another for shared security.
+- It is an invoice issued by one entity to the other, paid like any other invoice, and recorded in each entity's own books.
+- The mock refuses any cross-entity allocation or match with `cross_entity_forbidden`.
+
+### 5.2 Bank transaction identity and deduplication (required correction)
+
+**A bank transaction is identified within its account, never by a reference string across all accounts.**
+
+| Source | Identity (UNIQUE) |
+|---|---|
+| Bank API or provider feed | `(bank_account_id, source, provider_transaction_id)` |
+| Statement file import (no provider id) | `(bank_account_id, fingerprint)`, where fingerprint = hash(booked_on, value date, amount, direction, normalized narrative, bank's line sequence or running balance). Re-importing the same file is idempotent; genuinely identical lines in one file keep distinct sequence numbers |
+| Gateway settlement | `(merchant_connection_id, provider, provider_transaction_id)` in `gateway_transactions` |
+
+**What references are for**
+- The payer's reference, and the structured reference printed on bills, are **matching hints only**.
+- The duplicate rule is: **one bank transaction can confirm at most one payment.** An explicit, audited split covers one transfer for several accounts.
+- A second submission pointing at an already-matched transaction is refused (`bank_transaction_already_matched`).
+- Two different transfers that happen to share a reference string are both valid.
+
+**Maker-checker and verified-beneficiary safeguards are unchanged** (A4 §6, I-17):
+- a submission can only be verified against a transaction in the account behind the **verified** beneficiary shown to the payer.
 
 ## 6. Tenant DB: developer extension (Gate E scope, unchanged from V2.1)
 
@@ -271,11 +331,11 @@ V2.1 relationship commitments stand unchanged:
 | I-2 | A site, building or flat can exist with no project, opportunity or booking | No FK from core or dues to developer tables | The Al-Noor fixture has zero projects; the dues mock runs without `projects` |
 | I-3 | Party is one identity with many roles | `party_roles` registry; facts in their own tables | A people-directory filter test: the same party appears as owner and payer |
 | I-4 | Booking ≠ ownership ≠ occupancy ≠ payer | Four effective-dated tables | A-102 fixture: owner X, occupant and payer Y |
-| I-5 | Liability changes do not rewrite past invoices | New `billing_account_parties` period; invoices keep `billing_account_id` and issue date | Payer-change test: October invoice still shows the old payer |
+| I-5 | Liability changes do not rewrite past invoices; liability is resolved **per unit and line**, never by account-wide shares | New `unit_liabilities` period; invoice lines keep `unit_id` and period | Payer-change test: October still shows the old payer. Multi-flat account test: flat A's payer is never allocated flat B's charge |
 | I-6 | Rate versions are effective-dated; run items snapshot rule version, rate, eligibility, meter reading, exemption | Versioned tables; snapshot columns | Rate-change test: November uses the new rate, October unchanged |
 | I-7 | **No duplicate billing on retry** | `billing_run_items.idempotency_key` unique = (site, billing account, unit, period, charge rule, posting version); invoice-line unique (source_type, source_id, posting_version) | Post twice → second call returns the same invoices; counts unchanged |
 | I-8 | Posted invoices and journals are never edited; correct by credit note or reversal | No update path; DB trigger optional | The edit action is absent on posted records; the credit-note test |
-| I-9 | Σ allocations of a payment ≤ payment amount; Σ allocations to an invoice ≤ invoice total; unapplied credit allowed | Service transaction with row locks | Partial and over-payment tests |
+| I-9 | Σ allocations of a payment ≤ payment amount; Σ allocations to an invoice line ≤ line amount; unapplied credit allowed | Service transaction with row locks | Partial and over-payment tests |
 | I-10 | **Submitted ≠ paid.** A payment exists only after authorized verification against bank evidence, or a verified gateway event | `payments` only created by a verification decision, a verified webhook or an office receipt | Existing 1.5R test (never Paid) extended to dues |
 | I-11 | Gateway webhooks: signature verified; unique provider event id; no PAN/CVV stored | Webhook service; unique index | Mock webhook replay test (Gate D) |
 | I-12 | Debits = credits; posted journals are immutable; period locks apply | Posting service; period check | Gate E |
@@ -284,7 +344,11 @@ V2.1 relationship commitments stand unchanged:
 | I-15 | SaaS money and tenant money never share a ledger or a default account | Separate DBs, separate legal entities, separate merchant credentials | Destination map test (A4 §6): resident payment instructions never show the platform's bank |
 | I-16 | Support access is authorized, time-limited and audited | Grant table + middleware + audit | Gate B: the support persona is denied tenant records without a grant |
 | I-17 | Maker ≠ checker for billing-run approval and beneficiary changes | Service check `approved_by ≠ created_by` | Gate C role test |
-| I-18 | Ownership shares = 100 %; billing-account party shares = 100 % per period | Service validation | Import validation test |
+| I-18 | Ownership shares = 100 %; proportional `unit_liabilities` shares = 100 % per unit and period | Service validation | Import validation test |
+| I-19 | **Financial entity isolation:** no allocation, reconciliation match, verification or journal line links records of two legal entities | Composite `(id, legal_entity_id)` foreign keys (§5.1); posting service checks | Gate C: two-association fixture; a cross-entity allocation returns `cross_entity_forbidden` |
+| I-20 | **Bank transaction identity** is scoped to its account (provider id or import fingerprint); one transaction confirms at most one payment | UNIQUE keys (§5.2); verification service | Gate C: same reference on two accounts accepted; re-import idempotent; reuse refused |
+| I-21 | **Suspended tenant:** only explicitly permitted reads (financial history) and explicitly allow-listed settlement actions; all other mutations refused | Access decision layer 1 (A1 §4) | Gate B: access vectors |
+| I-22 | **Commercial approval:** a contract or override above a configured threshold cannot activate without an approver who is not its author | Contract service; `commercial_policies` thresholds (A3 §7) | Gate B: pending-approval state shown and enforced in the mock |
 
 ## 9. Answers to "Issues Gate A must resolve" (V3.1 doc 02)
 
@@ -346,7 +410,7 @@ V2.1 relationship commitments stand unchanged:
 | R-16 | — | "meter" used for both SaaS usage and utilities | Names kept apart: `usage_*` (central SaaS) vs `utility_meter_*` (tenant utilities) |
 | R-17 | Money DECIMAL(20,2) | Per-sqft and per-unit rates | Amounts (20,2), rates and quantities (20,4), rounding per line |
 | R-18 | Stages 0–7 (Stage 2 = all routes) | Gates A–H | Gates replace the stage order from here; "Stage 2" is withdrawn (report §8) |
-| R-19 | Stage 1.5R "Set up my developer workspace" (self-serve) | Tenants are created and licensed by Supreme Admin | The self-serve wizard becomes a **workspace request** that lands in HQ as a pending tenant (D-8) |
+| R-19 | Stage 1.5R "Set up my developer workspace" (self-serve) | Tenants are created and licensed by Supreme Admin | The platform's **onboarding policy** decides what Get started offers: self-service trial, approval-required request, invitation code or sales-assisted contact (D-8, as corrected) |
 
 ## 11. What changes in the current prototype contracts (nothing is removed)
 

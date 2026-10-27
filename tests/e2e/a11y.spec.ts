@@ -77,7 +77,8 @@ for (const locale of ['en-PK', 'ur-PK'] as Locale[]) {
       });
 
       test('overlays: sign-in, welcome, tour steps, palette, drawer, validation summary', async ({ page }, testInfo) => {
-        test.setTimeout(120_000);
+        // 19 axe scans: about 106 s on an idle machine, so 120 s left too little headroom under load.
+        test.setTimeout(240_000);
         await seed(page, { persona: null, locale, onboarding: 'fresh' });
         await page.goto(`${BO}/backoffice/sign-in?next=/backoffice/lab`);
         await expect(page.getByTestId('sign-in-sales')).toBeVisible();

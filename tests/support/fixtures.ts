@@ -2,8 +2,9 @@ import { test as base, expect, type Page } from '@playwright/test';
 
 export const BO = 'http://localhost:5173';
 export const CU = 'http://localhost:5174';
+export const HQ = 'http://localhost:5175';
 
-export type PersonaId = 'manager' | 'sales' | 'finance' | 'resident';
+export type PersonaId = 'manager' | 'sales' | 'finance' | 'resident' | 'supreme_admin' | 'commercial_approver' | 'platform_support';
 export type Locale = 'en-PK' | 'ur-PK';
 
 export interface SeedOptions {
@@ -12,7 +13,7 @@ export interface SeedOptions {
   /** 'fresh' = first login (welcome pending); 'done' = answered, no automatic offers; 'offers' = answered, module offers on. */
   onboarding?: 'fresh' | 'done' | 'offers';
   mock?: 'fast' | 'normal' | 'slow' | 'error' | 'offline';
-  app?: 'backoffice' | 'customer';
+  app?: 'backoffice' | 'customer' | 'platform';
   a11y?: Record<string, unknown>;
 }
 
@@ -43,7 +44,7 @@ export async function seed(page: Page, options: SeedOptions = {}) {
         );
       }
     },
-    { persona, locale, onboarding, mock, app, tenant: TENANT, a11y: a11y ?? null },
+    { persona, locale, onboarding, mock, app, tenant: app === 'platform' ? 'platform' : TENANT, a11y: a11y ?? null },
   );
 }
 

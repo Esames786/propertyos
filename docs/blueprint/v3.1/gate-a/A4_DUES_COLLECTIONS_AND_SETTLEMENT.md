@@ -11,7 +11,7 @@
 | 1 | Tenant + licensed site (by Supreme Admin, Gate B) | `tenants`, `licensed_sites`, grants | — |
 | 2 | Site, blocks/buildings, floors | `managed_sites`, `buildings`, `floors` | Names unique within the parent; floor levels unique per building |
 | 3 | Flats: manual or **CSV import** (upload → column mapping → validation → deduplication → preview → commit) | `units`, `unit_types` | `code` unique per site; required type and area; area > 0; floor exists; duplicate rows in the file and against existing flats are listed, not silently merged; commit is all-or-nothing and re-running the same file is idempotent (file hash + row keys) |
-| 4 | People roster: owners, occupants, payers | `parties`, `ownerships`, `occupancies`, `billing_accounts` (+ units, parties) | Owner shares = 100 %; payer shares = 100 %; effective dates; the same CNIC/phone flags a possible duplicate person for review |
+| 4 | People roster: owners, occupants, payers | `parties`, `ownerships`, `occupancies`, `billing_accounts` (+ units), `unit_liabilities` (payer per unit) | Owner shares = 100 %; proportional payer shares = 100 % **per unit**; effective dates; the same CNIC/phone flags a possible duplicate person for review |
 | 5 | Opening balances (arrears and advances at go-live) | `customer_invoices` with `source_type = opening_balance`, or unapplied credit | Import total shown and **approved** before posting; audit of who imported what |
 | 6 | Collection destination | `beneficiary_profiles` (verified), optional `merchant_connections` | Maker-checker; residents never see an unverified destination |
 | 7 | Charges and rates | `charge_categories`, `charge_rate_versions`, `recurring_charge_rules` | Effective dates; no overlapping versions |
@@ -127,8 +127,8 @@ stateDiagram-v2
 3. **The accounts officer verifies** against the bank feed (BANK-003):
    - amount and date window;
    - reference;
-   - destination account = the beneficiary shown;
-   - **duplicate check:** the same bank transaction or reference cannot confirm two submissions.
+   - destination account = the account behind the **verified** beneficiary shown, and the **same legal entity** as the invoice;
+   - **duplicate check:** a bank transaction is identified within its account (provider id, or import fingerprint), and **one transaction confirms at most one payment** (A2 §5.2). Reference strings are matching hints only, so two genuine transfers that share a reference are both accepted.
 4. **Verification creates** the `payment`, then `payment_allocations`, then the `receipt`, and updates the statement and collections figures.
 5. **A rejection or request for information** keeps the full history. The resident gets a resubmission path.
 
@@ -145,7 +145,11 @@ stateDiagram-v2
 - Each one is reconciled to a bank deposit later.
 
 ### 5.4 Allocation policy
-- **Default:** oldest due first, across the billing account's open invoices.
+- **Allocation is to invoice lines.** Each line belongs to one flat, and that flat's liable parties are known (A2 §4.5).
+- **Default:** oldest due first, across the open lines **the paying party is liable for**, within the same legal entity.
+  - A multi-flat account with different payers per flat never lets one payer's money settle another payer's flat by default.
+  - A staff override needs a reason and is audited.
+- **Never across entities:** a payment received by one association cannot be allocated to another association's invoice (`cross_entity_forbidden`, A2 §5.1).
 - The verifier can change the split before confirming; the change is recorded.
 - Partial allocation is normal. **Unallocated money stays as account credit**, never lost or forced onto an invoice.
 - Refunds of credit need approval (Gate E).
@@ -192,7 +196,7 @@ flowchart LR
 ## 8. Ownership and occupancy changes must not rewrite dues
 
 - **Change of payer** (new tenant moves in):
-  - a new `billing_account_parties` period from the **next billing period** by default;
+  - a new `unit_liabilities` period for **that flat** from the **next billing period** by default; other flats on the same account are unaffected;
   - existing invoices stay with the account;
   - the statement shows who was liable for each period.
   - **Default policy D-16**: a split of a period's charges between the old and new payer is a staff action, not automatic.

@@ -1,3 +1,4 @@
+import type { Persona } from '@repo/contracts';
 import { ShieldCheck } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useAnnounce } from '../a11y/LiveAnnouncer';
@@ -12,7 +13,18 @@ import { LocaleToggle } from './LocaleSwitcher';
  * Simulated sign-in with fictional demo identities (prototype only; AUTH screens come in Stage 2).
  * Choosing an identity is that persona's "first login" for this app and tenant.
  */
-export function DemoSignIn({ appName, onSignedIn, footer }: { appName: string; onSignedIn?: (personaId: string) => void; footer?: ReactNode }) {
+export function DemoSignIn({
+  appName,
+  onSignedIn,
+  footer,
+  describe,
+}: {
+  appName: string;
+  onSignedIn?: (personaId: string) => void;
+  footer?: ReactNode;
+  /** What this identity can see; defaults to the persona's project scope. */
+  describe?: (persona: Persona) => string;
+}) {
   const { t } = useT();
   const { personas, signIn, tenant } = useSession();
   const announce = useAnnounce();
@@ -43,7 +55,7 @@ export function DemoSignIn({ appName, onSignedIn, footer }: { appName: string; o
                   </p>
                   <p className="text-sm text-muted">{t(p.roleKey as 'common:persona.manager')}</p>
                   <p className="mt-1 text-xs text-muted">
-                    {p.projectScope === 'all' ? t('common:demo.scopeAll') : t('common:demo.scopeOne', { project: 'Larkspur Heights' })}
+                    {describe ? describe(p) : p.projectScope === 'all' ? t('common:demo.scopeAll') : t('common:demo.scopeOne', { project: 'Larkspur Heights' })}
                   </p>
                 </div>
               </div>
