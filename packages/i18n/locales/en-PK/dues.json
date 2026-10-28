@@ -36,7 +36,9 @@
     "under_review": "Being checked",
     "needs_information": "More information needed",
     "verified": "Verified · receipt issued",
-    "rejected": "Not accepted"
+    "rejected": "Not accepted",
+    "awaiting_bank_evidence": "Checked · waiting for the bank",
+    "exception_pending": "Being checked"
   },
   "method": {
     "bank_transfer": "Bank transfer",
@@ -52,7 +54,8 @@
     "needsInfo": "Office needs more",
     "verified": "Verified",
     "rejected": "Not accepted",
-    "receipt": "Receipt"
+    "receipt": "Receipt",
+    "awaitingBank": "Checked; waiting for the bank"
   },
   "demoLink": {
     "linked": "Demo: linked with the society office app in this browser, so the office sees what you send.",
@@ -213,7 +216,9 @@
       "under_review": "The office is checking it against the bank.",
       "needs_information": "The office needs more from you. Send the proof again below.",
       "verified": "Verified. Your receipt is ready.",
-      "rejected": "Not accepted. Nothing was recorded as paid."
+      "rejected": "Not accepted. Nothing was recorded as paid.",
+      "awaiting_bank_evidence": "The office checked your proof and is waiting for the transfer to appear on the association's bank statement. It is not marked paid until then.",
+      "exception_pending": "The office is checking it against the bank."
     },
     "askedTitle": "The office asks",
     "rejectedTitle": "Why it was not accepted",
@@ -230,7 +235,8 @@
       "under_review": "The office started checking",
       "information_requested": "The office asked for more",
       "verified": "Verified and receipted",
-      "rejected": "Not accepted"
+      "rejected": "Not accepted",
+      "awaiting_bank_evidence": "Checked; waiting for the bank statement"
     },
     "versions_one": "{{count}} version sent: {{files}}",
     "versions_other": "{{count}} versions sent: {{files}}"

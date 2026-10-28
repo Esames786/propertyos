@@ -4,7 +4,9 @@
     "under_review": "Being reviewed",
     "needs_information": "Waiting for the resident",
     "verified": "Verified",
-    "rejected": "Rejected"
+    "rejected": "Rejected",
+    "awaiting_bank_evidence": "Waiting for the bank line",
+    "exception_pending": "Exception to approve"
   },
   "match": {
     "exact": "Bank transfer found",
@@ -20,8 +22,8 @@
   },
   "verification": {
     "bank_matched": "Matched to the bank",
-    "manual": "Verified by hand",
-    "counter": "Received at the counter"
+    "counter": "Received at the counter",
+    "exception_approved": "Approved exception"
   },
   "bankState": {
     "unmatched": "Not matched",
@@ -69,7 +71,9 @@
     "needsInformation": "Waiting for the resident",
     "verified": "Verified",
     "rejected": "Rejected",
-    "receipt": "Receipt issued"
+    "receipt": "Receipt issued",
+    "awaitingBank": "Waiting for the bank line",
+    "exception": "Exception approval"
   },
   "history": {
     "submitted": "Sent by {{name}}",
@@ -77,7 +81,11 @@
     "review_started": "{{name}} started the review",
     "information_requested": "{{name}} asked for more information",
     "verified": "{{name}} verified it",
-    "rejected": "{{name}} rejected it"
+    "rejected": "{{name}} rejected it",
+    "awaiting_bank_evidence": "{{name}} checked it: waiting for the bank line",
+    "exception_requested": "{{name}} asked for an exception",
+    "exception_approved": "{{name}} approved the exception",
+    "exception_rejected": "{{name}} rejected the exception"
   },
   "summary": {
     "title": "Collections · {{period}}",
@@ -130,7 +138,11 @@
     "recentEmpty": "No payments verified yet.",
     "allPayments_one": "All {{count}} payment",
     "allPayments_other": "All {{count}} payments",
-    "owingAccounts": "{{count}} accounts owe {{amount}}"
+    "owingAccounts": "{{count}} accounts owe {{amount}}",
+    "queueAwaitingBank_one": "{{count}} proof waiting for its bank line",
+    "queueAwaitingBank_other": "{{count}} proofs waiting for their bank line",
+    "queueExceptions_one": "{{count}} exception to approve",
+    "queueExceptions_other": "{{count}} exceptions to approve"
   },
   "page": {
     "intro": "Residents' payments for the month: proofs to verify, the bank, receipts and arrears.",
@@ -155,14 +167,18 @@
       "needs_information": "Waiting for residents",
       "verified": "Verified",
       "rejected": "Rejected",
-      "all": "All"
+      "all": "All",
+      "awaiting_bank_evidence": "Waiting for the bank",
+      "exception_pending": "Exceptions"
     },
     "empty": {
       "to_review": "Nothing to review",
       "needs_information": "No proof is waiting for a resident",
       "verified": "No proof verified yet",
       "rejected": "No proof rejected",
-      "all": "No proofs yet"
+      "all": "No proofs yet",
+      "awaiting_bank_evidence": "No proof is waiting for its bank line",
+      "exception_pending": "No exception waits for approval"
     },
     "emptyBody": "Proofs appear here as residents send them from the resident app.",
     "count_one": "{{count}} proof",
@@ -203,11 +219,6 @@
     "taken": "Already settles payment {{payment}}. A transfer can settle only one payment.",
     "sharedRef_one": "Another transfer has the same reference text. It is a different transfer, not a copy.",
     "sharedRef_other": "{{count}} other transfers have the same reference text. They are different transfers, not copies.",
-    "manualTitle": "Not on a statement yet: verify by hand",
-    "manualBody": "Only when you have seen the money (for example on the bank's portal). A reason is required and the payment waits to be found on a later statement.",
-    "receivedAmount": "Amount received",
-    "manualReason": "Why you can verify it without a bank line",
-    "manualReasonHelp": "At least 10 characters. Shown in the payment's history.",
     "receivedFromBank": "Received {{amount}} (bank transaction {{txn}})",
     "differsFromClaim": "The resident wrote {{claim}}",
     "allocationTitle": "What the money settles",
@@ -246,7 +257,45 @@
     "duplicateTitle": "This may have been sent before",
     "duplicateBody": "Same file, or same amount, date and reference as: {{refs}}. Check the bank line before verifying.",
     "readOnly": "You can see this proof; verifying it is for finance.",
-    "alreadyMatchedHelp": "Choose the transfer that is still free, ask the resident for information, or reject the proof as a copy."
+    "alreadyMatchedHelp": "Choose the transfer that is still free, ask the resident for information, or reject the proof as a copy.",
+    "field": {
+      "amount": "amount",
+      "date": "date",
+      "reference": "reference",
+      "name": "name"
+    },
+    "strengthFull": "Full match",
+    "strengthPartial": "Partial match",
+    "missing": "Does not match: {{list}}",
+    "wrongAccount": "Received on account {{iban}}, not the association's account in force that day. It can never settle this proof.",
+    "wrongEntity": "Received by another association. It can never settle this proof.",
+    "held": "Held for an exception on {{ref}}",
+    "awaitOption": "Not on a statement yet: wait for the bank line",
+    "awaitOptionBody": "Mark it as checked. Nothing is settled, allocated or receipted until the transfer appears on an imported statement.",
+    "awaitNote": "What you checked",
+    "awaitNoteHelp": "At least 10 characters. Kept with the proof; the resident does not see it.",
+    "awaitSubmit": "Wait for the bank line",
+    "awaitToast": "Marked as checked. It waits for the bank line.",
+    "awaitingTitle": "Checked by {{name}}: waiting for the bank line",
+    "awaitingBody": "Nothing is settled yet. When a statement with this transfer is imported, choose the transfer below and verify.",
+    "exceptionTitle": "This transfer matches only in part",
+    "exceptionBody": "It does not match on: {{list}}. Settling against it needs an exception approved by someone else.",
+    "exceptionReason": "Why this transfer is this resident's payment",
+    "exceptionReasonHelp": "At least 20 characters: what you checked, and with whom.",
+    "exceptionSubmit": "Send for approval",
+    "exceptionToast": "Exception sent for approval.",
+    "exceptionPendingTitle": "Exception waiting for approval",
+    "exceptionPendingBody": "{{name}} proposed transfer {{txn}}. Does not match: {{list}}.",
+    "exceptionYours": "You asked for this exception, so someone else must decide it.",
+    "exceptionWaiting": "A treasurer decides it. The transfer is held for this proof meanwhile.",
+    "exceptionApprove": "Approve and issue receipt",
+    "exceptionReject": "Reject exception",
+    "exceptionRejectTitle": "Reject this exception?",
+    "exceptionRejectEffect": "The transfer is released and the proof goes back for review.",
+    "exceptionRejectReason": "Why",
+    "exceptionApprovedToast": "Exception approved. Receipt {{receipt}} issued.",
+    "exceptionRejectedToast": "Exception rejected. The proof is back for review.",
+    "chooseFull": "Verifying needs a transfer that matches fully. For a partial match, ask for an exception."
   },
   "payments": {
     "intro": "Every verified payment, how it was confirmed, what it settled and its receipt.",
@@ -287,7 +336,6 @@
     "sourceTitle": "Where it came from",
     "fromProof": "The resident's proof",
     "fromCounter": "Cash at the society office",
-    "manualTitle": "Verified without a bank line",
     "overrideTitle": "Allocation changed by hand",
     "creditTitle": "Credit left",
     "creditTargets_one": "{{amount}} can settle {{count}} open line of the same payer:",
@@ -298,7 +346,8 @@
     "matched": "Matched to the bank statement",
     "openReconciliation": "Open reconciliation",
     "cashNoLine": "Cash at the counter: it appears on the bank statement only once deposited.",
-    "awaitingLine": "Verified by hand; it is matched when it appears on a statement."
+    "exceptionTitle": "Settled through an approved exception",
+    "exceptionBody": "Requested by {{requested}}, approved by {{approved}}. Did not match: {{list}}."
   },
   "office": {
     "open": "Record office payment",
@@ -384,10 +433,23 @@
     "txn": "Bank transaction",
     "valueDate": "Value date",
     "narration": "Narration",
-    "amount": "Amount"
+    "amount": "Amount",
+    "account": "Statement of account",
+    "accountPick": "Choose the account",
+    "accountHelp": "The statement is bound to this account. A file for another account is refused.",
+    "accountInForce": "in force",
+    "accountRetired": "retired {{date}}",
+    "accountUpcoming": "from {{date}}",
+    "sample3": "Sample: 26 October, afternoon",
+    "sample4": "Sample: old committee account, 13–26 October",
+    "sampleFor": "Statement of {{iban}}",
+    "nowMatchable_one": "{{count}} waiting proof now has its bank line: {{refs}}",
+    "nowMatchable_other": "{{count}} waiting proofs now have their bank line: {{refs}}",
+    "statementAccount": "Account {{iban}}",
+    "lineAccount": "Received on {{iban}}"
   },
   "reconciliation": {
-    "intro": "The statement against the payments: what is matched, what is not, and what was verified without a bank line.",
+    "intro": "The statement against the payments: what is matched, what is not, and the proofs waiting for their bank line.",
     "statementCredits": "Statement credits",
     "matched_one": "Matched ({{count}})",
     "matched_other": "Matched ({{count}})",
@@ -401,8 +463,8 @@
     "awaiting_other": "Waiting for a line ({{count}})",
     "unmatchedTitle": "Bank lines not matched yet",
     "allMatched": "Every line is matched or set aside.",
-    "awaitingTitle": "Payments verified without a bank line",
-    "noneAwaiting": "None: every transfer payment is on a statement."
+    "awaitingTitle": "Proofs waiting for their bank line",
+    "noneAwaiting": "None: no proof is waiting for a statement."
   },
   "receipt": {
     "title": "Receipt {{ref}}",
@@ -505,12 +567,16 @@
       "payer": "One invoice per payer across their flats."
     },
     "groupingHint": "Per-flat or per-payer invoices are supported by the model and offered in a later stage.",
-    "readOnly": "You can see these settings; changing them is for the treasurer or administrator."
+    "readOnly": "You can see these settings; changing them is for the treasurer or administrator.",
+    "methodsLimit": "Most the office takes in one receipt",
+    "methodsLimitHelp": "The society's own rule. 50,000 is only this demo's starting value.",
+    "methodsCounter": "Where and when residents can pay",
+    "methodsSave": "Save cash rules",
+    "methodsSaved": "Cash rules saved."
   },
   "problems": {
     "amount": "Enter an amount above zero (up to two decimals).",
     "amountMismatch": "The bank received {{bank}}; the payment must be that amount.",
-    "manualReason": "Say why you can verify it without a bank line (at least 10 characters).",
     "overrideReason": "Say why this allocation differs from the rule (at least 5 characters).",
     "cross_payer_forbidden": "That line belongs to another payer. A payment settles only the payer's own lines.",
     "cross_entity_forbidden": "That line belongs to another association. A payment never crosses associations.",
@@ -556,6 +622,15 @@
     "fileRequired": "Choose the transfer receipt (image or PDF).",
     "fileType": "Use a JPG, PNG, WebP image or a PDF.",
     "fileSize": "The file must be 5 MB or smaller.",
-    "possibleDuplicate": "You sent this before ({{ref}}, {{state}})."
+    "possibleDuplicate": "You sent this before ({{ref}}, {{state}}).",
+    "bankEvidenceRequired": "Choose the bank transfer from an imported statement. A note is not evidence of the money.",
+    "exceptionRequired": "This transfer matches only in part ({{missing}}). Ask for an exception instead.",
+    "exceptionNotNeeded": "This transfer matches fully: verify it directly.",
+    "exceptionReason": "Explain the exception (at least 20 characters).",
+    "awaitNote": "Write what you checked (at least 10 characters).",
+    "wrongDestination": "Transfer {{txn}} reached account {{iban}}, not the association's account in force that day. It cannot settle this proof.",
+    "bankLineHeld": "This transfer is held for an exception on {{ref}}.",
+    "statementAccount": "Choose the association account this statement belongs to.",
+    "statementAccountMismatch": "This statement is for account {{file}}, not {{chosen}}. Choose the right account."
   }
 }

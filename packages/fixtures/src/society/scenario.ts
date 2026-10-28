@@ -1,7 +1,7 @@
-import type { BankLine, BankStatement, Money, ProofFile, SocietyDemoMode } from '@repo/contracts';
+import type { BankLine, BankStatement, Beneficiary, Money, ProofFile, SocietyDemoMode } from '@repo/contracts';
 import { fromPaisa, toPaisa } from '../portal';
 import { pad } from '../seed';
-import { ALNOOR_ENTITY, ALNOOR_PAYEE, ALNOOR_SITE, ALNOOR_STAFF, DUE_DAY, FIRST_PERIOD, ISSUE_DAY } from './alnoor';
+import { ALNOOR_ENTITY, ALNOOR_OLD_PAYEE, ALNOOR_PAYEE, ALNOOR_SITE, ALNOOR_STAFF, DUE_DAY, FIRST_PERIOD, ISSUE_DAY } from './alnoor';
 import { allocateOldestFirst, linesOf, openLinesFor } from './allocate';
 import { assess, post } from './billing-run';
 import { createSubmission, proofFile, recordPayment } from './collections';
@@ -57,19 +57,54 @@ const STATEMENT_2: LineSeed[] = [
   { txn: 'DEMO-TXN-26102611', on: '2026-10-26', amount: '1250.00', narration: 'IBFT CR M ALI REF 778812', reference: '778812', name: 'M ALI', account: '****0057' },
 ];
 
-/** The sample statements (CSV) the accounts officer imports: the bank's id identifies each line. */
-export const BANK_STATEMENT_COLUMNS = ['txn_id', 'value_date', 'amount', 'narration', 'reference', 'counterparty', 'counterparty_account'] as const;
-const csv = (rows: readonly LineSeed[]) =>
-  [BANK_STATEMENT_COLUMNS.join(','), ...rows.map((r) => [r.txn, r.on, r.amount, r.narration, r.reference, r.name, r.account].map((v) => (/[",]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v)).join(','))].join('\n');
-
-export const sampleBankStatements = () => [
-  { fileName: 'demo-bank-statement-2026-10-20-to-23.csv', from: '2026-10-20', to: '2026-10-23', content: csv(STATEMENT_1) },
-  { fileName: 'demo-bank-statement-2026-10-24-to-26.csv', from: '2026-10-24', to: '2026-10-26', content: csv(STATEMENT_2) },
+/** The same day's later statement: A-101's transfers of 6,000 and 3,000 (the over- and part-payment cases). */
+const STATEMENT_3: LineSeed[] = [
+  { txn: 'DEMO-TXN-26102615', on: '2026-10-26', amount: '6000.00', narration: 'IBFT CR KAMRAN SIDDIQUI A101 ALL DUES', reference: 'A101 ALL DUES', name: 'KAMRAN SIDDIQUI', account: '****4471' },
+  { txn: 'DEMO-TXN-26102616', on: '2026-10-26', amount: '3000.00', narration: 'IBFT CR KAMRAN SIDDIQUI A101 PART', reference: 'A101 PART', name: 'KAMRAN SIDDIQUI', account: '****4471' },
 ];
 
-/** Builds a statement and its lines from the sample (or an uploaded) file's rows. */
-export function statementFrom(state: SocietyState, file: { fileName: string; content: string; from: string; to: string }, at: string, by: { principalId: string; name: string }): { statement: BankStatement; lines: BankLine[] } {
-  const rows = file.content.split(/\r?\n/).slice(1).filter((r) => r.trim());
+/**
+ * The old committee account (retired on 12 October): a resident paid it by mistake on 20 October.
+ * Its transaction id is the same as a line on the association's account: another account, another
+ * transaction (not a duplicate), and money that never reached the account in force.
+ */
+const STATEMENT_4: LineSeed[] = [
+  { txn: 'DEMO-TXN-26102201', on: '2026-10-20', amount: '5200.00', narration: 'IBFT CR KAMRAN SIDDIQUI ANR-A101-2026-11', reference: 'ANR-A101-2026-11', name: 'KAMRAN SIDDIQUI', account: '****4471' },
+];
+
+/**
+ * The sample statements (CSV) the accounts officer imports. Each file says which account it is for
+ * (`#account=` line, as banks print the account on the statement); the import binds it to the
+ * verified account the officer chooses and refuses a file of another account.
+ */
+export const BANK_STATEMENT_COLUMNS = ['txn_id', 'value_date', 'amount', 'narration', 'reference', 'counterparty', 'counterparty_account'] as const;
+export const STATEMENT_SOURCE = 'demo_bank_csv' as const;
+const csv = (iban: string, rows: readonly LineSeed[]) =>
+  [`#account=${iban}`, BANK_STATEMENT_COLUMNS.join(','), ...rows.map((r) => [r.txn, r.on, r.amount, r.narration, r.reference, r.name, r.account].map((v) => (/[",]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v)).join(','))].join('\n');
+
+export interface StatementFile {
+  fileName: string;
+  from: string;
+  to: string;
+  content: string;
+}
+
+export const sampleBankStatements = (): Array<StatementFile & { iban: string }> => [
+  { fileName: 'demo-bank-statement-2026-10-20-to-23.csv', from: '2026-10-20', to: '2026-10-23', iban: ALNOOR_PAYEE.iban, content: csv(ALNOOR_PAYEE.iban, STATEMENT_1) },
+  { fileName: 'demo-bank-statement-2026-10-24-to-26.csv', from: '2026-10-24', to: '2026-10-26', iban: ALNOOR_PAYEE.iban, content: csv(ALNOOR_PAYEE.iban, STATEMENT_2) },
+  { fileName: 'demo-bank-statement-2026-10-26-afternoon.csv', from: '2026-10-26', to: '2026-10-26', iban: ALNOOR_PAYEE.iban, content: csv(ALNOOR_PAYEE.iban, STATEMENT_3) },
+  { fileName: 'committee-account-statement-2026-10-13-to-26.csv', from: '2026-10-13', to: '2026-10-26', iban: ALNOOR_OLD_PAYEE.iban, content: csv(ALNOOR_OLD_PAYEE.iban, STATEMENT_4) },
+];
+
+/** The account a statement file declares (`#account=`), if any. */
+export const declaredAccount = (content: string): string | null => /^#account=([A-Z0-9]+)\s*$/m.exec(content)?.[1] ?? null;
+
+/** Builds a statement and its lines from the sample (or an uploaded) file's rows, bound to the chosen account. */
+export function statementFrom(state: SocietyState, file: StatementFile, account: Beneficiary, at: string, by: { principalId: string; name: string }): { statement: BankStatement; lines: BankLine[] } {
+  const rows = file.content
+    .split(/\r?\n/)
+    .filter((r) => r.trim() && !r.startsWith('#'))
+    .slice(1);
   const parse = (row: string) => {
     const cells: string[] = [];
     let cur = '';
@@ -94,15 +129,33 @@ export function statementFrom(state: SocietyState, file: { fileName: string; con
   const id = `bst_anr_${pad(state.bank.statements.length + 1, 4)}`;
   let n = state.bank.lines.length;
   const lines: BankLine[] = rows.map((r) => {
-    const [txn = '', on = '', amount = '0', narration = '', reference = '', name = '', account = ''] = parse(r);
+    const [txn = '', on = '', amount = '0', narration = '', reference = '', name = '', counterparty = ''] = parse(r);
     n += 1;
-    return { id: `bnl_anr_${pad(n, 4)}`, statementId: id, bankTxnId: txn.trim(), valueDate: on.trim(), amount: money(toPaisa(amount.trim() || '0')), narration, reference, counterpartyName: name, counterpartyAccount: account, state: 'unmatched' };
+    return {
+      id: `bnl_anr_${pad(n, 4)}`,
+      statementId: id,
+      beneficiaryId: account.id,
+      legalEntityId: account.legalEntityId,
+      accountIban: account.iban,
+      source: STATEMENT_SOURCE,
+      bankTxnId: txn.trim(),
+      valueDate: on.trim(),
+      amount: money(toPaisa(amount.trim() || '0')),
+      narration,
+      reference,
+      counterpartyName: name,
+      counterpartyAccount: counterparty,
+      state: 'unmatched',
+    };
   });
   const statement: BankStatement = {
     id,
     fileName: file.fileName,
     fileHash: fingerprint(file.content),
-    iban: ALNOOR_PAYEE.iban,
+    beneficiaryId: account.id,
+    legalEntityId: account.legalEntityId,
+    iban: account.iban,
+    source: STATEMENT_SOURCE,
     from: file.from,
     to: file.to,
     lines: lines.length,
@@ -184,7 +237,7 @@ export function collectingSociety(): SocietyState {
   const [first, second] = sampleBankStatements();
   const accountsOfficer = { principalId: accounts.principalId, name: accounts.name };
   const importStatement = (f: NonNullable<typeof first>, at: string) => {
-    const { statement, lines } = statementFrom(s, f, at, accountsOfficer);
+    const { statement, lines } = statementFrom(s, f, s.beneficiaries.find((b) => b.id === ALNOOR_PAYEE.id)!, at, accountsOfficer);
     s.bank.statements.push(statement);
     s.bank.lines.push(...lines);
     log(at, accountsOfficer, 'bankStatementImported', { kind: 'bank', id: statement.id, label: statement.fileName }, { values: { lines: String(statement.lines), credits: statement.credits.amount } });

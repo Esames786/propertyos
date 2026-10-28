@@ -77,23 +77,43 @@ async function sendProof(page: Page, amount: string, reference: string, name: st
   return sent.res.submission.id;
 }
 
-/** The accounts officer verifies a proof against its best bank transfer (office app). */
+/** A proof with a chosen transfer date (customer app's own server). */
+async function sendProofOn(
+  page: Page,
+  amount: string,
+  reference: string,
+  name: string,
+  transferDate: string,
+) {
+  await portal(page, HOME, 'dues-home', 100);
+  const sent = await societyApi<{ submission: { id: string } }>(
+    page,
+    '/portal/dues/submissions',
+    'POST',
+    {
+      amount,
+      transferDate,
+      bankReference: reference,
+      file: { name, type: 'image/jpeg', size: 175_000 },
+      confirmDuplicate: true,
+    },
+  );
+  if (!sent.ok) throw new Error(`proof: ${sent.code}`);
+  return sent.res.submission.id;
+}
+
+/** The accounts officer verifies a proof against its fully matching bank line (office app). */
 async function verify(page: Page, submissionId: string, amount: string) {
   await office(page, '/backoffice', 'kpi-collected', 100);
   const detail = await societyApi<{
-    candidates: Array<{ bankLine: { id: string }; reasons: string[] }>;
+    candidates: Array<{ bankLine: { id: string }; strength: string }>;
   }>(page, `/payment-submissions/${submissionId}`);
-  const line = detail.ok
-    ? detail.res.candidates.find((c) => c.reasons.includes('amount'))
-    : undefined;
-  const done = await societyApi(
-    page,
-    `/payment-submissions/${submissionId}/verify`,
-    'POST',
-    line
-      ? { amount, bankLineId: line.bankLine.id }
-      : { amount, manualReason: 'Seen on the bank portal; statement not imported yet.' },
-  );
+  const line = detail.ok ? detail.res.candidates.find((c) => c.strength === 'full') : undefined;
+  if (!line) throw new Error('no fully matching bank line');
+  const done = await societyApi(page, `/payment-submissions/${submissionId}/verify`, 'POST', {
+    amount,
+    bankLineId: line.bankLine.id,
+  });
   if (!done.ok) throw new Error(`verify: ${done.code}`);
 }
 
@@ -234,15 +254,35 @@ for (const locale of ['en-PK', 'ur-PK'] as Locale[]) {
       await settle(page, 400);
       await shot(page, `f09-needs-information-dialog-${w}-${l}`, false);
       await page.keyboard.press('Escape');
-      // Manual verification of 6,000 (no bank line yet): reason required, 800 credit.
+      // 6,000 not on any statement yet: checked and waiting for the bank line (nothing settled).
       const id = await sendProof(page, '6000', 'A101 ALL DUES', 'kamran-6000.jpg');
       await office(page, `/backoffice/fin/transfer-proof-review?record=${id}`, 'match-choice');
-      await page.getByTestId('match-manual').click();
+      await page.getByTestId('match-await').click();
       await page
-        .getByTestId('manual-reason')
-        .fill('Seen on the bank portal; today’s statement is not imported yet.');
-      await settle(page, 900);
-      await shot(page, `f10-manual-verification-6000-leaves-800-credit-${w}-${l}`);
+        .getByTestId('await-note')
+        .fill('Resident says it was sent today; not on the imported statements yet.');
+      await settle(page, 600);
+      await shot(page, `f10-no-bank-line-wait-for-it-${w}-${l}`);
+      await page.getByTestId('review-await').click();
+      await page.getByTestId('awaiting-banner').waitFor();
+      await settle(page);
+      await shot(page, `f10b-awaiting-bank-evidence-nothing-settled-${w}-${l}`);
+      await portal(page, `/customer/portal/submissions/${id}`, 'dues-submission');
+      await shot(page, `f10c-resident-still-pending-${w}-${l}`);
+      // The statement of the association's account, chosen at import, brings the line.
+      await office(page, '/backoffice/bank/bank-transaction-feed', 'bank-feed', 300);
+      await page.getByTestId('bank-import-open').click();
+      const importer = page.getByTestId('bank-import');
+      await importer.getByTestId('bank-import-account').getByRole('button').click();
+      await page.getByRole('option', { name: /3456 7890/ }).click();
+      await settle(page, 300);
+      await shot(page, `f19-bank-import-account-chosen-${w}-${l}`, false);
+      await importer.getByTestId('bank-import-sample-3').click();
+      await importer.getByTestId('bank-import-matchable').waitFor();
+      await settle(page, 400);
+      await shot(page, `f20-import-finds-waiting-proof-${w}-${l}`, false);
+      await office(page, `/backoffice/fin/transfer-proof-review?record=${id}`, 'match-choice', 900);
+      await shot(page, `f21-line-arrived-verify-6000-leaves-800-credit-${w}-${l}`);
       await page.getByTestId('review-verify').click();
       await page.getByTestId('verified-banner').waitFor();
       const paid = await societyApi<{ items: Array<{ id: string }> }>(
@@ -285,6 +325,57 @@ for (const locale of ['en-PK', 'ur-PK'] as Locale[]) {
         await office(page, path, ready);
         await shot(page, `${n}-${name}-${w}-${l}`, ready !== 'office-drawer');
       }
+      // A partly matching transfer: an exception, decided by a second person.
+      await office(page, INBOX, 'proof-inbox', 200);
+      await page.locator('[data-testid="proof-row"][data-flat="B-405"]').click();
+      await page.locator('[data-testid="match-candidate"][data-txn="DEMO-TXN-26102518"]').click();
+      await page
+        .getByTestId('exception-reason')
+        .fill('Komal says her husband Imran sent it from his account; confirmed by phone.');
+      await settle(page, 600);
+      await shot(page, `f22-partial-match-needs-exception-${w}-${l}`);
+      await page.getByTestId('review-exception').click();
+      await page.getByTestId('exception-card').waitFor();
+      await settle(page);
+      await shot(page, `f23-exception-waiting-requester-cannot-approve-${w}-${l}`);
+      await become(page, 'backoffice', 'alnoor_treasurer');
+      await office(page, `${INBOX}?state=exception_pending`, 'proof-inbox', 200);
+      await page.locator('[data-testid="proof-row"][data-flat="B-405"]').click();
+      await page.getByTestId('review-exception-approve').waitFor();
+      await settle(page);
+      await shot(page, `f24-treasurer-approves-exception-${w}-${l}`);
+      await page.getByTestId('review-exception-approve').click();
+      await page.getByTestId('verified-banner').waitFor();
+      await page.getByTestId('open-payment').click();
+      await page.getByTestId('payment-exception').waitFor();
+      await settle(page);
+      await shot(page, `f25-payment-360-approved-exception-${w}-${l}`);
+      // Money on the retired committee account never settles a proof.
+      await become(page, 'backoffice', 'alnoor_accounts');
+      await office(page, '/backoffice/bank/bank-transaction-feed', 'bank-feed', 300);
+      await page.getByTestId('bank-import-open').click();
+      await page
+        .getByTestId('bank-import')
+        .getByTestId('bank-import-account')
+        .getByRole('button')
+        .click();
+      await page.getByRole('option', { name: /8765 4321/ }).click();
+      await page.getByTestId('bank-import').getByTestId('bank-import-sample-4').click();
+      await page.getByTestId('bank-import-result').waitFor();
+      const wrong = await sendProofOn(
+        page,
+        '5200',
+        'ANR-A101-2026-11',
+        'kamran-old-account.jpg',
+        '2026-10-20',
+      );
+      await office(
+        page,
+        `/backoffice/fin/transfer-proof-review?record=${wrong}`,
+        'match-choice',
+        900,
+      );
+      await shot(page, `f26-retired-account-line-cannot-settle-${w}-${l}`);
       await page.context().close();
     });
 
@@ -372,6 +463,160 @@ for (const locale of ['en-PK', 'ur-PK'] as Locale[]) {
     }
   });
 }
+
+for (const locale of ['en-PK', 'ur-PK'] as Locale[]) {
+  const l = lang(locale);
+  // Live viewport (what the person sees on the phone), not full-page captures: at 150 % and 200 %.
+  test(`5. phone viewport at 150 % and 200 % ${l}`, async ({ browser }) => {
+    test.setTimeout(180_000);
+    mkdirSync(DIR, { recursive: true });
+    const page = await start(browser, 'phone', { locale, textScale: 1.5 });
+    const view = (name: string) => shot(page, `v${name}-390-${l}`, false);
+    for (const scale of ['150', '200'] as const) {
+      if (scale === '200') {
+        await portal(
+          page,
+          '/customer/portal/accessibility-preferences#text-size',
+          'text-size-settings',
+        );
+        await page.getByTestId('text-size-200').click();
+        await settle(page, 400);
+      }
+      await portal(page, HOME, 'dues-home');
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await settle(page, 300);
+      await view(`01-home-top-${scale}`);
+      await page.evaluate(() =>
+        window.scrollTo(0, Math.round(document.documentElement.scrollHeight * 0.45)),
+      );
+      await settle(page, 400);
+      await view(`02-home-scrolled-header-over-content-${scale}`);
+      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+      await settle(page, 400);
+      await view(`03-home-end-clear-of-the-bar-${scale}`);
+      // Keyboard: the focused control stops clear of the header and the bar.
+      await portal(page, PAY, 'proof-form');
+      await page.getByTestId('proof-send').focus();
+      await settle(page, 300);
+      await view(`04-pay-focus-on-send-${scale}`);
+      // Typing: the bar steps aside.
+      await page.getByTestId('proof-amount').focus();
+      await settle(page, 400);
+      await view(`05-pay-typing-bar-steps-aside-${scale}`);
+    }
+    // The keyboard open (a short viewport) while typing at 200 %.
+    await page.setViewportSize({ width: 390, height: 420 });
+    await portal(page, PAY, 'proof-form');
+    await page.getByTestId('proof-reference').focus();
+    await settle(page, 400);
+    await view('06-pay-keyboard-open-200');
+    await page.context().close();
+  });
+}
+
+test('video: no bank line yet, the statement arrives, then a partial match approved by a second person (desktop, English)', async ({
+  browser,
+}) => {
+  test.setTimeout(300_000);
+  const page = await start(browser, 'desktop', {}, RECORD(VIEWPORTS.desktop));
+  const pause = (ms = 1000) => page.waitForTimeout(ms);
+  const id = await sendProof(page, '6000', 'A101 ALL DUES', 'kamran-6000.jpg');
+  await office(page, `/backoffice/fin/transfer-proof-review?record=${id}`, 'match-choice', 1800);
+  await page.getByTestId('match-await').click();
+  await pause(800);
+  await page
+    .getByTestId('await-note')
+    .fill('Resident says it was sent today; not on the imported statements yet.');
+  await pause(800);
+  await page.getByTestId('review-await').click();
+  await page.getByTestId('awaiting-banner').waitFor();
+  await pause(2200);
+  await office(page, '/backoffice/bank/bank-transaction-feed', 'bank-feed', 1200);
+  await page.getByTestId('bank-import-open').click();
+  await pause(800);
+  await page
+    .getByTestId('bank-import')
+    .getByTestId('bank-import-account')
+    .getByRole('button')
+    .click();
+  await pause(800);
+  await page.getByRole('option', { name: /3456 7890/ }).click();
+  await pause(800);
+  await page.getByTestId('bank-import').getByTestId('bank-import-sample-3').click();
+  await page.getByTestId('bank-import-matchable').waitFor();
+  await pause(2000);
+  await page.getByTestId('bank-import-matchable').getByRole('link').first().click();
+  await page.getByTestId('match-choice').waitFor();
+  await pause(2000);
+  await page.getByTestId('review-verify').click();
+  await page.getByTestId('verified-banner').waitFor();
+  await pause(2000);
+  await office(page, INBOX, 'proof-inbox', 800);
+  await page.locator('[data-testid="proof-row"][data-flat="B-405"]').click();
+  await page.getByTestId('match-choice').waitFor();
+  await pause(1200);
+  await page.locator('[data-testid="match-candidate"][data-txn="DEMO-TXN-26102518"]').click();
+  await pause(1500);
+  await page
+    .getByTestId('exception-reason')
+    .fill('Komal says her husband Imran sent it from his account; confirmed by phone.');
+  await pause(800);
+  await page.getByTestId('review-exception').click();
+  await page.getByTestId('exception-card').waitFor();
+  await pause(2200);
+  await become(page, 'backoffice', 'alnoor_treasurer');
+  await office(page, '/backoffice', 'society-dashboard', 1800);
+  await page.locator('[data-testid="approval-item"][data-kind="payment_exception"]').click();
+  await page.getByTestId('review-exception-approve').waitFor();
+  await pause(2000);
+  await page.getByTestId('review-exception-approve').click();
+  await page.getByTestId('verified-banner').waitFor();
+  await pause(2500);
+  await keepVideo(page, 'bank-evidence-and-exception-approval-desktop-en');
+});
+
+test('video: phone at 200 % in Urdu: header, scrolling, keyboard focus and typing (live viewport)', async ({
+  browser,
+}) => {
+  test.setTimeout(240_000);
+  const page = await start(
+    browser,
+    'phone',
+    { locale: 'ur-PK', textScale: 2 },
+    RECORD(VIEWPORTS.phone),
+  );
+  const pause = (ms = 1000) => page.waitForTimeout(ms);
+  await portal(page, HOME, 'dues-home', 1500);
+  for (let i = 1; i <= 4; i++) {
+    await page.evaluate(
+      (f) =>
+        window.scrollTo({
+          top: Math.round(document.documentElement.scrollHeight * f),
+          behavior: 'smooth',
+        }),
+      i / 4,
+    );
+    await pause(1100);
+  }
+  await portal(page, PAY, 'proof-form', 1200);
+  for (let i = 0; i < 8; i++) {
+    await page.keyboard.press('Tab');
+    await pause(500);
+  }
+  await page.getByTestId('proof-amount').focus();
+  await pause(1500);
+  await page.keyboard.type('5200');
+  await pause(1000);
+  await page.getByTestId('proof-file-pick').focus();
+  await pause(1500);
+  await page
+    .getByTestId('portal-bottom-nav')
+    .locator('a[href="/customer/portal/statements"]')
+    .click();
+  await page.getByTestId('dues-statement').waitFor();
+  await pause(2000);
+  await keepVideo(page, 'phone-200-ur-header-scroll-focus-typing');
+});
 
 test('video: resident pays A-101 on a phone, office verifies, receipt comes back (phone, English)', async ({
   browser,

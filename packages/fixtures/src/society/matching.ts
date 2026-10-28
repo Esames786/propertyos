@@ -1,12 +1,18 @@
-import type { BankLine, MatchCandidate, SubmissionRow } from '@repo/contracts';
+import type { BankLine, MatchCandidate, MatchReason, SubmissionRow } from '@repo/contracts';
+import { MATCH_REASONS } from '@repo/contracts';
 import { toPaisa } from '../portal';
 
 /**
- * Bank matching (A4 §6, AC-11). A bank transaction is identified by the bank's own transaction id:
- * one that already settles a payment is never matched again, whatever is uploaded. The reference
- * text is only a hint: two genuine transfers may carry the same words ("MAINTENANCE NOV"), so a
- * shared reference never makes a transfer a duplicate. Candidates are scored on amount, date,
- * reference and name, and every reason is shown to the person deciding.
+ * Bank matching (A4 §6, AC-11; C.2 review). A bank transaction is identified by its receiving
+ * account, the statement's source and the bank's own transaction id: one that already settles a
+ * payment is never matched again, whatever is uploaded, and the same id on another account is
+ * another transaction. The reference text is only a hint: two genuine transfers may carry the same
+ * words ("MAINTENANCE NOV"), so a shared reference never makes a transfer a duplicate.
+ *
+ * Candidates are compared on amount, date, reference and name, and every reason is shown. Only a
+ * full match (all four) on the issuing entity's account in force on the value date can be verified
+ * directly; a partial match needs an exception approved by a second person; a line that reached
+ * another account or entity can never settle the proof.
  */
 
 /** Days a transfer may sit before (or after) the date the resident gives: weekends, cut-off times. */
@@ -24,15 +30,33 @@ export interface Claim {
   payerName: string;
 }
 
+/**
+ * Where the money had to arrive: the issuing legal entity, and its account in force on a date (the
+ * verified beneficiary residents were shown then). Without it every line counts as on the right account.
+ */
+export interface DestinationScope {
+  legalEntityId: string;
+  accountOn: (date: string) => string | null;
+}
+
+/** Transaction identity: receiving account, source, the bank's id. */
+export const lineKey = (l: Pick<BankLine, 'source' | 'beneficiaryId' | 'bankTxnId'>) => `${l.source}|${l.beneficiaryId}|${l.bankTxnId}`;
+
+export function destinationOf(line: BankLine, scope?: DestinationScope): MatchCandidate['destination'] {
+  if (!scope) return 'ok';
+  if (line.legalEntityId !== scope.legalEntityId) return 'wrong_entity';
+  return scope.accountOn(line.valueDate) === line.beneficiaryId ? 'ok' : 'wrong_account';
+}
+
 /** Scored candidates for a claimed transfer, best first. Excluded lines are never proposed. */
-export function candidatesFor(claim: Claim, lines: readonly BankLine[]): MatchCandidate[] {
+export function candidatesFor(claim: Claim, lines: readonly BankLine[], scope?: DestinationScope): MatchCandidate[] {
   const amount = toPaisa(claim.amount);
   const ref = normRef(claim.bankReference);
   const who = nameTokens(claim.payerName);
   const out: MatchCandidate[] = [];
   for (const line of lines) {
     if (line.state === 'excluded') continue;
-    const reasons: MatchCandidate['reasons'] = [];
+    const reasons: MatchReason[] = [];
     let score = 0;
     if (toPaisa(line.amount.amount) === amount) {
       reasons.push('amount');
@@ -57,11 +81,19 @@ export function candidatesFor(claim: Claim, lines: readonly BankLine[]): MatchCa
     }
     // A candidate needs the amount or the reference: a date alone proposes nothing.
     if (!reasons.includes('amount') && !reasons.includes('reference')) continue;
-    const sharing = lineRef.length >= 4 ? lines.filter((o) => o.id !== line.id && normRef(o.reference) === lineRef).map((o) => o.id) : [];
+    const missing = MATCH_REASONS.filter((r) => !reasons.includes(r));
+    const destination = destinationOf(line, scope);
+    // The right account first: a line elsewhere is listed (so it is understood) but never preferred.
+    if (destination !== 'ok') score -= 100;
+    const sharing = lineRefSharing(line, lines);
     out.push({
       bankLine: line,
       score,
       reasons,
+      missing,
+      strength: missing.length ? 'partial' : 'full',
+      destination,
+      ...(line.heldFor ? { heldFor: line.heldFor } : {}),
       ...(line.state === 'matched' && line.paymentId ? { alreadyMatched: { paymentId: line.paymentId, paymentRef: line.paymentRef ?? '' } } : {}),
       ...(sharing.length ? { sharesReferenceWith: sharing } : {}),
     });
@@ -69,11 +101,19 @@ export function candidatesFor(claim: Claim, lines: readonly BankLine[]): MatchCa
   return out.sort((a, b) => b.score - a.score || a.bankLine.valueDate.localeCompare(b.bankLine.valueDate) || a.bankLine.bankTxnId.localeCompare(b.bankLine.bankTxnId));
 }
 
+function lineRefSharing(line: BankLine, lines: readonly BankLine[]): string[] {
+  const ref = normRef(line.reference);
+  return ref.length >= 4 ? lines.filter((o) => o.id !== line.id && normRef(o.reference) === ref).map((o) => o.id) : [];
+}
+
+/** A line this proof may use now: free, not held for another proof, on the right account. */
+export const usable = (c: MatchCandidate, submissionId?: string) =>
+  !c.alreadyMatched && c.destination === 'ok' && (!c.heldFor || c.heldFor.submissionId === submissionId);
+
 /** The inbox signal for a submission: an exact free match, a possible one, only taken ones, or none. */
 export function matchSignal(candidates: readonly MatchCandidate[]): SubmissionRow['match'] {
-  const free = candidates.filter((c) => !c.alreadyMatched);
-  const exact = free.find((c) => c.reasons.includes('amount') && c.reasons.includes('date') && (c.reasons.includes('reference') || c.reasons.includes('name')));
-  if (exact) return 'exact';
+  const free = candidates.filter((c) => usable(c));
+  if (free.some((c) => c.strength === 'full')) return 'exact';
   // The same amount with the same reference or name already settles a payment: most likely sent again.
   if (candidates.some((c) => c.alreadyMatched && c.reasons.includes('amount') && (c.reasons.includes('reference') || c.reasons.includes('name')))) return 'already_matched';
   // Many residents pay the same amount in the same week: an amount needs a reference or name beside it.
@@ -81,13 +121,14 @@ export function matchSignal(candidates: readonly MatchCandidate[]): SubmissionRo
   return 'none';
 }
 
-/** Lines of a statement new to the feed (the bank's id decides): re-importing creates nothing. */
+/** Lines of a statement new to the feed (account, source and the bank's id decide): re-importing creates nothing. */
 export function newLines(existing: readonly BankLine[], incoming: readonly BankLine[]): BankLine[] {
-  const known = new Set(existing.map((l) => l.bankTxnId));
+  const known = new Set(existing.map(lineKey));
   const seen = new Set<string>();
   return incoming.filter((l) => {
-    if (known.has(l.bankTxnId) || seen.has(l.bankTxnId)) return false;
-    seen.add(l.bankTxnId);
+    const key = lineKey(l);
+    if (known.has(key) || seen.has(key)) return false;
+    seen.add(key);
     return true;
   });
 }

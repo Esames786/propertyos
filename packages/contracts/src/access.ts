@@ -293,6 +293,7 @@ export const PERMISSION_MODULE: Partial<Record<Permission, ModuleKey>> = {
   'payment_methods.manage': 'receivables',
   'billing_policy.manage': 'dues',
   'liability.approve': 'receivables',
+  'payment_exception.approve': 'receivables',
 };
 
 /** Something the UI offers (a menu item, action, tour step, link): its module and permission. */

@@ -1,4 +1,4 @@
-import type { CustomerInvoice, LiabilityChange } from '@repo/contracts';
+import type { BankLine, CustomerInvoice, LiabilityChange } from '@repo/contracts';
 import { describe, expect, it } from 'vitest';
 import { fromPaisa, toPaisa } from '../portal';
 import { flatIdOf, payerOn } from './model';
@@ -6,10 +6,10 @@ import { allocateOldestFirst, checkAllocation, linesOf, openLinesFor } from './a
 import { bucketOf } from './aging';
 import { groupKey, totalsOf } from './billing-run';
 import { recordPayment } from './collections';
-import { collectionsSummary, reconciliation, submissionRow } from './collections-read';
-import { candidatesFor, matchSignal, newLines } from './matching';
+import { candidatesOf, collectionsSummary, reconciliation, scopeOf, submissionRow } from './collections-read';
+import { candidatesFor, destinationOf, lineKey, matchSignal, newLines } from './matching';
 import { defaultNumbering, formatRef, patternProblem } from './numbering';
-import { collectingSociety, sampleBankStatements, statementFrom } from './scenario';
+import { collectingSociety, declaredAccount, sampleBankStatements, statementFrom } from './scenario';
 import { beneficiaryOn, nextRef, readySociety, viewOf, withPayerChanges, type SocietyState } from './state';
 import { statementOf } from './statement';
 import vectors from './collections.vectors.json';
@@ -25,7 +25,7 @@ function accountOf(state: SocietyState, code: string) {
   return { view, flat, account, payer: { partyId: payer.partyId, name: payer.partyName } };
 }
 
-/** Pays `amount` for a flat's payer exactly as verification does (oldest first). */
+/** Pays `amount` for a flat's payer with the allocation verification uses (oldest first). */
 function pay(state: SocietyState, code: string, amount: string) {
   const { view, account, payer } = accountOf(state, code);
   const open = openLinesFor(linesOf(view.invoices), { partyId: payer.partyId, legalEntityId: 'le_alnoor', billingAccountId: account.id });
@@ -42,8 +42,7 @@ function pay(state: SocietyState, code: string, amount: string) {
     allocations,
     unapplied,
     source: { kind: 'office' },
-    verification: 'manual',
-    manualReason: 'Golden vector test',
+    verification: 'counter',
   });
 }
 
@@ -213,11 +212,80 @@ describe('bank matching and duplicate prevention (AC-11)', () => {
   it('importing a statement again, or an overlapping one, adds only transfers the feed has not seen (by bank id)', () => {
     const state = collectingSociety();
     const [first] = sampleBankStatements();
-    const again = statementFrom(state, first!, `${TODAY}T12:00:00Z`, staff).lines;
+    const main = state.beneficiaries.find((b) => b.id === 'ben_anr_main')!;
+    const again = statementFrom(state, first!, main, `${TODAY}T12:00:00Z`, staff).lines;
     expect(newLines(state.bank.lines, again)).toEqual([]);
     const extra = { ...again[0]!, id: 'bnl_x', bankTxnId: 'DEMO-TXN-NEW' };
     expect(newLines(state.bank.lines, [...again, extra, { ...extra, id: 'bnl_y' }]).map((l) => l.bankTxnId)).toEqual(['DEMO-TXN-NEW']);
   });
+});
+
+describe('bank lines belong to an account and an entity (C.2 review)', () => {
+  const lineOn = (account: string, entity: string, valueDate: string): BankLine => ({
+    id: 'bnl_v',
+    statementId: 'bst_v',
+    beneficiaryId: account,
+    legalEntityId: entity,
+    accountIban: 'PK00DEMO0000000000000000',
+    source: 'demo_bank_csv',
+    bankTxnId: 'DEMO-TXN-V',
+    valueDate,
+    amount: { amount: '5200.00', currency: 'PKR' },
+    narration: '',
+    reference: '',
+    counterpartyName: '',
+    counterpartyAccount: '',
+    state: 'unmatched',
+  });
+
+  for (const g of vectors.bankDestination) {
+    it(g.case, () => {
+      const state = collectingSociety();
+      expect(destinationOf(lineOn(g.account, g.entity, g.valueDate), scopeOf(state, 'le_alnoor'))).toBe(g.destination);
+    });
+  }
+
+  it('statements are bound to the chosen account; every sample says which account it is for', () => {
+    const state = collectingSociety();
+    expect(state.bank.statements.every((x) => x.beneficiaryId === 'ben_anr_main' && x.legalEntityId === 'le_alnoor' && x.source === 'demo_bank_csv')).toBe(true);
+    expect(state.bank.lines.every((l) => l.beneficiaryId === 'ben_anr_main' && l.accountIban === 'PK36DEMO0000001234567890')).toBe(true);
+    const samples = sampleBankStatements();
+    expect(samples.map((x) => declaredAccount(x.content))).toEqual(samples.map((x) => x.iban));
+    expect(samples.map((x) => x.iban)).toEqual(['PK36DEMO0000001234567890', 'PK36DEMO0000001234567890', 'PK36DEMO0000001234567890', 'PK70DEMO0000000987654321']);
+  });
+
+  it(vectors.bankIdentity.description, () => {
+    const state = collectingSociety();
+    const committee = state.beneficiaries.find((b) => b.id === 'ben_anr_committee')!;
+    const main = state.beneficiaries.find((b) => b.id === 'ben_anr_main')!;
+    const old = statementFrom(state, sampleBankStatements()[3]!, committee, `${TODAY}T12:00:00Z`, staff).lines;
+    // The same bank id as a line already on the association's account: another account, another transaction.
+    const twin = state.bank.lines.find((l) => l.bankTxnId === vectors.bankIdentity.sameIdOtherAccount.txn)!;
+    expect(old[0]!.bankTxnId).toBe(twin.bankTxnId);
+    expect(lineKey(old[0]!)).not.toBe(lineKey(twin));
+    expect(newLines(state.bank.lines, old)).toHaveLength(1);
+    // The same account, source and id again is the same transaction.
+    const same = statementFrom(state, sampleBankStatements()[0]!, main, `${TODAY}T12:00:00Z`, staff).lines;
+    expect(newLines(state.bank.lines, same)).toHaveLength(0);
+    // And a line of the retired account never settles A-101's proof, however well it matches.
+    state.bank.lines.push(...newLines(state.bank.lines, old));
+    const kamran = accountOf(state, 'A-101');
+    const claim = { amount: '5200.00', transferDate: '2026-10-20', bankReference: 'ANR-A101-2026-11', payerName: kamran.payer.name };
+    const onOld = candidatesFor(claim, state.bank.lines, scopeOf(state, 'le_alnoor')).find((c) => c.bankLine.beneficiaryId === 'ben_anr_committee')!;
+    expect(onOld).toMatchObject({ strength: 'full', destination: 'wrong_account' });
+    expect(matchSignal([onOld])).toBe('none');
+  });
+
+  for (const g of vectors.matchStrength) {
+    it(`match strength: ${g.case}`, () => {
+      const state = collectingSociety();
+      const sub = g.claim ? undefined : state.submissions.find((x) => x.flats[0] === g.flat && x.state === 'submitted');
+      const kamran = accountOf(state, g.flat);
+      const cands = sub ? candidatesOf(state, sub) : candidatesFor({ ...g.claim!, payerName: kamran.payer.name }, state.bank.lines, scopeOf(state, 'le_alnoor'));
+      const c = cands.find((x) => x.bankLine.bankTxnId === g.txn)!;
+      expect(c).toMatchObject({ strength: g.strength, missing: g.missing, destination: 'ok' });
+    });
+  }
 });
 
 describe('document numbering is configurable per issuing entity (owner decision, C.1 review)', () => {

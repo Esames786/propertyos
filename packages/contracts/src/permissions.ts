@@ -51,6 +51,8 @@ export const PERMISSIONS = [
   'payment_methods.manage',
   'billing_policy.manage',
   'liability.approve',
+  // Settling a proof against a partly matching bank line: approved by someone other than the requester.
+  'payment_exception.approve',
   // Platform HQ (central plane, V3.1). Operators are a separate principal type from tenant staff.
   'platform.dashboard.view',
   'platform.tenants.view',

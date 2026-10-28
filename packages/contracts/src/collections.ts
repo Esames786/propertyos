@@ -4,9 +4,14 @@ import type { Money } from './money';
 /**
  * Resident collections (Gate C.2, A4 §5–7 and A6 §5.4). Tenant money only: the platform's own
  * account never appears here (I-15). Invariants the mock server enforces:
- * - a proof is evidence, never a payment: only verification creates a payment and a receipt (I-9);
- * - a bank transaction settles at most one payment (identity = the bank's transaction id, never the
- *   reference text two different transfers may share);
+ * - a proof is evidence, never a payment: only verification against independent settlement evidence
+ *   creates a payment and a receipt (I-9). Evidence is a line of an imported statement of the
+ *   association's verified account in force on the value date, or cash confirmed at the counter. A
+ *   reviewer's note is not evidence: without a line the proof waits ("awaiting bank evidence");
+ * - a line that matches only in part (amount, date, reference or name) settles a payment only
+ *   through an exception approved by someone other than the requester;
+ * - a bank transaction settles at most one payment (identity = receiving account, statement source
+ *   and the bank's transaction id; never the reference text two different transfers may share);
  * - an allocation settles only lines the paying party is liable for, of the same legal entity
  *   (per-unit liability; cross-payer and cross-entity allocations are refused, not warned);
  * - residents are shown only the verified beneficiary in force for the issuing legal entity.
@@ -19,8 +24,17 @@ export type CollectionMethod = (typeof COLLECTION_METHODS)[number];
 // Payment submissions (resident proof of a transfer; FIN-008/009, PORTAL-008/028)
 // ---------------------------------------------------------------------------------------------
 
-export const SUBMISSION_STATES = ['submitted', 'under_review', 'needs_information', 'verified', 'rejected'] as const;
+/**
+ * - awaiting_bank_evidence: reviewed, but no statement line shows the money yet. Not settled, not
+ *   allocated, no receipt; verified when the line arrives.
+ * - exception_pending: a partly matching line was proposed with a reason; waiting for a second person.
+ */
+export const SUBMISSION_STATES = ['submitted', 'under_review', 'awaiting_bank_evidence', 'exception_pending', 'needs_information', 'verified', 'rejected'] as const;
 export type SubmissionState = (typeof SUBMISSION_STATES)[number];
+
+/** What a statement line is compared on; a full match has all four. */
+export const MATCH_REASONS = ['amount', 'date', 'reference', 'name'] as const;
+export type MatchReason = (typeof MATCH_REASONS)[number];
 
 /** The uploaded file as the prototype keeps it: its description only (no file is stored). */
 export interface ProofFile {
@@ -52,9 +66,34 @@ export interface SubmissionEvent {
   by: string;
   byName: string;
   byKind: 'resident' | 'staff';
-  action: 'submitted' | 'resubmitted' | 'review_started' | 'information_requested' | 'verified' | 'rejected';
-  /** As entered (a request for information, a rejection reason, a manual-verification reason). */
+  action:
+    | 'submitted'
+    | 'resubmitted'
+    | 'review_started'
+    | 'awaiting_bank_evidence'
+    | 'exception_requested'
+    | 'exception_approved'
+    | 'exception_rejected'
+    | 'information_requested'
+    | 'verified'
+    | 'rejected';
+  /** As entered (a request for information, a rejection reason, a review note, an exception reason). */
   note?: string;
+}
+
+/** A partly matching statement line proposed for a proof, decided by someone other than the requester. */
+export interface SettlementException {
+  bankLineId: string;
+  bankTxnId: string;
+  /** What the line does not match (amount, date, reference, name). */
+  missing: MatchReason[];
+  reason: string;
+  /** An edited allocation and its reason, when the requester changed the rule's proposal. */
+  allocations?: Array<{ lineId: string; amount: string }>;
+  overrideReason?: string;
+  requestedBy: string;
+  requestedByName: string;
+  requestedAt: string;
 }
 
 export interface PaymentSubmission {
@@ -76,6 +115,12 @@ export interface PaymentSubmission {
   history: SubmissionEvent[];
   /** Staff reviewing it now (a second reviewer sees who). */
   reviewer?: { principalId: string; name: string };
+  /** The association's account the resident was shown when sending it (in force on the transfer date). */
+  paidTo?: { beneficiaryId: string; iban: string };
+  /** Reviewed, waiting for the bank line: who decided and the note (never a settlement). */
+  awaiting?: { by: string; byName: string; at: string; note: string };
+  /** A partly matching line proposed for approval (state exception_pending). */
+  exception?: SettlementException;
   /** Shown to the resident: what finance needs (needs information) or why it was rejected. */
   request?: string;
   rejectionReason?: string;
@@ -116,7 +161,18 @@ export interface SubmissionQueue {
 export interface MatchCandidate {
   bankLine: BankLine;
   score: number;
-  reasons: Array<'amount' | 'date' | 'reference' | 'name'>;
+  reasons: MatchReason[];
+  /** What the line does not match; empty for a full match. */
+  missing: MatchReason[];
+  /** 'full': verify directly. 'partial': only through an exception approved by someone else. */
+  strength: 'full' | 'partial';
+  /**
+   * Whether the money reached the issuing entity's account in force on the value date. Anything
+   * else ('wrong_account': another or a retired account; 'wrong_entity') can never settle the proof.
+   */
+  destination: 'ok' | 'wrong_account' | 'wrong_entity';
+  /** Held for an exception waiting on another proof. */
+  heldFor?: { submissionId: string; submissionRef: string };
   /** Already settles another payment: proposing it is refused (never a second settlement). */
   alreadyMatched?: { paymentId: string; paymentRef: string };
   /** Another bank transaction has the same reference text: shown so it is not mistaken for a duplicate. */
@@ -161,10 +217,17 @@ export interface SubmissionDetail {
   beneficiary: Beneficiary | null;
   actions: {
     startReview: boolean;
+    /** Verify against a fully matching line (or, after approval, the exception's line). */
     verify: boolean;
+    /** Mark reviewed and wait for the bank line (nothing is settled). */
+    awaitBank: boolean;
+    /** Propose a partly matching line for approval by someone else. */
+    requestException: boolean;
+    /** Approve or reject the pending exception (a second person holding payment_exception.approve). */
+    decideException: boolean;
     requestInformation: boolean;
     reject: boolean;
-    reason?: 'permission_missing' | 'invalid_state' | 'tenant_suspended';
+    reason?: 'permission_missing' | 'invalid_state' | 'tenant_suspended' | 'maker_checker_required';
   };
 }
 
@@ -172,12 +235,19 @@ export interface SubmissionDetail {
 // Bank feed and reconciliation (BANK-003/004)
 // ---------------------------------------------------------------------------------------------
 
+/** Where a statement came from (provider or channel); part of a transaction's identity. */
+export type BankStatementSource = 'demo_bank_csv';
+
 export interface BankStatement {
   id: string;
   fileName: string;
   /** Fingerprint of the file: importing the same statement again creates nothing. */
   fileHash: string;
+  /** The association's account the statement belongs to, chosen at import (never assumed). */
+  beneficiaryId: string;
+  legalEntityId: string;
   iban: string;
+  source: BankStatementSource;
   from: string;
   to: string;
   lines: number;
@@ -190,7 +260,15 @@ export interface BankStatement {
 export interface BankLine {
   id: string;
   statementId: string;
-  /** The bank's own id for the transaction: unique per account, the identity used against duplicates. */
+  /** The receiving account (from the statement): the money reached this account, of this entity. */
+  beneficiaryId: string;
+  legalEntityId: string;
+  accountIban: string;
+  source: BankStatementSource;
+  /**
+   * The bank's own id for the transaction. Identity against duplicates is (account, source, id):
+   * the same id on another account is another transaction.
+   */
   bankTxnId: string;
   valueDate: string;
   amount: Money;
@@ -203,12 +281,16 @@ export interface BankLine {
   state: 'unmatched' | 'matched' | 'excluded';
   paymentId?: string;
   paymentRef?: string;
+  /** Held while an exception for one proof waits for approval (no other proof may use it). */
+  heldFor?: { submissionId: string; submissionRef: string };
   /** Why it was set aside (not a resident payment), as entered. */
   excludedReason?: string;
 }
 
 export interface BankFeed {
   statements: BankStatement[];
+  /** The entity's verified accounts (in force, waiting out cooling-off, retired): a statement is imported for one of them. */
+  accounts: Beneficiary[];
   lines: BankLine[];
   counts: { all: number; unmatched: number; matched: number; excluded: number; unidentified: number };
 }
@@ -221,8 +303,9 @@ export interface ReconciliationSummary {
   /** Unmatched lines with no submission or account they could belong to. */
   unidentified: { amount: Money; count: number };
   excluded: { amount: Money; count: number };
-  /** Verified without a bank line (manual verification, office cash): to be found on a later statement. */
+  /** Proofs reviewed and waiting for their bank line (nothing settled yet). */
   awaitingBankLine: { amount: Money; count: number };
+  awaitingProofs: Array<{ id: string; ref: string; amount: Money; payerName: string; flats: string[]; transferDate: string; reviewedBy: string }>;
   lines: Array<BankLine & { suggestion?: { kind: 'submission' | 'account'; id: string; label: string; href: string } }>;
   payments: Array<{ id: string; ref: string; amount: Money; method: CollectionMethod; verification: CollectionPayment['verification']; payerName: string; accountNo: string; receivedOn: string; bankLineId?: string }>;
 }
@@ -259,9 +342,13 @@ export interface CollectionPayment {
   amount: Money;
   receivedOn: string;
   source: { kind: 'submission'; submissionId: string; submissionRef: string } | { kind: 'office'; note?: string };
-  /** How the money was confirmed: a matched bank line, by hand with a reason, or at the counter. */
-  verification: 'bank_matched' | 'manual' | 'counter';
-  manualReason?: string;
+  /**
+   * How the money was confirmed: a fully matching statement line, a partly matching line through an
+   * approved exception, or cash at the counter. There is no settlement on a reviewer's word alone.
+   */
+  verification: 'bank_matched' | 'exception_approved' | 'counter';
+  /** The approved exception: why the partly matching line was accepted, and by whom. */
+  exception?: { missing: MatchReason[]; reason: string; requestedBy: string; requestedByName: string; approvedBy: string; approvedByName: string; approvedAt: string };
   bankLineId?: string;
   bankTxnId?: string;
   verifiedBy: string;
@@ -527,7 +614,7 @@ export interface CollectionsSummary {
   arrears: { amount: Money; accounts: number; href: string };
   credit: { amount: Money; accounts: number; href: string };
   aging: AgingReport['buckets'];
-  queue: { toReview: number; needsInformation: number; href: string; reviewHref: string };
+  queue: { toReview: number; needsInformation: number; awaitingBank: number; exceptions: number; href: string; reviewHref: string };
   bank: { unmatched: number; unidentified: number; lastImport?: string; href: string };
   byBuilding: Array<{ id: string; code: string; name: string; billed: Money; collected: Money; outstanding: Money; rate: number; href: string }>;
   recent: PaymentRow[];
@@ -661,7 +748,7 @@ export interface DuesPayInfo {
 export interface ResidentSubmissionDetail {
   submission: ResidentSubmissionSummary & { accountNo: string; flats: string[]; bankReference: string; versions: Array<Pick<SubmissionVersion, 'n' | 'submittedAt' | 'amount' | 'transferDate' | 'bankReference' | 'note'> & { fileName: string }> };
   /** The resident's own view of what happened (staff names are not shown). */
-  timeline: Array<{ at: string; step: 'submitted' | 'resubmitted' | 'under_review' | 'information_requested' | 'verified' | 'rejected'; note?: string }>;
+  timeline: Array<{ at: string; step: 'submitted' | 'resubmitted' | 'under_review' | 'awaiting_bank_evidence' | 'information_requested' | 'verified' | 'rejected'; note?: string }>;
   canResubmit: boolean;
 }
 

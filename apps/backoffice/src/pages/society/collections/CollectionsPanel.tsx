@@ -1,6 +1,6 @@
 import type { CollectionsSummary, Money as MoneyValue } from '@repo/contracts';
 import { cn, DirectionalIcon, Link, Money, StatTile, useT } from '@repo/ui';
-import { ArrowRight, Banknote, ChevronRight, FileCheck2, HandCoins, Hourglass, Landmark, PiggyBank, ReceiptText, TriangleAlert, Wallet } from 'lucide-react';
+import { ArrowRight, Banknote, CalendarClock, ChevronRight, FileCheck2, Hand, HandCoins, Hourglass, Landmark, PiggyBank, ReceiptText, TriangleAlert, Wallet } from 'lucide-react';
 import { useId } from 'react';
 import { COLLECTIONS, SOCIETY } from '../../../nav.config';
 import { useSocietyFormat } from '../kit';
@@ -150,6 +150,12 @@ function WorkQueue({ data, className }: { data: CollectionsSummary; className?: 
   const titleId = useId();
   const rows = [
     { id: 'review', icon: FileCheck2, label: t('collections:summary.queueReview', { count: data.queue.toReview }), href: data.queue.href, count: data.queue.toReview, urgent: data.queue.toReview > 0 },
+    ...(data.queue.exceptions > 0
+      ? [{ id: 'exceptions', icon: Hand, label: t('collections:summary.queueExceptions', { count: data.queue.exceptions }), href: COLLECTIONS.inbox('exception_pending'), count: data.queue.exceptions, urgent: true }]
+      : []),
+    ...(data.queue.awaitingBank > 0
+      ? [{ id: 'awaiting', icon: CalendarClock, label: t('collections:summary.queueAwaitingBank', { count: data.queue.awaitingBank }), href: COLLECTIONS.inbox('awaiting_bank_evidence'), count: data.queue.awaitingBank, urgent: false }]
+      : []),
     { id: 'info', icon: Hourglass, label: t('collections:summary.queueInfo', { count: data.queue.needsInformation }), href: COLLECTIONS.inbox('needs_information'), count: data.queue.needsInformation, urgent: false },
     ...(data.bank.href
       ? [

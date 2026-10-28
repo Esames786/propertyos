@@ -17,6 +17,7 @@ import {
   type SubmissionDetail,
   type SubmissionQueue,
   type SubmissionState,
+  type MatchReason,
   SUBMISSION_STATES,
 } from '@repo/contracts';
 import { can, matches, notFound, requires, type Handler, type HandlerContext } from '../handler-types';
@@ -25,19 +26,25 @@ import { fromPaisa, toPaisa } from '../portal';
 import { ALNOOR_ENTITY, DUE_DAY, ISSUE_DAY } from './alnoor';
 import { allocateOldestFirst, checkAllocation, isRuleAllocation, linesOf, openLinesFor, toAllocationLines, type Allocation, type OpenLine } from './allocate';
 import { applyCredit, recordPayment } from './collections';
-import { agingReport, collectionsSummary, creditRows, paymentRow, PENDING_STATES, possibleDuplicates, reconciliation, submissionRow } from './collections-read';
+import { agingReport, candidatesOf, collectionsSummary, creditRows, paymentRow, PENDING_STATES, possibleDuplicates, reconciliation, scopeOf, submissionRow } from './collections-read';
 import { actor, invalidField, log, problem, save, siteOf, society, stamp, type Society } from './handlers';
 import { fingerprint } from './import';
-import { candidatesFor, newLines } from './matching';
+import { destinationOf, newLines, usable } from './matching';
 import { DOCUMENT_KINDS, patternProblem } from './numbering';
-import { sampleBankStatements, statementFrom } from './scenario';
+import { declaredAccount, sampleBankStatements, statementFrom } from './scenario';
 import { beneficiaryOn } from './state';
 
 /**
  * Collections endpoints for staff (Gate C.2, A6 §5.4). Same fail-closed declarations as C.1. The
  * invariants are enforced here, not in forms:
- * - only verification (a free bank line, or a stated reason) or the office counter creates a payment;
- * - a bank transaction settles one payment (the bank's id decides; a shared reference never does);
+ * - only independent settlement evidence creates a payment: a statement line of the issuing entity's
+ *   account in force on the value date (fully matching; or partly matching through an exception a
+ *   second person approves), or cash at the counter. A reviewer's note never settles anything: the
+ *   proof waits for its bank line ("awaiting bank evidence"), not settled, allocated or receipted;
+ * - statements are bound to the verified account the officer chooses (a file of another account is
+ *   refused); a line that reached another account or entity never settles a proof;
+ * - a bank transaction settles one payment (account, source and the bank's id decide; a shared
+ *   reference never does);
  * - an allocation settles only the paying party's lines of the same entity and account; an edited
  *   allocation needs a reason; cross-payer and cross-entity allocations are refused;
  * - a new collection account needs a second person, then waits out the cooling-off period before
@@ -98,28 +105,74 @@ function allocationFor(ctx: HandlerContext, s: Society, payer: ReturnType<typeof
   return { allocations: checked.allocations, unapplied: checked.unapplied, edited, overrideReason: edited ? reason : undefined };
 }
 
+/** States a reviewer can still decide from (an exception waiting for approval is decided by someone else). */
+const WORKABLE: readonly SubmissionState[] = ['submitted', 'under_review', 'awaiting_bank_evidence'];
+
 function submissionDetail(ctx: HandlerContext, s: Society, sub: PaymentSubmission): SubmissionDetail {
   const open = openLinesFor(allLines(s), payerOf(sub));
   const amount = toPaisa(sub.current.amount.amount);
   const rule = allocateOldestFirst(amount, open);
   const reviewer = can(ctx, 'finance.evidence.review');
-  const openState = sub.state === 'submitted' || sub.state === 'under_review';
-  const reason = !reviewer ? ('permission_missing' as const) : !openState ? ('invalid_state' as const) : undefined;
+  const workable = WORKABLE.includes(sub.state);
+  const approver = can(ctx, 'payment_exception.approve');
+  const mine = sub.exception?.requestedBy === ctx.persona?.principalId;
+  const pending = sub.state === 'exception_pending';
+  const reason = pending
+    ? approver && mine
+      ? ('maker_checker_required' as const)
+      : approver
+        ? undefined
+        : ('permission_missing' as const)
+    : !reviewer
+      ? ('permission_missing' as const)
+      : !workable
+        ? ('invalid_state' as const)
+        : undefined;
   return {
     submission: sub,
-    candidates: candidatesFor({ amount: sub.current.amount.amount, transferDate: sub.current.transferDate, bankReference: sub.current.bankReference, payerName: sub.payerName }, s.state.bank.lines),
+    candidates: candidatesOf(s.state, sub),
     allocation: previewOf(open, amount, rule.allocations, rule.unapplied, false),
     openLines: toAllocationLines(open.map((line) => ({ line, amount: 0n }))),
     possibleDuplicates: possibleDuplicates(s.state, sub).map((d) => ({ id: d.id, ref: d.ref, state: d.state })),
     beneficiary: beneficiaryOn(s.state, sub.legalEntityId, sub.current.transferDate),
     actions: {
       startReview: reviewer && sub.state === 'submitted',
-      verify: reviewer && openState,
-      requestInformation: reviewer && openState,
-      reject: reviewer && openState,
+      verify: reviewer && workable,
+      awaitBank: reviewer && (sub.state === 'submitted' || sub.state === 'under_review'),
+      requestException: reviewer && workable,
+      decideException: approver && pending && !mine,
+      requestInformation: reviewer && workable,
+      reject: reviewer && workable,
       ...(reason ? { reason } : {}),
     },
   };
+}
+
+/**
+ * The statement line a proof is to be settled against, checked on the server: it exists, is free (not
+ * matched, excluded or held for another proof's exception), reached the issuing entity's account in
+ * force on its value date, and carries the amount received. Returns the line and what it does not match.
+ */
+function settlementLine(ctx: HandlerContext, s: Society, sub: PaymentSubmission, lineId: string, amount: bigint) {
+  const line = s.state.bank.lines.find((l) => l.id === lineId);
+  if (!line) notFound(ctx);
+  // The bank's transaction settles one payment, ever: a second match is refused, whoever asks.
+  if (line.state === 'matched') {
+    problem(ctx, 409, 'bank_line_already_matched', 'collections:problems.bankLineAlreadyMatched', { bankLineId: [{ code: 'collections:problems.bankLineAlreadyMatched', params: { payment: line.paymentRef ?? '', txn: line.bankTxnId } }] });
+  }
+  if (line.state === 'excluded') problem(ctx, 409, 'bank_line_excluded', 'collections:problems.bankLineExcluded');
+  if (line.heldFor && line.heldFor.submissionId !== sub.id) {
+    problem(ctx, 409, 'bank_line_held', 'collections:problems.bankLineHeld', { bankLineId: [{ code: 'collections:problems.bankLineHeld', params: { ref: line.heldFor.submissionRef } }] });
+  }
+  const destination = destinationOf(line, scopeOf(s.state, sub.legalEntityId));
+  if (destination === 'wrong_entity') problem(ctx, 403, 'cross_entity_forbidden', 'collections:problems.cross_entity_forbidden');
+  if (destination === 'wrong_account') {
+    problem(ctx, 422, 'wrong_destination', 'collections:problems.wrongDestination', { bankLineId: [{ code: 'collections:problems.wrongDestination', params: { iban: line.accountIban, txn: line.bankTxnId } }] });
+  }
+  if (toPaisa(line.amount.amount) !== amount) invalidField(ctx, 'amount', 'collections:problems.amountMismatch', { bank: line.amount.amount });
+  const candidate = candidatesOf(s.state, sub).find((c) => c.bankLine.id === line.id);
+  const missing: MatchReason[] = candidate ? candidate.missing : ['amount', 'date', 'reference', 'name'];
+  return { line, missing };
 }
 
 function paymentDetail(s: Society, paymentId: string, ctx: HandlerContext): PaymentDetail {
@@ -151,6 +204,48 @@ const decided = (sub: PaymentSubmission, ctx: HandlerContext, action: PaymentSub
   const { by, byName } = actor(ctx);
   sub.history.push({ at: stamp(ctx), by, byName, byKind: 'staff', action, ...(note ? { note } : {}) });
 };
+
+/** Records the payment and receipt for a proof against its statement line (after every check passed). */
+function settle(
+  ctx: HandlerContext,
+  s: Society,
+  sub: PaymentSubmission,
+  line: Society['state']['bank']['lines'][number],
+  amount: bigint,
+  a: ReturnType<typeof allocationFor>,
+  verification: 'bank_matched' | 'exception_approved',
+  exception?: NonNullable<PaymentDetail['payment']['exception']>,
+) {
+  const { by, byName } = actor(ctx);
+  const { payment, receipt } = recordPayment(s.state, {
+    at: stamp(ctx),
+    receivedOn: line.valueDate,
+    by: { principalId: by, name: byName },
+    account: { id: sub.billingAccountId, accountNo: sub.accountNo },
+    payer: { partyId: sub.payerPartyId, name: sub.payerName },
+    flats: sub.flats,
+    method: 'bank_transfer',
+    amount,
+    allocations: a.allocations,
+    unapplied: a.unapplied,
+    source: { kind: 'submission', submissionId: sub.id, submissionRef: sub.ref },
+    verification,
+    ...(exception ? { exception } : {}),
+    ...(a.overrideReason ? { overrideReason: a.overrideReason } : {}),
+    bankLine: line,
+    bankReference: sub.current.bankReference,
+  });
+  Object.assign(sub, { state: 'verified', paymentId: payment.id, paymentRef: payment.ref, receiptId: receipt.id, receiptRef: receipt.ref });
+  delete sub.request;
+  delete sub.exception;
+  decided(sub, ctx, 'verified');
+  log(ctx, s, verification === 'bank_matched' ? 'proofVerified' : 'paymentExceptionApproved', { kind: 'submission', id: sub.id, label: sub.ref }, {
+    flats: sub.flats,
+    values: { amount: payment.amount.amount, payment: payment.ref, receipt: receipt.ref, bank: line.bankTxnId, account: line.accountIban, ...(exception ? { reason: exception.reason, missing: exception.missing.join(', ') } : {}), ...(a.overrideReason ? { override: a.overrideReason } : {}), unapplied: payment.unapplied.amount },
+  });
+  save(ctx);
+  return payment;
+}
 
 function settings(ctx: HandlerContext, s: Society): CollectionSettings {
   const payee = beneficiaryOn(s.state, s.legalEntityId, ctx.at);
@@ -294,6 +389,8 @@ export const COLLECTIONS_HANDLERS: readonly Handler[] = [
     },
   },
   {
+    // Settles a proof against a fully matching statement line of the right account. Nothing else does:
+    // without a line the proof waits (await-bank); a partly matching line needs an approved exception.
     method: 'POST',
     pattern: /^\/payment-submissions\/(?<submissionId>[\w-]+)\/verify$/,
     access: requires('receivables', 'finance.evidence.review', 'operational'),
@@ -301,52 +398,124 @@ export const COLLECTIONS_HANDLERS: readonly Handler[] = [
       const s = siteOf(ctx, 'receivables');
       const sub = submissionOf(ctx, s);
       if (sub.state === 'verified') problem(ctx, 409, 'already_verified', 'collections:problems.alreadyVerified');
-      if (sub.state !== 'submitted' && sub.state !== 'under_review') problem(ctx, 409, 'invalid_state', 'collections:problems.invalidState');
-      const input = body<{ bankLineId: string; amount: string; allocations: unknown; overrideReason: string; manualReason: string }>(ctx);
+      if (!WORKABLE.includes(sub.state)) problem(ctx, 409, 'invalid_state', 'collections:problems.invalidState');
+      const input = body<{ bankLineId: string; amount: string; allocations: unknown; overrideReason: string }>(ctx);
+      // A typed reason is not evidence of funds: verification always names the bank line.
+      if (!input.bankLineId) problem(ctx, 422, 'bank_evidence_required', 'collections:problems.bankEvidenceRequired', { bankLineId: [{ code: 'collections:problems.bankEvidenceRequired' }] });
       const amount = amountIn(ctx, 'amount', input.amount);
-      let line: (typeof s.state.bank.lines)[number] | undefined;
-      let manualReason: string | undefined;
-      if (input.bankLineId) {
-        line = s.state.bank.lines.find((l) => l.id === input.bankLineId);
-        if (!line) notFound(ctx);
-        // The bank's transaction settles one payment, ever: a second match is refused, whoever asks.
-        if (line.state === 'matched') {
-          problem(ctx, 409, 'bank_line_already_matched', 'collections:problems.bankLineAlreadyMatched', { bankLineId: [{ code: 'collections:problems.bankLineAlreadyMatched', params: { payment: line.paymentRef ?? '', txn: line.bankTxnId } }] });
-        }
-        if (line.state === 'excluded') problem(ctx, 409, 'bank_line_excluded', 'collections:problems.bankLineExcluded');
-        if (toPaisa(line.amount.amount) !== amount) invalidField(ctx, 'amount', 'collections:problems.amountMismatch', { bank: line.amount.amount });
-      } else {
-        manualReason = text(input.manualReason, 300);
-        if (manualReason.length < 10) invalidField(ctx, 'manualReason', 'collections:problems.manualReason');
+      const { line, missing } = settlementLine(ctx, s, sub, input.bankLineId!, amount);
+      if (missing.length) {
+        problem(ctx, 409, 'exception_required', 'collections:problems.exceptionRequired', { bankLineId: [{ code: 'collections:problems.exceptionRequired', params: { missing: missing.join(', ') } }] });
       }
       const a = allocationFor(ctx, s, payerOf(sub), amount, input.allocations, input.overrideReason);
+      const payment = settle(ctx, s, sub, line, amount, a, 'bank_matched');
+      return paymentDetail(society(ctx), payment.id, ctx);
+    },
+  },
+  {
+    // Reviewed, but the money is not on any imported statement yet: wait for the line. Nothing is
+    // settled, allocated or receipted; the resident still sees "pending verification".
+    method: 'POST',
+    pattern: /^\/payment-submissions\/(?<submissionId>[\w-]+)\/await-bank$/,
+    access: requires('receivables', 'finance.evidence.review', 'operational'),
+    handle: (ctx): SubmissionDetail => {
+      const s = siteOf(ctx, 'receivables');
+      const sub = submissionOf(ctx, s);
+      if (sub.state !== 'submitted' && sub.state !== 'under_review') problem(ctx, 409, 'invalid_state', 'collections:problems.invalidState');
+      const note = text(body<{ note: string }>(ctx).note, 300);
+      if (note.length < 10) invalidField(ctx, 'note', 'collections:problems.awaitNote');
       const { by, byName } = actor(ctx);
-      const { payment, receipt } = recordPayment(s.state, {
-        at: stamp(ctx),
-        receivedOn: line?.valueDate ?? sub.current.transferDate,
-        by: { principalId: by, name: byName },
-        account: { id: sub.billingAccountId, accountNo: sub.accountNo },
-        payer: { partyId: sub.payerPartyId, name: sub.payerName },
-        flats: sub.flats,
-        method: 'bank_transfer',
-        amount,
-        allocations: a.allocations,
-        unapplied: a.unapplied,
-        source: { kind: 'submission', submissionId: sub.id, submissionRef: sub.ref },
-        verification: line ? 'bank_matched' : 'manual',
-        ...(manualReason ? { manualReason } : {}),
-        ...(a.overrideReason ? { overrideReason: a.overrideReason } : {}),
-        ...(line ? { bankLine: line } : {}),
-        bankReference: sub.current.bankReference,
-      });
-      Object.assign(sub, { state: 'verified', paymentId: payment.id, paymentRef: payment.ref, receiptId: receipt.id, receiptRef: receipt.ref });
-      delete sub.request;
-      decided(sub, ctx, 'verified', manualReason);
-      log(ctx, s, line ? 'proofVerified' : 'proofVerifiedManually', { kind: 'submission', id: sub.id, label: sub.ref }, {
-        flats: sub.flats,
-        values: { amount: payment.amount.amount, payment: payment.ref, receipt: receipt.ref, ...(line ? { bank: line.bankTxnId } : {}), ...(manualReason ? { reason: manualReason } : {}), ...(a.overrideReason ? { override: a.overrideReason } : {}), unapplied: payment.unapplied.amount },
-      });
+      sub.state = 'awaiting_bank_evidence';
+      sub.awaiting = { by, byName, at: stamp(ctx), note };
+      delete sub.reviewer;
+      decided(sub, ctx, 'awaiting_bank_evidence', note);
+      log(ctx, s, 'proofAwaitingBank', { kind: 'submission', id: sub.id, label: sub.ref }, { flats: sub.flats, values: { amount: sub.current.amount.amount, note } });
       save(ctx);
+      return submissionDetail(ctx, s, sub);
+    },
+  },
+  {
+    // A partly matching line (another reference, name or date; or another amount than claimed) is
+    // proposed with a reason and held for this proof until a second person decides.
+    method: 'POST',
+    pattern: /^\/payment-submissions\/(?<submissionId>[\w-]+)\/exception$/,
+    access: requires('receivables', 'finance.evidence.review', 'operational'),
+    handle: (ctx): SubmissionDetail => {
+      const s = siteOf(ctx, 'receivables');
+      const sub = submissionOf(ctx, s);
+      if (!WORKABLE.includes(sub.state)) problem(ctx, 409, 'invalid_state', 'collections:problems.invalidState');
+      const input = body<{ bankLineId: string; reason: string; allocations: unknown; overrideReason: string }>(ctx);
+      if (!input.bankLineId) problem(ctx, 422, 'bank_evidence_required', 'collections:problems.bankEvidenceRequired', { bankLineId: [{ code: 'collections:problems.bankEvidenceRequired' }] });
+      const target = s.state.bank.lines.find((l) => l.id === input.bankLineId);
+      if (!target) notFound(ctx);
+      const amount = toPaisa(target.amount.amount);
+      const { line, missing } = settlementLine(ctx, s, sub, target.id, amount);
+      if (!missing.length) problem(ctx, 409, 'exception_not_needed', 'collections:problems.exceptionNotNeeded');
+      const reason = text(input.reason, 500);
+      if (reason.length < 20) invalidField(ctx, 'reason', 'collections:problems.exceptionReason');
+      // The allocation is checked now (and again at approval) against the payer's own lines.
+      const a = allocationFor(ctx, s, payerOf(sub), amount, input.allocations, input.overrideReason);
+      const { by, byName } = actor(ctx);
+      sub.exception = {
+        bankLineId: line.id,
+        bankTxnId: line.bankTxnId,
+        missing,
+        reason,
+        ...(a.edited ? { allocations: a.allocations.map((x) => ({ lineId: x.line.lineId, amount: fromPaisa(x.amount) })), overrideReason: a.overrideReason } : {}),
+        requestedBy: by,
+        requestedByName: byName,
+        requestedAt: stamp(ctx),
+      };
+      sub.state = 'exception_pending';
+      line.heldFor = { submissionId: sub.id, submissionRef: sub.ref };
+      decided(sub, ctx, 'exception_requested', reason);
+      log(ctx, s, 'paymentExceptionRequested', { kind: 'submission', id: sub.id, label: sub.ref }, { flats: sub.flats, values: { bank: line.bankTxnId, amount: line.amount.amount, missing: missing.join(', '), reason } });
+      save(ctx);
+      return submissionDetail(ctx, s, sub);
+    },
+  },
+  {
+    // A second person (never the requester) approves the exception, which settles the proof against
+    // the held line, or rejects it, which releases the line and returns the proof to review.
+    method: 'POST',
+    pattern: /^\/payment-submissions\/(?<submissionId>[\w-]+)\/exception\/(?<decision>[\w-]+)$/,
+    access: requires('receivables', 'payment_exception.approve', 'operational'),
+    handle: (ctx): SubmissionDetail | PaymentDetail => {
+      const s = siteOf(ctx, 'receivables');
+      const sub = submissionOf(ctx, s);
+      const decision = ctx.params.decision!;
+      if (decision !== 'approve' && decision !== 'reject') notFound(ctx);
+      if (sub.state !== 'exception_pending' || !sub.exception) problem(ctx, 409, 'invalid_state', 'collections:problems.invalidState');
+      const exception = sub.exception!;
+      if (exception.requestedBy === ctx.persona!.principalId) problem(ctx, 403, 'maker_checker_required', 'billing:errors.makerChecker');
+      const line = s.state.bank.lines.find((l) => l.id === exception.bankLineId);
+      if (decision === 'reject') {
+        const note = text(body<{ note: string }>(ctx).note, 300);
+        if (note.length < 5) invalidField(ctx, 'note', 'billing:errors.noteRequired');
+        if (line?.heldFor?.submissionId === sub.id) delete line.heldFor;
+        sub.state = sub.awaiting ? 'awaiting_bank_evidence' : 'under_review';
+        delete sub.exception;
+        decided(sub, ctx, 'exception_rejected', note);
+        log(ctx, s, 'paymentExceptionRejected', { kind: 'submission', id: sub.id, label: sub.ref }, { flats: sub.flats, values: { bank: exception.bankTxnId, note } });
+        save(ctx);
+        return submissionDetail(ctx, s, sub);
+      }
+      if (!line) notFound(ctx);
+      const amount = toPaisa(line.amount.amount);
+      // Everything is checked again: the line may have been settled or excluded since the request.
+      settlementLine(ctx, s, sub, line.id, amount);
+      const a = allocationFor(ctx, s, payerOf(sub), amount, exception.allocations, exception.overrideReason);
+      const { by, byName } = actor(ctx);
+      decided(sub, ctx, 'exception_approved', exception.reason);
+      const payment = settle(ctx, s, sub, line, amount, a, 'exception_approved', {
+        missing: exception.missing,
+        reason: exception.reason,
+        requestedBy: exception.requestedBy,
+        requestedByName: exception.requestedByName,
+        approvedBy: by,
+        approvedByName: byName,
+        approvedAt: stamp(ctx),
+      });
       return paymentDetail(society(ctx), payment.id, ctx);
     },
   },
@@ -357,7 +526,7 @@ export const COLLECTIONS_HANDLERS: readonly Handler[] = [
     handle: (ctx): SubmissionDetail => {
       const s = siteOf(ctx, 'receivables');
       const sub = submissionOf(ctx, s);
-      if (sub.state !== 'submitted' && sub.state !== 'under_review') problem(ctx, 409, 'invalid_state', 'collections:problems.invalidState');
+      if (!WORKABLE.includes(sub.state)) problem(ctx, 409, 'invalid_state', 'collections:problems.invalidState');
       const message = text(body<{ message: string }>(ctx).message, 300);
       if (message.length < 10) invalidField(ctx, 'message', 'collections:problems.messageRequired');
       sub.state = 'needs_information';
@@ -376,7 +545,7 @@ export const COLLECTIONS_HANDLERS: readonly Handler[] = [
     handle: (ctx): SubmissionDetail => {
       const s = siteOf(ctx, 'receivables');
       const sub = submissionOf(ctx, s);
-      if (sub.state !== 'submitted' && sub.state !== 'under_review') problem(ctx, 409, 'invalid_state', 'collections:problems.invalidState');
+      if (!WORKABLE.includes(sub.state)) problem(ctx, 409, 'invalid_state', 'collections:problems.invalidState');
       const reason = text(body<{ reason: string }>(ctx).reason, 300);
       if (reason.length < 10) invalidField(ctx, 'reason', 'collections:problems.reasonRequired');
       sub.state = 'rejected';
@@ -510,7 +679,7 @@ export const COLLECTIONS_HANDLERS: readonly Handler[] = [
     pattern: /^\/bank\/feed$/,
     access: requires('banking', 'bank.view', 'history_read'),
     handle: (ctx): BankFeed => {
-      if (!ctx.data.society) return { statements: [], lines: [], counts: { all: 0, unmatched: 0, matched: 0, excluded: 0, unidentified: 0 } };
+      if (!ctx.data.society) return { statements: [], lines: [], accounts: [], counts: { all: 0, unmatched: 0, matched: 0, excluded: 0, unidentified: 0 } };
       const s = siteOf(ctx);
       const rec = reconciliation(s.view);
       const { state, q } = (ctx.req.query ?? {}) as Record<string, string | undefined>;
@@ -522,6 +691,7 @@ export const COLLECTIONS_HANDLERS: readonly Handler[] = [
       const all = s.state.bank.lines;
       return {
         statements: [...s.state.bank.statements].reverse(),
+        accounts: s.state.beneficiaries.filter((b) => b.legalEntityId === s.legalEntityId && b.verifiedOn !== undefined),
         lines,
         counts: { all: all.length, unmatched: all.filter((l) => l.state === 'unmatched').length, matched: all.filter((l) => l.state === 'matched').length, excluded: all.filter((l) => l.state === 'excluded').length, unidentified: unidentified.size },
       };
@@ -534,24 +704,38 @@ export const COLLECTIONS_HANDLERS: readonly Handler[] = [
     access: requires('banking', 'bank.reconcile', 'operational'),
     handle: (ctx) => {
       const s = siteOf(ctx);
-      const input = body<{ sample: number; fileName: string; content: string; from: string; to: string }>(ctx);
+      const input = body<{ sample: number; fileName: string; content: string; from: string; to: string; beneficiaryId: string }>(ctx);
+      // The statement belongs to the account the officer chooses: one of this entity's verified accounts.
+      const account = s.state.beneficiaries.find((b) => b.id === input.beneficiaryId && b.legalEntityId === s.legalEntityId && b.siteId === s.siteId && b.verifiedOn !== undefined);
+      if (!account) invalidField(ctx, 'beneficiaryId', 'collections:problems.statementAccount');
       const sample = input.sample ? sampleBankStatements()[Number(input.sample) - 1] : undefined;
       const file = sample ?? { fileName: text(input.fileName, 120) || 'statement.csv', content: String(input.content ?? ''), from: String(input.from ?? ctx.at), to: String(input.to ?? ctx.at) };
       if (!file.content.trim()) invalidField(ctx, 'file', 'collections:problems.fileEmpty');
       if (!DATE.test(file.from) || !DATE.test(file.to)) invalidField(ctx, 'file', 'collections:problems.fileDates');
+      // A statement that names another account is refused, never silently assigned.
+      const declared = declaredAccount(file.content);
+      if (declared && declared !== account!.iban) {
+        problem(ctx, 422, 'statement_account_mismatch', 'collections:problems.statementAccountMismatch', { beneficiaryId: [{ code: 'collections:problems.statementAccountMismatch', params: { file: declared, chosen: account!.iban } }] });
+      }
       const hash = fingerprint(file.content);
-      const known = s.state.bank.statements.find((x) => x.fileHash === hash);
-      if (known) return { statement: known, created: 0, skipped: known.lines, alreadyImported: true };
+      const known = s.state.bank.statements.find((x) => x.fileHash === hash && x.beneficiaryId === account!.id);
+      if (known) return { statement: known, created: 0, skipped: known.lines, alreadyImported: true, nowMatchable: [] };
       const { by, byName } = actor(ctx);
-      const built = statementFrom(s.state, file, stamp(ctx), { principalId: by, name: byName });
+      const built = statementFrom(s.state, file, account!, stamp(ctx), { principalId: by, name: byName });
       if (built.lines.some((l) => !l.bankTxnId || !DATE.test(l.valueDate) || toPaisa(l.amount.amount) <= 0n)) invalidField(ctx, 'file', 'collections:problems.fileRows');
       const fresh = newLines(s.state.bank.lines, built.lines);
       const statement = { ...built.statement, lines: fresh.length, credits: money(fresh.reduce((n, l) => n + toPaisa(l.amount.amount), 0n)) };
       s.state.bank.statements.push(statement);
       s.state.bank.lines.push(...fresh);
-      log(ctx, s, 'bankStatementImported', { kind: 'bank', id: statement.id, label: statement.fileName }, { values: { lines: String(fresh.length), credits: statement.credits.amount, skipped: String(built.lines.length - fresh.length) } });
+      log(ctx, s, 'bankStatementImported', { kind: 'bank', id: statement.id, label: statement.fileName }, { values: { account: statement.iban, lines: String(fresh.length), credits: statement.credits.amount, skipped: String(built.lines.length - fresh.length) } });
       save(ctx);
-      return { statement, created: fresh.length, skipped: built.lines.length - fresh.length, alreadyImported: false };
+      // Proofs waiting for their bank line that the new lines fully match (offered to the officer, never settled here).
+      const freshIds = new Set(fresh.map((l) => l.id));
+      const nowMatchable = s.state.submissions
+        .filter((x) => WORKABLE.includes(x.state))
+        .filter((x) => candidatesOf(s.state, x).some((c) => freshIds.has(c.bankLine.id) && usable(c, x.id) && c.strength === 'full'))
+        .map((x) => ({ id: x.id, ref: x.ref, flats: x.flats, state: x.state }));
+      return { statement, created: fresh.length, skipped: built.lines.length - fresh.length, alreadyImported: false, nowMatchable };
     },
   },
   {
@@ -707,7 +891,7 @@ export const COLLECTIONS_HANDLERS: readonly Handler[] = [
       const rule = s.state.methods.find((m) => m.method === input.method);
       if (!rule) invalidField(ctx, 'method', 'collections:problems.method');
       if (rule!.gate) problem(ctx, 409, 'method_later', 'collections:problems.methodLater');
-      const patch: Partial<MethodRule> = { enabled: input.enabled === true };
+      const patch: Partial<MethodRule> = input.enabled === undefined ? {} : { enabled: input.enabled === true };
       if (rule!.method === 'office_cash') {
         if (input.maxAmount !== undefined) patch.maxAmount = money(amountIn(ctx, 'maxAmount', input.maxAmount));
         if (input.counter !== undefined) {
@@ -716,7 +900,7 @@ export const COLLECTIONS_HANDLERS: readonly Handler[] = [
           patch.counter = counter;
         }
       }
-      if (rule!.method === 'bank_transfer' && !patch.enabled) problem(ctx, 409, 'method_required', 'collections:problems.transferRequired');
+      if (rule!.method === 'bank_transfer' && patch.enabled === false) problem(ctx, 409, 'method_required', 'collections:problems.transferRequired');
       Object.assign(rule!, patch);
       log(ctx, s, 'methodChanged', { kind: 'settings', id: rule!.method, label: rule!.method }, { values: { method: rule!.method, enabled: String(rule!.enabled), ...(rule!.maxAmount ? { maxAmount: rule!.maxAmount.amount } : {}) } });
       save(ctx);

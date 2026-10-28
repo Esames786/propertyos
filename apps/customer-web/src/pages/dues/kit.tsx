@@ -30,6 +30,9 @@ export function BillStatusChip({ status, className }: { status: ResidentBillStat
 const PROOF: Record<SubmissionState, [StatusTone, LucideIcon]> = {
   submitted: ['info', Hourglass],
   under_review: ['info', ScanSearch],
+  // Still pending for the resident: checked by the office and waiting for the bank, or an internal approval.
+  awaiting_bank_evidence: ['info', Clock3],
+  exception_pending: ['info', ScanSearch],
   needs_information: ['warning', FileQuestion],
   verified: ['success', CheckCircle2],
   rejected: ['error', XCircle],
@@ -51,7 +54,16 @@ export function ProofStepper({ state, resubmitted }: { state: SubmissionState; r
   const { t } = useT();
   const steps: StepperStep[] = [
     { id: 'sent', label: resubmitted ? t('dues:steps.resent') : t('dues:steps.sent'), state: 'done' },
-    { id: 'check', label: state === 'needs_information' ? t('dues:steps.needsInfo') : t('dues:steps.check'), state: state === 'submitted' || state === 'under_review' ? 'current' : state === 'needs_information' ? 'waiting' : 'done' },
+    {
+      id: 'check',
+      label: state === 'needs_information' ? t('dues:steps.needsInfo') : state === 'awaiting_bank_evidence' ? t('dues:steps.awaitingBank') : t('dues:steps.check'),
+      state:
+        state === 'submitted' || state === 'under_review' || state === 'exception_pending'
+          ? 'current'
+          : state === 'needs_information' || state === 'awaiting_bank_evidence'
+            ? 'waiting'
+            : 'done',
+    },
     { id: 'decision', label: state === 'rejected' ? t('dues:steps.rejected') : t('dues:steps.verified'), state: state === 'verified' ? 'done' : state === 'rejected' ? 'failed' : 'upcoming' },
     { id: 'receipt', label: t('dues:steps.receipt'), state: state === 'verified' ? 'done' : 'upcoming' },
   ];

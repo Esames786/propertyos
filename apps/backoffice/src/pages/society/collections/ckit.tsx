@@ -34,6 +34,8 @@ import { ScrollRegion, useSocietyFormat } from '../kit';
 const SUBMISSION: Record<SubmissionState, [StatusTone, LucideIcon]> = {
   submitted: ['info', Hourglass],
   under_review: ['warning', ScanSearch],
+  awaiting_bank_evidence: ['info', Landmark],
+  exception_pending: ['warning', Hand],
   needs_information: ['warning', FileQuestion],
   verified: ['success', CheckCircle2],
   rejected: ['error', XCircle],
@@ -77,7 +79,7 @@ export function MethodBadge({ method }: { method: CollectionMethod }) {
   );
 }
 
-const VERIFICATION: Record<CollectionPayment['verification'], [StatusTone, LucideIcon]> = { bank_matched: ['success', Link2], manual: ['warning', Hand], counter: ['info', Banknote] };
+const VERIFICATION: Record<CollectionPayment['verification'], [StatusTone, LucideIcon]> = { bank_matched: ['success', Link2], exception_approved: ['warning', Hand], counter: ['info', Banknote] };
 
 export function VerificationBadge({ verification }: { verification: CollectionPayment['verification'] }) {
   const { t } = useT();
@@ -223,8 +225,22 @@ export function SubmissionStepper({ state, versions, testId = 'submission-steppe
     { id: 'submitted', label: versions > 1 ? t('collections:steps.resubmitted') : t('collections:steps.submitted'), state: 'done' },
     {
       id: 'review',
-      label: state === 'needs_information' ? t('collections:steps.needsInformation') : t('collections:steps.review'),
-      state: state === 'submitted' ? 'upcoming' : state === 'under_review' ? 'current' : state === 'needs_information' ? 'waiting' : 'done',
+      label:
+        state === 'needs_information'
+          ? t('collections:steps.needsInformation')
+          : state === 'awaiting_bank_evidence'
+            ? t('collections:steps.awaitingBank')
+            : state === 'exception_pending'
+              ? t('collections:steps.exception')
+              : t('collections:steps.review'),
+      state:
+        state === 'submitted'
+          ? 'upcoming'
+          : state === 'under_review'
+            ? 'current'
+            : state === 'needs_information' || state === 'awaiting_bank_evidence' || state === 'exception_pending'
+              ? 'waiting'
+              : 'done',
     },
     {
       id: 'decision',

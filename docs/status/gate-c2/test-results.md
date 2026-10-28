@@ -1,5 +1,29 @@
 # Gate C.2: test, accessibility and localisation results
 
+## Closure after the owner's review of `d5e599d` (Issue #4), 2026-10-29
+
+| Check | Result |
+|---|---|
+| Typecheck, lint (ESLint, logical-CSS RTL guard, i18n parity) | clean. 2 locales × 19 namespaces, **5,116 keys** each (+90: evidence wait, exceptions, account binding, cash limit) |
+| Unit and component tests | **577 / 577** in 31 files (+15). New vectors: `bankDestination` (5), `bankIdentity`, `matchStrength` (4). New API tests: a reviewer's note settles nothing and the bank line arrives later (verified once, no second recognition); statements bound to a chosen account, a file of another account refused, the retired account's line refused, the same bank ID on two accounts; a partial match only through an exception approved by someone else (maker ≠ checker, a rejection releases the line); 3,000 and 6,000 verified against statement 3; the cash limit as a setting |
+| End-to-end, full | **246 / 246** on two consecutive full runs (A: 18.7 min; B: 18.7 min), with the smoke and evidence runs between them and no code change. Gate B, C.1 and C.2 suites all green |
+| Accessibility (inside E2E) | **686 axe scans per run, 18,986 rule passes, 0 violations**. The C.2 spec: 128 scans (+12: the statement import drawer, a proof waiting for its bank line, an exception card; EN/UR × 1440/390) |
+| New and changed E2E | 6,000 waits for its bank line (no settlement by hand) → the import names it → verified (800 credit). A partial match settles only through an exception the treasurer approves. Statements belong to the chosen account (mismatch refused; two lines with one bank ID; the retired account's line disabled). Office cash within the limit the treasurer sets (2,500 refuses 3,000; 5,000 takes it). **Phone, EN and UR, 150 % and 200 %:** the header stays one line and the first heading starts below it; every Tab stop is clear of the header and the bar; with the keyboard open (a 420 px viewport) the field stays in view and the bar steps aside (inert) |
+| Cross-browser smoke | **18 / 18** (Firefox and WebKit, 3 tests each, repeated 3 times) |
+| Evidence | **28 / 28** in one run (5.8 min): **390 screenshots** (+82) and **6 videos** (+2); every screenshot exactly its viewport's width. New: `f10`–`f10c`, `f19`–`f26` at 1440/768/390 EN/UR; **live-viewport** phone shots `v01`–`v06` at 150 % and 200 % EN/UR (not full-page captures) |
+
+### Problems found while closing
+
+| Found by | Problem | Fix |
+|---|---|---|
+| The first focused run | It reused the development servers started for the owner's links at the end of the previous turn (slow unbundled pages: browser crashes, `ERR_INSUFFICIENT_RESOURCES`, timeouts). Not a product fault | Stopped them and the leftover test browsers; every later run used fresh production builds |
+| `collections.spec` (office cash) | The test looked for a formatted "5,000.00" that the treasurer's editable field does not show | It now waits for the stored limit (and so cannot race the save) |
+| Code review | Changing only the cash limit through the settings endpoint switched cash off (`enabled` defaulted to false) | A change touches only the settings it names |
+
+The record of the original C.2 delivery (`d5e599d`) follows unchanged.
+
+## Delivery of `d5e599d`
+
 **Run date:** 2026-10-28.
 
 **Environment:**

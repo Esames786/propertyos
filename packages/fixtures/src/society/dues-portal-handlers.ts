@@ -24,7 +24,7 @@ import { fromPaisa, liabilityRecord, toPaisa } from '../portal';
 import { ALNOOR_SITE, OPENING_AS_OF } from './alnoor';
 import { linesOf, type OpenLine } from './allocate';
 import { createSubmission, proofFile } from './collections';
-import { possibleDuplicates } from './collections-read';
+import { PENDING_STATES, possibleDuplicates } from './collections-read';
 import { invalidField, log, problem, save, society, stamp, type Society } from './handlers';
 import { factOn } from './model';
 import { beneficiaryOn } from './state';
@@ -132,7 +132,8 @@ function position(r: Resident): ResidentPosition {
   const credit = sum(r.payments.map((p) => toPaisa(p.unapplied.amount)));
   const due = (current ? toPaisa(current.open.amount) : 0n) + previous - credit;
   const total = due > 0n ? due : 0n;
-  const pending = sum(r.submissions.filter((x) => x.state === 'submitted' || x.state === 'under_review').map((x) => toPaisa(x.current.amount.amount)));
+  // Every proof not settled yet (with the office or waiting for the bank line) counts as pending, never paid.
+  const pending = sum(r.submissions.filter((x) => PENDING_STATES.includes(x.state) && x.state !== 'needs_information').map((x) => toPaisa(x.current.amount.amount)));
   const status: ResidentPosition['status'] =
     total === 0n ? (current && toPaisa(current.paid.amount) > 0n ? 'paid' : 'nothing_due') : pending > 0n && pending >= total ? 'pending_verification' : current?.overdue ? 'overdue' : current && toPaisa(current.paid.amount) > 0n ? 'partially_paid' : 'unpaid';
   return {
@@ -304,7 +305,7 @@ export const DUES_PORTAL_HANDLERS: readonly Handler[] = [
     handle: (ctx): DuesPayInfo => {
       const r = resident(ctx);
       const pos = position(r);
-      return { position: pos, payee: payeeFor(r, pos.totalPayable), methods: methods(r), pending: r.submissions.filter((x) => x.state === 'submitted' || x.state === 'under_review' || x.state === 'needs_information').map(submissionSummary) };
+      return { position: pos, payee: payeeFor(r, pos.totalPayable), methods: methods(r), pending: r.submissions.filter((x) => PENDING_STATES.includes(x.state)).map(submissionSummary) };
     },
   },
   {
@@ -402,9 +403,14 @@ const lastDayOf = (s: Society) => {
   return new Date(Date.UTC(Number(period.slice(0, 4)), Number(period.slice(5, 7)), 0)).toISOString().slice(0, 10);
 };
 
-/** The resident's own view of a submission: their versions and the steps, without staff names. */
+/**
+ * The resident's own view of a submission: their versions and the steps, without staff names or the
+ * office's internal decisions (an exception being approved reads as "being checked").
+ */
 function residentDetail(sub: PaymentSubmission): ResidentSubmissionDetail {
-  const step = (a: PaymentSubmission['history'][number]['action']): ResidentSubmissionDetail['timeline'][number]['step'] => (a === 'review_started' ? 'under_review' : a);
+  type Step = ResidentSubmissionDetail['timeline'][number]['step'];
+  const step = (a: PaymentSubmission['history'][number]['action']): Step | null =>
+    a === 'review_started' ? 'under_review' : a === 'exception_requested' || a === 'exception_approved' || a === 'exception_rejected' ? null : a;
   return {
     submission: {
       ...submissionSummary(sub),
@@ -413,7 +419,10 @@ function residentDetail(sub: PaymentSubmission): ResidentSubmissionDetail {
       bankReference: sub.current.bankReference,
       versions: sub.versions.map((v) => ({ n: v.n, submittedAt: v.submittedAt, amount: v.amount, transferDate: v.transferDate, bankReference: v.bankReference, ...(v.note ? { note: v.note } : {}), fileName: v.file.name })),
     },
-    timeline: sub.history.map((h) => ({ at: h.at, step: step(h.action), ...(h.note && (h.action === 'information_requested' || h.action === 'rejected') ? { note: h.note } : {}) })),
+    timeline: sub.history.flatMap((h) => {
+      const st = step(h.action);
+      return st ? [{ at: h.at, step: st, ...(h.note && (h.action === 'information_requested' || h.action === 'rejected') ? { note: h.note } : {}) }] : [];
+    }),
     canResubmit: sub.state === 'needs_information',
   };
 }

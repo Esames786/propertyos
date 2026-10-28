@@ -4,12 +4,13 @@ import { pad } from '../seed';
 import { ALNOOR_ENTITY, ALNOOR_SITE } from './alnoor';
 import { toPaymentAllocations, type Allocation } from './allocate';
 import { fingerprint } from './import';
-import { nextRef, type SocietyState } from './state';
+import { beneficiaryOn, nextRef, type SocietyState } from './state';
 
 /**
  * Collection operations on the society state, shared by the mock server and the seeded scenario so
  * both follow the same rules. Only `recordPayment` creates money: it is called by verification
- * (with a bank match or a stated reason) and by the office counter, never by an upload.
+ * against a statement line (fully matching, or partly matching through an approved exception) and by
+ * the office counter; never by an upload, and never on a reviewer's note alone.
  */
 
 const money = (paisa: bigint): Money => ({ amount: fromPaisa(paisa), currency: 'PKR' });
@@ -33,6 +34,8 @@ export interface NewSubmission {
 export function createSubmission(state: SocietyState, input: NewSubmission): PaymentSubmission {
   const n = state.submissions.length + 1;
   const version: SubmissionVersion = { n: 1, submittedAt: input.at, ...input.version };
+  // The account the resident was shown when sending it (the verified one in force that day).
+  const payee = beneficiaryOn(state, ALNOOR_ENTITY.id, input.at.slice(0, 10));
   const submission: PaymentSubmission = {
     id: `psb_${state.numbering.code.toLowerCase()}_${pad(n, 4)}`,
     ref: nextRef(state, 'submission', input.at.slice(0, 10)),
@@ -45,6 +48,7 @@ export function createSubmission(state: SocietyState, input: NewSubmission): Pay
     flats: input.flats,
     method: 'bank_transfer',
     state: 'submitted',
+    ...(payee ? { paidTo: { beneficiaryId: payee.id, iban: payee.iban } } : {}),
     current: version,
     versions: [version],
     history: [{ at: input.at, by: input.payer.partyId, byName: input.payer.name, byKind: 'resident', action: 'submitted' }],
@@ -66,7 +70,7 @@ export interface NewPayment {
   unapplied: bigint;
   source: CollectionPayment['source'];
   verification: CollectionPayment['verification'];
-  manualReason?: string;
+  exception?: CollectionPayment['exception'];
   overrideReason?: string;
   bankLine?: BankLine;
   bankReference?: string;
@@ -96,7 +100,7 @@ export function recordPayment(state: SocietyState, input: NewPayment): { payment
     receivedOn: input.receivedOn,
     source: input.source,
     verification: input.verification,
-    ...(input.manualReason ? { manualReason: input.manualReason } : {}),
+    ...(input.exception ? { exception: input.exception } : {}),
     ...(input.bankLine ? { bankLineId: input.bankLine.id, bankTxnId: input.bankLine.bankTxnId } : {}),
     verifiedBy: input.by.principalId,
     verifiedByName: input.by.name,
@@ -127,7 +131,10 @@ export function recordPayment(state: SocietyState, input: NewPayment): { payment
   };
   if (input.bankLine) {
     const line = state.bank.lines.find((l) => l.id === input.bankLine!.id);
-    if (line) Object.assign(line, { state: 'matched', paymentId: id, paymentRef: ref });
+    if (line) {
+      Object.assign(line, { state: 'matched', paymentId: id, paymentRef: ref });
+      delete line.heldFor;
+    }
   }
   state.payments.push(payment);
   state.receipts.push(receipt);

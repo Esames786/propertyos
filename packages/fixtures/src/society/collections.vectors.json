@@ -6,7 +6,16 @@
       "case": "A-101 pays 5,200: the opening balance and November are settled",
       "flat": "A-101",
       "amount": "5200.00",
-      "settled": [{ "source": "opening_balance", "amount": "1000.00" }, { "source": "billing_run", "amount": "4200.00" }],
+      "settled": [
+        {
+          "source": "opening_balance",
+          "amount": "1000.00"
+        },
+        {
+          "source": "billing_run",
+          "amount": "4200.00"
+        }
+      ],
       "novemberSettlement": "paid",
       "open": "0.00",
       "unapplied": "0.00",
@@ -16,7 +25,16 @@
       "case": "A-101 pays 3,000: the opening balance is settled, November is partly paid, 2,200 remains",
       "flat": "A-101",
       "amount": "3000.00",
-      "settled": [{ "source": "opening_balance", "amount": "1000.00" }, { "source": "billing_run", "amount": "2000.00" }],
+      "settled": [
+        {
+          "source": "opening_balance",
+          "amount": "1000.00"
+        },
+        {
+          "source": "billing_run",
+          "amount": "2000.00"
+        }
+      ],
       "novemberSettlement": "partially_paid",
       "open": "2200.00",
       "unapplied": "0.00",
@@ -26,7 +44,16 @@
       "case": "A-101 pays 6,000: everything is settled and 800 is unapplied credit",
       "flat": "A-101",
       "amount": "6000.00",
-      "settled": [{ "source": "opening_balance", "amount": "1000.00" }, { "source": "billing_run", "amount": "4200.00" }],
+      "settled": [
+        {
+          "source": "opening_balance",
+          "amount": "1000.00"
+        },
+        {
+          "source": "billing_run",
+          "amount": "4200.00"
+        }
+      ],
       "novemberSettlement": "paid",
       "open": "0.00",
       "unapplied": "800.00",
@@ -37,16 +64,144 @@
     "account": "ANR-A201",
     "payer": "Junaid Akhtar",
     "amount": "4200.00",
-    "settlesFlats": ["A-202"],
+    "settlesFlats": [
+      "A-202"
+    ],
     "ownerStillOwes": "7200.00",
-    "ownerFlats": ["A-201"]
+    "ownerFlats": [
+      "A-201"
+    ]
   },
-  "entityIsolation": { "otherEntity": "le_other", "problem": "cross_entity_forbidden" },
+  "entityIsolation": {
+    "otherEntity": "le_other",
+    "problem": "cross_entity_forbidden"
+  },
+  "bankDestination": [
+    {
+      "case": "the association's account in force on the value date settles",
+      "account": "ben_anr_main",
+      "entity": "le_alnoor",
+      "valueDate": "2026-10-26",
+      "destination": "ok"
+    },
+    {
+      "case": "the old committee account after it was retired (12 Oct) never settles",
+      "account": "ben_anr_committee",
+      "entity": "le_alnoor",
+      "valueDate": "2026-10-20",
+      "destination": "wrong_account"
+    },
+    {
+      "case": "the old committee account while it was in force still counts (history)",
+      "account": "ben_anr_committee",
+      "entity": "le_alnoor",
+      "valueDate": "2026-10-05",
+      "destination": "ok"
+    },
+    {
+      "case": "the new account before it came into force does not count",
+      "account": "ben_anr_main",
+      "entity": "le_alnoor",
+      "valueDate": "2026-10-11",
+      "destination": "wrong_account"
+    },
+    {
+      "case": "another association's account never settles Al-Noor's proofs",
+      "account": "ben_other_main",
+      "entity": "le_other",
+      "valueDate": "2026-10-26",
+      "destination": "wrong_entity"
+    }
+  ],
+  "bankIdentity": {
+    "description": "A transaction is (receiving account, statement source, bank id): the same bank id on another account is another transaction; the same account, source and id is the same one.",
+    "sameIdOtherAccount": {
+      "txn": "DEMO-TXN-26102201",
+      "accounts": [
+        "ben_anr_main",
+        "ben_anr_committee"
+      ],
+      "distinct": true
+    },
+    "sameIdSameAccount": {
+      "txn": "DEMO-TXN-26102201",
+      "accounts": [
+        "ben_anr_main",
+        "ben_anr_main"
+      ],
+      "distinct": false
+    }
+  },
+  "matchStrength": [
+    {
+      "case": "Komal's own transfer for B-405: amount, date, reference and name",
+      "flat": "B-405",
+      "txn": "DEMO-TXN-26102411",
+      "strength": "full",
+      "missing": []
+    },
+    {
+      "case": "Imran's transfer quoting the same words for B-405: the name does not match",
+      "flat": "B-405",
+      "txn": "DEMO-TXN-26102518",
+      "strength": "partial",
+      "missing": [
+        "name"
+      ]
+    },
+    {
+      "case": "Kamran's 5,200 for A-101 (sent on the day)",
+      "flat": "A-101",
+      "claim": {
+        "amount": "5200.00",
+        "transferDate": "2026-10-26",
+        "bankReference": "ANR-A101-2026-11"
+      },
+      "txn": "DEMO-TXN-26102604",
+      "strength": "full",
+      "missing": []
+    },
+    {
+      "case": "the same amount, but another reference and payer (the cash-machine deposit) for a 3,000 claim",
+      "flat": "A-101",
+      "claim": {
+        "amount": "3000.00",
+        "transferDate": "2026-10-26",
+        "bankReference": "A101 PART"
+      },
+      "txn": "DEMO-TXN-26102607",
+      "strength": "partial",
+      "missing": [
+        "reference",
+        "name"
+      ]
+    }
+  ],
   "residentPosition": [
-    { "persona": "Kamran Siddiqui", "current": "4200.00", "previous": "1000.00", "total": "5200.00" },
-    { "persona": "Sana Iqbal", "current": "4200.00", "previous": "0.00", "total": "4200.00" },
-    { "persona": "Rabia Hashmi", "current": "4200.00", "previous": "3000.00", "total": "7200.00" },
-    { "persona": "Junaid Akhtar", "current": "4200.00", "previous": "0.00", "total": "4200.00" }
+    {
+      "persona": "Kamran Siddiqui",
+      "current": "4200.00",
+      "previous": "1000.00",
+      "total": "5200.00"
+    },
+    {
+      "persona": "Sana Iqbal",
+      "current": "4200.00",
+      "previous": "0.00",
+      "total": "4200.00"
+    },
+    {
+      "persona": "Rabia Hashmi",
+      "current": "4200.00",
+      "previous": "3000.00",
+      "total": "7200.00"
+    },
+    {
+      "persona": "Junaid Akhtar",
+      "current": "4200.00",
+      "previous": "0.00",
+      "total": "4200.00"
+    }
   ],
   "scenario": {
     "invoices": 79,

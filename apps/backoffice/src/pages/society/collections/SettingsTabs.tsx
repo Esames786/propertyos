@@ -20,7 +20,7 @@ import {
 } from '@repo/ui';
 import { BadgeCheck, Ban, CalendarClock, Check, Clock3, History, Landmark, Lock, ShieldCheck, XCircle } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
-import { LaterBadge, Loading, ProblemAlert, useSocietyFormat } from '../kit';
+import { AmountInput, LaterBadge, Loading, ProblemAlert, useSocietyFormat } from '../kit';
 
 const useSettings = (siteId: string) => useApiQuery<CollectionSettings>({ method: 'GET', path: `/sites/${siteId}/collection-settings` });
 
@@ -289,15 +289,38 @@ export function PaymentMethodsTab({ siteId }: { siteId: string }) {
                 <Badge tone="neutral" icon={Ban}>{t('sites:methods.notAllowed')}</Badge>
               )}
             </div>
-            {m.method === 'office_cash' && (
-              <p className="text-xs text-muted">{t('collections:settings.cashRules', { max: m.maxAmount ? fmt.money(m.maxAmount) : '—', counter: m.counter ?? '—' })}</p>
-            )}
+            {m.method === 'office_cash' &&
+              (s.actions.manageMethods ? (
+                <CashRules rule={m} pending={mutation.isPending} onSave={(patch) => update(m, patch)} />
+              ) : (
+                <p className="text-xs text-muted">{t('collections:settings.cashRules', { max: m.maxAmount ? fmt.money(m.maxAmount) : '—', counter: m.counter ?? '—' })}</p>
+              ))}
           </li>
         ))}
       </ul>
       {error ? <ProblemAlert error={error} className="mt-3" /> : null}
       <p className="mt-3 text-xs text-muted">{t('sites:methods.proofNote')}</p>
     </Panel>
+  );
+}
+
+/**
+ * Office cash rules the society sets for itself: the most one receipt may take and where and when
+ * residents can pay. The demo starts at 50,000; it is the society's setting, not a platform limit.
+ */
+function CashRules({ rule, pending, onSave }: { rule: MethodRule; pending: boolean; onSave: (patch: { maxAmount: string; counter: string }) => Promise<void> }) {
+  const { t } = useT();
+  const [max, setMax] = useState(rule.maxAmount?.amount ?? '');
+  const [counter, setCounter] = useState(rule.counter ?? '');
+  return (
+    <div className="grid gap-3 @2xl:grid-cols-[minmax(0,14rem)_minmax(0,1fr)_auto] @2xl:items-end" data-testid="cash-rules">
+      <AmountInput label={t('collections:settings.methodsLimit')} value={max} onChange={setMax} testId="cash-limit" />
+      <PlainTextField label={t('collections:settings.methodsCounter')} value={counter} onChange={setCounter} testId="cash-counter" />
+      <Button variant="secondary" isPending={pending} isDisabled={!max.trim() || counter.trim().length < 5} onPress={() => void onSave({ maxAmount: max, counter })} data-testid="cash-rules-save">
+        {t('collections:settings.methodsSave')}
+      </Button>
+      <p className="text-xs text-muted @2xl:col-span-3">{t('collections:settings.methodsLimitHelp')}</p>
+    </div>
   );
 }
 

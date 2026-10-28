@@ -62,6 +62,8 @@ const TASK_ICON: Record<SocietyTask['key'], LucideIcon> = {
   reconcile_bank: Landmark,
   approve_beneficiary: Landmark,
   approve_payer_changes: UserCog,
+  approve_payment_exceptions: BadgeCheck,
+  proofs_awaiting_bank: Landmark,
   apply_credit: PiggyBank,
 };
 

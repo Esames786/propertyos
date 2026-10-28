@@ -7,7 +7,7 @@ import { COLLECTIONS } from '../../../nav.config';
 import { Loading, useSocietyFormat } from '../kit';
 import { MatchBadge, SubmissionStateBadge } from './ckit';
 
-const FILTERS = ['to_review', 'needs_information', 'verified', 'rejected', 'all'] as const;
+const FILTERS = ['to_review', 'awaiting_bank_evidence', 'exception_pending', 'needs_information', 'verified', 'rejected', 'all'] as const;
 
 /**
  * FIN-008 payment-proof inbox: worked oldest first. Each proof says at a glance whether a bank

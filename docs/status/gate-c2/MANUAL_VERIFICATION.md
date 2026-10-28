@@ -23,7 +23,7 @@ See [`test-results.md`](test-results.md). These checks are **not a WCAG certific
 |------|-------|--------|-------|
 | NVDA, Gate B flows B1–B22 | backoffice and HQ | not performed | needs a person running NVDA |
 | NVDA, Gate C.1 flows C1–C10 | society setup and billing | not performed | needs a person running NVDA |
-| NVDA, Gate C.2 flows D1–D12 (below) | proof review, payments, resident app | not performed | needs a person running NVDA |
+| NVDA, Gate C.2 flows D1–D15 (below) | proof review, payments, resident app | not performed | needs a person running NVDA |
 | VoiceOver (iOS), resident flows D8–D12 | resident app on an iPhone | not performed | needs an iPhone |
 | Real Android phone, resident flows D8–D12 | Chrome on Android, EN and UR, text size 150 % and 200 % | not performed | needs a device |
 | Firefox (latest), full C.2 storyline | desktop and phone width | smoke only (automated) | — |
@@ -56,7 +56,10 @@ See [`test-results.md`](test-results.md). These checks are **not a WCAG certific
 | D9 | Resident bill and pay | Home → Pay | **Bill:** the amount card reads total, current, previous and due date. **Copy buttons:** each says what it copies; the copied toast is announced. **QR:** an image whose label says it is a demo. **Proof form:** fields labelled; the file picker is announced; a file error is announced; *Pending verification* is announced after sending. |
 | D10 | Resident proof status | Sana: open the proof that needs information → send again | **Request:** the office's request is read with its heading. **Resubmission:** file and amount labelled; after sending, the state change is announced; versions are listed. |
 | D11 | Receipt and statement | Kamran after verification | **Receipt:** reads amount, date and what it settled (flat and charge). **Statement:** the four sums as label and amount; entries as a list; the closing balance at 0.00. |
-| D12 | Bottom bar and text size at 200 % | Phone, Settings → Text size → 200 % | **Settings:** the scale is a radio group; *Reset to default* is reachable. **Bottom bar:** reads its five items, with the current page marked; no item is cut off; the last content on each page can be scrolled clear of the bar. |
+| D12 | Bottom bar and text size at 200 % | Phone, Settings → Text size → 200 % | **Settings:** the scale is a radio group; *Reset to default* is reachable. **Header:** one line; the organisation's name is read (it is visually condensed to its monogram). **Bottom bar:** reads its five items, with the current page marked; no item is cut off; the last content on each page can be scrolled clear of the bar; while typing in a field (keyboard open) the bar steps aside and is not read; it returns when the field is left. |
+| D13 | Waiting for the bank line | A-101 sends 6,000 → Saba: choose *Not on a statement yet* → note → *Wait for the bank line*; then Bank → Import statement → choose the account → sample 3 | **Option:** the radio reads its title and explanation. **After waiting:** the state change is announced; the banner (*Checked by …: waiting for the bank line*) is read. **Import:** the account select reads its label and choices (title, IBAN, in force / retired); the result names the waiting proof, as a link. |
+| D14 | Exception and approval | B-405 → choose Imran's transfer → reason → *Send for approval*; then as Ayesha → *Approve and issue receipt* | **Partial line:** reads *Partial match* and what does not match. **Form:** the reason field is required (20 characters). **Card:** reads who asked, the transfer and the reason; for Saba it says someone else decides; for Ayesha the two buttons are reachable; the receipt is announced. |
+| D15 | Retired account | Import sample 4 for the committee account; open A-101's proof | **Line:** the disabled radio is announced as unavailable, and its note says the money reached another account and can never settle the proof. |
 
 ## Results
 

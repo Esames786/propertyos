@@ -44,7 +44,7 @@ const STARTER_PERMISSIONS: Record<StarterRoleKey, readonly Permission[]> = {
   treasurer: [
     'quickcreate.use', 'customer.view', 'invoice.view', 'payment.receive', 'finance.evidence.review', 'residents.view', 'reports.view',
     'site.view', 'opening_balance.approve', 'billing_run.view', 'billing_run.approve', 'billing_run.post', 'credit_note.create',
-    'collections.view', 'bank.view', 'beneficiary.approve', 'payment_methods.manage', 'billing_policy.manage', 'liability.approve',
+    'collections.view', 'bank.view', 'beneficiary.approve', 'payment_methods.manage', 'billing_policy.manage', 'liability.approve', 'payment_exception.approve',
   ],
   maintenance: ['quickcreate.use', 'operations.view', 'workorder.update', 'residents.view'],
   technician: ['operations.view', 'workorder.update'],

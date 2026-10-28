@@ -117,9 +117,10 @@ function Overview({ data }: { data: PaymentDetail }) {
         ) : (
           <p className="text-sm text-text">{t('collections:payment.fromCounter')}{p.source.note ? <> · <bdi>{t('billing:quote', { text: p.source.note })}</bdi></> : null}</p>
         )}
-        {p.verification === 'manual' && p.manualReason && (
-          <InlineAlert tone="warning" title={t('collections:payment.manualTitle')}>
-            <p><bdi>{t('billing:quote', { text: p.manualReason })}</bdi></p>
+        {p.exception && (
+          <InlineAlert tone="warning" title={t('collections:payment.exceptionTitle')} data-testid="payment-exception">
+            <p>{t('collections:payment.exceptionBody', { requested: p.exception.requestedByName, approved: p.exception.approvedByName, list: p.exception.missing.map((m) => t(`collections:review.field.${m}`)).join(', ') })}</p>
+            <p><bdi>{t('billing:quote', { text: p.exception.reason })}</bdi></p>
           </InlineAlert>
         )}
         {p.overrideReason && (
@@ -252,12 +253,10 @@ function Reconciliation({ data }: { data: PaymentDetail }) {
           />
           <Link href={COLLECTIONS.reconciliation}>{t('collections:payment.openReconciliation')}</Link>
         </>
-      ) : data.payment.method === 'office_cash' ? (
-        <p className="text-sm text-text">{t('collections:payment.cashNoLine')}</p>
       ) : (
         <p className="flex items-start gap-2 text-sm text-text">
-          <Link2Off aria-hidden className="mt-0.5 size-4 text-warning" />
-          {t('collections:payment.awaitingLine')}
+          <Link2Off aria-hidden className="mt-0.5 size-4 text-muted" />
+          {t('collections:payment.cashNoLine')}
         </p>
       )}
     </section>

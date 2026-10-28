@@ -9,6 +9,7 @@ import { useT } from '../lib/useT';
 import { PageEnter } from '../motion/Reveal';
 import { useNavigation } from '../navigation/RouterAdapter';
 import { useSession } from '../permissions/SessionProvider';
+import { useDisplayPreferences } from '../preferences/DisplayPreferences';
 import { useReducedMotion } from '../preferences/PreferencesProvider';
 import { LocaleToggle, useLanguageAnnouncement } from './LocaleSwitcher';
 import { isCurrent } from './NavList';
@@ -23,6 +24,30 @@ export interface CustomerNavGroup {
 }
 
 const label = (t: ReturnType<typeof useT>['t'], key: string) => t(key as 'portal:nav.home');
+
+/**
+ * True while a text field has focus (on a phone the keyboard is open): the floating bottom bar steps
+ * aside so it never covers the field or the keyboard's view of the page, and returns on blur.
+ */
+function useTyping() {
+  const [typing, setTyping] = useState(false);
+  useEffect(() => {
+    const isText = (el: EventTarget | null) =>
+      el instanceof HTMLElement &&
+      el.matches('input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="button"]):not([type="submit"]):not([type="reset"]), textarea, select, [contenteditable="true"]');
+    const onIn = (e: FocusEvent) => setTyping(isText(e.target));
+    const onOut = (e: FocusEvent) => {
+      if (!isText(e.relatedTarget)) setTyping(false);
+    };
+    document.addEventListener('focusin', onIn);
+    document.addEventListener('focusout', onOut);
+    return () => {
+      document.removeEventListener('focusin', onIn);
+      document.removeEventListener('focusout', onOut);
+    };
+  }, []);
+  return typing;
+}
 
 /** True once the page has scrolled, so the desktop header gains its hairline only when content passes under it. */
 function useScrolled(threshold = 4) {
@@ -48,6 +73,14 @@ function Monogram({ name, className }: { name: string; className?: string }) {
       {name.charAt(0)}
     </span>
   );
+}
+
+/**
+ * Phones: the page's scroll padding equals the floating header above and the bottom bar below, so a
+ * control reached with the keyboard (or an in-page link) is never left under either of them.
+ */
+function ScrollPadding() {
+  return <style>{`@media (max-width: 47.99rem) { html { scroll-padding-top: 6.5rem; scroll-padding-bottom: calc(4.75rem + max(0.75rem, env(safe-area-inset-bottom)) + 1.5rem); } }`}</style>;
 }
 
 /** The persistent demo notice: a short pill on small screens, the full sentence on wide ones (always its accessible name). */
@@ -110,6 +143,12 @@ export function CustomerShell({
   const { location } = useNavigation();
   const reduced = useReducedMotion();
   const scrolled = useScrolled();
+  const typing = useTyping();
+  // From Large text up, the phone header keeps to one line: the organisation's monogram stands for
+  // its name (read in full by screen readers, and shown on the page and in the account menu)
+  // instead of a name wrapping word by word. The person's chosen size still applies to the page.
+  const { textScale } = useDisplayPreferences();
+  const compactHeader = textScale >= 1.25;
   useRouteFocus(location.pathname, pageTitle, appName);
   useLanguageAnnouncement();
 
@@ -164,6 +203,7 @@ export function CustomerShell({
       id="app-shell"
       className="min-h-dvh bg-bg [--body-size:var(--text-base)] [--portal-nav-height:4.75rem] [--portal-nav-space:calc(var(--portal-nav-height)+max(0.75rem,env(safe-area-inset-bottom))+3rem)] md:flex"
     >
+      <ScrollPadding />
       <SkipLink />
 
       {/* Tablet / desktop rail */}
@@ -262,6 +302,8 @@ export function CustomerShell({
         <header
           aria-label={t('a11y:landmarks.header')}
           data-scrolled={scrolled || undefined}
+          data-compact={compactHeader || undefined}
+          data-testid="portal-header"
           className={cn(
             'sticky z-30 flex items-center gap-2 transition-[border-color,box-shadow] duration-[var(--motion-regular)]',
             // Phone: floating rounded bar
@@ -273,8 +315,8 @@ export function CustomerShell({
         >
           <Monogram name={tenant.name} className="size-9 text-lg md:hidden" />
           <span className="min-w-0 flex-1 leading-tight">
-            {/* Inline-block with its own direction: a Latin name truncates at its end in Urdu too. */}
-            <span className="block text-chrome font-semibold text-text md:hidden">
+            {/* Inline-block with its own direction: a Latin name keeps its order in Urdu too. */}
+            <span className={cn('block text-chrome font-semibold text-text md:hidden', compactHeader && 'sr-only')} data-testid="portal-header-name">
               <span dir="auto" className="inline-block max-w-full align-bottom [overflow-wrap:anywhere]">
                 {tenant.name}
               </span>
@@ -287,7 +329,7 @@ export function CustomerShell({
           <span className="hidden md:inline-flex">
             <DemoPill className="py-1 text-xs" />
           </span>
-          <LocaleToggle className="max-xs:px-2.5 max-md:min-h-10 max-md:px-3" />
+          <LocaleToggle className="text-chrome max-xs:px-2.5 max-md:min-h-10 max-md:px-3" />
           {headerEnd}
         </header>
 
@@ -306,7 +348,12 @@ export function CustomerShell({
         aria-label={t('portal:nav.label')}
         data-tour-id="portal-bottom-nav"
         data-testid="portal-bottom-nav"
-        className="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-30 rounded-[1.5rem] border border-border/80 bg-panel/95 shadow-lift backdrop-blur-md md:hidden"
+        data-typing={typing || undefined}
+        inert={typing}
+        className={cn(
+          'fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-30 rounded-[1.5rem] border border-border/80 bg-panel/95 shadow-lift backdrop-blur-md transition-transform duration-[var(--motion-fast)] motion-reduce:transition-none md:hidden',
+          typing && 'translate-y-[calc(100%+2rem)]',
+        )}
       >
         <ul className="mx-auto grid h-[var(--portal-nav-height)] max-w-lg grid-cols-5 items-stretch gap-0.5 px-1.5 py-1">
           {bottomItems.slice(0, half).map(bottomItem)}

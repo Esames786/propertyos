@@ -45,6 +45,26 @@ async function reviewFlat(page: Page, flat: string) {
   await expect(page.getByTestId('proof-review')).toHaveAttribute('data-flat', flat);
 }
 
+/** The office-cash limit as stored for the site (what the counter enforces). */
+async function cashLimit(page: Page) {
+  const settings = await api<{ methods: Array<{ method: string; maxAmount?: { amount: string } }> }>(
+    page,
+    '/sites/site_alnoor/collection-settings',
+  );
+  return settings.ok
+    ? settings.res.methods.find((m) => m.method === 'office_cash')?.maxAmount?.amount
+    : undefined;
+}
+
+/** Opens a resident's proof from the inbox list of a given state. */
+async function reviewFlatAs(page: Page, flat: string, state: string) {
+  await office(page, `${INBOX}?state=${state}`, 'proof-inbox');
+  const row = page.locator(`[data-testid="proof-row"][data-flat="${flat}"]`);
+  await expect(row).toHaveCount(1);
+  await row.click();
+  await expect(page.getByTestId('proof-review')).toHaveAttribute('data-flat', flat);
+}
+
 /** The resident sends a proof through the pay page. */
 async function sendProof(
   page: Page,
@@ -234,7 +254,7 @@ test.describe('Gate C.2: Al-Noor resident collections, proof to receipt', () => 
     expect(consoleErrors).toEqual([]);
   });
 
-  test('office cash is refused until the treasurer allows it; 3,000 at the counter leaves A-101 owing 2,200 with a receipt', async ({
+  test('office cash is refused until the treasurer allows it, within the limit the society sets; 3,000 at the counter leaves A-101 owing 2,200 with a receipt', async ({
     page,
     consoleErrors,
   }) => {
@@ -264,6 +284,10 @@ test.describe('Gate C.2: Al-Noor resident collections, proof to receipt', () => 
     const toggle = page.getByTestId('method-toggle-office_cash');
     await toggle.click();
     await expect(toggle).toHaveAttribute('data-selected', 'true');
+    // The limit is the society's own rule (the demo starts at 50,000): lowered to 2,500 here.
+    await page.getByTestId('cash-limit').fill('2500');
+    await page.getByTestId('cash-rules-save').click();
+    await expect.poll(() => cashLimit(page)).toBe('2500.00');
 
     await become(page, 'backoffice', 'alnoor_accounts');
     await office(
@@ -272,6 +296,22 @@ test.describe('Gate C.2: Al-Noor resident collections, proof to receipt', () => 
       'office-drawer',
     );
     await expect(drawer.getByTestId('office-disabled')).toHaveCount(0);
+    await drawer.getByTestId('office-amount').fill('3000');
+    await drawer.getByTestId('office-submit').click();
+    await expect(drawer.getByRole('alert')).toBeVisible();
+    await expect(drawer.getByTestId('office-done')).toHaveCount(0);
+    // Raised to 5,000 by the treasurer: the same 3,000 is taken.
+    await become(page, 'backoffice', 'alnoor_treasurer');
+    await office(page, `${SITE}?tab=payment-methods`, 'payment-methods');
+    await page.getByTestId('cash-limit').fill('5000');
+    await page.getByTestId('cash-rules-save').click();
+    await expect.poll(() => cashLimit(page)).toBe('5000.00');
+    await become(page, 'backoffice', 'alnoor_accounts');
+    await office(
+      page,
+      '/backoffice/fin/payment-list?drawer=office&account=ba_anr_a101',
+      'office-drawer',
+    );
     await drawer.getByTestId('office-amount').fill('3000');
     await expect(drawer.getByTestId('office-preview')).toBeVisible();
     await drawer.getByTestId('office-submit').click();
@@ -287,23 +327,52 @@ test.describe('Gate C.2: Al-Noor resident collections, proof to receipt', () => 
     expect(consoleErrors).toEqual([]);
   });
 
-  test('6,000 by transfer, verified by hand with a reason, settles 5,200 and leaves 800 as credit for the same payer', async ({
+  test('6,000 not yet on a statement waits for its bank line (nothing settled); the imported statement brings it; verified: 5,200 settled and 800 credit for the same payer', async ({
     page,
     consoleErrors,
   }) => {
-    test.setTimeout(150_000);
+    test.setTimeout(180_000);
     await seedSociety(page);
     await sendProof(page, SLIP('kamran-6000.jpg'), { amount: '6000', reference: 'A101 ALL DUES' });
     await reviewFlat(page, 'A-101');
-    // No transfer of 6,000 is on the statement: nothing is preselected; manual verification needs a reason.
+    // No transfer of 6,000 is on any statement: nothing is proposed, and there is no way to settle it by hand.
     await expect(page.locator('[data-testid="match-candidate"][data-selected="true"]')).toHaveCount(
       0,
     );
-    await page.getByTestId('match-manual').click();
-    await expect(page.getByTestId('review-verify')).toBeDisabled();
+    await expect(page.getByTestId('match-manual')).toHaveCount(0);
+    await page.getByTestId('match-await').click();
+    await expect(page.getByTestId('review-verify')).toHaveCount(0);
+    await expect(page.getByTestId('review-await')).toBeDisabled();
     await page
-      .getByTestId('manual-reason')
-      .fill('Seen on the bank portal; today’s statement is not imported yet.');
+      .getByTestId('await-note')
+      .fill('Resident says it was sent today; not on the imported statements yet.');
+    await page.getByTestId('review-await').click();
+    await expect(page.getByTestId('proof-review')).toHaveAttribute(
+      'data-state',
+      'awaiting_bank_evidence',
+    );
+    await expect(page.getByTestId('awaiting-banner')).toBeVisible();
+
+    // The resident still owes 5,200: pending, no receipt.
+    await portal(page, HOME, 'dues-home');
+    await expect(page.getByTestId('dues-home')).not.toHaveAttribute('data-status', 'paid');
+    await expect(page.getByTestId('dues-total')).toContainText('5,200');
+    await expect(page.getByTestId('dues-receipt')).toHaveCount(0);
+
+    // The afternoon statement of the association's account brings the transfer.
+    await office(page, '/backoffice/bank/bank-transaction-feed', 'bank-feed');
+    await page.getByTestId('bank-import-open').click();
+    const drawer = page.getByTestId('bank-import');
+    await expect(drawer.getByTestId('bank-import-sample-3')).toBeDisabled();
+    await drawer.getByTestId('bank-import-account').getByRole('button').click();
+    await page.getByRole('option', { name: /3456 7890/ }).click();
+    await drawer.getByTestId('bank-import-sample-3').click();
+    await expect(drawer.getByTestId('bank-import-matchable')).toContainText('A-101');
+    await drawer.getByTestId('bank-import-matchable').getByRole('link').first().click();
+    await expect(page.getByTestId('proof-review')).toHaveAttribute('data-flat', 'A-101');
+    await expect(
+      page.locator('[data-testid="match-candidate"][data-txn="DEMO-TXN-26102615"]'),
+    ).toHaveAttribute('data-selected', 'true');
     await expect(page.getByTestId('allocation-unapplied')).toContainText('800');
     await page.getByTestId('review-verify').click();
     await expect(page.getByTestId('verified-banner')).toContainText('800');
@@ -315,6 +384,99 @@ test.describe('Gate C.2: Al-Noor resident collections, proof to receipt', () => 
     // The officer sees the credit on the payer's list of credits.
     await office(page, '/backoffice/fin/customer-credit-overpayments', 'credits-page');
     await expect(page.locator('[data-testid="credit-row"]', { hasText: 'A-101' })).toHaveCount(1);
+    expect(consoleErrors).toEqual([]);
+  });
+
+  test('a partly matching transfer settles only through an exception a second person approves', async ({
+    page,
+    consoleErrors,
+  }) => {
+    test.setTimeout(150_000);
+    await seedSociety(page);
+    await reviewFlat(page, 'B-405');
+    // Imran's transfer quotes the same words for B-405, but another payer: partial, never verified directly.
+    const imran = page.locator('[data-testid="match-candidate"][data-txn="DEMO-TXN-26102518"]');
+    await expect(imran).toHaveAttribute('data-strength', 'partial');
+    await imran.click();
+    await expect(imran.getByTestId('candidate-missing')).toBeVisible();
+    await expect(page.getByTestId('exception-form')).toBeVisible();
+    await expect(page.getByTestId('review-verify')).toHaveCount(0);
+    await expect(page.getByTestId('review-exception')).toBeDisabled();
+    await page
+      .getByTestId('exception-reason')
+      .fill('Komal says her husband Imran sent it from his account; confirmed by phone.');
+    await page.getByTestId('review-exception').click();
+    const card = page.getByTestId('exception-card');
+    await expect(card).toBeVisible();
+    await expect(page.getByTestId('proof-review')).toHaveAttribute(
+      'data-state',
+      'exception_pending',
+    );
+    // The accounts officer who asked cannot approve.
+    await expect(card.getByTestId('review-exception-approve')).toHaveCount(0);
+    await expect(card.getByTestId('exception-waiting')).toBeVisible();
+
+    // The treasurer approves: payment and receipt, marked as an approved exception.
+    await become(page, 'backoffice', 'alnoor_treasurer');
+    await office(page, '/backoffice', 'society-dashboard');
+    await expect(
+      page.locator('[data-testid="approval-item"][data-kind="payment_exception"]'),
+    ).toBeVisible();
+    await reviewFlatAs(page, 'B-405', 'exception_pending');
+    await page.getByTestId('review-exception-approve').click();
+    await expect(page.getByTestId('verified-banner')).toBeVisible();
+    await page.getByTestId('open-payment').click();
+    await expect(page.getByTestId('payment-workspace')).toBeVisible();
+    await expect(page.getByTestId('payment-exception')).toContainText('Ayesha Malik');
+    await expect(page.getByTestId('verification-badge')).toHaveAttribute(
+      'data-verification',
+      'exception_approved',
+    );
+    expect(consoleErrors).toEqual([]);
+  });
+
+  test('statements belong to the account the officer chooses; money on the retired account never settles a proof', async ({
+    page,
+    consoleErrors,
+  }) => {
+    test.setTimeout(150_000);
+    await seedSociety(page);
+    // Kamran pays the old committee account by mistake (20 October, after it was retired on the 12th).
+    await portal(page, PAY, 'proof-form');
+    await page.getByTestId('proof-date').fill('2026-10-20');
+    await page.getByTestId('proof-file').setInputFiles(SLIP('kamran-old-account.jpg'));
+    await page.getByTestId('proof-send').click();
+    await expect(page.getByTestId('dues-submission')).toBeVisible();
+
+    await office(page, '/backoffice/bank/bank-transaction-feed', 'bank-feed');
+    await page.getByTestId('bank-import-open').click();
+    const drawer = page.getByTestId('bank-import');
+    // The committee account's statement is refused for the association's account...
+    await drawer.getByTestId('bank-import-account').getByRole('button').click();
+    await page.getByRole('option', { name: /3456 7890/ }).click();
+    await drawer.getByTestId('bank-import-sample-4').click();
+    await expect(drawer.getByRole('alert')).toBeVisible();
+    await expect(drawer.getByTestId('bank-import-result')).toHaveCount(0);
+    // ...and imported for its own account.
+    await drawer.getByTestId('bank-import-account').getByRole('button').click();
+    await page.getByRole('option', { name: /8765 4321/ }).click();
+    await drawer.getByTestId('bank-import-sample-4').click();
+    await expect(drawer.getByTestId('bank-import-result')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(
+      page.locator('[data-testid="bank-statement-account"][data-account="ben_anr_committee"]'),
+    ).toHaveCount(1);
+    // The same bank id on two accounts: two lines, one per account.
+    await expect(
+      page.locator('[data-testid="bank-line"][data-txn="DEMO-TXN-26102201"]'),
+    ).toHaveCount(2);
+
+    // In the review, the line on the retired account is shown but cannot be chosen.
+    await reviewFlat(page, 'A-101');
+    const wrong = page.locator('[data-testid="match-candidate"][data-account="ben_anr_committee"]');
+    await expect(wrong).toHaveAttribute('data-destination', 'wrong_account');
+    await expect(wrong).toHaveAttribute('data-disabled', 'true');
+    await expect(wrong.getByTestId('candidate-wrong-destination')).toBeVisible();
     expect(consoleErrors).toEqual([]);
   });
 
@@ -696,6 +858,97 @@ test.describe('Gate C.2: text size (first run and settings)', () => {
     });
   }
 
+  for (const locale of ['en-PK', 'ur-PK'] as Locale[]) {
+    test(`phone, ${locale}, 150 % and 200 %: the header stays one line and never covers the page; keyboard focus never lands under the header or the bar; the bar steps aside while typing`, async ({
+      page,
+      consoleErrors,
+    }) => {
+      test.setTimeout(150_000);
+      await page.setViewportSize(VIEWPORTS.phone);
+      await seedSociety(page, { locale, textScale: 1.5 });
+      for (const scale of ['150', '200'] as const) {
+        if (scale === '200') {
+          await portal(
+            page,
+            '/customer/portal/accessibility-preferences#text-size',
+            'text-size-settings',
+          );
+          await page.getByTestId('text-size-200').click();
+        }
+        await portal(page, HOME, 'dues-home');
+        const header = page.getByTestId('portal-header');
+        await expect(header).toHaveAttribute('data-compact', 'true');
+        // The organisation's name is still there for screen readers (and on the page itself).
+        await expect(page.getByTestId('portal-header-name')).toHaveClass(/sr-only/);
+        const geometry = await page.evaluate(() => {
+          window.scrollTo(0, 0);
+          const h = document
+            .querySelector('[data-testid="portal-header"]')!
+            .getBoundingClientRect();
+          const h1 = document.querySelector('main h1')!.getBoundingClientRect();
+          return { headerHeight: h.height, headerBottom: h.bottom, h1Top: h1.top };
+        });
+        expect(geometry.headerHeight, `${scale}: header height`).toBeLessThanOrEqual(80);
+        expect(
+          geometry.h1Top,
+          `${scale}: the heading starts below the header`,
+        ).toBeGreaterThanOrEqual(geometry.headerBottom);
+
+        // Keyboard: every control reached with Tab is fully in view, clear of the header and the bar.
+        const failures: string[] = [];
+        for (let i = 0; i < 18; i++) {
+          await page.keyboard.press('Tab');
+          const where = await page.evaluate(() => {
+            const el = document.activeElement as HTMLElement | null;
+            if (!el || el === document.body || !document.querySelector('main')!.contains(el))
+              return null;
+            const r = el.getBoundingClientRect();
+            const head = document
+              .querySelector('[data-testid="portal-header"]')!
+              .getBoundingClientRect();
+            const nav = document
+              .querySelector('[data-testid="portal-bottom-nav"]')!
+              .getBoundingClientRect();
+            return {
+              id: el.getAttribute('data-testid') ?? el.tagName,
+              top: r.top,
+              bottom: r.bottom,
+              headBottom: head.bottom,
+              navTop: nav.top,
+              h: window.innerHeight,
+            };
+          });
+          if (!where) continue;
+          if (
+            where.top < where.headBottom - 1 ||
+            where.bottom > Math.min(where.navTop, where.h) + 1
+          )
+            failures.push(
+              `${scale} ${where.id}: ${Math.round(where.top)}–${Math.round(where.bottom)} (header ends ${Math.round(where.headBottom)}, bar starts ${Math.round(where.navTop)})`,
+            );
+        }
+        expect(failures).toEqual([]);
+      }
+
+      // Typing with the keyboard open (a short viewport): the field stays in view and the bar steps aside.
+      await page.setViewportSize({ width: 390, height: 420 });
+      await portal(page, PAY, 'proof-form');
+      const nav = page.getByTestId('portal-bottom-nav');
+      const amount = page.getByTestId('proof-amount');
+      await amount.focus();
+      await expect(nav).toHaveAttribute('data-typing', 'true');
+      await expect(nav).toHaveAttribute('inert', '');
+      const box = await amount.boundingBox();
+      expect(box!.y).toBeGreaterThanOrEqual(0);
+      expect(box!.y + box!.height).toBeLessThanOrEqual(420);
+      await page.keyboard.type('5200');
+      await page.getByTestId('proof-file-pick').focus();
+      await expect(nav).not.toHaveAttribute('data-typing', 'true');
+      expect(await overflowOf(page)).toBeLessThanOrEqual(0);
+      expect(consoleErrors).toEqual([]);
+    });
+  }
+
   test('desktop: text size is kept per person; another resident of the same browser keeps their own', async ({
     page,
     consoleErrors,
@@ -795,6 +1048,46 @@ for (const locale of ['en-PK', 'ur-PK'] as Locale[]) {
       for (const v of (await scanA11y(page, testInfo, `c2-${locale}-${vp}-reject-dialog`))
         .violations)
         failures.push(`reject-dialog: ${v.id} ${v.targets.join(' | ')}`);
+      // The closure's states: the statement import (account chosen), a proof waiting for its bank line,
+      // and an exception waiting for a second person.
+      await page.goto(`${BO}/backoffice/bank/bank-transaction-feed`);
+      await page.getByTestId('bank-import-open').click();
+      await expect(page.getByTestId('bank-import')).toBeVisible();
+      for (const v of (await scanA11y(page, testInfo, `c2-${locale}-${vp}-bank-import`)).violations)
+        failures.push(`bank-import: ${v.id} ${v.targets.join(' | ')}`);
+      await page.goto(`${BO}/backoffice`);
+      await api(page, '/payment-submissions/psb_anr_0004/await-bank', 'POST', {
+        note: 'Not on the imported statements yet; checking the next one.',
+      });
+      const komal = await api<{
+        candidates: Array<{ bankLine: { id: string; bankTxnId: string } }>;
+      }>(page, '/payment-submissions/psb_anr_0007');
+      const imran = komal.ok
+        ? komal.res.candidates.find((c) => c.bankLine.bankTxnId === 'DEMO-TXN-26102518')
+        : undefined;
+      await api(page, '/payment-submissions/psb_anr_0007/exception', 'POST', {
+        bankLineId: imran?.bankLine.id ?? '',
+        reason: 'Komal says her husband Imran sent it from his account.',
+      });
+      await scanList(
+        page,
+        testInfo,
+        `c2-${locale}-${vp}`,
+        BO,
+        [
+          [
+            'review-awaiting',
+            '/backoffice/fin/transfer-proof-review?record=psb_anr_0004',
+            'awaiting-banner',
+          ],
+          [
+            'review-exception',
+            '/backoffice/fin/transfer-proof-review?record=psb_anr_0007',
+            'exception-card',
+          ],
+        ],
+        failures,
+      );
       expect(failures).toEqual([]);
     });
 

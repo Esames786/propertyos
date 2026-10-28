@@ -541,6 +541,7 @@ export const SOCIETY_HANDLERS: readonly Handler[] = [
           reviewProofs: can(ctx, 'finance.evidence.review'),
           reconcile: can(ctx, 'bank.reconcile'),
           approveBeneficiary: can(ctx, 'beneficiary.approve'),
+          approvePaymentException: can(ctx, 'payment_exception.approve'),
           approveLiability: can(ctx, 'liability.approve'),
         },
         collections: can(ctx, 'collections.view', 'history_read') ? collectionsSummary(s, ctx.at, { bank: can(ctx, 'bank.view', 'history_read') }) : null,

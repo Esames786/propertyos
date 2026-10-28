@@ -17,8 +17,8 @@ import { ALNOOR_ENTITY, ALNOOR_SITE } from './alnoor';
 import { linesOf, openLinesFor, type OpenLine } from './allocate';
 import { agingByAccount, bucketOf, emptyBuckets } from './aging';
 import { isPosted } from './billing-run';
-import { candidatesFor, matchSignal, normRef } from './matching';
-import { creditByAccount, type SocietyState, type SocietyView } from './state';
+import { candidatesFor, matchSignal, normRef, usable, type DestinationScope } from './matching';
+import { beneficiaryOn, creditByAccount, type SocietyState, type SocietyView } from './state';
 
 /**
  * Collections read model (COL-001/005, FIN-005/008/011, BANK-004). Every figure is derived from the
@@ -44,7 +44,15 @@ export const ROUTES = {
   accounts: '/backoffice/billing/accounts',
 } as const;
 
-export const PENDING_STATES: readonly PaymentSubmission['state'][] = ['submitted', 'under_review', 'needs_information'];
+/** Not settled yet (the resident's money is "pending verification" in every one of these). */
+export const PENDING_STATES: readonly PaymentSubmission['state'][] = ['submitted', 'under_review', 'awaiting_bank_evidence', 'exception_pending', 'needs_information'];
+
+/** Where a proof's money had to arrive: its legal entity's verified account in force on the value date. */
+export const scopeOf = (state: SocietyState, legalEntityId: string): DestinationScope => ({ legalEntityId, accountOn: (date) => beneficiaryOn(state, legalEntityId, date)?.id ?? null });
+
+/** Statement lines that could be this proof's transfer, with reasons, strength and destination. */
+export const candidatesOf = (state: SocietyState, sub: PaymentSubmission) =>
+  candidatesFor({ amount: sub.current.amount.amount, transferDate: sub.current.transferDate, bankReference: sub.current.bankReference, payerName: sub.payerName }, state.bank.lines, scopeOf(state, sub.legalEntityId));
 
 /** The latest posted billing period (what "this month" means for collections). */
 export function collectionPeriod(state: SocietyState): string | null {
@@ -52,7 +60,7 @@ export function collectionPeriod(state: SocietyState): string | null {
 }
 
 export function submissionRow(state: SocietyState, sub: PaymentSubmission): SubmissionRow {
-  const candidates = candidatesFor({ amount: sub.current.amount.amount, transferDate: sub.current.transferDate, bankReference: sub.current.bankReference, payerName: sub.payerName }, state.bank.lines);
+  const candidates = candidatesOf(state, sub);
   return {
     id: sub.id,
     ref: sub.ref,
@@ -170,7 +178,7 @@ function suggestionFor(view: SocietyView, line: BankLine): ReconciliationSummary
   // same reference words ("MAINTENANCE NOV") are never both pinned on one proof.
   const sub = view.state.submissions.find((s) => {
     if (!PENDING_STATES.includes(s.state)) return false;
-    const best = candidatesFor({ amount: s.current.amount.amount, transferDate: s.current.transferDate, bankReference: s.current.bankReference, payerName: s.payerName }, view.state.bank.lines).find((c) => !c.alreadyMatched);
+    const best = candidatesOf(view.state, s).find((c) => usable(c, s.id));
     return best?.bankLine.id === line.id && best.reasons.includes('amount') && (best.reasons.includes('reference') || best.reasons.includes('name'));
   });
   if (sub) return { kind: 'submission', id: sub.id, label: sub.ref, href: ROUTES.review(sub.id) };
@@ -192,14 +200,15 @@ export function reconciliation(view: SocietyView): ReconciliationSummary {
   const total = (ls: readonly BankLine[]) => ({ amount: money(sum(ls.map((l) => toPaisa(l.amount.amount)))), count: ls.length });
   const unmatched = lines.filter((l) => l.state === 'unmatched');
   const unidentified = unmatched.filter((l) => !('suggestion' in l));
-  const awaiting = state.payments.filter((p) => !p.bankLineId && p.method === 'bank_transfer');
+  const awaiting = state.submissions.filter((x) => x.state === 'awaiting_bank_evidence');
   return {
     statementCredits: money(sum(state.bank.statements.map((s) => toPaisa(s.credits.amount)))),
     matched: total(lines.filter((l) => l.state === 'matched')),
     unmatched: total(unmatched),
     unidentified: total(unidentified),
     excluded: total(lines.filter((l) => l.state === 'excluded')),
-    awaitingBankLine: { amount: money(sum(awaiting.map((p) => toPaisa(p.amount.amount)))), count: awaiting.length },
+    awaitingBankLine: { amount: money(sum(awaiting.map((x) => toPaisa(x.current.amount.amount)))), count: awaiting.length },
+    awaitingProofs: awaiting.map((x) => ({ id: x.id, ref: x.ref, amount: x.current.amount, payerName: x.payerName, flats: x.flats, transferDate: x.current.transferDate, reviewedBy: x.awaiting?.byName ?? '' })),
     lines,
     payments: state.payments.map((p) => ({ id: p.id, ref: p.ref, amount: p.amount, method: p.method, verification: p.verification, payerName: p.payerName, accountNo: p.accountNo, receivedOn: p.receivedOn, ...(p.bankLineId ? { bankLineId: p.bankLineId } : {}) })),
   };
@@ -250,6 +259,8 @@ export function collectionsSummary(s: { view: SocietyView }, today: string, opts
     queue: {
       toReview: state.submissions.filter((x) => x.state === 'submitted' || x.state === 'under_review').length,
       needsInformation: state.submissions.filter((x) => x.state === 'needs_information').length,
+      awaitingBank: state.submissions.filter((x) => x.state === 'awaiting_bank_evidence').length,
+      exceptions: state.submissions.filter((x) => x.state === 'exception_pending').length,
       href: href(ROUTES.inbox, { state: 'to_review' }),
       reviewHref: ((first) => (first ? ROUTES.review(first.id) : ROUTES.inbox))(state.submissions.find((x) => x.state === 'submitted' || x.state === 'under_review')),
     },

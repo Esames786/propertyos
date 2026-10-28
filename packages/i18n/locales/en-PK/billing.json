@@ -230,7 +230,8 @@
     "yours": "Yours to decide",
     "notYours": "Someone else decides",
     "payer_change": "Payer change",
-    "beneficiary": "New collection account"
+    "beneficiary": "New collection account",
+    "payment_exception": "Payment exception"
   },
   "tasks": {
     "import_flats": {
@@ -345,6 +346,20 @@
       "title_other": "Credit on {{count}} accounts",
       "yours": "Apply it to open charges of the same payer, or keep it for the next bill.",
       "waiting": "Finance applies credit."
+    },
+    "approve_payment_exceptions": {
+      "action": "Review exceptions",
+      "title_one": "{{count}} payment exception to approve",
+      "title_other": "{{count}} payment exceptions to approve",
+      "yours": "A transfer matches a proof only in part. Check the reason, then approve or reject.",
+      "waiting": "Waiting for the committee treasurer."
+    },
+    "proofs_awaiting_bank": {
+      "action": "See proofs",
+      "title_one": "{{count}} proof waiting for its bank line",
+      "title_other": "{{count}} proofs waiting for their bank line",
+      "yours": "Import the next statement; each is verified when its transfer appears.",
+      "waiting": "Finance verifies each when its transfer appears."
     }
   },
   "dashboard": {

@@ -26,6 +26,7 @@ export interface DashboardInput {
     reviewProofs: boolean;
     reconcile: boolean;
     approveBeneficiary: boolean;
+    approvePaymentException: boolean;
     approveLiability: boolean;
   };
   /** Collections figures, when the person may see them (C.2). */
@@ -70,6 +71,9 @@ export function buildSocietyDashboard(input: DashboardInput): SocietyDashboard {
   for (const c of state.beneficiaryChanges.filter((x) => x.state === 'pending_approval')) {
     approvals.push({ kind: 'beneficiary', id: c.id, label: c.proposed.iban, href: `${SITE}?tab=collection-settings`, yours: can.approveBeneficiary && c.proposedBy !== principalId });
   }
+  for (const x of state.submissions.filter((s) => s.state === 'exception_pending' && s.exception)) {
+    approvals.push({ kind: 'payment_exception', id: x.id, label: x.ref, href: `/backoffice/fin/transfer-proof-review?record=${x.id}`, yours: can.approvePaymentException && x.exception!.requestedBy !== principalId });
+  }
 
   const tasks: SocietyTask[] = [];
   const task = (t: SocietyTask) => tasks.push(t);
@@ -81,9 +85,12 @@ export function buildSocietyDashboard(input: DashboardInput): SocietyDashboard {
   if (payerChanges.length) task({ key: 'approve_payer_changes', urgency: 'normal', count: payerChanges.length, yours: payerChanges.some((a) => a.yours), href: payerChanges.length === 1 ? payerChanges[0]!.href : '/backoffice/billing/payer-changes' });
   const beneficiary = approvals.find((a) => a.kind === 'beneficiary');
   if (beneficiary) task({ key: 'approve_beneficiary', urgency: 'urgent', yours: beneficiary.yours, href: beneficiary.href });
+  const exceptions = approvals.filter((a) => a.kind === 'payment_exception');
+  if (exceptions.length) task({ key: 'approve_payment_exceptions', urgency: 'urgent', count: exceptions.length, yours: exceptions.some((a) => a.yours), href: exceptions.length === 1 ? exceptions[0]!.href : '/backoffice/fin/unverified-transfers-queue?state=exception_pending' });
   const c = input.collections;
   if (c && c.queue.toReview) task({ key: 'review_proofs', urgency: 'urgent', count: c.queue.toReview, yours: can.reviewProofs, href: c.queue.href });
   if (c && c.queue.needsInformation) task({ key: 'proofs_waiting_resident', urgency: 'normal', count: c.queue.needsInformation, yours: false, href: `${c.pending.href}?state=needs_information` });
+  if (c && c.queue.awaitingBank) task({ key: 'proofs_awaiting_bank', urgency: 'normal', count: c.queue.awaitingBank, yours: can.reconcile, href: `${c.pending.href}?state=awaiting_bank_evidence` });
   if (c && c.bank.unmatched && can.reconcile) task({ key: 'reconcile_bank', urgency: 'normal', count: c.bank.unmatched, yours: true, href: c.bank.href });
   if (c && c.credit.accounts && can.reviewProofs) task({ key: 'apply_credit', urgency: 'normal', count: c.credit.accounts, yours: true, href: c.credit.href });
   const pendingExemptions = approvals.filter((a) => a.kind === 'exemption');

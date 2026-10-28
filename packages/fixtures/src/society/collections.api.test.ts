@@ -161,22 +161,34 @@ describe('Gate C.2 storyline: resident → finance → receipt', () => {
     const s = session().as('alnoor_resident_a101');
     const part = await s.post<ResidentSubmissionDetail>('/portal/dues/submissions', { amount: '3000', transferDate: '2026-10-26', bankReference: 'A101 PART', file: slip('part.jpg') });
     s.as('alnoor_accounts');
-    // No bank line has this amount: verification by hand needs a reason (and stays visible in reconciliation).
-    expect(await problem(s.post(`/payment-submissions/${part.submission.id}/verify`, { amount: '3000' }))).toMatchObject({ status: 422 });
-    const p1 = await s.post<PaymentDetail>(`/payment-submissions/${part.submission.id}/verify`, { amount: '3000', manualReason: 'Seen on the bank portal; statement not imported yet.' });
-    expect(p1.payment.verification).toBe('manual');
+    // Not on any statement yet: the proof waits; nothing is settled.
+    const waiting = await s.get<SubmissionDetail>(`/payment-submissions/${part.submission.id}`);
+    expect(waiting.candidates.filter((c) => c.strength === 'full')).toEqual([]);
+    await s.post(`/payment-submissions/${part.submission.id}/await-bank`, { note: 'Not on the statements imported so far; checking the next one.' });
+    await s.post('/bank/statements', { sample: 3, beneficiaryId: 'ben_anr_main' });
+    const ready = await s.get<SubmissionDetail>(`/payment-submissions/${part.submission.id}`);
+    const line = ready.candidates.find((c) => c.strength === 'full')!;
+    expect(line.bankLine).toMatchObject({ bankTxnId: 'DEMO-TXN-26102616', amount: { amount: '3000.00' } });
+    const p1 = await s.post<PaymentDetail>(`/payment-submissions/${part.submission.id}/verify`, { bankLineId: line.bankLine.id, amount: '3000' });
+    expect(p1.payment.verification).toBe('bank_matched');
     expect(p1.accountBalance.amount).toBe('2200.00');
     const inv = await s.get<InvoiceDetail>(`/billing/invoices/${p1.payment.allocations.find((a) => a.kind === 'charge')!.invoiceId}`);
     expect(inv.invoice).toMatchObject({ settlement: 'partially_paid', outstanding: { amount: '2200.00' } });
     expect(inv.payments.map((p) => p.amount.amount)).toEqual(['2000.00']);
-    const rec = await s.get<ReconciliationSummary>('/bank/reconciliation');
-    expect(rec.awaitingBankLine).toMatchObject({ count: 1, amount: { amount: '3000.00' } });
 
     s.as('alnoor_resident_a101');
     expect((await s.get<DuesHome>('/portal/dues/home')).position).toMatchObject({ status: 'partially_paid', totalPayable: { amount: '2200.00' } });
-    const over = await s.post<ResidentSubmissionDetail>('/portal/dues/submissions', { amount: '3000', transferDate: '2026-10-26', bankReference: 'A101 REST', file: slip('rest.jpg') });
+  });
+
+  it('6,000 against its statement line settles 5,200 and leaves 800 as credit, applied only to the same payer (AC-10)', async () => {
+    const s = session().as('alnoor_resident_a101');
+    const over = await s.post<ResidentSubmissionDetail>('/portal/dues/submissions', { amount: '6000', transferDate: '2026-10-26', bankReference: 'A101 ALL DUES', file: slip('all.jpg') });
     s.as('alnoor_accounts');
-    const p2 = await s.post<PaymentDetail>(`/payment-submissions/${over.submission.id}/verify`, { amount: '3000', manualReason: 'Seen on the bank portal; statement not imported yet.' });
+    await s.post('/bank/statements', { sample: 3, beneficiaryId: 'ben_anr_main' });
+    const d = await s.get<SubmissionDetail>(`/payment-submissions/${over.submission.id}`);
+    const line = d.candidates.find((c) => c.strength === 'full')!;
+    expect(line.bankLine.bankTxnId).toBe('DEMO-TXN-26102615');
+    const p2 = await s.post<PaymentDetail>(`/payment-submissions/${over.submission.id}/verify`, { bankLineId: line.bankLine.id, amount: '6000' });
     expect(p2.payment.unapplied.amount).toBe('800.00');
     expect(p2.accountBalance.amount).toBe('-800.00');
     expect(p2.actions.applyCredit).toBe(false); // nothing of this payer is open
@@ -225,6 +237,14 @@ describe('office cash, the bank feed and reconciliation (AC-13, AC-14)', () => {
     s.as('alnoor_treasurer');
     const settings = await s.patch<CollectionSettings>(`${SITE}/payment-methods`, { method: 'office_cash', enabled: true });
     expect(settings.methods.find((m) => m.method === 'office_cash')!.enabled).toBe(true);
+    // The limit is the society's own setting (50,000 is only the demo's starting value); changing it
+    // leaves cash allowed.
+    const limited = await s.patch<CollectionSettings>(`${SITE}/payment-methods`, { method: 'office_cash', maxAmount: '5000' });
+    expect(limited.methods.find((m) => m.method === 'office_cash')).toMatchObject({ enabled: true, maxAmount: { amount: '5000.00' } });
+    s.as('alnoor_accounts');
+    expect(await problem(s.post('/payments/office', { ...cash, amount: '5200' }))).toMatchObject({ status: 422 });
+    s.as('alnoor_treasurer');
+    await s.patch<CollectionSettings>(`${SITE}/payment-methods`, { method: 'office_cash', maxAmount: '50000' });
     s.as('alnoor_accounts');
     expect(await problem(s.post('/payments/office', { ...cash, amount: '60000' }))).toMatchObject({ status: 422 });
     const paid = await s.post<PaymentDetail>('/payments/office', cash);
@@ -237,7 +257,7 @@ describe('office cash, the bank feed and reconciliation (AC-13, AC-14)', () => {
 
   it('statements import once; reconciliation marks verified payments matched; two lines stay unidentified', async () => {
     const s = session();
-    expect(await s.post<{ created: number; alreadyImported: boolean }>('/bank/statements', { sample: 2 })).toMatchObject({ created: 0, alreadyImported: true });
+    expect(await s.post<{ created: number; alreadyImported: boolean }>('/bank/statements', { sample: 2, beneficiaryId: 'ben_anr_main' })).toMatchObject({ created: 0, alreadyImported: true });
     const rec = await s.get<ReconciliationSummary>('/bank/reconciliation');
     expect([rec.matched.count, rec.unidentified.count]).toEqual([3, 2]);
     const unknown = rec.lines.find((l) => l.counterpartyName === 'M ALI')!;
@@ -251,6 +271,122 @@ describe('office cash, the bank feed and reconciliation (AC-13, AC-14)', () => {
     expect((await s.get<CollectionsSummary>('/collections/summary')).queue.toReview).toBe(6);
     expect(await problem(s.get('/bank/feed'))).toMatchObject({ status: 403 });
     expect(await problem(s.post('/payment-submissions/psb_anr_0004/review'))).toMatchObject({ status: 403 });
+  });
+});
+
+describe('settlement evidence (C.2 review)', () => {
+  it('a reviewer\u2019s note settles nothing: the proof waits for its bank line, then is verified once', async () => {
+    const s = session().as('alnoor_resident_a101');
+    const sent = await s.post<ResidentSubmissionDetail>('/portal/dues/submissions', { amount: '6000', transferDate: '2026-10-26', bankReference: 'A101 ALL DUES', file: slip('evidence.jpg') });
+    s.as('alnoor_accounts');
+    const before = await s.get<CollectionsSummary>('/collections/summary');
+    // A fabricated or well-meant reason is not evidence of funds: verification without a line is refused.
+    expect(await problem(s.post(`/payment-submissions/${sent.submission.id}/verify`, { amount: '6000', manualReason: 'Seen on the bank portal this morning.' }))).toMatchObject({ status: 422, code: 'bank_evidence_required' });
+    expect(await problem(s.post(`/payment-submissions/${sent.submission.id}/await-bank`, { note: 'short' }))).toMatchObject({ status: 422 });
+    const waiting = await s.post<SubmissionDetail>(`/payment-submissions/${sent.submission.id}/await-bank`, { note: 'Resident says it was sent today; not on the imported statements yet.' });
+    expect(waiting.submission).toMatchObject({ state: 'awaiting_bank_evidence', awaiting: { byName: 'Saba Javed' } });
+    expect(waiting.submission.paymentId).toBeUndefined();
+    // Not settled, not allocated, no receipt; the figures do not move; reconciliation lists it as waiting.
+    const summary = await s.get<CollectionsSummary>('/collections/summary');
+    expect([summary.collected.amount.amount, summary.collected.payments, summary.outstanding.amount.amount]).toEqual([before.collected.amount.amount, before.collected.payments, before.outstanding.amount.amount]);
+    expect(summary.queue.awaitingBank).toBe(1);
+    expect((await s.get<ReconciliationSummary>('/bank/reconciliation')).awaitingBankLine).toMatchObject({ count: 1, amount: { amount: '6000.00' } });
+    expect((await s.get<{ items: unknown[] }>('/payments', { account: 'ba_anr_a101' })).items).toEqual([]);
+    s.as('alnoor_resident_a101');
+    const home = await s.get<DuesHome>('/portal/dues/home');
+    expect(home.position).toMatchObject({ status: 'pending_verification', totalPayable: { amount: '5200.00' } });
+    expect(home.receipts).toEqual([]);
+    expect((await s.get<ResidentSubmissionDetail>(`/portal/dues/submissions/${sent.submission.id}`)).timeline.map((t) => t.step)).toEqual(['submitted', 'awaiting_bank_evidence']);
+
+    // The statement arrives: the import points at the waiting proof (it settles nothing by itself).
+    s.as('alnoor_accounts');
+    const imported = await s.post<{ created: number; nowMatchable: Array<{ id: string }> }>('/bank/statements', { sample: 3, beneficiaryId: 'ben_anr_main' });
+    expect(imported.created).toBe(2);
+    expect(imported.nowMatchable.map((x) => x.id)).toEqual([sent.submission.id]);
+    const detail = await s.get<SubmissionDetail>(`/payment-submissions/${sent.submission.id}`);
+    expect(detail.submission.state).toBe('awaiting_bank_evidence');
+    const line = detail.candidates.find((c) => c.strength === 'full')!;
+    const paid = await s.post<PaymentDetail>(`/payment-submissions/${sent.submission.id}/verify`, { bankLineId: line.bankLine.id, amount: '6000' });
+    expect(paid.payment).toMatchObject({ verification: 'bank_matched', bankTxnId: 'DEMO-TXN-26102615', unapplied: { amount: '800.00' } });
+    // No second recognition: verifying again, importing again, or using the same line for another proof.
+    expect(await problem(s.post(`/payment-submissions/${sent.submission.id}/verify`, { bankLineId: line.bankLine.id, amount: '6000' }))).toMatchObject({ status: 409, code: 'already_verified' });
+    expect(await s.post('/bank/statements', { sample: 3, beneficiaryId: 'ben_anr_main' })).toMatchObject({ created: 0, alreadyImported: true });
+    s.as('alnoor_resident_a101');
+    const again = await s.post<ResidentSubmissionDetail>('/portal/dues/submissions', { amount: '6000', transferDate: '2026-10-26', bankReference: 'A101 ALL DUES', file: slip('evidence-again.jpg'), confirmDuplicate: true });
+    s.as('alnoor_accounts');
+    expect(await problem(s.post(`/payment-submissions/${again.submission.id}/verify`, { bankLineId: line.bankLine.id, amount: '6000' }))).toMatchObject({ status: 409, code: 'bank_line_already_matched' });
+    const payments = await s.get<{ items: Array<{ amount: { amount: string } }> }>('/payments', { account: 'ba_anr_a101' });
+    expect(payments.items.map((p) => p.amount.amount)).toEqual(['6000.00']);
+  });
+
+  it('statements are bound to a chosen verified account; another account\u2019s transfer never settles; the same bank id on two accounts is two transactions', async () => {
+    const s = session();
+    // The account is chosen, never assumed; it must be one of this entity's verified accounts.
+    expect(await problem(s.post('/bank/statements', { sample: 3 }))).toMatchObject({ status: 422 });
+    expect(await problem(s.post('/bank/statements', { sample: 3, beneficiaryId: 'ben_other_main' }))).toMatchObject({ status: 422 });
+    // A statement that names another account is refused.
+    expect(await problem(s.post('/bank/statements', { sample: 4, beneficiaryId: 'ben_anr_main' }))).toMatchObject({ status: 422, code: 'statement_account_mismatch' });
+    const old = await s.post<{ created: number; statement: { beneficiaryId: string; iban: string } }>('/bank/statements', { sample: 4, beneficiaryId: 'ben_anr_committee' });
+    // DEMO-TXN-26102201 is already on the association's account: on the old account it is another transaction.
+    expect(old).toMatchObject({ created: 1, statement: { beneficiaryId: 'ben_anr_committee', iban: 'PK70DEMO0000000987654321' } });
+    const feed = await s.get<BankFeed>('/bank/feed');
+    expect(feed.lines.filter((l) => l.bankTxnId === 'DEMO-TXN-26102201').map((l) => l.beneficiaryId).sort()).toEqual(['ben_anr_committee', 'ben_anr_main']);
+    expect(feed.accounts.map((a) => a.id).sort()).toEqual(['ben_anr_committee', 'ben_anr_main']);
+
+    // Kamran paid the old committee account on 20 October (retired on the 12th): it never settles his proof.
+    s.as('alnoor_resident_a101');
+    const sent = await s.post<ResidentSubmissionDetail>('/portal/dues/submissions', { amount: '5200', transferDate: '2026-10-20', bankReference: 'ANR-A101-2026-11', file: slip('old-account.jpg') });
+    s.as('alnoor_accounts');
+    const d = await s.get<SubmissionDetail>(`/payment-submissions/${sent.submission.id}`);
+    const wrong = d.candidates.find((c) => c.bankLine.beneficiaryId === 'ben_anr_committee')!;
+    expect(wrong).toMatchObject({ strength: 'full', destination: 'wrong_account' });
+    expect(await problem(s.post(`/payment-submissions/${sent.submission.id}/verify`, { bankLineId: wrong.bankLine.id, amount: '5200' }))).toMatchObject({ status: 422, code: 'wrong_destination' });
+    expect(await problem(s.post(`/payment-submissions/${sent.submission.id}/exception`, { bankLineId: wrong.bankLine.id, reason: 'Resident paid the old committee account by mistake.' }))).toMatchObject({ status: 422, code: 'wrong_destination' });
+    expect((await s.get<SubmissionQueue>('/payment-submissions')).items.find((r) => r.id === sent.submission.id)!.match).not.toBe('exact');
+  });
+
+  it('a partly matching line settles only through an exception approved by someone else', async () => {
+    const s = session();
+    const queue = await s.get<SubmissionQueue>('/payment-submissions');
+    const komal = queue.items.find((r) => r.flats[0] === 'B-405' && r.state === 'submitted')!;
+    const d = await s.get<SubmissionDetail>(`/payment-submissions/${komal.id}`);
+    const own = d.candidates.find((c) => c.bankLine.counterpartyName === 'KOMAL MIRZA')!;
+    const imran = d.candidates.find((c) => c.bankLine.counterpartyName === 'IMRAN HUSSAIN')!;
+    expect(own).toMatchObject({ strength: 'full', missing: [] });
+    expect(imran).toMatchObject({ strength: 'partial', missing: ['name'], destination: 'ok' });
+    // Same amount and words, another payer: verifying directly is refused.
+    expect(await problem(s.post(`/payment-submissions/${komal.id}/verify`, { bankLineId: imran.bankLine.id, amount: '4200' }))).toMatchObject({ status: 409, code: 'exception_required' });
+    // A full match needs no exception; an exception needs a real reason.
+    expect(await problem(s.post(`/payment-submissions/${komal.id}/exception`, { bankLineId: own.bankLine.id, reason: 'This is clearly the right transfer for B-405.' }))).toMatchObject({ status: 409, code: 'exception_not_needed' });
+    expect(await problem(s.post(`/payment-submissions/${komal.id}/exception`, { bankLineId: imran.bankLine.id, reason: 'same' }))).toMatchObject({ status: 422 });
+    const asked = await s.post<SubmissionDetail>(`/payment-submissions/${komal.id}/exception`, { bankLineId: imran.bankLine.id, reason: 'Komal says her husband Imran sent it from his account; confirmed by phone.' });
+    expect(asked.submission).toMatchObject({ state: 'exception_pending', exception: { missing: ['name'], requestedByName: 'Saba Javed' } });
+    expect(asked.submission.paymentId).toBeUndefined();
+    // The line is held: no other proof may use it while the exception waits.
+    const b406 = (await s.get<BankFeed>('/bank/feed')).lines.find((l) => l.id === imran.bankLine.id)!;
+    expect(b406.heldFor).toMatchObject({ submissionId: komal.id });
+    // The accounts officer cannot approve (no permission); the treasurer can, unless she asked.
+    expect(await problem(s.post(`/payment-submissions/${komal.id}/exception/approve`))).toMatchObject({ status: 403 });
+    s.as('alnoor_treasurer');
+    const view = await s.get<SubmissionDetail>(`/payment-submissions/${komal.id}`);
+    expect(view.actions).toMatchObject({ decideException: true });
+    expect(await problem(s.post(`/payment-submissions/${komal.id}/exception/reject`, { note: '' }))).toMatchObject({ status: 422 });
+    const paid = await s.post<PaymentDetail>(`/payment-submissions/${komal.id}/exception/approve`);
+    expect(paid.payment).toMatchObject({ verification: 'exception_approved', bankTxnId: imran.bankLine.bankTxnId, exception: { missing: ['name'], requestedByName: 'Saba Javed', approvedByName: 'Ayesha Malik' } });
+    expect((await s.get<BankFeed>('/bank/feed')).lines.find((l) => l.id === imran.bankLine.id)).toMatchObject({ state: 'matched' });
+
+    // A treasurer who asks cannot approve her own exception; a rejection releases the line.
+    const queue2 = await s.get<SubmissionQueue>('/payment-submissions');
+    const sana = queue2.items.find((r) => r.flats[0] === 'A-102' && r.state === 'submitted')!;
+    const sd = await s.get<SubmissionDetail>(`/payment-submissions/${sana.id}`);
+    const spare = sd.candidates.find((c) => c.strength === 'partial' && c.destination === 'ok' && !c.alreadyMatched && !c.heldFor)!;
+    await s.post(`/payment-submissions/${sana.id}/exception`, { bankLineId: spare.bankLine.id, reason: 'Trying a line that only partly matches, to show the rule.' });
+    expect(await problem(s.post(`/payment-submissions/${sana.id}/exception/approve`))).toMatchObject({ status: 403, code: 'maker_checker_required' });
+    s.as('alnoor_accounts');
+    expect(await problem(s.post(`/payment-submissions/${sana.id}/exception/reject`, { note: 'Not this one.' }))).toMatchObject({ status: 403 });
+    s.as('alnoor_treasurer');
+    // Same principal: the requester may not reject either (a second person decides).
+    expect(await problem(s.post(`/payment-submissions/${sana.id}/exception/reject`, { note: 'Not this one.' }))).toMatchObject({ status: 403, code: 'maker_checker_required' });
   });
 });
 
