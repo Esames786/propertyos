@@ -94,7 +94,7 @@
 | F12 | Print bills for all houses | None | Print pack on the billing run; dues notices |
 | F13 | Send reminder | Reminder events in the ERD only | Reminder rules with consent, quiet hours and history |
 | F14 | Neighbour-recommended services directory | None | `community_hub` feature, vetted listings only |
-| F15 | Community hub: announcements, broadcast, marketplace, resources, polls (polls and circles "coming soon" in Nizam too) | Notices only | `community_hub` (polls, resources, optional marketplace) and a resident Community home |
+| F15 | Community hub: announcements, broadcast, marketplace, resources, polls (polls and circles "coming soon" in Nizam too) | Notices only | `community_hub` (polls, resources, optional marketplace) and a resident Community home. Official notices and broadcast stay outside the hub and work without it (D.2) |
 | F16 | One login switches Resident and Management | Separate apps | App switcher with separate scopes |
 | F17 | Manage signed-in devices | None | Devices tab in profile; admin revoke |
 | F18 | Self-serve backup and export | None | Data export and privacy requests with approval |

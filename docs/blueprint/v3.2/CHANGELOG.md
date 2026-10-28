@@ -1,5 +1,42 @@
 # V3.2 proposal: changelog
 
+## Revision 3: amendment after GPT's re-review of `3f018d0` (Issue #3)
+
+**Status:** documentation only.
+- **GPT's re-review:** it accepted all the original Issue #3 corrections and conditionally approved V3.2 as a **planning baseline, not implementation authorisation**.
+- **Not approved:** decisions D-21 to D-49.
+- **Unchanged:** the live screen register, `main`, the C.2 branch and all code.
+
+| Item | Change | Where |
+|---|---|---|
+| **Official notices are independent of `community_hub`** | **The problem.** Revision 2 folded PORTAL-023 into the D.3 Community home, which made notices wait for D.3 and sit on a page that hosts optional hub tabs. **The fix.** PORTAL-023 stays the **canonical** notices page, delivered in **D.2**. The complete journey is in D.2: RES-005 / NOT-003 compose → PORTAL-042 resident notification (new state of the resident home) → PORTAL-043 notice detail (new state, `/customer/portal/community-notices/:id`). Routes, deep links and access are unchanged. No hub key or permission is on the path; the only new permission is `notices.publish` (`communications`). Community home (D.3) only links to notices. The alternative design is recorded in D-49 | Delta CSV (PORTAL-023, -036, -042, -043, RES-005, NOT-003); Scope F15; Plan D.2/D.3; Matrix §2, §5, §6, §8; ERD §2.13, I-36; D-49 |
+| **Audience rules shared** | `chat_audience_rules` becomes the shared core `audience_rules`. Notices, polls and chat no longer depend on each other's licence (polls previously reused the chat add-on's entity). Table counts unchanged | ERD §1, §2.1, §2.11 |
+| **Offline chat revocation** | The server revokes access, queued deliveries and notifications at once. A downloaded copy on a disconnected device is removed only when it next connects, and messages written offline are rejected then. Immediate remote deletion is never promised | Scope F01; ERD §2.1, I-24; CSV CHAT-001, PORTAL-031; D-25; Plan D.3 |
+| **Privacy threshold vs differencing** | Fixed groupings for residents (no free filters or date ranges); a complement check across shown counts; scheduled snapshots instead of live tallies; poll results after close; differencing test vectors | Scope F04, F15, §5; ERD §2.4, §2.9, I-23; CSV MNT-012, PORTAL-034, CMTY-002; D-47; Plan D.2/D.3 |
+| **SOS** | Restated as **parked potential scope, not authorised work**, unavailable until safety approval. SOS rows carry a `PARKED` delta status. Totals show active and parked scope separately | Scope §2, F02; Plan §1, §3; CSV; D-26 |
+| **C.2 status** | C.2 is now committed (`d5e599d`) and awaits review. The official baseline stays C.1 until that review; the C.2 figures are informational | All files; D-43 |
+| **Wording fix** | A leftover "national numbers" in the F02 tests now reads "verified local emergency numbers" | Scope F02 |
+
+**Revised counts (provisional)**
+
+| Measure | Revision 2 | Revision 3 |
+|---|---|---|
+| Delta rows | 106: 28 ADD, 29 ADD-STATE, 48 MODIFY, 1 SUPERSEDE | **108: 28 ADD, 31 ADD-STATE, 49 MODIFY, 0 SUPERSEDE** |
+| Distinct screens (C.1 base 335) | 362 | **363** (360 active + 3 parked SOS) |
+| Rows (C.1 base 394) | 451 | **453** |
+| Informational, on C.2 `d5e599d` (337 / 396) | 364 | **365** distinct / 455 rows |
+| Gate D / S / E / G | 48 / 43 / 117 / 47 | **49** / 43 (40 + 3 parked) / 117 / 47 |
+| D.1 / D.2 / D.3 | 15 / 25 / 8 | 15 / **26** / 8 |
+| Logical tables | 38 NEW + 8 FORMALISED + 3 PARKED | Unchanged (a rename only; notices reuse A2 entities) |
+
+**Still open:** the revision-2 list below, plus **D-49** (keep PORTAL-023 canonical, or use a minimal Community shell in D.2).
+
+**Next:**
+1. The owner and GPT review this amendment.
+2. The owner approves D-21, D-23, D-24 and D-43.
+3. After the C.2 review, the delta is regenerated on the C.2 register.
+4. Each milestone is authorised separately.
+
 ## Revision 2: answers the GPT architecture review (Issue #3)
 
 **Status:** documentation only and still a PROPOSAL.

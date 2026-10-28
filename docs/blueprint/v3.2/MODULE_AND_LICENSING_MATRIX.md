@@ -1,6 +1,6 @@
 # V3.2 proposal: module and licensing matrix
 
-**Status:** PROPOSAL, revision 2. **None of the decisions behind it (D-21 to D-48) is approved.**
+**Status:** PROPOSAL, revision 3. **None of the decisions behind it (D-21 to D-49) is approved.**
 
 It extends A1 §5 (module catalogue) and the catalogue in `packages/fixtures/src/platform/catalog.ts` (version `2026.10-1`, 27 modules).
 
@@ -40,7 +40,7 @@ Every module stays available to the Custom edition, as today.
 | `receivables` | Invoices, payments, allocation, receipts, credits | finance | tenant | core | accounting, banking, online_payments | ✓ | ✓ | ✓ | + features `bulk_office_collection`, `reminders` |
 | `dues` | Charges, billing runs | community | site | receivables, residents | accounting, communications | add-on | ✓ | ✓ | + print pack (no feature key: part of runs) |
 | `residents` | Ownership, occupancy, roster | community | site | core | dues, maintenance, visitors | ✓ | ✓ | ✓ | + features `committee`, `transfer_clearance` |
-| `resident_portal` | Resident app | community | site | residents | receivables, maintenance, visitors, amenities, construction, **community_hub, community_chat, rentals, safety** | ✓ | ✓ | ✓ | + feature `adoption`; Community home |
+| `resident_portal` | Resident app | community | site | residents | receivables, maintenance, visitors, amenities, construction, **community_hub, community_chat, rentals, safety** | ✓ | ✓ | ✓ | + feature `adoption`; official notices (PORTAL-023, PORTAL-043) always come with the portal, never with the hub; Community home |
 | `online_payments` | Gateway (mock until Gate H) | finance | site | receivables | resident_portal | add-on | add-on | add-on | — |
 | `banking` | Bank and cash accounts, beneficiaries, reconciliation | finance | tenant | core | receivables, payables, accounting, **rentals** | ✓ | ✓ | ✓ | + feature `cashbook`; cash account kinds |
 | `accounting` | Chart of accounts, journals, periods | finance | tenant | core | receivables, payables, payroll, banking | ✓ | add-on | add-on | Period lock shared with the cashbook |
@@ -52,7 +52,7 @@ Every module stays available to the Custom edition, as today.
 | `visitors` | Passes, gate check-in | community | site | residents | resident_portal, **safety** | ✓ | ✓ | ✓ | + feature `live_queue` |
 | `parking` | Spaces, vehicles | community | site | core | residents, dues | ✓ | ✓ | ✓ | + feature `vehicle_approvals` |
 | `amenities` | Amenities, bookings | community | site | residents | dues | ✓ | ✓ | ✓ | — |
-| `communications` | Notices, messages, templates, delivery | channels | tenant | core | everything | ✓ | ✓ | ✓ | Reminder delivery (simulated); consent records |
+| `communications` | Notices, messages, templates, delivery | channels | tenant | core | everything | ✓ | ✓ | ✓ | Reminder delivery (simulated); consent records; + permission `notices.publish` (revision 3) |
 | `reports` | Report centre | foundation | tenant | core | all | ✓ | ✓ | ✓ | — |
 | `public_website` | Project sites | channels | tenant | projects, inventory | crm | add-on | — | — | — |
 | `white_label` | Domain and theme | channels | tenant | core | — | add-on | add-on | add-on | — |
@@ -67,6 +67,12 @@ Every module stays available to the Custom edition, as today.
 - **`safety`** must be held back from sale until the safety review. A *restricted* catalogue status lets HQ show it without granting it.
 - **`rentals`** is a separate business line (letting) with its own money flows and legal duties. It must be sold on its own (Issue #2: "independent Supreme-Admin licensable module").
 - **`community_hub`** groups optional engagement tools. Notices stay in `communications` so official notices remain one-way and auditable.
+  - **Revision 3:** official notices never depend on `community_hub` or `community_chat`. The whole journey runs on included modules, in D.2:
+    - the office publishes in RES-005 or NOT-003 (`residents`, `communications`);
+    - residents are notified (`core` notifications);
+    - residents read in PORTAL-023/043 (`resident_portal`).
+  - **No hub permission** applies to notices. The routes and the resident Notices nav item name no hub key. The D.3 Community home only links to them.
+  - **Register mismatch (unchanged).** RES-005 is listed under `residents` in the live register but under `communications` in A1. Both are included in every edition. Opening RES-005 keeps `residents.view`, and the new publish action uses `communications`. Aligning the two is left to the register sync.
 
 **Alternative:** fold chat and the hub into `communications` as features. This gives fewer catalogue lines, but HQ could no longer price or restrict them separately. Decision D-21.
 
@@ -141,6 +147,7 @@ Existing features are unchanged: `core.multi_entity`, `core.practice_mode`, `rec
 | `sos.respond` | safety | ✓ | ✓ | | | | | ✓ |
 | `sos.configure` | safety | ✓ | | | | | | |
 | `sos.review` | safety | ✓ | | ✓ | | | | |
+| `notices.publish` (publish, schedule, edit, withdraw official notices; revision 3) | communications | ✓ | ✓ | | | | | |
 | `portal_access.view` | resident_portal | ✓ | ✓ | ✓ | | | | |
 | `portal_access.invite` | resident_portal | ✓ | ✓ | | | | | |
 | `issues.view` | maintenance | ✓ | ✓ | | | ✓ | | |
@@ -208,6 +215,7 @@ On top of the split, the server still checks that the principal who prepared a r
 | `payroll` for a society without `hr` | Missing `hr` |
 | `safety` (catalogue status restricted) | Refused: "Available after the separate safety design is approved" (HQ shows it greyed with the reason). No safety UI exists before then |
 | `community_hub` + `community_chat` | Integration lights up: polls and listings can link to chat |
+| `resident_portal` without `community_hub` or `community_chat` (revision 3) | No warning needed. Official notices, the resident notifications panel and notice detail work fully (D.2). The D.3 Community home shows only its non-hub sections. Smart groups and polls each use the shared core `audience_rules`, so neither add-on needs the other |
 | `rentals` + `banking` | Integration: **settled** payouts appear in the cashbook (instructions do not); client-money accounts become available |
 
 ## 7. Demo tenants (fictional) and when they would gain grants
@@ -234,6 +242,7 @@ Each new nav item, quick-create entry, dashboard widget and tour step declares `
 | Rentals area | "Leasing" | "Rentals" | "Rentals & owners" |
 | Community area (back office) | "Community" | "Community" | "Community" |
 | Resident Community home | "Community" | "Community" (Urdu: کمیونٹی) | "Community" |
+| Resident official notices (PORTAL-023; revision 3) | "Notices" | "Notices" | "Notices" (its own nav item from D.2; also summarised on Community home from D.3) |
 | Resident requests (PORTAL-015) | "Requests" | "Requests" | "Requests" (renamed from "Services" to avoid confusion with Local services) |
 | Cash | "Cash & bank" | "Cashbook" | "Cash & bank" |
 | Committee | — | "Committee" | "Owners' committees" (per site) |

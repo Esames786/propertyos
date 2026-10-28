@@ -13,16 +13,18 @@
 | [`ERD_PROPOSED_CHANGES.md`](ERD_PROPOSED_CHANGES.md) | Logical entities and invariants. Not migrations |
 | [`SCREEN_REGISTER_DELTA.csv`](SCREEN_REGISTER_DELTA.csv) | Row-level changes against the live register (the live register is untouched) |
 | [`FRONTEND_ONLY_EXECUTION_PLAN.md`](FRONTEND_ONLY_EXECUTION_PLAN.md) | Milestones, acceptance tests, evidence, stop points |
-| [`OWNER_DECISIONS.md`](OWNER_DECISIONS.md) | Decisions D-21 to D-48 with recommendations (none approved yet) |
-| [`CHANGELOG.md`](CHANGELOG.md) | What changed in revision 2 and what is still open |
+| [`OWNER_DECISIONS.md`](OWNER_DECISIONS.md) | Decisions D-21 to D-49 with recommendations (none approved yet) |
+| [`CHANGELOG.md`](CHANGELOG.md) | What changed in revisions 2 and 3, and what is still open |
 | [`../../design/reference/nizam/NIZAM_FEATURES_AND_GAPS.md`](../../design/reference/nizam/NIZAM_FEATURES_AND_GAPS.md) | What the Nizam benchmark showed (text only) |
 
-**Revision 2** (GPT review, Issue #3) corrects the finance source of truth, the screen counting, the entity model and several privacy rules. See [`CHANGELOG.md`](CHANGELOG.md).
+**Revision 2** (GPT review, Issue #3) corrects the finance source of truth, the screen counting, the entity model and several privacy rules.
+
+**Revision 3** (GPT re-review of `3f018d0`) makes official notices a complete D.2 journey that never depends on the optional `community_hub`. It also states the limits of offline chat revocation, extends the privacy threshold to differencing across filters and time, and marks the SOS pages as parked potential scope. See [`CHANGELOG.md`](CHANGELOG.md).
 
 **Baseline**
 - **Register (official).** The committed Gate C.1 register: **394 rows, 335 distinct screens**.
-- **Not official.** The 396 rows / 337 distinct seen in the primary session's working tree are **uncommitted C.2 work**. They are shown only for information.
-- **Provisional.** Every count in this package is provisional. It is revalidated and the delta regenerated once C.2 is committed and reviewed. The live register is not changed before then.
+- **Not yet official.** Gate C.2 has since been committed (`d5e599d`: 396 rows, 337 distinct) and awaits review. Until it is reviewed, its figures are informational.
+- **Provisional.** Every count in this package is provisional. The delta is regenerated on the committed C.2 register after C.2 review. The live register is not changed before then.
 - **Architecture.**
   - The 27-module catalogue (`2026.10-1`).
   - The access intersection (tenant, module, site, feature, permission, record scope, workflow state).
@@ -87,20 +89,21 @@
 | F12 | Bulk maintenance bill printing | P0 | `dues`, `receivables` | Existing | Included | 0 | S.1 |
 | F13 | Resident payment reminders | P0 | `receivables` + `communications` | Existing, new feature | Included; SMS/WhatsApp metered | 1 | S.1 |
 | F14 | Services directory | P1 | `community_hub` | **NEW module** | Add-on (feature) | 1 | D.3 |
-| F15 | Community hub, polls and marketplace | P1 | `community_hub` + `resident_portal` | **NEW module** | Add-on; marketplace off by default | 3 (+1 merged) | D.3 |
+| F15 | Community hub, polls and marketplace (official notices stay outside the hub) | P1 | `community_hub` + `resident_portal` | **NEW module** | Add-on; marketplace off by default. Notices need no add-on | 3 | D.3 (notices D.2) |
 | F16 | Resident/management mode switching | P0 | core | Existing | Included | 0 (state of GLOBAL-008) | D.1 |
 | F17 | Device and session management | P0 | core | Existing | Included | 0 | D.1 |
 | F18 | Backup, data export, privacy requests | P0 | core | Existing, new feature | Included | 1 | D.1 |
 | F19 | Visitor live queue and vehicle approvals | P1 | `visitors`, `parking` | Existing, new features | Included | 0 (states) | D.2 |
 | F20 | Property transfer and clearance fees | P2 | `residents` + `dues` | Existing | Included | 0 | S.1 |
 | F21 | Resident credit balances; future wallet | P2 | `receivables` | Existing | Included; **wallet deferred** | 0 | S.1 |
-| | **Total** | | | 4 new modules | | **28 new (3 parked); 1 merged** | |
+| | **Total** | | | 4 new modules | | **28 new (3 parked)** | |
 
 **Effect on the register (provisional; official C.1 baseline)**
-- **Distinct screens:** 335 → **362**. That is 28 new screens, with Community notices folding into the new Community home.
-  - 3 of the 28 (the SOS pages) are parked and not adoptable until the safety design is approved.
-  - On the uncommitted C.2 working tree, the same delta gives 337 → 364. That figure is informational only.
-- **Rows:** 394 → **451**. 29 tab, drawer and overlay rows do not count as screens.
+- **Distinct screens:** 335 → **363**, which is 335 plus 28 new screens.
+  - **Revision 3:** Community notices (PORTAL-023) stays its own canonical page and is no longer folded into Community home, so it counts again (+1 against revision 2's 362).
+  - **SOS:** 3 of the 28 (the SOS pages) are **parked potential scope, not authorised work**. They stay unavailable until the safety design is approved. Without them, active scope is **360**.
+  - **On C.2:** on the C.2 commit (`d5e599d`, pending review), the same delta gives 337 → 365. That figure is informational only.
+- **Rows:** 394 → **453**. 31 tab, drawer, overlay and detail-state rows do not count as screens.
 - **Counting rule (revision 2).** Tabs, drawers and overlays without their own page route are **states of a parent screen** (A5 §2). Four overlays that revision 1 counted as screens are now states:
   - SOS-004 → SOS-001;
   - PORTAL-033 → PORTAL-001;
@@ -108,7 +111,7 @@
   - PORTAL-040 → PORTAL-015.
 
   The existing register still counts some older global overlays as screens (GLOBAL-013, the GUIDE tours). That inconsistency is flagged for the owner (D-45) and left unchanged.
-- **Changed rows:** 48 existing rows change. Most of them move earlier (re-gated), or are opened to the community edition.
+- **Changed rows:** 49 existing rows change. Most of them move earlier (re-gated), or are opened to the community edition. None is superseded.
 - **Already planned, now scheduled earlier:** 31 screens move from Gates E and G into the new milestones, because societies need them sooner:
   - HR ×9, payroll ×7, approvals ×5, banking ×3, transfers ×2;
   - the finance overview, vehicle registry, quick broadcast, documents and the user workspace (×1 each).
@@ -148,6 +151,7 @@
   - **Requests.** Community issues sit beside flat repairs as one kind of request.
   - **Committee.** The committee's offices map to the roles that already approve billing runs.
   - **Chat and community.** These use the verified party links that C.2 uses for bills. So a tenant-payer of A-102 is in the right block group, and is never in the owners-only committee group.
+  - **Official notices (revision 3).** The office publishes a notice, residents get a notification, and the notice opens on its own page. The same verified links decide who receives each notice. This works from D.2 with the included modules only, whether or not the society later licenses the community hub or chat.
 - **Maintenance-only client (Shalimar Court: core + maintenance, with residents and visitors from 1 Nov 2026).**
   - Gets community issues and the live gate queue as soon as those grants start.
   - It keeps never reaching CRM, sales or finance areas it does not license.
@@ -218,7 +222,8 @@
     - committee terms (F05).
   - **Messages** may link to a notice (RES-005), a community issue (MNT-003) or a unit. A linked record is shown only if the reader may open it.
 - **ERD:**
-  - `chat_audience_rules`, `chat_groups`, `chat_memberships` (`visible_from` = join date, `ended_at`, read position);
+  - `chat_groups`, `chat_memberships` (`visible_from` = join date, `ended_at`, read position);
+  - smart groups use the shared core `audience_rules` (revision 3; was `chat_audience_rules`), which notices and polls also use, so none of them depends on another add-on's licence;
   - `chat_messages`;
   - the shared `content_reports` and `user_blocks`.
 
@@ -240,12 +245,17 @@
   - Spotlight tours, not a modal carousel.
 - **Privacy and safety:**
   - No automatic history: new members see messages from their join date.
-  - **Revocation (revision 2).** When a membership ends (move-out, role change or term end), access is revoked at once:
-    - the server refuses reads and posts;
-    - cached and offline copies are purged on the next sync;
-    - that member's queued, unsent messages are discarded;
-    - pending notifications are withdrawn;
-    - links and attachments stop resolving for them.
+  - **Revocation (revision 3 wording).** When a membership ends (move-out, role change or term end):
+    - **At once, on the server:**
+      - reads, posts and sync for the group are refused;
+      - deliveries queued for that member are dropped;
+      - pending notifications are withdrawn;
+      - links and attachments stop resolving for them.
+    - **When the device next connects:**
+      - messages the person wrote while offline are rejected, never delivered;
+      - the app removes the group's downloaded messages and attachments from the device.
+    - **What cannot be promised:** content already downloaded to a device that is offline or unreachable cannot be erased at the moment membership ends. The product never claims immediate remote deletion. The resident is told that the conversation "will be removed from this device the next time it connects". Content a person has already read, copied or captured cannot be recalled.
+    - **Possible mitigation for D-25:** the app hides cached group content when its last membership check is older than a tenant-set limit. This hides the content but does not erase it, and no default limit is proposed.
   - Direct messages between residents are **off by default** (D-25).
   - Moderation only through the report workflow; moderators see the reported message and its immediate context, never private conversations.
   - Report and block are always available.
@@ -254,7 +264,11 @@
   - A demo label marks fixture conversations.
 - **Tests:**
   - **Membership vectors:** a tenant-payer is in the block group but not the owners' committee group; after move-out the person loses access; a new joiner cannot read earlier messages.
-  - **Revocation E2E:** after move-out, an offline cache is purged on the next sync, and a queued message is never delivered.
+  - **Revocation E2E:**
+    - after move-out, the server refuses the group at once;
+    - a device that was offline keeps its cache only until it reconnects, and then the cache is removed;
+    - a message written offline is rejected on reconnect;
+    - the UI wording never promises immediate deletion.
   - **Leaks:** a cross-tenant or cross-site leak test.
   - **Moderation:** the reported → hidden flow.
   - **Accessibility and layout:** axe EN/UR; 320 px reflow.
@@ -265,7 +279,7 @@
   - Requires `residents`.
   - Integrates with `hr` (duty roster), `visitors` and `communications`.
 - **Gating (revision 2):**
-  - **PARKED.** No UI of any kind, including global alert buttons and overlays, and no contracts or fixtures, until a **separate, owner-approved safety design** exists (D-26).
+  - **PARKED potential scope, not authorised work.** SOS stays unavailable until safety approval. No UI of any kind, including global alert buttons and overlays, and no contracts or fixtures, until a **separate, owner-approved safety design** exists (D-26). The three SOS pages are counted only as parked scope and in no D or S milestone.
   - The `safety` catalogue entry stays *restricted*.
   - Everything below is a placeholder to frame that design, not a specification.
   - That design must cover:
@@ -323,7 +337,7 @@
 - **Tests:** written after the safety review. At minimum:
   - activation needs two steps;
   - the escalation timer;
-  - the failure state shows the national numbers;
+  - the failure state shows the verified local emergency numbers;
   - axe on the overlays;
   - no-leak tests.
 - **Milestone:** S.4, only after the separate safety design is approved and the owner authorises S.4. **Status:** PLANNED, PARKED.
@@ -407,12 +421,18 @@
 - **Privacy:**
   - Residents see counts, never who else is affected.
   - **Small-audience threshold (revision 2).** A count is shown only when both the count and the eligible audience meet configured minimums (D-47). Otherwise the issue just shows "Reported". This stops one floor's two flats from being re-identified.
+  - **Differencing (revision 3).** A single-cell threshold is not enough. Someone could compare two counts that each pass, and the difference could still point to one household. So resident-visible counts also follow these rules (D-47):
+    - **Fixed groupings only.** Residents see the site, or a block that qualifies. They get no free filters or date ranges.
+    - **Complement check.** A grouping is hidden if "total minus grouping", or any other difference between two shown counts, falls below the threshold.
+    - **Scheduled refresh.** Counts refresh on a schedule, not on each affirmation, so watching one count change cannot reveal when a particular neighbour responded. A resident sees their own affirmation at once.
+    - **Same rules everywhere.** The same count shown in two places (the issues board, Community home) uses the same grouping and refresh.
   - Comments are moderated, with staff-internal notes kept separate.
   - A private flat repair never becomes public without its reporter's consent.
 - **Tests:**
   - affirmation counting and withdrawal;
   - merge keeps counts;
   - identity hidden from residents;
+  - **differencing vectors:** site minus block, two adjacent groupings, consecutive snapshots around one affirmation, and affirm–withdraw toggling;
   - moderation;
   - the repair/issue separation;
   - axe EN/UR.
@@ -846,17 +866,33 @@
   - `community_hub.resources` (reuses documents);
   - `community_hub.marketplace` (**off by default**).
 
-  The resident **Community home** (PORTAL-036) belongs to `resident_portal` and shows only licensed tabs. Announcements stay in `communications` (RES-005, NOT-003), so official notices remain one-way and auditable.
+  The resident **Community home** (PORTAL-036) belongs to `resident_portal` and shows only licensed tabs.
+- **Official notices are not part of the hub (revision 3).** Official notices remain one-way, auditable and available **without** `community_hub` or `community_chat`. The complete journey is delivered in **D.2**:
+
+  | Step | Screen | Licence and permission |
+  |---|---|---|
+  | 1. The office composes, previews the audience, publishes or schedules, and may ask for acknowledgement | RES-005 notices and announcements (or NOT-003 quick broadcast with "also post as notice") | `residents` + `communications` (both included). Opening needs `residents.view` (unchanged); publishing needs `notices.publish` (`communications`) |
+  | 2. Each resident in the audience gets a notification. SMS/WhatsApp copies are simulated and need consent | PORTAL-042 notifications panel (a state of the resident home); simulated message carries the same link | `core` notifications; `communications.sms` / `whatsapp` only for those channels |
+  | 3. The resident opens the notice, and acknowledges it if asked | PORTAL-043 notice detail, `/customer/portal/community-notices/:id` | `resident_portal` + `portal.use` |
+  | 4. The resident can find every current notice later | PORTAL-023 Community notices, `/customer/portal/community-notices` (canonical; route unchanged) | `resident_portal` + `portal.use` |
+  | 5. The office sees delivered, read and acknowledged counts, and which units have not acknowledged | RES-005 (staff only) | `residents.view` |
+
+  - **Who sees a notice.** The audience is resolved from verified links (owner, occupant or liable payer; site, block, floor or unit) and checked again whenever a resident opens it. A moved-out resident gets "not available to you".
+  - **Changes.** Edits create a new version. Withdrawing leaves a dated tombstone. Nothing is deleted.
+  - **D.3 Community home.** It may show a "Latest notices" summary that opens these same routes. It never owns, copies or relocates notices.
+  - **Without the hub.** Removing `community_hub` hides only the hub tabs. The **Notices** item in the resident navigation declares `requires: { modules: ['resident_portal'], permission: 'portal.use' }`.
+  - **Permissions.** No hub permission (`polls.manage`, `directory.manage`, `marketplace.moderate`, `hub.manage`) ever applies to notices.
+  - **Owner decision.** The alternative design, a minimal Community shell in D.2, is recorded in D-49.
 - **Personas and permissions:**
   - manager: `polls.manage`, `hub.manage`;
   - moderator: `marketplace.moderate`;
   - residents read, vote and post listings.
 - **Screens:**
   - new: CMTY-002 polls and surveys (CMTY-004 detail), CMTY-003 marketplace moderation, PORTAL-036 Community home (PORTAL-038 listing, PORTAL-039 vote);
-  - folded in: PORTAL-023 Community notices becomes its Notices tab;
-  - reused: DOC-001 (publish to residents), RES-005, NOT-003.
+  - linked, not folded (revision 3): PORTAL-023 Community notices stays canonical in D.2; Community home shows a summary that links to it;
+  - reused: DOC-001 (publish to residents).
 - **Connections:**
-  - **Poll audiences** reuse the smart-group rules (F01).
+  - **Poll audiences** use the shared core `audience_rules`, the same rules as smart groups (F01) and notices. So polls do not need `community_chat`.
   - **Resources** are documents marked "published to residents".
   - **Society accounts** shows `published_financial_summaries` that the committee approves (aggregate only).
 - **ERD:**
@@ -864,6 +900,8 @@
   - reports use the shared `content_reports`;
   - published financial summaries and resources are `documents` (aggregate snapshot only).
   - Poll results below the privacy threshold (D-47) show "Not enough responses to show".
+  - **Revision 3:** results are published only after the poll closes, so there is no running tally to compare over time. They are shown only for groupings that pass D-47, including the difference between any two groupings shown.
+  - **Notices** reuse A2's `announcements` (EXTENDED) and `notifications` (EXTENDED), with no new table (ERD §2.13).
 - **Mock contract:**
   - `GET/POST /community/polls`
   - `POST /community/polls/:id/{open,close,publish}`
@@ -881,11 +919,13 @@
 - **Tests:**
   - one-response rule;
   - anonymity;
-  - results visibility timing;
+  - results visibility timing (after close only);
+  - differencing vectors across groupings;
   - listing moderation;
   - hidden tabs when unlicensed;
+  - **notices still reachable with `community_hub` removed** (PORTAL-023/043 and the nav item);
   - no debt or contact leaks.
-- **Milestone:** D.3. Marketplace is optional (D-31). **Status:** PLANNED.
+- **Milestone:** D.3 for the hub; marketplace is optional (D-31). Official notices: **D.2**. **Status:** PLANNED.
 
 ### F16. Resident/management mode switching
 - **Home:** core identity. One global sign-in per person (D-17), now with both a staff membership and a verified resident link. Not a licence.
@@ -1055,7 +1095,9 @@
 | One set of source events; the cashbook and owner statements are views, not ledgers | F09, F10, F11 | Sum checks against source records |
 | **Instruction ≠ settlement:** settled cash changes only through confirmed payments, posted vouchers or settlement confirmations | F07, F09, F10, F11, F21 | Instruction-without-settlement tests; settlement idempotency |
 | An uncleared cheque settles nothing; returned and reversed cheques keep history | F11 | Cheque vectors |
-| Small counts never re-identify people (privacy threshold) | F04, F15 | Small-floor vectors |
+| Small counts never re-identify people, either alone or by comparing filters and time snapshots (privacy threshold with differencing rules) | F04, F15 | Small-floor vectors; differencing vectors (site − block, adjacent groupings, consecutive snapshots, affirm–withdraw toggling) |
+| Official notices work with the included modules only; optional add-ons never gate them | Notices (RES-005, NOT-003, PORTAL-023/042/043) | The notice journey E2E with a grant set without `community_hub` and `community_chat`; deep links unchanged |
+| Revocation is immediate on the server; a device's downloaded copy goes only when it next connects | F01 | Revocation E2E with an offline device; wording tests (no promise of immediate remote deletion) |
 | Approval never expands scope or allows self-approval | F05, F18 | Self-approval and export-scope vectors |
 | Simulated is labelled simulated | F01, F02, F03, F13, F19 | Visible demo labels; tests assert the text |
 | Nothing is "Paid", "Sent" or "Dispatched" without evidence | F02, F09, F11, F21 | Wording tests (extends the 1.5R "never Paid" test) |
@@ -1067,8 +1109,8 @@
 
 | # | Conflict or risk | Effect | Proposed handling |
 |---|---|---|---|
-| R-20 | The official baseline is the committed C.1 register (394/335). The C.2 working tree (396/337) is uncommitted | The delta could drift | Every count is provisional. The delta is regenerated on the committed C.2 register after C.2 review, before any adoption (D-43). The live register is untouched |
-| R-21 | Gate D grows from 33 to 48 distinct screens | One huge gate | Split into D.1–D.3, each individually authorised, with a checkpoint after each (D-24) |
+| R-20 | The official baseline is the committed C.1 register (394/335). C.2 is now committed (`d5e599d`, 396/337) but not yet reviewed | The delta could drift | Every count is provisional. The delta is regenerated on the committed C.2 register after C.2 review, before any adoption (D-43). The live register is untouched |
+| R-21 | Gate D grows from 33 to 49 distinct screens | One huge gate | Split into D.1–D.3, each individually authorised, with a checkpoint after each (D-24) |
 | R-22 | HR and payroll are register-scheduled for Gate E (developer) | Societies would wait for the whole ERP | Build the shared HR/payroll screens edition-aware in S.2; Gate E adds developer specifics only |
 | R-23 | Issue #2 lists the finance extensions as P0, but its sequence places them after Gate D | Ordering ambiguity | Recommend S.1 right after D.1, because it extends the C.2 engine while it is fresh (D-23) |
 | R-24 | A cashbook can become a second ledger, or record money that never moved | Mismatched totals; false balances | The cashbook is a **derived view** over settled source events. Other cash goes only through approved, reversible vouchers. Instructions need settlement evidence. One shared period lock (revision 2) |
@@ -1085,9 +1127,11 @@
 | R-35 | Volume: 28 new screens (3 parked) plus 31 earlier ones before Gate E | Schedule | Bounded slices, each individually authorised; reference experiences first; stop at every checkpoint |
 | R-36 | A new chat centre button competes with "Pay" for the phone bottom bar | UX | Chat takes the centre only when licensed and chosen by the tenant (D-25) |
 | R-37 | A4 §5.3 lets office cheques produce a payment immediately ("configurable") | Contradicts "uncleared cheque settles nothing" | Revision 2 makes it strict. A4 wording and C.2's office states are re-checked after C.2 is committed |
-| R-38 | Counts in tiny audiences re-identify people | Privacy | Configurable minimum count and audience size (D-47) |
+| R-38 | Counts in tiny audiences re-identify people, including by differencing two filters or two snapshots | Privacy | Configurable minimum count and audience size; fixed groupings; complement check; scheduled refresh; poll results after close only (D-47) |
 | R-39 | The existing register counts some global overlays (GLOBAL-013, GUIDE tours) as screens; V3.2 does not | Inconsistent totals | Flagged for the owner (D-45); the live register is not changed here |
 | R-40 | The logical model (38 new + 8 formalised tables) could be read as an approved schema | Premature backend design | Labelled conceptual; separate architecture review before Gate H; no migrations |
+| R-41 | Official notices folded into Community home (revision 2), a D.3 page built around optional hub tabs | Residents would get notices only from D.3, and their availability could be read as tied to the hub licence | Revision 3: PORTAL-023 stays canonical in D.2; Community home only links to it; nav, routes and permissions name no hub key (D-49) |
+| R-42 | A chat revocation promise that a disconnected device cannot keep | False assurance to residents and committees | Server-side revocation at once; device copy removed on next connection; wording never promises immediate remote deletion (D-25) |
 
 ## 7. What is explicitly not authorised by this document
 

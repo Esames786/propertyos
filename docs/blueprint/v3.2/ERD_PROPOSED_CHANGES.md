@@ -1,4 +1,4 @@
-# V3.2 proposal: logical ERD changes (revision 2)
+# V3.2 proposal: logical ERD changes (revision 3)
 
 **Status:** PROPOSAL. **This is a conceptual logical model, not an approved physical schema.**
 - Physical design, indexes and Laravel migrations wait for Gate H.
@@ -22,6 +22,14 @@
 - **P1-9:** governance and export scope.
 - **P1-10:** safety parked.
 
+**Revision 3** answers GPT's re-review of `3f018d0`:
+- **Official notices** reuse A2's `announcements` and `notifications` and depend on no add-on (§2.13).
+- **Audience rules** become shared core (`audience_rules`, was `chat_audience_rules`), so notices, polls and chat never depend on another add-on's licence.
+- **Offline revocation** is limited to what a disconnected device allows (§2.1).
+- **The privacy threshold** also resists differencing (§2.4, §2.9).
+
+The table counts are unchanged.
+
 ## 1. Classification of every proposed entity
 
 **Classes**
@@ -39,7 +47,7 @@
 
 | Area | NEW | FORMALISED | EXTENDED / REUSED | VIEW | PARKED |
 |---|---|---|---|---|---|
-| Chat (§2.1) | `chat_audience_rules`, `chat_groups`, `chat_memberships`, `chat_messages` | — | `content_reports`, `user_blocks` (shared, §2.11) | unread counts (from `chat_memberships.last_read_message_id`) | — |
+| Chat (§2.1) | `chat_groups`, `chat_memberships`, `chat_messages` | — | `audience_rules`, `content_reports`, `user_blocks` (shared, §2.11) | unread counts (from `chat_memberships.last_read_message_id`) | — |
 | Safety (§2.2) | — | — | `party_relationships` (kind = emergency contact), `party_contacts` | responders (settings + roster) | `safety_settings`, `sos_incidents`, `sos_incident_events` |
 | Portal adoption (§2.3) | `portal_invitations` | — | V2.1 identity **sessions** (central; device label, revoke) | login status; portal activity (date level) | — |
 | Community issues (§2.4) | `request_affirmations` | — | `maintenance_requests` (kind, visibility, area, merge); `record_comments` (shared) | affected counts (privacy threshold) | — |
@@ -49,14 +57,16 @@
 | Finance operations (§2.8) | `cash_vouchers`, `settlement_confirmations`, `cheque_instruments`, `cash_counts`, `office_collection_batches`, `office_collection_lines`, `reminder_policies` | `funds_transfers` (register BANK-006, no logical model yet) | `bank_accounts` (kind, purpose); `fiscal_periods` (moved to the finance core); V2.1 expense categories (+ income categories); `reminder_events`; `party_contacts` and `notification_preferences` (consent) | **cashbook**; cash in transit; period-close checklist | — |
 | Community hub (§2.9) | `service_categories`, `directory_listings`, `listing_recommendations`, `polls`, `poll_options`, `poll_responses`, `marketplace_listings` | — | `parties` + `party_roles` (service provider); `documents` (resources, published financial summaries); `content_reports` | poll results (privacy threshold) | — |
 | Visitors and vehicles (§2.10) | — | — | `visitor_passes` (origin = gate request; waiting/approved/denied/expired); `visitor_events`; `vehicles` (approval status) | — | — |
-| Shared core (§2.11) | `generated_file_jobs`, `privacy_requests`, `content_reports`, `user_blocks`, `record_comments` | — | `documents` | — | — |
+| Shared core (§2.11) | `audience_rules` (revision 3: was `chat_audience_rules`), `generated_file_jobs`, `privacy_requests`, `content_reports`, `user_blocks`, `record_comments` | — | `documents` | — | — |
 | Transfers (§2.12) | `clearance_certificates` | — | `charge_categories` / `charge_rate_versions` (transfer fee with bylaw reference); `ownership_transfers` | — | — |
+| Official notices (§2.13, revision 3) | — | — | A2 `announcements` (versions, audience, acknowledgement, withdrawal); A2 `notifications` (per-recipient read and acknowledgement); A2 `communication_messages` (simulated SMS/WhatsApp); `notification_preferences` | delivered, read and acknowledged counts (staff only) | — |
 | **Totals** | **38** | **8** | | | **3** |
 
 **Removed as duplicates in revision 2**
 
 | Revision-1 entity | Now |
 |---|---|
+| `chat_audience_rules` (revision 3) | `audience_rules`, shared core |
 | `cash_movements` | VIEW (cashbook) |
 | `cash_categories` | V2.1 expense/income categories |
 | `chat_message_reads` | A column on memberships |
@@ -89,17 +99,28 @@
 
 | Entity | Key columns | Rules |
 |---|---|---|
-| `chat_audience_rules` | site_id, rule_type (site \| building \| floor \| staff_role \| committee \| custom), params, version, effective_from | A query over verified facts, never a stored member list. Reused for poll and document audiences |
-| `chat_groups` | site_id, kind (smart \| custom \| direct), audience_rule_id?, name, posting_policy (all \| staff_only \| committee_only), archived_at | Direct groups exist only if the tenant enables direct messages (D-25; off by default for residents) |
+| `chat_groups` | site_id, kind (smart \| custom \| direct), audience_rule_id? (shared `audience_rules`, §2.11), name, posting_policy (all \| staff_only \| committee_only), archived_at | Direct groups exist only if the tenant enables direct messages (D-25; off by default for residents) |
 | `chat_memberships` | group_id, tenant_user_id, source (rule \| manual), joined_at, **ended_at**, **visible_from**, muted, role, last_read_message_id | `visible_from = joined_at`: no history before joining. Membership ends on the effective end of the fact behind it (move-out, role change, committee term end) |
 | `chat_messages` | group_id, author_user_id, kind (text \| system \| link_card), body, link_ref?, reply_to_id?, created_at, deleted_at, moderation_state, legal_hold | Soft delete leaves a tombstone. A link card shows a record only if the reader may open it |
 
-**When a membership ends (P1-8), access is revoked everywhere:**
-1. The server refuses reads and posts from that moment.
-2. On the next sync, cached and offline copies on the person's devices are purged (the client honours `ended_at`).
-3. Messages queued by that person but not yet accepted are discarded and never delivered.
-4. Pending notifications for the group are withdrawn.
-5. Attachment and link URLs stop resolving for them.
+**When a membership ends (P1-8; revision 3 wording)**
+
+*Immediately, on the server:*
+1. Reads, posts and sync for the group are refused from that moment.
+2. Deliveries queued for that member are dropped.
+3. Pending notifications for the group are withdrawn.
+4. Attachment and link URLs stop resolving for them.
+
+*When the device next connects or syncs:*
+
+5. Messages the person wrote offline are rejected and never delivered.
+6. The client honours `ended_at` and removes the group's downloaded messages and attachments.
+
+*Not enforceable, and never promised:*
+- **Offline devices.** Content already downloaded to a device that is offline or unreachable cannot be erased at the moment membership ends. It goes only on the next connection.
+- **Already-seen content.** Content a person has read, copied or captured cannot be recalled.
+- **Wording.** UI and documentation say "removed from this device the next time it connects", never "deleted immediately".
+- **Optional mitigation (D-25).** The client hides cached content when its last membership check is older than a tenant-set limit. This hides the content without erasing it; no default is proposed.
 
 **Moderation and retention**
 - **Moderation:** only through `content_reports`. Moderators see the reported message and its immediate context, never private conversations.
@@ -145,6 +166,10 @@ Responders are a view over settings and the duty roster. Emergency contacts reus
 
 **Rules**
 - Residents see a count only when it passes the **privacy threshold**: both the count and the eligible audience at or above the configured minimums (D-47). Otherwise the status reads "Reported".
+- **Differencing (revision 3).** A single-cell check is not enough. Residents see counts only in fixed groupings (the site, or a block that qualifies), with no free filters or date ranges.
+  - A grouping is suppressed when the difference between it and any other shown count (for example, site minus block) falls below the threshold.
+  - Resident-visible counts are a scheduled snapshot (VIEW), not a live tally, so consecutive views cannot time one household's affirmation.
+  - The same snapshot is used wherever the count appears.
 - Staff see identities.
 - A merge moves affirmations to the surviving request.
 - Comments use `record_comments` (§2.11): public vs staff-internal, moderated.
@@ -292,7 +317,7 @@ erDiagram
 | `service_categories` | site_id?, name | |
 | `directory_listings` | party_id (a `parties` record with role service_provider), category_id, site_id, vetting_status (pending \| vetted \| suspended), vetted_by, contact_consent_at, listed_from, listed_to, supplier_ref? | Only vetted listings are shown; contact details only with consent |
 | `listing_recommendations` | listing_id, party_id, created_at, withdrawn_at | Counts only; no free text |
-| `polls` / `poll_options` / `poll_responses` | poll: site_id, audience_rule_id, kind, unit_of_response, anonymity, opens_at, closes_at, results_visibility, status. Response: poll_id, respondent_key, option_ids | One response per respondent key. Anonymous polls store a one-way token. Results below the privacy threshold (D-47) show "Not enough responses to show" |
+| `polls` / `poll_options` / `poll_responses` | poll: site_id, audience_rule_id, kind, unit_of_response, anonymity, opens_at, closes_at, results_visibility, status. Response: poll_id, respondent_key, option_ids | One response per respondent key. Anonymous polls store a one-way token. Results below the privacy threshold (D-47) show "Not enough responses to show". **Revision 3:** `results_visibility` defaults to after close (no running tally); results are shown only for groupings that pass D-47, including the difference between any two shown groupings; `audience_rule_id` points to the shared core `audience_rules`, so polls do not need `community_chat` |
 | `marketplace_listings` | site_id, party_id, title, description, price_text, status (pending_review \| published \| removed \| expired), expires_at | Off by default; no payments; contact in-app only |
 
 **Reused:**
@@ -314,6 +339,7 @@ erDiagram
 
 | Entity | Key columns | Rules |
 |---|---|---|
+| `audience_rules` (revision 3; was `chat_audience_rules`) | site_id, rule_type (site \| building \| floor \| units \| staff_role \| committee \| custom), recipient_roles (owner \| occupant \| liable_payer \| staff), params, version, effective_from | A query over verified facts, never a stored member list. Owned by `core` so that notices (§2.13), polls (§2.9), documents and chat smart groups (§2.1) share it without depending on each other's licence. Resolved when a message is sent and **again when it is read** |
 | `generated_file_jobs` | kind (invoice_pack \| dues_notices \| owner_statement \| data_export), requested_by, scope (datasets, sites, legal entities), purpose, approval_request_id?, status, file_document_id?, expires_at | **Data exports (P1-9):** the content is the granted modules ∩ the **requester's own** effective permissions and data scopes, re-checked at generation and at download. **Approval can narrow the scope, never widen it.** Approver ≠ requester. Contact data follows consent purpose. Files expire |
 | `privacy_requests` | party_id, kind (access \| correction \| deletion), status, decision, retention_outcome, decided_by | Financial records are retained by law: anonymised, never deleted |
 | `content_reports` | subject_type (chat_message \| comment \| listing \| directory_listing), subject_id, reporter, reason, status, decided_by | The only route for moderators to see reported content |
@@ -325,14 +351,32 @@ erDiagram
 - **Transfer fee:** a charge category with **versioned, effective-dated rates** (EXTENDED `charge_categories` / `charge_rate_versions`) and a required bylaw document reference.
 - **`clearance_certificates` (NEW):** unit_id, ownership_transfer_id?, number (per legal entity), issued_on, valid_until, balance_checked_at, outstanding_amount, waiver_approval_id?, issued_by, document_id. Issued only at a zero liable balance or with an approved waiver.
 
+### 2.13 Official notices (revision 3; included modules only)
+
+No new table. The journey reuses A2's communication entities, extended. The owner modules are all included in every edition:
+- `announcements`: `residents`, as RES-005 in the live register;
+- `notifications`: `core`;
+- `communication_messages`: `communications`.
+
+| Entity | Class | Key columns added | Rules |
+|---|---|---|---|
+| `announcements` | EXTENDED (A2, site-scoped) | version, audience_rule_id (shared `audience_rules`), requires_acknowledgement, publish_at, expires_at, withdrawn_at, withdrawn_reason, posted_via (notice \| quick_broadcast), created_by, published_by | One-way: no replies. An edit is a new version; nothing is deleted; withdrawal leaves a dated tombstone. Publishing needs `notices.publish`. Never references `community_hub` or `community_chat` entities |
+| `notifications` | EXTENDED (A2, `core`) | source_type (announcement \| …), source_id, source_version, deep_link (`/customer/portal/community-notices/:id`), read_at, acknowledged_at, withdrawn_at, dismissed_at | One per recipient per published version that asks to notify. Withdrawing the notice withdraws its notifications. "Clear" sets `dismissed_at` and never deletes a row while its notice is retained, so acknowledgements stay provable |
+| `communication_messages` | EXTENDED (A2) | channel (sms \| whatsapp), source ref, consent_check, status (simulated) | Only with recorded consent for that channel and purpose; carries the same deep link; simulated until Gate H |
+
+**Rules**
+- **Who sees a notice.** The audience is resolved from verified links at publish time and **re-checked at read time**. Someone outside the audience at read time (moved out, link ended) sees "not available to you".
+- **Counts.** Delivered, read and acknowledged counts are a staff-only VIEW. Residents never see who else read or acknowledged.
+- **Community home (D.3)** reads the same `announcements` for its summary. It never stores a copy.
+
 ## 3. Invariants
 
 These replace revision 1's I-23 to I-34.
 
 | # | Invariant | Proven in the prototype by |
 |---|---|---|
-| I-23 | No resident sees another resident's debt, login activity, contact details, poll choice or affirmation identity; small counts follow the privacy threshold | No-leak vectors (A-201/A-202, two blocks, one small floor) |
-| I-24 | Chat visibility starts at membership. On membership end, access, cached copies, queued messages and notifications are revoked | Membership vectors; a revocation E2E with an offline cache |
+| I-23 | No resident sees another resident's debt, login activity, contact details, poll choice or affirmation identity. Small counts follow the privacy threshold, **including differences between shown groupings and between consecutive snapshots** (revision 3) | No-leak vectors (A-201/A-202, two blocks, one small floor); differencing vectors (site − block, adjacent groupings, consecutive snapshots, affirm–withdraw toggling) |
+| I-24 | Chat visibility starts at membership. On membership end, the server revokes access, queued deliveries and notifications at once. A device's downloaded copy is removed when it next connects; immediate remote deletion is never promised (revision 3) | Membership vectors; a revocation E2E with an offline device; wording tests |
 | I-25 | *(Parked with safety)* Incident timelines are append-only; no wording implies dispatch | After the safety design |
 | I-26 | **Settled cash changes only through confirmed payments, posted vouchers or settlement confirmations.** An instruction never changes settled cash | Cashbook = sources test; instruction-without-settlement test |
 | I-27 | A closed period refuses postings dated in it; reopening needs an approval under the version in force | Period-lock tests on vouchers, payments, transfers and settlements |
@@ -344,6 +388,7 @@ These replace revision 1's I-23 to I-34.
 | I-33 | Switching apps never carries the other app's scope or cache | Cross-app no-leak E2E |
 | I-34 | Contact needs recorded consent for that channel and purpose | Consent refusal tests |
 | I-35 | No approval policy, delegation or draft lets a person approve their own request or activate their own policy | Self-approval vectors |
+| I-36 | *(Revision 3)* Official notices, their notifications and their routes need only included modules. No `community_hub` or `community_chat` grant, permission or entity is ever on that path. A notice is shown only to someone in its audience at read time | Notice journey E2E with a grant set without both add-ons; audience vectors (owner, occupant, tenant-payer, moved out) |
 
 ## 4. Contracts (only when each milestone is authorised)
 
@@ -361,6 +406,7 @@ These replace revision 1's I-23 to I-34.
 |---|---|---|---|
 | Chat messages | Personal; may be sensitive | Members from joining until membership ends; moderators via reports | **Tenant-configured with legal review; no presumed period;** deletion exceptions and user notice |
 | Login activity | Personal (behavioural) | Permitted staff, date level | Proposed 12 months of summaries; legal review |
+| Official notices and their read/acknowledgement records | Operational; acknowledgements may be evidence | Notices: the audience at read time. Read and acknowledgement records: permitted staff only | Tenant-configured with legal review; acknowledgements kept as long as their notice |
 | Staff attendance, payroll, advances | Personal and financial | HR and payroll roles; the person | Statutory (adviser) |
 | Leases, deposits, owner sub-ledgers | Financial, client money | Rentals roles; landlord and tenant for their own records | Statutory (adviser) |
 | Poll responses | Personal (opinion) | Aggregates above the threshold, or named polls to staff | Poll archive + 12 months (proposed) |

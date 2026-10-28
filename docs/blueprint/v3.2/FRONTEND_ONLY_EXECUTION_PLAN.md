@@ -1,4 +1,4 @@
-# V3.2 proposal: frontend-only execution plan (revision 2)
+# V3.2 proposal: frontend-only execution plan (revision 3)
 
 **Status:** PROPOSAL. It does **not** authorise any milestone.
 - **Each milestone is individually authorised by the owner**, and stops for review when it ends.
@@ -16,22 +16,22 @@
 
 **Counts are provisional.**
 - The official baseline is the committed C.1 register: **394 rows, 335 distinct screens**.
-- The delta is regenerated on the committed C.2 register after C.2 review (D-43).
+- C.2 is now committed (`d5e599d`) and awaits review. The delta is regenerated on its register after that review (D-43).
 
 ## 1. Sequence
 
 | Step | Milestone | What it delivers | Distinct screens (provisional) |
 |---|---|---|---:|
-| 0 | **Gate C.2** (in progress, primary session) | Resident payments, verification and reconciliation, receipts, first-run text size. Then commit, push and stop | (as authorised) |
+| 0 | **Gate C.2** (committed as `d5e599d`; awaiting review) | Resident payments, verification and reconciliation, receipts, first-run text size | (as authorised) |
 | 1 | **V3.2 review** (this package) | Owner and GPT approve, or amend, scope, decisions, model and sequence. The delta is regenerated on committed C.2 | 0 |
 | 2 | **D.1 Identity, personalisation and onboarding** | The mandatory personalisation hub in all three apps; invitations and portal access; profile, household and devices; app switch; data export and privacy requests | 15 |
 | 3 | **S.1 Society finance and governance essentials** | Print packs; reminders; controlled bulk collection (cash vs cheque); cashbook view and cash vouchers; deposits and transfers (instruction → settlement); month close; credit and advances; society transfers with fee and clearance; committee 360; approval policies | 15 |
-| 4 | **D.2 Resident operations** | Maintenance and community issues; visitors with the live gate queue; vehicle approvals; notices and quick broadcast; online gateway mock | 25 |
-| 5 | **D.3 Community engagement** | Community home; smart group chat (mock); polls and resources; services directory; marketplace (optional) | 8 |
+| 4 | **D.2 Resident operations** | Maintenance and community issues; visitors with the live gate queue; vehicle approvals; **official notices end to end** (compose → resident notification → notice detail), independent of `community_hub`, and quick broadcast; online gateway mock | 26 |
+| 5 | **D.3 Community engagement** | Community home (links to notices, does not own them); smart group chat (mock); polls and resources; services directory; marketplace (optional) | 8 |
 | 6 | **S.2 Society staff and optional payroll** | HR for societies, duty roster and attendance; optional payroll (obligation → instruction → settlement) | 17 |
 | 7 | **S.3 Rentals** | Leases (agent or principal model), rent roll, owner statements, payout instructions and settlement, landlord view | 8 |
 | 8 | **Safety design** (documents only, separately approved) | A written SOS safety design | 0 |
-| 9 | **S.4 SOS prototype** (only after step 8 **and** a separate authorisation) | Safety console, incident 360, settings (overlays are states) | 3 (parked) |
+| 9 | **S.4 SOS prototype** (only after step 8 **and** a separate authorisation) | Safety console, incident 360, settings (overlays are states). **Parked potential scope, not authorised work** | 3 (parked) |
 | 10 | **Gate E** | Developer ERP | 117 |
 | 11 | **Gate F** | Public sites (unchanged) | 18 |
 | 12 | **Gate G** | Remaining completeness and real-device QA | 47 |
@@ -49,13 +49,13 @@
 
 | Gate | Distinct screens | How it changed |
 |---|---:|---|
-| D | **48** | Was 33. −1 PORTAL-023 folds into PORTAL-036; +12 new; +4 brought forward (ADM-003, PARK-005, NOT-003, DOC-001) |
-| S (new) | **43** | 16 new + 27 brought forward from Gate E. Includes 3 parked SOS pages |
+| D | **49** | Was 33. +12 new; +4 brought forward (ADM-003, PARK-005, NOT-003, DOC-001). Revision 3: PORTAL-023 stays canonical (revision 2 had folded it, giving 48) |
+| S (new) | **43** = 40 active + 3 parked | 16 new (13 active, 3 parked SOS) + 27 brought forward from Gate E. The SOS pages are **parked potential scope, not authorised work** |
 | E | **117** | Was 145; 28 moved to D and S |
 | G | **47** | Was 50 |
 | F | 18 | Unchanged |
-| Built, B, C and mixed | 89 | Unchanged. C.2's committed additions (expected BILL-016/017) are added on rebase |
-| **Total** | **362** | Was 335 (C.1). Informational: 337 → 364 on the uncommitted C.2 tree |
+| Built, B, C and mixed | 89 | Unchanged on C.1. C.2 (`d5e599d`) adds BILL-016/017 (+2) once it is reviewed |
+| **Total** | **363** (360 active + 3 parked) | Was 335 (C.1). Informational: 337 → 365 on the C.2 commit `d5e599d`, pending review |
 
 ## 2. Definition of done (every milestone)
 
@@ -78,7 +78,8 @@
    - the cashbook = its sources;
    - no self-approval;
    - exports never widen scope;
-   - small-audience thresholds;
+   - small-audience thresholds, including differencing across groupings and time snapshots (revision 3);
+   - official notices never gated by an optional add-on (revision 3);
    - no-leak vectors;
    - wording tests ("Simulated bank confirmation", "Approved instruction — not sent", "Cheque received — not a receipt of payment", "never Paid").
 5. **Automated checks.**
@@ -189,13 +190,13 @@
   - a wallet;
   - late fees (D-11).
 
-### D.2 Resident operations (25 distinct)
+### D.2 Resident operations (26 distinct)
 
-- **Existing Gate D screens (21):**
+- **Existing Gate D screens (22):**
   - MNT-001…008;
   - VIS-001…006;
   - RES-001, RES-005;
-  - PORTAL-018, -021, -022, -026;
+  - PORTAL-018, -021, -022, -023, -026;
   - BILL-011.
 - **New (2):** MNT-012 community issues board, PORTAL-034 resident issues.
 - **Brought forward:** PARK-005, NOT-003.
@@ -204,11 +205,34 @@
   - PORTAL-035 raise issue;
   - VIS-007 live queue;
   - PORTAL-040 visitor at the gate (of PORTAL-015);
-  - PARK-007 vehicle approval.
+  - PARK-007 vehicle approval;
+  - **PORTAL-042 resident notifications panel** (of PORTAL-001);
+  - **PORTAL-043 notice detail** (of PORTAL-023, route `/customer/portal/community-notices/:id`).
+- **Reference experience (revision 3): the official notice journey.**
+  1. Compose in RES-005, preview the audience, and publish (or use quick broadcast in NOT-003 with "also post as notice").
+  2. Each resident in the audience gets a notification (PORTAL-042), plus a simulated SMS/WhatsApp copy where consent exists.
+  3. The resident opens the notice (PORTAL-043) and acknowledges it if asked.
+  4. The office sees delivered, read and acknowledged counts.
+
+  This runs on the included modules only: `residents`, `communications` (which owns `notices.publish`), `resident_portal` and `core` notifications. Al-Noor has no `community_hub` or `community_chat` grant until its D.3 amendment, so D.2 demonstrates the journey without the add-ons.
 - **Tenants:** Al-Noor; Shalimar Court (maintenance-only, grants from 1 Nov); Cedar Hills (suspended: history read-only).
 - **Acceptance checks:**
   - affirmations and merges;
-  - **small-audience threshold** (D-47) on counts;
+  - **small-audience threshold** (D-47) on counts, **with differencing vectors**:
+    - site minus block;
+    - adjacent groupings;
+    - consecutive snapshots around one affirmation;
+    - affirm–withdraw toggling;
+  - **the notice journey E2E with a grant set that has neither `community_hub` nor `community_chat`**;
+  - `/customer/portal/community-notices` and `/:id` open from the notification, the home card and a simulated SMS link;
+  - **audience vectors:**
+    - an owner, an occupant and a tenant-payer of one flat;
+    - the block and floor audiences;
+    - a moved-out resident gets "not available to you";
+  - edit creates a new version;
+  - withdraw leaves a tombstone and withdraws notifications;
+  - publishing needs `notices.publish`, while `residents.view` alone can only read;
+  - Cedar Hills residents can read but staff cannot publish;
   - identities hidden from residents;
   - only occupants are asked at the gate;
   - expiry;
@@ -226,15 +250,26 @@
   - CMTY-002 polls;
   - CMTY-003 marketplace moderation (only if D-31 says build it).
 - **Brought forward:** DOC-001.
-- **Folded in:** PORTAL-023 becomes a tab of PORTAL-036.
+- **Notices on Community home (revision 3).** PORTAL-036 shows a "Latest notices" summary that links to PORTAL-023/043.
+  - Notices stay canonical in D.2; nothing is folded in.
+  - Removing `community_hub` never hides notices.
 - **Acceptance checks:**
   - membership vectors;
   - `visible_from`;
-  - **revocation on move-out, including the offline cache purged on the next sync, queued messages never delivered and notifications withdrawn**;
+  - **revocation on move-out:**
+    - the server refuses reads, posts and sync at once;
+    - deliveries queued for the member are dropped;
+    - notifications are withdrawn;
+    - a device that was offline keeps its downloaded copy only until it reconnects, and then the copy is removed;
+    - messages written offline are rejected on reconnect;
+    - no wording promises immediate remote deletion;
+  - **with `community_hub` removed from the grant set:**
+    - Community home hides only the hub tabs;
+    - the Notices nav item and PORTAL-023/043 still work;
   - resident direct messages off by default;
   - moderation only via reports;
   - chat is unavailable until the tenant sets retention;
-  - polls: uniqueness, anonymity and thresholds;
+  - polls: uniqueness, anonymity, thresholds, results only after close, and differencing across groupings;
   - unvetted providers are hidden;
   - consent gates contact details;
   - marketplace pre-moderation (if built);
@@ -278,6 +313,7 @@
 
 ### Safety design, then S.4 (parked)
 
+- **Parked potential scope, not authorised work.** SOS remains unavailable until safety approval. Its 3 pages are counted separately and belong to no D or S milestone.
 - **No SOS UI of any kind** (pages, overlays, global buttons, fixtures or contracts) until a separate safety design is approved **and** the owner authorises S.4.
 - **The design covers:**
   - responders and escalation;
@@ -302,9 +338,10 @@
 | `export-scope.vectors.json` | D.1 | Requester scope, approver cannot widen |
 | `finance-ops.vectors.json` | S.1 | Cashbook = sources; vouchers; instruction vs settlement; cheques (returned, reversed); period lock; clearance |
 | `approvals.vectors.json` | S.1 | Version by date; no self-approval; drafts cannot approve themselves; delegation |
-| `issues.vectors.json` | D.2 | Affirmations, merge, thresholds |
-| `chat-membership.vectors.json`; revocation E2E | D.3 | Join, leave, visibility; cache and queue purge |
-| `polls.vectors.json` | D.3 | Uniqueness, anonymity, thresholds |
+| `issues.vectors.json`; `privacy-differencing.vectors.json` | D.2 | Affirmations, merge, thresholds; site − block, adjacent groupings, consecutive snapshots, affirm–withdraw toggling |
+| `notices.vectors.json`; notice journey E2E | D.2 | Audience (owner, occupant, tenant-payer, block, floor, moved out); versions and withdrawal; grant set without `community_hub`/`community_chat`; deep links |
+| `chat-membership.vectors.json`; revocation E2E | D.3 | Join, leave, visibility; server revocation at once; offline device cache removed on reconnect; offline-written messages rejected |
+| `polls.vectors.json` | D.3 | Uniqueness, anonymity, thresholds, results after close, differencing across groupings |
 | `hr-roster.vectors.json`, `payroll.vectors.json` | S.2 | Shifts; net pay; obligation → settlement |
 | `rentals.vectors.json` | S.3 | Rent; agent and principal models; client-money separation; payout settlement |
 | Wording tests | all | "Simulated bank confirmation", "Approved instruction — not sent", "Cheque received — not a receipt of payment", "never Paid" |
