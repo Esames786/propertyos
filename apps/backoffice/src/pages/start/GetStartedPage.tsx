@@ -1,6 +1,6 @@
 import { imageScrimGradient } from '@repo/tokens';
 import { cn, DirectionalIcon, IconTile, Link, Photo, RevealItem, Stagger, TILE_INK, TILE_SOFT_BG, useReducedMotion, useSession, useT, type TileHue } from '@repo/ui';
-import { ArrowRight, Building2, Check, Clock3, Languages, PlayCircle, ReceiptText, Sparkles, UsersRound, type LucideIcon } from 'lucide-react';
+import { ArrowRight, Building, Building2, Check, Clock3, Languages, PlayCircle, ReceiptText, Sparkles, UsersRound, type LucideIcon } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useId } from 'react';
 import { LINKS } from '../../nav.config';
@@ -77,6 +77,19 @@ export default function GetStartedPage() {
                     meta={t('start:welcome.setup.meta')}
                     cta={t('start:welcome.setup.cta')}
                     testId="choice-setup"
+                  />
+                </li>
+                <li className="min-w-0 md:col-span-2">
+                  <ChoiceCard
+                    href={entryHref(LINKS.demoLaunch, { demo: 'society', next })}
+                    icon={Building}
+                    hue="teal"
+                    title={t('start:welcome.society.title')}
+                    body={t('start:welcome.society.body')}
+                    points={[t('start:welcome.society.points.flats'), t('start:welcome.society.points.billing'), t('start:welcome.society.points.roles')]}
+                    meta={t('start:welcome.society.meta')}
+                    cta={t('start:welcome.society.cta')}
+                    testId="choice-society"
                   />
                 </li>
               </ul>

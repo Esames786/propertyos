@@ -13,7 +13,9 @@
     "reports": "Reports",
     "administration": "Administration",
     "lab": "Design system lab",
-    "help": "Help and tours"
+    "help": "Help and tours",
+    "sites": "Sites & flats",
+    "billing": "Billing"
   },
   "header": {
     "search": "Search",
@@ -29,7 +31,8 @@
     "accountMenu": "Account menu for {{name}}",
     "project": "Project",
     "projectFor": "Project: {{project}}",
-    "organisation": "Organisation"
+    "organisation": "Organisation",
+    "siteFor": "Site: {{site}}. Open Site 360"
   },
   "skipToContent": "Skip to main content",
   "breadcrumb": "Breadcrumb",
@@ -68,7 +71,26 @@
     "workspaceSetup": "Set up your workspace",
     "plan": "Your plan and modules",
     "myAccess": "My access",
-    "invoices": "Invoices"
+    "invoices": "Invoices",
+    "flat": "Flat 360",
+    "billingRuns": "Billing runs",
+    "newRun": "New billing run",
+    "billingRun": "Billing run",
+    "sites": "Sites & flats",
+    "site": "Site 360",
+    "structure": "Blocks, floors and flats",
+    "importFlats": "Import flats",
+    "unitTypes": "Flat types",
+    "openingBalances": "Opening balances",
+    "people": "Owners & Residents",
+    "person": "Person 360",
+    "roster": "Units and payers",
+    "accounts": "Billing accounts",
+    "account": "Billing account",
+    "charges": "Charges and rates",
+    "rules": "Charge rules",
+    "exemptions": "Exemptions",
+    "invoice": "Invoice"
   },
   "groups": {
     "workspace": "Workspace",

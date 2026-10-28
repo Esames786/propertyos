@@ -55,7 +55,10 @@
     "resident": "Owner and resident",
     "facility_manager": "Facility manager",
     "society_admin": "Committee administrator",
-    "treasurer": "Treasurer"
+    "treasurer": "Treasurer",
+    "alnoor_manager": "Building manager",
+    "alnoor_treasurer": "Committee treasurer",
+    "alnoor_guard": "Security guard"
   },
   "welcomeBenefit": {
     "manager": "See every project, approve work and move anywhere quickly.",
@@ -68,7 +71,10 @@
     "facility_manager": "Keep your buildings running: maintenance, requests and work in one place.",
     "society_admin": "Run your society's workspace: people, settings and the modules your plan includes.",
     "cb_manager": "Run both Crescent Bay sites: sales at the Towers and upkeep at the Plaza, each within its licence.",
-    "cedar_treasurer": "Your workspace is suspended. You can still read the co-operative's financial history."
+    "cedar_treasurer": "Your workspace is suspended. You can still read the co-operative's financial history.",
+    "alnoor_manager": "Set up Al-Noor Residency and prepare each month's maintenance bills, with every flat a click away.",
+    "alnoor_treasurer": "Approve the billing runs, exemptions and opening balances someone else prepared, and correct posted bills with credit notes.",
+    "alnoor_guard": "Your role covers the gate and visitors. Billing and residents' finances are not part of it."
   },
   "demo": {
     "signInTitle": "Choose a demo identity",
@@ -249,6 +255,9 @@
     "treasurer": "Treasurer",
     "maintenance": "Maintenance",
     "technician": "Technician",
-    "security": "Security"
+    "security": "Security",
+    "building_manager": "Building manager",
+    "committee_treasurer": "Committee treasurer",
+    "security_guard": "Security guard"
   }
 }

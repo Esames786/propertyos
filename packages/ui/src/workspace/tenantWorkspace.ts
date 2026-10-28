@@ -1,6 +1,6 @@
 import { decideTarget, MODULE_KEYS, type AccessDecision, type AccessTarget, type EffectiveAccess, type ModuleKey, type SuspensionClass } from '@repo/contracts';
 import { findScreenByRegisterRoute } from '@repo/contracts/screens';
-import { BarChart3, Briefcase, Building2, Compass, Contact, FlaskConical, Home, Landmark, Settings2, ShoppingCart, Users, UsersRound, Wrench } from 'lucide-react';
+import { BarChart3, Briefcase, Building, Building2, Compass, Contact, FlaskConical, Home, Landmark, ReceiptText, Settings2, ShoppingCart, Users, UsersRound, Wrench } from 'lucide-react';
 import { LIVE, PLANNED } from '../shell/QuickCreateMenu';
 import type { NavItem } from '../shell/types';
 
@@ -13,6 +13,9 @@ import type { NavItem } from '../shell/types';
  */
 export const TENANT_NAV: NavItem[] = [
   { id: 'home', labelKey: 'nav:items.home', href: '/backoffice/home/role-aware-dashboard', icon: Home, match: '/backoffice/home', bottomBar: true, suspension: 'history_read' },
+  // A society's everyday areas (Gate C.1): its flats and people, and its monthly billing.
+  { id: 'sites', labelKey: 'nav:items.sites', href: '/backoffice/sites', icon: Building, permission: 'site.view', match: '/backoffice/sites', group: 'workspace', bottomBar: true },
+  { id: 'billing', labelKey: 'nav:items.billing', href: '/backoffice/billing/runs', icon: ReceiptText, permission: 'billing_run.view', match: '/backoffice/billing', group: 'workspace', bottomBar: true },
   { id: 'sales', labelKey: 'nav:items.sales', href: '/backoffice/crm/sales-home', icon: Briefcase, permission: 'lead.view', match: '/backoffice/crm', group: 'workspace', bottomBar: true },
   { id: 'projects', labelKey: 'nav:items.projects', href: '/backoffice/prj/projects-list', icon: Building2, permission: 'unit.view', module: 'projects', match: '/backoffice/prj', group: 'workspace', bottomBar: true },
   { id: 'customers', labelKey: 'nav:items.customers', href: '/backoffice/cus/customers-list', icon: Contact, permission: 'customer.view', match: '/backoffice/cus', group: 'workspace', bottomBar: true },

@@ -1,7 +1,7 @@
 import { generateVisits } from './crm-data';
 import type { TenantDataset } from './dataset-types';
 import { FLOORS, GARDEN_BLOCKS, PROJECTS, TOWERS, UNITS } from './inventory';
-import { PARTIES, SHALIMAR, TENANT } from './people';
+import { AL_NOOR, PARTIES, SHALIMAR, TENANT } from './people';
 import { billingAccountOf, INVOICES, LEADS, NOTIFICATIONS } from './records';
 import { CEDAR } from './tenants/cedar';
 import { CRESCENT } from './tenants/crescent';
@@ -58,7 +58,25 @@ const SHALIMAR_DATA: TenantDataset = {
   refs: { party: 'SHC-', lead: 'SH-LD-', city: 'Lahore' },
 };
 
-const DATASETS: ReadonlyMap<string, TenantDataset> = new Map([LARKSPUR, CRESCENT, CEDAR, SHALIMAR_DATA].map((d) => [d.tenantId, d]));
+/** Al-Noor Residency (Demo): no projects, no developer records (I-2); the society model holds the rest. */
+const ALNOOR_DATA: TenantDataset = {
+  tenantId: AL_NOOR.id,
+  projects: [],
+  towers: [],
+  floors: [],
+  blocks: [],
+  units: [],
+  parties: [],
+  leads: [],
+  invoices: [],
+  visits: [],
+  notifications: [],
+  partyLinks: [],
+  refs: { party: 'ANR-P-', lead: 'ANR-LD-', city: 'Lahore' },
+  society: { siteId: 'site_alnoor', legalEntityId: 'le_alnoor' },
+};
+
+const DATASETS: ReadonlyMap<string, TenantDataset> = new Map([LARKSPUR, CRESCENT, CEDAR, SHALIMAR_DATA, ALNOOR_DATA].map((d) => [d.tenantId, d]));
 
 /** The tenant's own records; undefined for a tenant with no records in the demo (fail closed). */
 export const datasetFor = (tenantId: string | undefined): TenantDataset | undefined => (tenantId ? DATASETS.get(tenantId) : undefined);

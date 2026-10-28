@@ -1,6 +1,6 @@
-import { CEDAR_HILLS, CRESCENT_BAY, LEADS, SHALIMAR } from '@repo/fixtures';
-import { DemoSignIn, Link, useT } from '@repo/ui';
-import type { ComponentType } from 'react';
+import { AL_NOOR, CEDAR_HILLS, CRESCENT_BAY, LEADS, SHALIMAR } from '@repo/fixtures';
+import { DemoSignIn, Link, useSession, useT } from '@repo/ui';
+import { lazy, Suspense, type ComponentType, type LazyExoticComponent } from 'react';
 import { createBrowserRouter, Navigate, useLoaderData, useNavigate, useParams, useSearchParams, type RouteObject } from 'react-router';
 import TextGuidePage from '../pages/help/TextGuidePage';
 import TourLibrary from '../pages/help/TourLibrary';
@@ -21,6 +21,63 @@ import { StandaloneLayout } from './StandaloneLayout';
  */
 const page = (load: () => Promise<{ default: ComponentType }>) => async () => ({ Component: (await load()).default });
 const h = (handle: RouteHandle) => handle;
+
+/**
+ * Addresses shared by every kind of organisation (the people directory, Person 360, units and
+ * payers, invoices). A society with the residents module and site access gets its own screen; any
+ * other workspace keeps the register's planned page, so nothing unfinished looks finished.
+ */
+const SocietyPeople = lazy(() => import('../pages/society/people/PeopleDirectory'));
+const SocietyPerson = lazy(() => import('../pages/society/people/PersonWorkspace'));
+const SocietyRoster = lazy(() => import('../pages/society/people/OccupancyRoster'));
+const SocietyInvoices = lazy(() => import('../pages/society/billing/SocietyInvoicesPage'));
+const DeveloperInvoices = lazy(() => import('../pages/fin/InvoicesPage'));
+const SocietyInvoice = lazy(() => import('../pages/society/billing/InvoiceWorkspace'));
+
+function SocietyOrPlanned({ page: Page, module = 'residents' }: { page: LazyExoticComponent<ComponentType>; module?: 'residents' | 'dues' }) {
+  const { allows, can } = useSession();
+  return allows({ module }) && can('site.view') ? (
+    <Suspense fallback={null}>
+      <Page />
+    </Suspense>
+  ) : (
+    <RegisterResolver />
+  );
+}
+
+function InvoicesRoute() {
+  const { allows, can } = useSession();
+  return <Suspense fallback={null}>{allows({ module: 'dues' }) && can('site.view') ? <SocietyInvoices /> : <DeveloperInvoices />}</Suspense>;
+}
+
+/** FIN-003: a society invoice (a `cin_` record) opens its workspace; others are still planned. */
+function InvoiceWorkspaceRoute() {
+  const [params] = useSearchParams();
+  const record = params.get('record');
+  return record?.startsWith('cin_') ? (
+    <Suspense fallback={null}>
+      <SocietyInvoice invoiceId={record} />
+    </Suspense>
+  ) : (
+    <RegisterResolver />
+  );
+}
+
+/** BILL-014's register address opens the invoice workspace with the credit-note drawer. */
+function BillingInvoiceRedirect() {
+  const { invoiceId } = useParams();
+  const [params] = useSearchParams();
+  const drawer = params.get('drawer');
+  return <Navigate to={`/backoffice/fin/invoice-workspace?record=${invoiceId}${drawer ? `&drawer=${drawer}` : ''}`} replace />;
+}
+
+/** A code-split page that takes route parameters as plain props (pages stay router-agnostic). */
+function paramPage<P extends object>(load: () => Promise<{ default: ComponentType<P> }>, pick: (params: Readonly<Record<string, string | undefined>>) => P) {
+  return async () => {
+    const Page = (await load()).default;
+    return { Component: () => <Page {...pick(useParams())} /> };
+  };
+}
 
 function TourLibraryRoute() {
   const { tourId } = useParams();
@@ -66,6 +123,8 @@ function SignInRoute() {
             ? t('workspace:signIn.twoSites')
             : p.tenantId === CEDAR_HILLS.id
               ? t('workspace:signIn.suspended')
+              : p.tenantId === AL_NOOR.id
+                ? t('workspace:signIn.society')
               : p.projectScope === 'all'
             ? t('common:demo.scopeAll')
             : t('common:demo.scopeOne', { project: 'Larkspur Heights' })
@@ -103,7 +162,37 @@ const shellChildren: RouteObject[] = [
   { path: 'more', lazy: page(() => import('../pages/more/MorePage')), handle: h({ title: (t) => t('nav:pages.more') }) },
   { path: 'adm/plan', lazy: page(() => import('../pages/adm/PlanPage')), handle: h({ title: (t) => t('nav:pages.plan') }) },
   { path: 'global/my-access', lazy: page(() => import('../pages/adm/MyAccessPage')), handle: h({ title: (t) => t('nav:pages.myAccess') }) },
-  { path: 'fin/invoices-list', lazy: page(() => import('../pages/fin/InvoicesPage')), handle: h({ title: (t) => t('nav:pages.invoices') }) },
+  { path: 'fin/invoices-list', element: <InvoicesRoute />, handle: h({ title: (t) => t('nav:pages.invoices') }) },
+  { path: 'fin/invoice-workspace', loader: registerLoader, element: <InvoiceWorkspaceRoute />, handle: h({ title: (t) => t('nav:pages.invoice') }) },
+  { path: 'cus/customers-list', loader: registerLoader, element: <SocietyOrPlanned page={SocietyPeople} />, handle: h({ title: (t) => t('nav:pages.people') }) },
+  { path: 'cus/customer-360-workspace', loader: registerLoader, element: <SocietyOrPlanned page={SocietyPerson} />, handle: h({ title: (t) => t('nav:pages.person') }) },
+  { path: 'res/occupancy-list', loader: registerLoader, element: <SocietyOrPlanned page={SocietyRoster} />, handle: h({ title: (t) => t('nav:pages.roster') }) },
+  { path: 'sites', lazy: page(() => import('../pages/society/sites/SitesPage')), handle: h({ title: (t) => t('nav:pages.sites') }) },
+  { path: 'sites/:siteId', lazy: paramPage(() => import('../pages/society/sites/SiteWorkspace'), (p) => ({ siteId: p.siteId! })), handle: h({ title: (t) => t('nav:pages.site') }) },
+  { path: 'sites/:siteId/structure', lazy: paramPage(() => import('../pages/society/sites/StructurePage'), (p) => ({ siteId: p.siteId! })), handle: h({ title: (t) => t('nav:pages.structure') }) },
+  { path: 'sites/:siteId/import', lazy: paramPage(() => import('../pages/society/sites/ImportPage'), (p) => ({ siteId: p.siteId! })), handle: h({ title: (t) => t('nav:pages.importFlats') }) },
+  { path: 'sites/:siteId/unit-types', lazy: paramPage(() => import('../pages/society/sites/UnitTypesPage'), (p) => ({ siteId: p.siteId! })), handle: h({ title: (t) => t('nav:pages.unitTypes') }) },
+  { path: 'sites/:siteId/opening-balances', lazy: paramPage(() => import('../pages/society/sites/OpeningBalancesPage'), (p) => ({ siteId: p.siteId! })), handle: h({ title: (t) => t('nav:pages.openingBalances') }) },
+  { path: 'billing/accounts', lazy: page(() => import('../pages/society/billing/AccountsPage')), handle: h({ title: (t) => t('nav:pages.accounts') }) },
+  { path: 'billing/accounts/:accountId', lazy: paramPage(() => import('../pages/society/billing/AccountWorkspace'), (p) => ({ accountId: p.accountId! })), handle: h({ title: (t) => t('nav:pages.account') }) },
+  { path: 'billing/charges', lazy: page(() => import('../pages/society/billing/ChargesPage')), handle: h({ title: (t) => t('nav:pages.charges') }) },
+  { path: 'billing/rules', lazy: page(() => import('../pages/society/billing/RulesPage')), handle: h({ title: (t) => t('nav:pages.rules') }) },
+  { path: 'billing/exemptions', lazy: page(() => import('../pages/society/billing/ExemptionsPage')), handle: h({ title: (t) => t('nav:pages.exemptions') }) },
+  { path: 'billing/invoices/:invoiceId', element: <BillingInvoiceRedirect /> },
+  // Society setup and monthly billing (Gate C.1)
+  { path: 'billing', element: <Navigate to="/backoffice/billing/runs" replace /> },
+  { path: 'billing/runs', lazy: page(() => import('../pages/society/billing/RunsPage')), handle: h({ title: (t) => t('nav:pages.billingRuns') }) },
+  { path: 'billing/runs/new', lazy: page(() => import('../pages/society/billing/NewRunPage')), handle: h({ title: (t) => t('nav:pages.newRun') }) },
+  {
+    path: 'billing/runs/:runId',
+    lazy: paramPage(() => import('../pages/society/billing/RunWorkspace'), (p) => ({ runId: p.runId! })),
+    handle: h({ title: (t) => t('nav:pages.billingRun') }),
+  },
+  {
+    path: 'sites/:siteId/units/:unitId',
+    lazy: paramPage(() => import('../pages/society/sites/FlatWorkspace'), (p) => ({ siteId: p.siteId!, unitId: p.unitId! })),
+    handle: h({ title: (t) => t('nav:pages.flat') }),
+  },
   { path: 'lab', lazy: page(() => import('../pages/lab/LabHome')), handle: h({ title: (t) => t('nav:pages.lab'), helpKey: 'lab' }) },
   { path: 'lab/tokens', lazy: page(() => import('../pages/lab/TokensLab')), handle: h({ title: (t) => t('nav:pages.labTokens'), helpKey: 'lab' }) },
   { path: 'lab/components', lazy: page(() => import('../pages/lab/ComponentsLab')), handle: h({ title: (t) => t('nav:pages.labComponents'), helpKey: 'lab' }) },

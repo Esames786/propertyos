@@ -5,9 +5,9 @@ import { CheckCircle2, CircleAlert, CircleDashed, Hourglass } from 'lucide-react
 import { motion } from 'motion/react';
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import { MonogramTile } from '../EntryFrame';
-import { focusHeading, type DemoRole } from '../entry';
+import { demoOf, focusHeading, type DemoRole } from '../entry';
 
-type TaskId = 'identity' | 'reset' | 'dashboard' | 'projects' | 'notifications' | 'pipeline' | 'overview';
+type TaskId = 'identity' | 'reset' | 'society' | 'dashboard' | 'projects' | 'notifications' | 'pipeline' | 'overview';
 type TaskState = 'pending' | 'loading' | 'done' | 'error';
 interface Task {
   id: TaskId;
@@ -50,18 +50,30 @@ export function PreparingStep({
   const target = personas.find((p) => p.id === role);
   const name = target?.displayName ?? '';
   const seesLeads = target?.permissions.includes('lead.view') ?? false;
+  const society = demoOf(role) === 'society';
+  const seesSociety = target?.permissions.some((p) => p === 'site.view' || p === 'billing_run.view') ?? false;
 
+  // A society demo always starts from a known point: set up and ready to bill, or (fresh) before
+  // the flat register is imported. Only this organisation's demo changes are reset.
   const tasks = useMemo<Task[]>(
-    () => [
-      { id: 'identity' },
-      ...(fresh ? [{ id: 'reset' as const }] : []),
-      { id: 'dashboard', request: { method: 'GET', path: '/dashboard/summary', query: { range: '6m' } } },
-      { id: 'projects', request: { method: 'GET', path: '/projects' } },
-      { id: 'notifications', request: { method: 'GET', path: '/notifications' } },
-      ...(seesLeads ? [{ id: 'pipeline' as const, request: { method: 'GET', path: '/crm/summary' } as const }] : []),
-      { id: 'overview', request: { method: 'GET', path: '/demo/overview' } },
-    ],
-    [fresh, seesLeads],
+    () =>
+      society
+        ? [
+            { id: 'identity' },
+            { id: 'society' },
+            ...(seesSociety ? [{ id: 'dashboard' as const, request: { method: 'GET', path: '/society/dashboard' } as const }] : []),
+            { id: 'notifications', request: { method: 'GET', path: '/notifications' } },
+          ]
+        : [
+            { id: 'identity' },
+            ...(fresh ? [{ id: 'reset' as const }] : []),
+            { id: 'dashboard', request: { method: 'GET', path: '/dashboard/summary', query: { range: '6m' } } },
+            { id: 'projects', request: { method: 'GET', path: '/projects' } },
+            { id: 'notifications', request: { method: 'GET', path: '/notifications' } },
+            ...(seesLeads ? [{ id: 'pipeline' as const, request: { method: 'GET', path: '/crm/summary' } as const }] : []),
+            { id: 'overview', request: { method: 'GET', path: '/demo/overview' } },
+          ],
+    [fresh, seesLeads, society, seesSociety],
   );
 
   useEffect(() => {
@@ -83,7 +95,20 @@ export function PreparingStep({
     mark('identity', 'done');
     if (attempt === 0) announce(t('start:demo.preparing.announceStart', { name }));
 
-    if (fresh && !resetDone.current) {
+    if (society && !resetDone.current) {
+      mark('society', 'loading');
+      try {
+        await reset.mutateAsync({ method: 'POST', path: '/society/demo', body: { mode: fresh ? 'fresh' : 'ready' } });
+        resetDone.current = true;
+        mark('society', 'done');
+      } catch {
+        mark('society', 'error');
+        if (!cancelled()) announce(t('start:demo.preparing.failed'), 'assertive');
+        return;
+      }
+    }
+
+    if (!society && fresh && !resetDone.current) {
       mark('reset', 'loading');
       try {
         await reset.mutateAsync({ method: 'POST', path: '/demo/reset' });

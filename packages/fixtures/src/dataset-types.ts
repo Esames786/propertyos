@@ -26,6 +26,12 @@ export interface TenantDataset {
   partyLinks: ReadonlyArray<PartyLink & { partyId: string }>;
   /** Reference prefixes and default city for records created in the demo session. */
   refs: { party: string; lead: string; city: string };
+  /**
+   * A society run on the shared receivables engine (Gate C.1): its site and legal entity. Its flats,
+   * people and billing live in the society model (society/), not in the developer arrays above,
+   * which stay empty: a society has no projects (I-2).
+   */
+  society?: { siteId: string; legalEntityId: string };
 }
 
 /** Billing account liable for a unit's invoices (one per unit in the demo). */

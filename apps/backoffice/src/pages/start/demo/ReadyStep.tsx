@@ -1,4 +1,4 @@
-import type { DemoOverview } from '@repo/contracts';
+import type { DemoOverview, SiteSummary, SocietyDashboard } from '@repo/contracts';
 import { formatNumber, Trans, useLocale } from '@repo/i18n';
 import {
   Button,
@@ -34,8 +34,8 @@ import {
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useEffect, useId, useRef } from 'react';
-import { LINKS } from '../../../nav.config';
-import { focusHeading, type DemoRole } from '../entry';
+import { LINKS, SOCIETY } from '../../../nav.config';
+import { demoOf, focusHeading, type DemoRole } from '../entry';
 
 type CountId = keyof DemoOverview['counts'];
 
@@ -50,8 +50,43 @@ const COUNTS: Array<{ id: CountId; icon: LucideIcon; hue: TileHue }> = [
 
 const PRACTICE = '/backoffice/help/practice';
 
+type Task = { id: string; href: string };
+
+/** Society demo: the first tasks depend on where the demo starts (before setup, or ready to bill). */
+function societyTasks(role: DemoRole, site: SiteSummary | undefined): Task[] {
+  const siteId = site?.id ?? 'site_alnoor';
+  const fresh = (site?.flats ?? 0) === 0;
+  if (role === 'alnoor_manager') {
+    return fresh
+      ? [
+          { id: 'import', href: SOCIETY.importFlats(siteId) },
+          { id: 'checklist', href: SOCIETY.site(siteId) },
+          { id: 'structure', href: SOCIETY.structure(siteId) },
+          { id: 'opening', href: SOCIETY.openingBalances(siteId) },
+        ]
+      : [
+          { id: 'prepare', href: SOCIETY.newRun },
+          { id: 'flat', href: SOCIETY.flat(siteId, 'unt_anr_a102') },
+          { id: 'rules', href: SOCIETY.rules('unt_anr_a501') },
+          { id: 'people', href: SOCIETY.people() },
+        ];
+  }
+  if (role === 'alnoor_treasurer') {
+    return [
+      { id: 'approvals', href: LINKS.start },
+      { id: 'runs', href: SOCIETY.runs },
+      { id: 'exemptions', href: SOCIETY.exemptions },
+      { id: 'accounts', href: SOCIETY.accounts('arrears') },
+    ];
+  }
+  return [
+    { id: 'access', href: LINKS.myAccess },
+    { id: 'home', href: LINKS.start },
+  ];
+}
+
 /** Suggested first tasks per role; each opens a built screen (no planned placeholders). */
-const TASKS: Record<DemoRole, Array<{ id: string; href: string }>> = {
+const TASKS: Record<'manager' | 'sales' | 'finance', Task[]> = {
   manager: [
     { id: 'attention', href: LINKS.start },
     { id: 'pipeline', href: LINKS.salesHome },
@@ -92,6 +127,9 @@ export function ReadyStep({ role, next, autoFocus, onSwitchRole }: { role: DemoR
   }, [autoFocus]);
 
   const tourAvailable = !!tour.welcomeTourId && tour.available.some((d) => d.id === tour.welcomeTourId);
+  const society = demoOf(role) === 'society';
+  const sites = useApiQuery<SiteSummary[]>(society && persona?.permissions.includes('site.view') ? { method: 'GET', path: '/sites' } : null);
+  const tasks = society ? societyTasks(role, sites.data?.[0]) : TASKS[role as keyof typeof TASKS];
 
   const startTour = () => {
     tour.decideWelcome('accepted', true);
@@ -164,7 +202,7 @@ export function ReadyStep({ role, next, autoFocus, onSwitchRole }: { role: DemoR
             {t('start:demo.ready.insideTitle')}
           </h2>
           <p className="mt-1 text-sm text-muted">{t('start:demo.ready.insideBody')}</p>
-          <Overview />
+          {society ? <SocietyOverview /> : <Overview />}
         </section>
 
         <section aria-labelledby={tasksId} className="min-w-0 rounded-card border border-border bg-panel p-5 shadow-card sm:p-6 lg:col-start-1 lg:row-start-2">
@@ -173,7 +211,7 @@ export function ReadyStep({ role, next, autoFocus, onSwitchRole }: { role: DemoR
           </h2>
           <p className="mt-1 text-sm text-muted">{t('start:demo.ready.tasksBody')}</p>
           <Stagger as="ol" className="mt-4 grid gap-3 sm:grid-cols-2">
-            {TASKS[role].map((task, i) => (
+            {tasks.map((task, i) => (
               <RevealItem as="li" key={task.id} className="min-w-0">
                 <Link
                   href={task.href}
@@ -260,3 +298,52 @@ function Overview() {
   );
 }
 
+
+/** What the society demo holds for this identity (counted by the API, like the developer demo). */
+function SocietyOverview() {
+  const { t } = useT();
+  const { locale } = useLocale();
+  const { persona } = useSession();
+  const seesSites = persona?.permissions.includes('site.view') ?? false;
+  const sites = useApiQuery<SiteSummary[]>(seesSites ? { method: 'GET', path: '/sites' } : null);
+  const dash = useApiQuery<SocietyDashboard>(seesSites ? { method: 'GET', path: '/society/dashboard' } : null);
+  if (!seesSites) return <p className="mt-5 text-sm text-muted" data-testid="demo-society-guard">{t('start:demo.ready.society.guard')}</p>;
+  if (!sites.data || !dash.data) {
+    return (
+      <div role="status" aria-busy="true" className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <span className="sr-only">{t('common:state.loading')}</span>
+        {[0, 1, 2].map((i) => (
+          <Skeleton key={i} className="h-[5.5rem] rounded-tile" />
+        ))}
+      </div>
+    );
+  }
+  const site = sites.data[0]!;
+  const counts: Array<{ id: 'flats' | 'blocks' | 'occupied' | 'arrears'; value: number; icon: LucideIcon; hue: TileHue }> = [
+    { id: 'flats', value: site.flats, icon: KeyRound, hue: 'teal' },
+    { id: 'blocks', value: site.buildings, icon: Building2, hue: 'emerald' },
+    { id: 'occupied', value: site.occupied, icon: Contact, hue: 'sky' },
+    { id: 'arrears', value: dash.data.arrears.accounts, icon: Target, hue: 'amber' },
+  ];
+  return (
+    <>
+      <ul aria-label={t('start:demo.ready.insideTitle')} className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4" data-testid="demo-society-overview" data-flats={site.flats}>
+        {counts.map((c) => (
+          <li key={c.id} className="flex min-w-0 flex-col items-start gap-2 rounded-tile border border-border bg-raised p-3.5 sm:p-4" data-testid={`demo-society-count-${c.id}`}>
+            <IconTile icon={c.icon} hue={c.hue} size="md" />
+            <span className="block min-w-0">
+              <span className="block text-2xl leading-tight font-bold tracking-tight text-text tabular">{formatNumber(c.value, locale)}</span>
+              <span className="block text-sm text-muted">{t(`start:demo.ready.society.counts.${c.id}`)}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-4 inline-flex items-center gap-1.5 rounded-pill bg-sunken px-3 py-1 text-xs font-medium text-text">
+        <MapPin aria-hidden className="size-3.5 text-muted" />
+        <bdi>{site.name}</bdi>
+        <span aria-hidden>·</span>
+        {site.flats === 0 ? t('start:demo.ready.society.fresh') : t('start:demo.ready.society.ready')}
+      </p>
+    </>
+  );
+}

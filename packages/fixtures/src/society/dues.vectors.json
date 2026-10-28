@@ -1,0 +1,23 @@
+{
+  "description": "Golden vectors for Gate C.1 (A7 §C.2, A4 §2–4). Al-Noor Residency (Demo), November 2026. Amounts are PKR with two decimals.",
+  "period": "2026-11",
+  "flats": [
+    { "flat": "A-101", "lines": { "maintenance": "3000.00", "security": "500.00", "lift": "300.00", "water": "400.00" }, "total": "4200.00", "winner": { "maintenance": "site" } },
+    { "flat": "A-501", "lines": { "maintenance": "4500.00", "security": "500.00", "lift": "300.00", "water": "400.00" }, "total": "5700.00", "winner": { "maintenance": "unit_type" }, "overridden": { "maintenance": ["site"] } },
+    { "flat": "B-508", "lines": { "maintenance": "4500.00", "security": "500.00", "lift": "300.00", "water": "400.00" }, "total": "5700.00", "winner": { "maintenance": "unit_type" } },
+    { "flat": "A-108", "lines": { "maintenance": "0.00", "security": "0.00", "lift": "0.00", "water": "0.00" }, "total": "0.00", "exempt": true },
+    { "flat": "B-407", "lines": { "maintenance": "3000.00", "security": "500.00", "lift": "300.00", "water": "400.00" }, "total": "4200.00", "winner": { "maintenance": "site" } }
+  ],
+  "run": { "items": 80, "invoices": 79, "flats": 79, "exempt": 1, "accounts": 78, "amount": "355800.00" },
+  "statements": [
+    { "account": "ANR-A101", "from": "2026-11-01", "to": "2026-11-30", "previous": "1000.00", "charges": "4200.00", "closing": "5200.00", "invoiceTotal": "4200.00" },
+    { "account": "ANR-B407", "from": "2026-11-01", "to": "2026-11-30", "previous": "0.00", "charges": "4200.00", "closing": "4200.00", "invoiceTotal": "4200.00" }
+  ],
+  "payers": [
+    { "flat": "A-102", "on": "2026-02-01", "payer": "Tariq Mehmood" },
+    { "flat": "A-102", "on": "2026-11-01", "payer": "Sana Iqbal" },
+    { "flat": "A-201", "on": "2026-11-01", "payer": "Rabia Hashmi" },
+    { "flat": "A-202", "on": "2026-11-01", "payer": "Junaid Akhtar" },
+    { "flat": "B-204", "on": "2026-11-01", "payer": "Faisal Chaudhry" }
+  ]
+}

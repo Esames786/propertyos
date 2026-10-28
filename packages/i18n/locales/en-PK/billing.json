@@ -1,0 +1,729 @@
+{
+  "runState": {
+    "DRAFT": "Draft",
+    "PREVIEWED": "Previewed",
+    "APPROVAL_PENDING": "Waiting for approval",
+    "APPROVED": "Approved",
+    "POSTED": "Posted",
+    "NOTIFIED": "Residents notified",
+    "CANCELLED": "Cancelled"
+  },
+  "run": {
+    "staleBadge": "Preview out of date",
+    "cancelledBy": "Cancelled by {{name}}",
+    "progressLabel": "Billing run progress",
+    "notFound": "Billing run not found",
+    "title": "{{period}} billing run",
+    "dates": "Invoices dated {{issue}}, due {{due}} · prepared by {{name}}",
+    "tabsLabel": "Billing run sections",
+    "tabs": {
+      "summary": "Summary",
+      "items": "Flats",
+      "exceptions": "Exceptions",
+      "approval": "Approval",
+      "posting": "Posting",
+      "audit": "History"
+    },
+    "kpi": {
+      "amount": "Total to bill",
+      "invoices": "Invoices",
+      "invoicesHint": "One per account and payer · {{accounts}} accounts",
+      "flats": "Flats billed",
+      "flatsHint": "Every flat with a payer",
+      "exempt": "Exempt flats",
+      "exemptHint": "Assessed at zero, shown, not missing"
+    },
+    "readOnly": "Posted runs are read-only. A wrong amount is corrected with a credit note on the invoice; nothing is edited.",
+    "openInvoices": "Open the invoices",
+    "actions": {
+      "preview": "Generate preview",
+      "regenerate": "Generate preview again",
+      "submit": "Send for approval",
+      "approve": "Approve",
+      "return": "Return with a comment",
+      "post": "Post {{count}} invoices",
+      "notify": "Notify residents (simulated)",
+      "cancel": "Cancel this run"
+    },
+    "why": {
+      "maker_checker_required": "You prepared this run, so someone else must approve it.",
+      "stale_preview": "Charges changed after the preview. Generate it again first.",
+      "permission_missing": "Your role doesn't include this step.",
+      "invalid_transition": "This step isn't available at this stage."
+    },
+    "next": {
+      "draftTitle": "Generate the preview",
+      "draftText": "Every flat is assessed with the rules in force. Nothing is billed until the run is approved and posted.",
+      "staleTitle": "The preview is out of date",
+      "staleText": "Charges, exemptions or payers changed after it was generated. It can't go further until it is generated again.",
+      "staleWaiting": "Charges changed after the preview. The preparer must generate it again before anyone can approve it.",
+      "previewedTitle": "Check the flats, then send for approval",
+      "previewedText": "{{count}} invoices for {{amount}}. The treasurer approves; you can't approve your own run.",
+      "approveTitle": "Review and approve",
+      "approveText": "Prepared by {{name}}. Check the flats and exceptions, then approve, or return it with a comment.",
+      "waitingTitle": "Waiting for approval",
+      "waitingText": "The committee treasurer decides. You'll see the result here.",
+      "postTitle": "Post the invoices",
+      "postText": "Approved by {{name}}. Posting creates the invoices; it is safe to repeat and can't be undone.",
+      "notifyTitle": "Invoices posted",
+      "notifyText": "{{count}} invoices are posted. Notifying residents is simulated in this demo; nothing is sent.",
+      "doneTitle": "Billing done for the month",
+      "doneText": "{{count}} notices recorded as sent (simulated). Payments arrive in the next stage.",
+      "cancelledTitle": "This run was cancelled",
+      "cancelledText": "Nothing was billed. A new run can be created for the month."
+    },
+    "done": {
+      "preview": "Preview generated for {{period}}.",
+      "submit": "{{period}} run sent for approval.",
+      "return": "{{period}} run returned to the preparer.",
+      "approve": "{{period}} run approved.",
+      "post": "{{count}} invoices posted for {{period}}.",
+      "postReplay": "Already posted: the same {{count}} invoices, nothing new created.",
+      "notify": "Residents notified for {{period}} (simulated).",
+      "cancel": "{{period}} run cancelled."
+    },
+    "confirm": {
+      "postTitle": "Post the {{period}} invoices?",
+      "postEffect": "This creates {{count}} invoices for {{amount}}, one per account and payer. Posted invoices can't be edited; corrections are credit notes.",
+      "returnTitle": "Return the run?",
+      "returnEffect": "It goes back to {{name}} with your comment, who can change it, preview again and resend it.",
+      "comment": "Comment for the preparer",
+      "cancelTitle": "Cancel this run?",
+      "cancelEffect": "Nothing has been billed. The run stays in the history as cancelled.",
+      "reason": "Reason"
+    },
+    "summary": {
+      "byCategory": "By charge",
+      "category": "Charge",
+      "flats": "Flats",
+      "amount": "Amount",
+      "byType": "{{type}}: {{flats}} flats",
+      "total": "Total",
+      "noPreview": "Generate the preview to see the totals."
+    },
+    "checks": {
+      "title": "Checks",
+      "description": "What the server checked before this run can go ahead",
+      "state": {
+        "ok": "Fine",
+        "warn": "Check",
+        "block": "Blocks the run"
+      },
+      "rules": {
+        "ok": "Charge rules are in force for the month",
+        "block": "No maintenance rule is in force for the month"
+      },
+      "flats_billed": {
+        "ok": "{{count}} flats will be billed"
+      },
+      "exempt": {
+        "ok": "{{count}} flat exempt (approved)"
+      },
+      "no_payer": {
+        "ok": "Every billed flat has a responsible payer",
+        "block": "{{count}} flats have no responsible payer"
+      },
+      "opening_balances": {
+        "ok": "Opening balances are approved",
+        "warn": "Opening balances are not approved yet"
+      },
+      "declared_flats": {
+        "ok": "{{count}} flats registered, as declared",
+        "warn": "{{count}} flats registered; this differs from the declared number"
+      },
+      "stale": {
+        "block": "The preview is out of date"
+      }
+    },
+    "items": {
+      "title": "Assessment by flat",
+      "description": "Each flat's charges, who pays and which rule set them. Open a flat to see the rules it overrode.",
+      "empty": "Generate the preview to see every flat.",
+      "search": "Find a flat, payer or account",
+      "searchPlaceholder": "e.g. A-501 or a name",
+      "show": "Show",
+      "block": "Block",
+      "allBlocks": "All blocks",
+      "blockN": "Block {{code}}",
+      "filters": {
+        "all": "All",
+        "billed": "Billed",
+        "exempt": "Exempt",
+        "override": "Special rate",
+        "no_payer": "No payer"
+      },
+      "showing_one": "{{count}} flat of {{total}}",
+      "showing_other": "{{count}} flats of {{total}}",
+      "flat": "Flat",
+      "payer": "Payer and account",
+      "total": "Total",
+      "details": "Details",
+      "override": "Special rate",
+      "exempt": "Exempt",
+      "why": "Why",
+      "whyFor": "Why these charges for {{flat}}",
+      "drawerTitle": "Charges for {{flat}}",
+      "drawerSubtitle": "{{name}} · {{account}}",
+      "openFlat": "Open flat {{flat}}",
+      "openAccount": "Open account {{account}}",
+      "openInvoice": "Open invoice {{ref}}",
+      "key": "Posting key {{key}}: posting it again finds this line and creates nothing new."
+    },
+    "exceptions": {
+      "exempt_one": "{{count}} exempt flat",
+      "exempt_other": "{{count}} exempt flats",
+      "exemptHint": "Approved exemptions: assessed at zero and listed, never silently left out.",
+      "overrides_one": "{{count}} flat on a special rate",
+      "overrides_other": "{{count}} flats on a special rate",
+      "overridesHint": "A rule more specific than the site default won (for example the penthouse rate).",
+      "showOverrides": "Show these flats",
+      "shared_one": "{{count}} account split by payer",
+      "shared_other": "{{count}} accounts split by payer",
+      "sharedHint": "One account covers flats with different payers, so each payer gets their own invoice.",
+      "sharedLine": "{{flat}}: billed to {{name}}",
+      "noPayer_one": "{{count}} flat without a payer",
+      "noPayer_other": "{{count}} flats without a payer",
+      "noPayerNone": "Every flat has a responsible payer.",
+      "noPayerSome": "These flats block the run until a payer is recorded."
+    },
+    "approval": {
+      "ruleTitle": "Who approves",
+      "rule": "{{name}} prepared this run. Only a different person with the approver role can approve or return it; the server checks this by person, not by name.",
+      "historyTitle": "Decisions",
+      "none": "Not sent for approval yet.",
+      "events": {
+        "submit": "{{name}} sent it for approval",
+        "return": "{{name}} returned it",
+        "approve": "{{name}} approved it"
+      }
+    },
+    "posting": {
+      "title": "How posting works",
+      "idempotent": "Posting is safe to repeat: a double click, a retry or a repeated request finds the lines already posted and creates nothing new.",
+      "grouping": "One invoice per billing account and responsible payer; each line keeps its flat and the rule that set it.",
+      "locked": "After posting the run is read-only. Corrections are credit notes on the invoice.",
+      "notify": "Notifications are simulated in this demo. Nothing is sent to anyone.",
+      "result": "{{count}} invoices posted on {{date}}. Repeated post requests recorded: {{replays}} (nothing duplicated).",
+      "invoices_one": "{{count}} invoice",
+      "invoices_other": "{{count}} invoices",
+      "more": "and {{count}} more in the invoice list"
+    }
+  },
+  "settlement": {
+    "unpaid": "Unpaid",
+    "partially_paid": "Partly paid",
+    "paid": "Paid",
+    "credited": "Credited in full",
+    "overdue": "Overdue"
+  },
+  "later": {
+    "badge": "Arrives in {{gate}}"
+  },
+  "problem": {
+    "nothingChanged": "Nothing was changed."
+  },
+  "approvals": {
+    "billing_run": "Billing run",
+    "exemption": "Exemption request",
+    "opening_balances": "Opening balances",
+    "yours": "Yours to decide",
+    "notYours": "Someone else decides"
+  },
+  "tasks": {
+    "import_flats": {
+      "action": "Import flats",
+      "title": "Import the flat register",
+      "yours": "Bring in all 80 flats with their owners, occupants and payers.",
+      "waiting": "The building manager imports the flat register first."
+    },
+    "approve_opening_balances": {
+      "action": "Review opening balances",
+      "title": "Opening balances to approve",
+      "yours": "Check the total carried over from the old register, then approve or return it.",
+      "waiting": "Waiting for the committee treasurer to approve them."
+    },
+    "approve_exemptions": {
+      "action": "Review exemptions",
+      "title": "Exemption requests to decide",
+      "yours": "{{count}} request waits for your decision.",
+      "waiting": "Waiting for the committee treasurer."
+    },
+    "create_run": {
+      "action": "Prepare {{period}} bills",
+      "title": "Prepare the {{period}} bills",
+      "yours": "Create the billing run, preview every flat and send it for approval.",
+      "waiting": "The building manager prepares the run."
+    },
+    "preview_run": {
+      "action": "Preview the run",
+      "title": "Preview the {{period}} run",
+      "yours": "Generate the preview to see every flat's charges before anything is billed.",
+      "waiting": "The building manager is preparing the preview."
+    },
+    "submit_run": {
+      "action": "Send for approval",
+      "title": "Send the {{period}} run for approval",
+      "yours": "The preview is ready. Check it, then send it to the treasurer.",
+      "waiting": "The building manager is checking the preview."
+    },
+    "approve_run": {
+      "action": "Review and approve",
+      "title": "Approve the {{period}} run",
+      "yours": "Prepared by someone else. Review the flats, then approve or return it.",
+      "waiting": "Waiting for the committee treasurer. You prepared it, so you can't approve it."
+    },
+    "post_run": {
+      "action": "Post the invoices",
+      "title": "Post the approved {{period}} run",
+      "yours": "Approved. Posting creates one invoice per account and payer; it can't be edited afterwards.",
+      "waiting": "Approved; waiting to be posted."
+    },
+    "notify_run": {
+      "action": "Notify residents",
+      "title": "Tell residents about their {{period}} bills",
+      "yours": "Invoices are posted. Notifications are simulated in this demo; nothing is sent.",
+      "waiting": "Invoices are posted; residents are not notified yet."
+    },
+    "stale_run": {
+      "action": "Refresh the preview",
+      "title": "The {{period}} preview is out of date",
+      "yours": "Charges, exemptions or payers changed after the preview. Generate it again before it goes further.",
+      "waiting": "Charges changed after the preview; the building manager must refresh it."
+    },
+    "returned_run": {
+      "action": "See the comment",
+      "title": "The {{period}} run was returned",
+      "yours": "The approver returned it with a comment. Fix, preview again and resend.",
+      "waiting": "Returned to the building manager with a comment."
+    },
+    "finish_setup": {
+      "action": "Finish setup",
+      "title": "Finish setting up the society",
+      "yours": "A few setup steps are still open.",
+      "waiting": "Setup is not finished yet."
+    }
+  },
+  "dashboard": {
+    "subtitle": "{{period}} billing · today is {{date}}",
+    "collections": "Money for {{period}}",
+    "billed": "Billed for {{period}}",
+    "notBilled": "Not billed yet",
+    "invoices_one": "{{count}} invoice",
+    "invoices_other": "{{count}} invoices",
+    "billedContext": "{{invoices}} invoices · {{exempt}} flat exempt",
+    "runIs": "Run: {{state}}",
+    "noRunYet": "No billing run yet",
+    "outstanding": "Outstanding dues",
+    "accounts_one": "{{count}} account",
+    "accounts_other": "{{count}} accounts",
+    "arrears": "In arrears (overdue)",
+    "arrearsContext_one": "{{count}} account overdue",
+    "arrearsContext_other": "{{count}} accounts overdue",
+    "collected": "Collected this month",
+    "collectedLater": "Recording residents' payments and proofs comes in the next stage. No figure is shown until real payments exist.",
+    "tasksTitle": "What needs doing",
+    "tasksSubtitle": "Your work first, then what waits for someone else",
+    "tasksEmpty": "Nothing waiting. Everything for this month is done.",
+    "urgent": "Due now",
+    "waitingOthers": "Waiting",
+    "runTitle": "{{period}} billing run",
+    "runSubtitle": "Prepared, approved by someone else, then posted",
+    "runInvoices": "Invoices posted",
+    "runExempt": "Exempt flats",
+    "openRun": "Open {{ref}}",
+    "noRunBody": "No run for {{period}} yet. Each month's bills start as a draft you preview flat by flat.",
+    "openCalendar": "Billing calendar",
+    "approvalsTitle": "Approvals",
+    "approvalsSubtitle": "Every approval is made by someone other than the person who prepared it",
+    "approvalsCount": "{{count}} waiting · {{yours}} yours",
+    "approvalsEmpty": "Nothing is waiting for approval.",
+    "occupancy": {
+      "ownerOccupied": "Owner lives here",
+      "tenantOccupied": "Rented",
+      "association": "Association office",
+      "vacant": "Vacant"
+    },
+    "occupancyTitle": "Flats and occupancy",
+    "occupancySubtitle": "{{registered}} registered of {{declared}} declared · {{occupied}} occupied",
+    "openRoster": "Units and payers",
+    "flatsTotal": "flats",
+    "occupancyRow": "{{name}}: {{owner}} owner-occupied, {{tenant}} rented, {{association}} association office, {{vacant}} vacant",
+    "occupancyLegend": "Open flats by occupancy",
+    "blocks": "Blocks",
+    "blockFlats": "Flats",
+    "blockVacant": "Vacant",
+    "blockArrears": "In arrears",
+    "blockOwed": "Owed here: {{amount}}",
+    "arrearsTitle": "Largest arrears",
+    "arrearsSubtitle": "Overdue balances, largest first",
+    "arrearsEmpty": "No account is overdue.",
+    "allArrears": "All {{count}} accounts in arrears",
+    "setupTitle": "Society setup",
+    "setupBody": "{{done}} of {{total}} steps done. Next: {{next}}.",
+    "setupContinue": "Continue setup",
+    "laterTitle": "Coming in later stages",
+    "laterBody": "These parts of a society are planned and shown here so nothing looks finished before it is.",
+    "later": {
+      "collections": "Payments and receipts",
+      "proof_queue": "Transfer proof reviews",
+      "maintenance": "Maintenance requests",
+      "visitors": "Visitors and gate passes",
+      "notices": "Notices to residents"
+    }
+  },
+  "statement": {
+    "title": "Statement",
+    "titleFor": "Statement for {{period}}",
+    "flatOnly": "flat {{flat}} only",
+    "payerOnly": "lines {{name}} is liable for",
+    "period": "Statement month",
+    "previous": "Previous balance",
+    "charges": "{{period}} charges",
+    "credits": "Credits",
+    "closing": "Total payable",
+    "rule": "The previous balance is carried forward on the statement; it is never added to an invoice as a line.",
+    "empty": "No invoices or credits in this month.",
+    "date": "Date",
+    "entry": "Entry",
+    "flats": "Flats",
+    "debit": "Charge",
+    "credit": "Credit",
+    "balance": "Balance",
+    "broughtForward": "Brought forward",
+    "payer": "billed to {{name}}",
+    "kinds": {
+      "opening_balance": "Opening balance (arrears carried over)",
+      "credit_note": "Credit note",
+      "invoice": "Invoice for {{period}}"
+    }
+  },
+  "charges": {
+    "noRules": "No charge applies to this flat for the month.",
+    "wins": "Set by {{scope}}",
+    "scopeVersion": "{{level}} rule · version {{version}}",
+    "overrides": "Overrides:",
+    "exempt": "Exempt {{percent}} %",
+    "intro": "The charges Al-Noor bills each month and every rate version, by month. A rate is changed as a new version from a month, never edited.",
+    "openRules": "Rules",
+    "notSet": "Not set up yet.",
+    "by": "by {{name}}",
+    "otherTitle": "Other charge types",
+    "otherHint": "Available to societies but not set up at Al-Noor, or coming in a later stage.",
+    "notSetUp": "Not set up"
+  },
+  "categories": {
+    "maintenance": "Maintenance",
+    "security": "Security",
+    "lift": "Lift",
+    "water": "Water",
+    "generator": "Generator",
+    "parking": "Parking",
+    "common_electricity": "Common electricity",
+    "sinking_fund": "Sinking fund",
+    "one_time_assessment": "One-time assessment",
+    "repair": "Repairs",
+    "late_fee": "Late fee"
+  },
+  "scope": {
+    "site": "Site default",
+    "building": "Block",
+    "unit_type": "Flat type",
+    "unit": "Single flat"
+  },
+  "source": {
+    "billing_run": "Monthly bill",
+    "opening_balance": "Opening balance",
+    "installment_schedule": "Instalment",
+    "manual": "Manual invoice",
+    "service": "Service",
+    "penalty": "Penalty"
+  },
+  "audit": {
+    "title": "Activity",
+    "empty": "Nothing recorded yet.",
+    "actions": {
+      "flatsImported": "imported {{count}} flats from {{label}}",
+      "openingImported": "imported opening balances of {{total}} for {{accounts}} accounts",
+      "openingApproved": "approved opening balances of {{total}} for {{accounts}} accounts",
+      "openingReturned": "returned the opening balances: “{{note}}”",
+      "rulesCreated": "set up {{count}} charge rules for {{label}}",
+      "ruleCreated": "added a {{category}} rule for {{label}}: {{amount}} from {{from}}",
+      "ruleVersioned": "changed {{category}} for {{label}} from {{previous}} to {{amount}}, from {{from}}",
+      "exemptionRequested": "asked for an exemption for {{label}}",
+      "exemptionApproved": "approved the exemption for {{label}}",
+      "exemptionRejected": "rejected the exemption for {{label}}",
+      "payerChanged": "made {{name}} the payer for {{label}} from {{from}} (before: {{previous}})",
+      "run_create": "created billing run {{label}}",
+      "run_preview": "generated the preview of {{label}}",
+      "run_submit": "sent {{label}} for approval",
+      "run_return": "returned {{label}}: “{{note}}”",
+      "run_approve": "approved {{label}}",
+      "run_post": "posted {{label}}: {{invoices}} invoices, {{amount}}",
+      "run_notify": "notified residents of {{label}} (simulated)",
+      "run_cancel": "cancelled {{label}}: “{{note}}”",
+      "creditNoteIssued": "issued credit note {{ref}} of {{amount}} on {{label}}: “{{reason}}”"
+    }
+  },
+  "runs": {
+    "intro": "Each month's bills: prepared and previewed, approved by someone else, then posted.",
+    "new": "New billing run",
+    "calendar": "Billing calendar",
+    "invoicesCount_one": "{{count}} invoice",
+    "invoicesCount_other": "{{count}} invoices",
+    "open": "Open {{ref}}",
+    "goLive": "Went live this month: arrears from the old register were imported as opening balances.",
+    "openingLink": "Opening balances",
+    "opensAfter": "Opens once {{period}} is posted",
+    "createFor": "Create the {{period}} run",
+    "notStarted": "Not started yet",
+    "allRuns": "All runs",
+    "emptyTitle": "No billing runs yet",
+    "emptyBody": "Create the first run for the month to preview every flat.",
+    "preparedBy": "prepared by {{name}}",
+    "approvedBy": "approved by {{name}}",
+    "supplementary": "A flat or charge missed after posting will be billed with a supplementary run (posting version 2, new lines only). Supplementary runs are planned for a later stage; until then, correct amounts with credit notes.",
+    "problems": {
+      "period": "Choose a month.",
+      "beforeGoLive": "The first month billed here is {{period}}."
+    }
+  },
+  "newRun": {
+    "intro": "Choose the month and check what the run will use. Creating the run bills nothing; you preview every flat next.",
+    "stepPeriod": "1. Month",
+    "period": "Month to bill",
+    "nextToBill": "Next month to bill",
+    "later": "Can be prepared ahead; {{period}} is still open",
+    "stepScope": "2. Flats",
+    "scope": "The whole site: {{site}}, {{flats}} flats in {{buildings}} blocks.",
+    "scopeLater": "Billing only some blocks is planned for a later stage.",
+    "stepChecks": "3. What the run will use",
+    "checksHint": "Each line opens the screen behind it.",
+    "checks": {
+      "flats": "{{flats}} flats registered (declared: {{declared}})",
+      "rules": "{{count}} charge rules in force",
+      "noRules": "No maintenance rule is in force for this month",
+      "exemptions": "{{count}} approved exemption applies",
+      "pendingExemptions": "{{count}} exemption request still waits for a decision ({{approved}} approved)",
+      "opening": "Opening balances approved",
+      "noOpening": "Opening balances not approved yet"
+    },
+    "existing": "A run for {{period}} already exists.",
+    "existingShort": "There is already a run for this month.",
+    "create": "Create the {{period}} run",
+    "created": "Draft run created for {{period}}."
+  },
+  "errors": {
+    "makerChecker": "You prepared this, so someone else must approve it.",
+    "stalePreview": "The preview is out of date. Generate it again first.",
+    "invalidTransition": "That step isn't available at this stage.",
+    "duplicatePeriod": "There is already an open run for this month.",
+    "noRules": "No maintenance charge is set up for this month.",
+    "noPayer": "Some flats have no responsible payer.",
+    "postedLocked": "A posted invoice can't be edited. Correct it with a credit note.",
+    "noteRequired": "Add a short comment."
+  },
+  "accounts": {
+    "intro": "One account per flat, or per owner when one person holds several flats. Each flat keeps its own payer.",
+    "search": "Find an account",
+    "searchPlaceholder": "Account, holder, flat or payer",
+    "status": "Show",
+    "filters": {
+      "all": "All",
+      "owing": "Owing",
+      "arrears": "In arrears",
+      "clear": "Nothing owed"
+    },
+    "statuses": {
+      "clear": "Nothing owed",
+      "due": "Due",
+      "arrears": "In arrears",
+      "credit": "In credit"
+    },
+    "payerOf": "{{flat}}: {{name}}",
+    "overdue": "{{amount}} overdue",
+    "count_one": "{{count}} account",
+    "count_other": "{{count}} accounts",
+    "emptyTitle": "No accounts match",
+    "emptyBody": "Try another filter or search."
+  },
+  "account": {
+    "notFound": "Account not found",
+    "kind": "Dues account",
+    "holder": "Held by {{name}}",
+    "balance": "Owed now",
+    "overdue": "Overdue",
+    "openInvoices": "Open invoices",
+    "flats": "Flats",
+    "tabsLabel": "Account sections",
+    "tabs": {
+      "overview": "Flats and payers",
+      "invoices": "Invoices",
+      "statement": "Statement"
+    },
+    "liableHint": "Who is liable for this flat, with dates. History is kept.",
+    "statementFor": "Statement for",
+    "wholeAccount": "The whole account"
+  },
+  "rules": {
+    "intro": "Site defaults apply to every flat; a block, a flat type or a single flat can have its own rate. The most specific rule wins, and exemptions apply after that.",
+    "add": "Add a rule",
+    "none": "No charge rules yet.",
+    "listTitle": "Rules",
+    "listHint": "In force from {{period}} unless shown otherwise.",
+    "scopeLine": "{{level}}: {{name}}",
+    "versionLine": "Version {{version}} · from {{from}}",
+    "until": "until {{to}}",
+    "status": {
+      "inForce": "In force",
+      "scheduled": "Starts later",
+      "ended": "Ended"
+    },
+    "change": "Change",
+    "changeFor": "Change {{name}}",
+    "defaultsTitle": "Set the site defaults",
+    "defaultsHint": "Every flat pays these each month from {{period}}, unless a more specific rule or an exemption applies.",
+    "suggestedNote": "Suggested from the committee's current rates; change any amount before saving.",
+    "defaultsSave": "Save site defaults",
+    "defaultsSaved": "{{count}} site defaults saved.",
+    "addTitle": "Add a rule",
+    "addHint": "For a block, a flat type or one flat. It wins over the site default for those flats.",
+    "category": "Charge",
+    "appliesTo": "Applies to",
+    "levelHint": {
+      "unit_type": "Every flat of a type, e.g. penthouses",
+      "building": "Every flat in a block",
+      "unit": "One flat only"
+    },
+    "target": {
+      "building": "Block",
+      "unit_type": "Flat type"
+    },
+    "flat": "Flat",
+    "amount": "Amount each month",
+    "from": "From",
+    "save": "Save rule",
+    "added": "Rule added.",
+    "changeTitle": "Change {{category}} for {{name}}",
+    "current": "Now {{amount}}",
+    "versionHint": "This makes a new version from the month you choose. Months already billed keep the old amount; a preview made before the change goes out of date.",
+    "newAmount": "New amount each month",
+    "saveVersion": "Save new version",
+    "versioned": "New version from {{from}} saved.",
+    "whichTitle": "Which rule wins",
+    "whichHint": "For any flat and {{period}}: the rule that sets each charge, and the rules it overrode.",
+    "whichTotal": "{{flat}} pays",
+    "openFlat": "Open {{flat}}",
+    "problems": {
+      "scope": "Choose what the rule applies to.",
+      "amount": "Enter an amount above 0, e.g. 3000.",
+      "period": "Choose a month.",
+      "periodPosted": "That month is already billed. Choose {{period}} or later.",
+      "overlap": "A rule for this charge and scope already exists. Change it instead.",
+      "category": "Choose a charge.",
+      "noAmounts": "Enter at least one amount.",
+      "beforeVersion": "A new version can't start before {{period}}."
+    }
+  },
+  "exemptions": {
+    "intro": "A full or partial exemption for a flat, with a reason. It applies only after someone other than the requester approves it, and an exempt flat still appears in every run at zero.",
+    "new": "Request an exemption",
+    "newHint": "The committee treasurer decides.",
+    "emptyTitle": "No exemptions",
+    "emptyBody": "No flat is exempt from any charge.",
+    "what": "{{percent}} % off {{categories}}",
+    "allCharges": "all charges",
+    "oneCharge": "One charge",
+    "from": "from {{period}}",
+    "requested": "Requested by {{name}}",
+    "approvedBy": "approved by {{name}}",
+    "rejectedBy": "rejected by {{name}}",
+    "state": {
+      "pending_approval": "Waiting for approval",
+      "approved": "Approved",
+      "rejected": "Rejected"
+    },
+    "approve": "Approve",
+    "reject": "Reject",
+    "waiting": "Waiting for the committee treasurer.",
+    "waitingMine": "You requested this, so someone else decides.",
+    "confirmTitle": "Approve the exemption for {{flat}}?",
+    "confirmEffect": "{{percent}} % off from {{period}}. Runs previewed before now will need a new preview.",
+    "rejectTitle": "Reject the exemption for {{flat}}?",
+    "rejectEffect": "The flat keeps paying its charges.",
+    "approvedToast": "Exemption for {{flat}} approved.",
+    "rejectedToast": "Exemption for {{flat}} rejected.",
+    "which": "Which charges",
+    "percent": "How much",
+    "full": "Fully exempt (100 %)",
+    "half": "Half (50 %)",
+    "reason": "Reason",
+    "send": "Send for approval",
+    "requestedToast": "Exemption request sent for approval.",
+    "problems": {
+      "flat": "Choose a flat.",
+      "categories": "Choose a charge.",
+      "percent": "Choose how much.",
+      "reason": "Give a reason of a few words.",
+      "exists": "This flat already has an exemption from that month."
+    }
+  },
+  "invoices": {
+    "intro": "Every invoice the association issued, monthly bills and opening balances alike, with where each came from.",
+    "billed": "Billed",
+    "credited": "Credited",
+    "outstanding": "Outstanding",
+    "search": "Find an invoice",
+    "searchPlaceholder": "Reference, account, payer or flat",
+    "source": "Source",
+    "status": "Status",
+    "all": "All",
+    "periodFilter": "Showing {{period}}.",
+    "runFilter": "Showing one billing run.",
+    "count_one": "{{count}} invoice",
+    "count_other": "{{count}} invoices",
+    "creditedLine": "{{amount}} credited",
+    "emptyTitle": "No invoices match",
+    "emptyBody": "Try another filter. Monthly bills appear once a run is posted."
+  },
+  "invoice": {
+    "notFound": "Invoice not found",
+    "billedTo": "Billed to {{name}}",
+    "total": "Total",
+    "credited": "Credited",
+    "outstanding": "Outstanding",
+    "dates": "Dated and due",
+    "issueCredit": "Issue a credit note",
+    "statement": "Account statement",
+    "noEdit": "Posted invoices can't be edited.",
+    "lines": "Lines",
+    "line": "Charge",
+    "setBy": "Set by",
+    "amount": "Amount",
+    "creditedCol": "Credited",
+    "imported": "Imported balance",
+    "previousNote": "The account's previous balance is not part of this invoice; it is carried on the statement. The account owes {{balance}} in all.",
+    "creditNotes": "Credit notes",
+    "noCreditNotes": "No credit notes.",
+    "creditBy": "by {{name}}",
+    "payee": "Residents pay",
+    "payeeHint": "The association's verified account, as printed on the bill."
+  },
+  "creditNote": {
+    "title": "Credit note for {{ref}}",
+    "subtitle": "Correct a posted invoice without editing it",
+    "rule": "Enter what to credit on each line (at most what is still open) and why. The invoice stays as issued; the credit note and the statement show the correction.",
+    "open": "Open {{amount}} of {{total}}",
+    "amount": "Credit",
+    "reason": "Reason",
+    "issue": "Issue credit note",
+    "done": "Credit note {{ref}} of {{amount}} issued.",
+    "problems": {
+      "reason": "Give a reason of a few words.",
+      "amount": "Enter an amount above 0.",
+      "overOpen": "At most {{open}} on this line.",
+      "noLines": "Enter an amount on at least one line."
+    }
+  },
+  "quote": "“{{text}}”",
+  "currency": "Rs"
+}

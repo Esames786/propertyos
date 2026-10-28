@@ -13,6 +13,9 @@ export type PersonaId =
   | 'society_admin'
   | 'cb_manager'
   | 'cedar_treasurer'
+  | 'alnoor_manager'
+  | 'alnoor_treasurer'
+  | 'alnoor_guard'
   | 'supreme_admin'
   | 'commercial_approver'
   | 'platform_support';
@@ -30,7 +33,15 @@ export interface SeedOptions {
 
 const TENANT = 'tnt_larkspur';
 /** Identities outside Larkspur: the maintenance-only client, the two-site developer and the suspended co-operative. */
-const TENANT_OF: Record<string, string> = { facility_manager: 'tnt_shalimar', society_admin: 'tnt_shalimar', cb_manager: 'tnt_crescent', cedar_treasurer: 'tnt_cedar' };
+const TENANT_OF: Record<string, string> = {
+  facility_manager: 'tnt_shalimar',
+  society_admin: 'tnt_shalimar',
+  cb_manager: 'tnt_crescent',
+  cedar_treasurer: 'tnt_cedar',
+  alnoor_manager: 'tnt_alnoor',
+  alnoor_treasurer: 'tnt_alnoor',
+  alnoor_guard: 'tnt_alnoor',
+};
 
 /**
  * Seeds demo state once per browser context (later reloads keep whatever the test changed,

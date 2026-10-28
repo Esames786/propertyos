@@ -1,10 +1,13 @@
-import { CRM_TOUR, GLOBAL_TOUR, GuidedTourProvider, LAB_TOUR } from '@repo/ui/onboarding';
+import { CRM_TOUR, GLOBAL_TOUR, GuidedTourProvider, LAB_TOUR, SOCIETY_TOUR } from '@repo/ui/onboarding';
 import { NavigationProvider } from '@repo/ui';
 import { useCallback } from 'react';
 import { Outlet, ScrollRestoration, useHref, useLocation, useNavigate } from 'react-router';
 import { TOUR_LINKS } from '../nav.config';
 
-const TOURS = [GLOBAL_TOUR, CRM_TOUR, LAB_TOUR];
+const TOURS = [GLOBAL_TOUR, CRM_TOUR, LAB_TOUR, SOCIETY_TOUR];
+
+/** A society's staff are welcomed with the building manager's tour (GUIDE-008); everyone else with the essentials. */
+const welcomeTourFor = (personaId: string) => (SOCIETY_TOUR.applicablePersonas.includes(personaId) ? SOCIETY_TOUR.id : GLOBAL_TOUR.id);
 
 /** Routes that run before or outside the signed-in shell (they ask about the tour themselves). */
 const isEntryRoute = (pathname: string) => pathname.startsWith('/backoffice/get-started') || pathname.startsWith('/backoffice/sign-in');
@@ -19,7 +22,7 @@ export function RootLayout() {
   const nav = useCallback((href: string, options?: { replace?: boolean }) => navigate(href, { replace: options?.replace }), [navigate]);
   return (
     <NavigationProvider navigate={nav} location={location} useHref={useHref}>
-      <GuidedTourProvider tours={TOURS} welcomeTourId={GLOBAL_TOUR.id} suppressWelcome={isEntryRoute(location.pathname)} links={TOUR_LINKS}>
+      <GuidedTourProvider tours={TOURS} welcomeTourId={welcomeTourFor} suppressWelcome={isEntryRoute(location.pathname)} links={TOUR_LINKS}>
         <Outlet />
       </GuidedTourProvider>
       <ScrollRestoration />

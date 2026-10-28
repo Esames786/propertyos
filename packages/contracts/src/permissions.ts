@@ -29,6 +29,18 @@ export const PERMISSIONS = [
   'construction.view',
   'workorder.update',
   'visitors.manage',
+  // Society setup and monthly billing (Gate C.1). Preparing, approving and posting are separate
+  // permissions so maker-checker can be held by different roles.
+  'site.view',
+  'site.manage',
+  'opening_balance.import',
+  'opening_balance.approve',
+  'charges.manage',
+  'billing_run.view',
+  'billing_run.create',
+  'billing_run.approve',
+  'billing_run.post',
+  'credit_note.create',
   // Platform HQ (central plane, V3.1). Operators are a separate principal type from tenant staff.
   'platform.dashboard.view',
   'platform.tenants.view',

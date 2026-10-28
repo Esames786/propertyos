@@ -53,7 +53,18 @@
       "tenantDetail": "Two fictional projects in Lahore and Islamabad"
     },
     "signInPrompt": "Already exploring?",
-    "signInLink": "Sign in"
+    "signInLink": "Sign in",
+    "society": {
+      "title": "Explore the society demo",
+      "body": "Al-Noor Residency, an 80-flat society: its dashboard, every flat's connected facts and a month's maintenance bills from preview to posting.",
+      "points": {
+        "flats": "Import the flat register, or start with it in place",
+        "billing": "November's bills: 79 invoices, approved by someone else",
+        "roles": "Building manager, committee treasurer or security guard"
+      },
+      "meta": "About 10 minutes · fictional data",
+      "cta": "Open the society demo"
+    }
   },
   "roles": {
     "manager": {
@@ -79,6 +90,30 @@
         "b": "Payment proofs awaiting verification",
         "c": "Collections against target, without the sales pipeline"
       }
+    },
+    "alnoor_manager": {
+      "summary": "Runs Al-Noor day to day: flats, people and the monthly bills.",
+      "points": {
+        "a": "Imports the flat register and keeps payers up to date",
+        "b": "Sets charges and prepares each month's billing run",
+        "c": "Can't approve their own run"
+      }
+    },
+    "alnoor_treasurer": {
+      "summary": "Approves what the manager prepares, for the committee.",
+      "points": {
+        "a": "Approves or returns billing runs, with a comment",
+        "b": "Approves exemptions and opening balances",
+        "c": "Corrects posted bills with credit notes"
+      }
+    },
+    "alnoor_guard": {
+      "summary": "Looks after the gate. Sees no billing at all.",
+      "points": {
+        "a": "Visitors and gate passes arrive in a later stage",
+        "b": "No bills, balances or payers are shown to this role",
+        "c": "Shows how a role is limited by what it holds"
+      }
     }
   },
   "demo": {
@@ -92,7 +127,21 @@
       "scopeOne": "Only {{project}}",
       "fresh": "Start with fresh demo data",
       "freshHint": "Clears leads, visits and unit holds you added earlier in this browser tab.",
-      "continue": "Continue as {{name}}"
+      "continue": "Continue as {{name}}",
+      "chooseDemo": "Demo",
+      "demos": {
+        "developer": {
+          "title": "Developer",
+          "body": "Larkspur Estates (Demo): projects, sales and instalments."
+        },
+        "society": {
+          "title": "Society",
+          "body": "Al-Noor Residency (Demo): 80 flats, owners and residents, monthly maintenance billing."
+        }
+      },
+      "scopeSociety": "Al-Noor Residency · 80 flats",
+      "freshSociety": "Start before setup",
+      "freshSocietyHint": "Begin with no flats: import the sample register, opening balances and charges yourself. Off: setup is done and November is ready to bill."
     },
     "preparing": {
       "heading": "Preparing your demo",
@@ -127,6 +176,10 @@
         "overview": {
           "active": "Counting what’s inside the demo",
           "done": "Demo contents counted"
+        },
+        "society": {
+          "active": "Preparing Al-Noor Residency for {{name}}",
+          "done": "Al-Noor Residency is ready for {{name}}"
         }
       },
       "state": {
@@ -216,7 +269,80 @@
             "title": "Find an invoice by number",
             "body": "Open search and type part of an invoice number, such as INV."
           }
+        },
+        "alnoor_manager": {
+          "import": {
+            "title": "Import the flat register",
+            "body": "The sample has three rows to fix and two repeats; nothing is created until every row is right."
+          },
+          "checklist": {
+            "title": "Follow the setup checklist",
+            "body": "Nine steps, each opening its own screen."
+          },
+          "structure": {
+            "title": "See the blocks and floors",
+            "body": "Two blocks of five floors are ready for their flats."
+          },
+          "opening": {
+            "title": "Bring in opening balances",
+            "body": "The treasurer approves them, not you."
+          },
+          "prepare": {
+            "title": "Prepare November's bills",
+            "body": "Create the run, preview every flat and send it for approval."
+          },
+          "flat": {
+            "title": "Open flat A-102",
+            "body": "Owner, tenant and payer: three people, three separate facts."
+          },
+          "rules": {
+            "title": "See which rule wins for A-501",
+            "body": "The penthouse rate overrides the site default."
+          },
+          "people": {
+            "title": "Browse owners and residents",
+            "body": "Everyone by what they are to each flat."
+          }
+        },
+        "alnoor_treasurer": {
+          "approvals": {
+            "title": "See what waits for your approval",
+            "body": "Runs, exemptions and opening balances someone else prepared."
+          },
+          "runs": {
+            "title": "Open the billing calendar",
+            "body": "Each month's run and who prepared and approved it."
+          },
+          "exemptions": {
+            "title": "Review exemptions",
+            "body": "The association office is exempt; see why and who approved it."
+          },
+          "accounts": {
+            "title": "Check the accounts in arrears",
+            "body": "Ten accounts carried arrears over from the old register."
+          }
+        },
+        "alnoor_guard": {
+          "access": {
+            "title": "See what your role includes",
+            "body": "My access lists what you can use, and what you can't."
+          },
+          "home": {
+            "title": "Open your home page",
+            "body": "Billing and finance are not part of a guard's role."
+          }
         }
+      },
+      "society": {
+        "guard": "Your role covers the gate and visitors, which arrive in a later stage. Billing and residents' finances are not part of it.",
+        "counts": {
+          "flats": "Flats registered",
+          "blocks": "Blocks",
+          "occupied": "Flats occupied",
+          "arrears": "Accounts in arrears"
+        },
+        "fresh": "Before setup: no flats imported yet",
+        "ready": "Set up; November is ready to bill"
       }
     }
   },

@@ -13,6 +13,7 @@ export type { TourDefinition, TourStep, TourKind } from './tourTypes';
 export { GLOBAL_TOUR } from './tours/backoffice';
 export { LAB_TOUR } from './tours/lab';
 export { CRM_TOUR } from './tours/crm';
+export { SOCIETY_TOUR } from './tours/society';
 export { PORTAL_TOUR } from './tours/portal';
 export { HQ_TOUR, HQ_CREATE_TOUR } from './tours/hq';
 export { TourLibraryView, TextGuideView } from './TourLibraryView';

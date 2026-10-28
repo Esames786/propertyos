@@ -1,5 +1,5 @@
 export { FIXTURE_NOW, createRandom } from './seed';
-export { TENANT, SHALIMAR, CRESCENT_BAY, CEDAR_HILLS, BACKOFFICE_TENANTS, PARTIES, PERSONAS, findPersona, CITIES } from './people';
+export { TENANT, SHALIMAR, CRESCENT_BAY, CEDAR_HILLS, AL_NOOR, BACKOFFICE_TENANTS, PARTIES, PERSONAS, findPersona, CITIES } from './people';
 export { TENANT_DIRECTORY, directoryTenant, effectiveAccessFor, grantsOf, ACCESS_TODAY, type DirectoryTenant } from './tenant-directory';
 export { PROJECTS, TOWERS, FLOORS, UNITS, GARDEN_BLOCKS } from './inventory';
 export { LEADS, INVOICES, NOTIFICATIONS, LEAD_ACTIVITY, DEMO_COLLECTION_ACCOUNT } from './records';
@@ -10,3 +10,4 @@ export type { TenantDataset } from './dataset-types';
 export { TrainingStore, type TrainingRecord } from './training-store';
 export { DemoStore, DemoPartition, DEMO_STORE_KEY, VISITOR_PARTITION, type DemoOverlay } from './demo-store';
 export { leadHistory, unitSummary, unitDetail } from './crm-data';
+export { sampleFlatFile, sampleOpeningFile, ALNOOR_SITE, ALNOOR_STAFF, FIRST_PERIOD as SOCIETY_FIRST_PERIOD } from './society/alnoor';

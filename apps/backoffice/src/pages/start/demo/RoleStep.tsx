@@ -1,16 +1,18 @@
-import { Badge, Button, cn, DirectionalIcon, IconTile, RevealItem, Stagger, Switch, useSession, useT } from '@repo/ui';
+import { Badge, Button, cn, DirectionalIcon, IconTile, RevealItem, SegmentedControl, Stagger, Switch, useQueryParam, useSession, useT } from '@repo/ui';
 import { ArrowRight, Check, FolderKanban } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Radio, RadioGroup } from 'react-aria-components';
 import { LINKS } from '../../../nav.config';
 import { EntryBackLink } from '../EntryFrame';
-import { DEMO_ROLES, entryHref, focusHeading, isDemoRole, ROLE_LOOK, type DemoRole } from '../entry';
+import { demoOf, DEMO_KINDS, entryHref, focusHeading, isDemoKind, isDemoRole, RECOMMENDED, ROLE_LOOK, ROLES_OF, type DemoKind, type DemoRole } from '../entry';
 
 const POINTS = ['a', 'b', 'c'] as const;
 
 /**
- * Demo step 1: choose which fictional colleague to explore as. Each role sees different menus,
- * figures and actions; the cards say what. Optionally clear changes made earlier in this tab.
+ * Demo step 1: choose the demo (a developer or a society, F-9) and which fictional colleague to
+ * explore as. Each role sees different menus, figures and actions; the cards say what. The developer
+ * demo can clear this tab's earlier changes; the society demo can start before setup, so the
+ * building manager imports the flat register from the sample file.
  */
 export function RoleStep({
   next,
@@ -23,9 +25,13 @@ export function RoleStep({
 }) {
   const { t } = useT();
   const { personas, persona, tenants } = useSession();
-  // The demo roles all belong to the developer demo tenant, whoever is signed in now.
-  const tenant = tenants.find((x) => x.id === personas.find((p) => p.id === 'manager')?.tenantId) ?? tenants[0]!;
-  const [role, setRole] = useState<DemoRole>(isDemoRole(persona?.id) ? persona.id : 'manager');
+  const [demoParam, setDemoParam] = useQueryParam('demo');
+  const current = isDemoRole(persona?.id) ? persona.id : null;
+  const kind: DemoKind = isDemoKind(demoParam) ? demoParam : current ? demoOf(current) : 'developer';
+  const roles = ROLES_OF[kind];
+  const [chosen, setChosen] = useState<DemoRole | null>(current);
+  const role = chosen && roles.includes(chosen) ? chosen : RECOMMENDED[kind];
+  const tenant = tenants.find((x) => x.id === personas.find((p) => p.id === roles[0])?.tenantId) ?? tenants[0]!;
   const [fresh, setFresh] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
 
@@ -34,7 +40,7 @@ export function RoleStep({
   }, [autoFocus]);
 
   return (
-    <div className="mx-auto max-w-5xl pt-1 sm:pt-4" data-testid="demo-role-step">
+    <div className="mx-auto max-w-5xl pt-1 sm:pt-4" data-testid="demo-role-step" data-demo={kind}>
       <EntryBackLink href={entryHref(LINKS.getStarted, { next })} testId="demo-back">
         {t('start:frame.backToStart')}
       </EntryBackLink>
@@ -48,15 +54,23 @@ export function RoleStep({
         <p className="mt-3 text-base text-muted sm:text-lg">{t('start:demo.role.intro')}</p>
       </div>
 
-      <RadioGroup
-        value={role}
-        onChange={(v) => setRole(v as DemoRole)}
-        aria-label={t('start:demo.role.groupLabel')}
-        className="mt-8"
-        data-testid="demo-role-group"
-      >
-        <Stagger className="grid gap-4 md:grid-cols-3">
-          {DEMO_ROLES.map((id) => {
+      <div className="mt-6 space-y-2" data-testid="demo-kind">
+        <SegmentedControl
+          label={t('start:demo.role.chooseDemo')}
+          value={kind}
+          onChange={(v) => {
+            setDemoParam(v === 'developer' ? null : v);
+            setFresh(false);
+          }}
+          testId="demo-kind-control"
+          options={DEMO_KINDS.map((k) => ({ id: k, label: t(`start:demo.role.demos.${k}.title`) }))}
+        />
+        <p className="text-sm text-muted">{t(`start:demo.role.demos.${kind}.body`)}</p>
+      </div>
+
+      <RadioGroup value={role} onChange={(v) => setChosen(v as DemoRole)} aria-label={t('start:demo.role.groupLabel')} className="mt-6" data-testid="demo-role-group">
+        <Stagger key={kind} className="grid gap-4 md:grid-cols-3">
+          {roles.map((id) => {
             const p = personas.find((x) => x.id === id);
             if (!p) return null;
             const look = ROLE_LOOK[id];
@@ -88,7 +102,7 @@ export function RoleStep({
                       <Check className="size-3.5 opacity-0 group-data-selected:opacity-100" strokeWidth={3} />
                     </span>
                   </span>
-                  {id === 'manager' && (
+                  {id === RECOMMENDED[kind] && (
                     <Badge tone="success" icon={Check} className="self-start">
                       {t('start:demo.role.recommended')}
                     </Badge>
@@ -104,7 +118,7 @@ export function RoleStep({
                   </span>
                   <span className="mt-auto inline-flex items-center gap-1.5 self-start rounded-pill bg-sunken px-2.5 py-1 text-xs font-medium text-text">
                     <FolderKanban aria-hidden className="size-3.5 text-muted" />
-                    {p.projectScope === 'all' ? t('start:demo.role.scopeAll') : t('start:demo.role.scopeOne', { project: 'Larkspur Heights' })}
+                    {kind === 'society' ? t('start:demo.role.scopeSociety') : p.projectScope === 'all' ? t('start:demo.role.scopeAll') : t('start:demo.role.scopeOne', { project: 'Larkspur Heights' })}
                   </span>
                 </Radio>
               </RevealItem>
@@ -117,8 +131,8 @@ export function RoleStep({
         <Switch
           isSelected={fresh}
           onChange={setFresh}
-          label={t('start:demo.role.fresh')}
-          description={t('start:demo.role.freshHint')}
+          label={kind === 'society' ? t('start:demo.role.freshSociety') : t('start:demo.role.fresh')}
+          description={kind === 'society' ? t('start:demo.role.freshSocietyHint') : t('start:demo.role.freshHint')}
           testId="demo-fresh"
         />
         <Button variant="primary" size="lg" onPress={() => onContinue(role, fresh)} data-testid="demo-continue" className="shrink-0 max-sm:w-full">

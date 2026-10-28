@@ -149,7 +149,27 @@ export const TENANT_DIRECTORY: readonly DirectoryTenant[] = [
     licensedFrom: '2026-08-01',
     allowSettlement: true,
   },
+  {
+    // The Gate C society (A7 §C.2): one site, two blocks, 80 flats, community edition. It is created
+    // in Platform HQ by the Gate B storyline (the HQ wizard test checks the same sites and modules),
+    // so it is not one of HQ's seeded tenants; the workspace demo starts after that activation.
+    id: 'tnt_alnoor',
+    name: 'Al-Noor Residency (Demo)',
+    legalName: 'Al-Noor Residency Owners’ Association (Demo)',
+    type: 'association',
+    edition: 'community',
+    status: 'active',
+    city: 'Lahore',
+    contactName: 'Imran Qureshi',
+    sites: [{ id: 'site_alnoor', name: 'Al-Noor Residency', city: 'Lahore', kind: 'residential', buildings: 2, declaredUnits: 80 }],
+    modules: all(presetFor('community').modules),
+    licensedFrom: '2026-10-01',
+    allowSettlement: true,
+  },
 ];
+
+/** Workspace demos created by an HQ storyline rather than seeded in HQ (see the Al-Noor entry). */
+export const CREATED_IN_HQ_STORYLINE: readonly string[] = ['tnt_alnoor'];
 
 export const directoryTenant = (id: string) => TENANT_DIRECTORY.find((t) => t.id === id);
 

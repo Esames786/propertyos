@@ -12,3 +12,5 @@ export * from './portal';
 export * from './access';
 export * from './platform';
 export * from './commercial';
+export * from './sites';
+export * from './billing';

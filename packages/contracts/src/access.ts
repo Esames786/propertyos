@@ -275,6 +275,16 @@ export const PERMISSION_MODULE: Partial<Record<Permission, ModuleKey>> = {
   'construction.view': 'construction',
   'workorder.update': 'maintenance',
   'visitors.manage': 'visitors',
+  'site.view': 'core',
+  'site.manage': 'core',
+  'opening_balance.import': 'receivables',
+  'opening_balance.approve': 'receivables',
+  'charges.manage': 'dues',
+  'billing_run.view': 'dues',
+  'billing_run.create': 'dues',
+  'billing_run.approve': 'dues',
+  'billing_run.post': 'dues',
+  'credit_note.create': 'receivables',
 };
 
 /** Something the UI offers (a menu item, action, tour step, link): its module and permission. */

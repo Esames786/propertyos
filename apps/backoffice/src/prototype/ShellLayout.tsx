@@ -2,7 +2,7 @@ import type { AccessDecision, DenyReason, RecordAccess } from '@repo/contracts';
 import { AccessOutcomeView, AppShell, contextualNav, usePrototypeTools, withPrototypeTools, dynamicT, InlineAlert, Link, suspensionOf, useApiQuery, useSession, useT, workspaceRouteTarget, type Destination } from '@repo/ui';
 import { useMemo } from 'react';
 import { Navigate, Outlet, useLocation, useMatches, useSearchParams } from 'react-router';
-import { ACCESS_DATE, LINKS, NAV_ITEMS } from '../nav.config';
+import { ACCESS_DATE, LINKS, NAV_ITEMS, SOCIETY } from '../nav.config';
 import type { RouteHandle } from './handle';
 
 /**
@@ -50,6 +50,12 @@ export function ShellLayout() {
       { id: 'lab-forms', label: t('nav:pages.labForms'), href: '/backoffice/lab/forms', keywords: 'form validation unit picker' },
       { id: 'lab-workspace', label: t('nav:pages.labWorkspace'), href: '/backoffice/lab/workspace', permission: 'lead.view', keywords: 'lead 360 tabs related' },
       { id: 'lab-states', label: t('nav:pages.labStates'), href: '/backoffice/lab/states', keywords: 'loading error offline' },
+      // Society billing (Gate C.1): the screens below the Billing area, by what people call them.
+      { id: 'new-run', label: t('nav:pages.newRun'), href: SOCIETY.newRun, permission: 'billing_run.create', keywords: 'billing run monthly maintenance bills prepare' },
+      { id: 'charge-rules', label: t('nav:pages.rules'), href: SOCIETY.rules(), permission: 'billing_run.view', keywords: 'charges rates override penthouse which rule wins' },
+      { id: 'exemptions', label: t('nav:pages.exemptions'), href: SOCIETY.exemptions, permission: 'billing_run.view', keywords: 'exemption waiver exempt' },
+      { id: 'billing-accounts', label: t('nav:pages.accounts'), href: SOCIETY.accounts(), permission: 'billing_run.view', keywords: 'billing accounts arrears dues balance statement' },
+      { id: 'roster', label: t('nav:pages.roster'), href: SOCIETY.roster(), permission: 'site.view', module: 'residents', keywords: 'occupancy tenants owners payers flats' },
       { id: 'tours', label: t('nav:pages.tourLibrary'), href: '/backoffice/help/tours', keywords: 'tour guide onboarding' },
       { id: 'practice', label: t('nav:pages.practice'), href: '/backoffice/help/practice', permission: 'lead.create', keywords: 'training demo' },
       { id: 'preferences', label: t('nav:pages.preferences'), href: LINKS.preferences, keywords: 'language accessibility motion contrast' },

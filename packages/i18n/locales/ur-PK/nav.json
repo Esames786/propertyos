@@ -13,7 +13,9 @@
     "reports": "رپورٹس",
     "administration": "انتظامیہ",
     "lab": "ڈیزائن سسٹم لیب",
-    "help": "مدد اور ٹورز"
+    "help": "مدد اور ٹورز",
+    "sites": "سائٹس اور فلیٹس",
+    "billing": "بلنگ"
   },
   "header": {
     "search": "تلاش",
@@ -29,7 +31,8 @@
     "accountMenu": "{{name}} کا اکاؤنٹ مینو",
     "project": "پروجیکٹ",
     "projectFor": "پروجیکٹ: {{project}}",
-    "organisation": "ادارہ"
+    "organisation": "ادارہ",
+    "siteFor": "سائٹ: {{site}}۔ سائٹ 360 کھولیں"
   },
   "skipToContent": "مرکزی مواد پر جائیں",
   "breadcrumb": "صفحے کا راستہ",
@@ -68,7 +71,26 @@
     "workspaceSetup": "اپنا ورک اسپیس ترتیب دیں",
     "plan": "آپ کا پلان اور ماڈیولز",
     "myAccess": "میری رسائی",
-    "invoices": "انوائسز"
+    "invoices": "انوائسز",
+    "flat": "فلیٹ 360",
+    "billingRuns": "بلنگ رنز",
+    "newRun": "نیا بلنگ رن",
+    "billingRun": "بلنگ رن",
+    "sites": "سائٹس اور فلیٹس",
+    "site": "سائٹ 360",
+    "structure": "بلاکس، منزلیں اور فلیٹس",
+    "importFlats": "فلیٹس درآمد کریں",
+    "unitTypes": "فلیٹ کی اقسام",
+    "openingBalances": "ابتدائی بقایا جات",
+    "people": "مالکان اور رہائشی",
+    "person": "فرد 360",
+    "roster": "یونٹس اور ادا کنندگان",
+    "accounts": "بلنگ اکاؤنٹس",
+    "account": "بلنگ اکاؤنٹ",
+    "charges": "چارجز اور نرخ",
+    "rules": "چارج کے اصول",
+    "exemptions": "چھوٹ",
+    "invoice": "انوائس"
   },
   "groups": {
     "workspace": "کاروبار",

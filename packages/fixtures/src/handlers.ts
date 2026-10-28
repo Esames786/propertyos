@@ -6,6 +6,7 @@ import { FINANCE_HANDLERS } from './finance-handlers';
 import { MY_ACCESS_HANDLERS } from './my-access-handlers';
 import { PLAN_HANDLERS } from './plan-handlers';
 import { PORTAL_HANDLERS } from './portal-handlers';
+import { SOCIETY_HANDLERS, societyRecordAccess, societySearch } from './society/handlers';
 import { WORKSPACE_HANDLERS } from './workspace-handlers';
 
 export type { Handler, HandlerAccess, HandlerContext } from './handler-types';
@@ -48,6 +49,8 @@ const OUT_OF_SCOPE: AccessDecision = { allowed: false, reason: 'out_of_scope' };
  * unit type) are not records and leave the decision to the screen's own access check.
  */
 function recordAccess(ctx: HandlerContext, id: string): RecordAccess {
+  const society = societyRecordAccess(ctx, id);
+  if (society) return society;
   const d = ctx.data;
   const check = (module: ModuleKey, decision: AccessDecision): RecordAccess => ({ record: true, module, decision });
   const inventory = (projectId: string | undefined) => check('inventory', projectId ? decideRecord({ ...ctx, suspension: 'operational' }, 'inventory', projectRecord(ctx, projectId), 'unit.view') : OUT_OF_SCOPE);
@@ -178,6 +181,7 @@ const CORE_HANDLERS: readonly Handler[] = [
           records.push({ type: 'invoice', id: i.id, ref: i.ref, title: i.ref, subtitle: i.settlement, href: `/backoffice/fin/invoice-workspace?record=${i.id}` });
         }
       }
+      records.push(...societySearch(ctx, q));
       return { query: q, records };
     },
   },
@@ -275,4 +279,4 @@ const CORE_HANDLERS: readonly Handler[] = [
 ];
 
 /** Core endpoints first; feature modules own their routes. First match wins. */
-export const HANDLERS: readonly Handler[] = [...CORE_HANDLERS, ...CRM_HANDLERS, ...FINANCE_HANDLERS, ...PORTAL_HANDLERS, ...PLAN_HANDLERS, ...MY_ACCESS_HANDLERS, ...WORKSPACE_HANDLERS];
+export const HANDLERS: readonly Handler[] = [...CORE_HANDLERS, ...CRM_HANDLERS, ...FINANCE_HANDLERS, ...PORTAL_HANDLERS, ...PLAN_HANDLERS, ...MY_ACCESS_HANDLERS, ...WORKSPACE_HANDLERS, ...SOCIETY_HANDLERS];

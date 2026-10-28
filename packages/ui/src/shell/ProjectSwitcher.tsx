@@ -1,19 +1,54 @@
-import type { Project } from '@repo/contracts';
-import { Building2, Check, ChevronDown } from 'lucide-react';
-import { Button as AriaButton, ListBox, ListBoxItem, Popover, Select, SelectValue } from 'react-aria-components';
+import type { Project, SiteSummary } from '@repo/contracts';
+import { Building, Building2, Check, ChevronDown } from 'lucide-react';
+import { Button as AriaButton, Link, ListBox, ListBoxItem, Popover, Select, SelectValue } from 'react-aria-components';
 import { useAnnounce } from '../a11y/LiveAnnouncer';
 import { useApiQuery } from '../data/TransportProvider';
 import { cn } from '../lib/cn';
 import { useT } from '../lib/useT';
 import { useSession } from '../permissions/SessionProvider';
 
-/** Header project context. Only projects in the persona's scope are listed (scope enforced by the transport too). */
+/**
+ * Header context (GLOBAL-013). Developers pick a project; a society's staff see the site they work
+ * on as a chip that opens Site 360 (one licensed site in the demo; several would become a picker).
+ */
 export function ProjectSwitcher() {
+  const { can } = useSession();
+  if (!can('project.context.use')) return can('site.view') ? <SiteChip /> : null;
+  return <ProjectSelect />;
+}
+
+function SiteChip() {
   const { t } = useT();
-  const { projectId, setProjectId, can } = useSession();
+  const sites = useApiQuery<SiteSummary[]>({ method: 'GET', path: '/sites' });
+  const site = sites.data?.[0];
+  if (!site) return null;
+  return (
+    <Link
+      href={`/backoffice/sites/${site.id}`}
+      data-testid="site-chip"
+      data-tour-id="site-chip"
+      aria-label={t('nav:header.siteFor', { site: site.name })}
+      className="flex min-h-10 max-w-[15rem] min-w-0 items-center gap-2 rounded-pill bg-panel ps-2 pe-3 text-sm font-medium text-text shadow-inset outline-none transition-shadow duration-[var(--motion-fast)] data-hovered:shadow-card data-focus-visible:outline-2 data-focus-visible:outline-focus pointer-coarse:min-h-11 max-sm:pe-2.5"
+    >
+      <span aria-hidden className="grid size-7 shrink-0 place-items-center rounded-pill bg-primary-soft text-primary">
+        <Building className="size-3.5" />
+      </span>
+      {/* Phones show the short name ("Al-Noor"); the full name stays in the accessible label. */}
+      <span aria-hidden className="truncate sm:hidden">
+        <bdi>{site.name.split(/\s+/)[0]}</bdi>
+      </span>
+      <span className="truncate max-sm:hidden">
+        <bdi>{site.name}</bdi>
+      </span>
+    </Link>
+  );
+}
+
+function ProjectSelect() {
+  const { t } = useT();
+  const { projectId, setProjectId } = useSession();
   const announce = useAnnounce();
   const projects = useApiQuery<Project[]>({ method: 'GET', path: '/projects' });
-  if (!can('project.context.use')) return null;
   const options = [{ id: 'all', label: t('common:state.allProjects') }, ...(projects.data ?? []).map((p) => ({ id: p.id, label: p.name }))];
   const current = options.find((o) => o.id === projectId) ?? options[0]!;
   return (

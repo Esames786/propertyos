@@ -15,18 +15,20 @@ export const SHALIMAR = { id: 'tnt_shalimar', name: 'Shalimar Court Residents (D
 export const CRESCENT_BAY = { id: 'tnt_crescent', name: 'Crescent Bay Developers (Demo)' } as const;
 /** A suspended co-operative: financial history readable, everything else paused (CP2 correction 4). */
 export const CEDAR_HILLS = { id: 'tnt_cedar', name: 'Cedar Hills Co-operative (Demo)' } as const;
+/** The Gate C society: setup and monthly maintenance billing (A7 §C.2). */
+export const AL_NOOR = { id: 'tnt_alnoor', name: 'Al-Noor Residency (Demo)' } as const;
 
-const FIRST_NAMES = [
+export const FIRST_NAMES = [
   'Ahmed', 'Bilal', 'Faisal', 'Hamza', 'Imran', 'Kamran', 'Omar', 'Saad', 'Usman', 'Zain',
   'Adeel', 'Haris', 'Junaid', 'Shahid', 'Waqar', 'Ayesha', 'Fatima', 'Hina', 'Iqra', 'Mahnoor',
   'Maryam', 'Nida', 'Rabia', 'Sana', 'Zara', 'Amna', 'Saba', 'Komal', 'Mehwish', 'Sadia',
 ] as const;
-const LAST_NAMES = [
+export const LAST_NAMES = [
   'Khan', 'Malik', 'Qureshi', 'Siddiqui', 'Butt', 'Chaudhry', 'Sheikh', 'Raza', 'Hussain',
   'Akhtar', 'Javed', 'Iqbal', 'Rana', 'Mirza', 'Abbasi', 'Hashmi',
 ] as const;
 /** Some customers' names were entered in Urdu script; free text is never transliterated. */
-const URDU_NAMES = [
+export const URDU_NAMES = [
   'عائشہ ملک', 'حمزہ قریشی', 'مریم صدیقی', 'عمر خان', 'ثنا رضا', 'فیصل بٹ', 'زارا اقبال', 'بلال عباسی',
   'نادیہ ہاشمی', 'سعد چوہدری', 'رابعہ شیخ', 'حارث مرزا', 'آمنہ جاوید', 'زین اختر', 'ہنا حسین',
 ] as const;
@@ -173,10 +175,42 @@ export const PERSONAS: readonly Persona[] = [
     ...holds(SHALIMAR.id, 'administrator'),
     projectScope: 'all',
   },
+  // Al-Noor Residency (Demo): the building manager prepares, the committee treasurer approves
+  // (maker-checker by principal), and the security guard sees no billing at all (A4 §9).
+  {
+    id: 'alnoor_manager',
+    tenantId: AL_NOOR.id,
+    principalId: 'usr_anr_0001',
+    app: 'backoffice',
+    displayName: 'Imran Qureshi',
+    email: 'imran.qureshi@example.com',
+    ...holds(AL_NOOR.id, 'manager'),
+    projectScope: 'all',
+  },
+  {
+    id: 'alnoor_treasurer',
+    tenantId: AL_NOOR.id,
+    principalId: 'usr_anr_0002',
+    app: 'backoffice',
+    displayName: 'Ayesha Malik',
+    email: 'ayesha.malik@example.com',
+    ...holds(AL_NOOR.id, 'treasurer'),
+    projectScope: 'all',
+  },
+  {
+    id: 'alnoor_guard',
+    tenantId: AL_NOOR.id,
+    principalId: 'usr_anr_0003',
+    app: 'backoffice',
+    displayName: 'Shahid Hussain',
+    email: 'shahid.hussain@example.com',
+    ...holds(AL_NOOR.id, 'security'),
+    projectScope: 'all',
+  },
 ];
 
 /** Tenants that have backoffice demo identities. */
-export const BACKOFFICE_TENANTS = [TENANT, CRESCENT_BAY, SHALIMAR, CEDAR_HILLS] as const;
+export const BACKOFFICE_TENANTS = [TENANT, CRESCENT_BAY, SHALIMAR, CEDAR_HILLS, AL_NOOR] as const;
 
 export function findPersona(id: string | null | undefined): Persona | undefined {
   return PERSONAS.find((p) => p.id === id);

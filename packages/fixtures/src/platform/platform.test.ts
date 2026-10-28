@@ -4,6 +4,7 @@ import { MODULES, PRESETS } from './catalog';
 import { applyFixes, checkDependencies } from './dependencies';
 import { PlatformStore } from './store';
 import { PlatformMockTransport } from './transport';
+import { directoryTenant } from '../tenant-directory';
 
 const sel = (module: ModuleSelection['module'], sites: ModuleSelection['sites'] = 'all'): ModuleSelection => ({ module, sites });
 
@@ -85,6 +86,16 @@ describe('platform handlers', () => {
     expect(detail.mrr.amount).toBe('3700.00');
     expect(detail.modules).not.toContain('crm');
     expect(detail.audit.map((a) => a.action)).toEqual(expect.arrayContaining(['tenantCreated', 'contractActivated']));
+  });
+
+  it('the Al-Noor that HQ creates is the workspace’s Al-Noor: same site and modules (Gate C.1 demo)', async () => {
+    const t = transportAs('supreme_admin');
+    const { result } = await createAlNoor(t);
+    const detail = await t.request<TenantDetail>({ method: 'GET', path: `/platform/tenants/${result.tenantId}` });
+    const workspace = directoryTenant('tnt_alnoor')!;
+    expect(detail.sites).toEqual(workspace.sites);
+    expect(detail.grants.map((g) => g.module).sort()).toEqual(workspace.modules.map((m) => m.module).sort());
+    expect(detail.organisation.displayName).toBe(workspace.name);
   });
 
   it('activation is idempotent (a retry returns the same tenant)', async () => {

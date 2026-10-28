@@ -25,13 +25,22 @@ const STARTER_PERMISSIONS: Record<StarterRoleKey, readonly Permission[]> = {
     'payment.receive', 'finance.evidence.review', 'expense.create', 'supplier.view', 'reports.view',
   ],
   construction: ['project.context.use', 'quickcreate.use', 'construction.view', 'procurement.view', 'supplier.view', 'reports.view'],
-  // Society starters
+  // Society starters. Billing is split so maker-checker holds (A4 §9): the manager sets up the site
+  // and prepares runs; the treasurer approves runs, exemptions and opening balances. Both may post an
+  // approved run; neither may approve their own work (checked by principal on the server).
   administrator: [
     'quickcreate.use', 'customer.view', 'residents.view', 'operations.view', 'workorder.update', 'visitors.manage',
     'invoice.view', 'payment.receive', 'finance.evidence.review', 'reports.view', 'admin.view',
+    'site.view', 'site.manage', 'opening_balance.import', 'charges.manage', 'billing_run.view', 'billing_run.create', 'billing_run.post',
   ],
-  manager: ['quickcreate.use', 'customer.view', 'residents.view', 'operations.view', 'workorder.update', 'visitors.manage', 'invoice.view', 'reports.view'],
-  treasurer: ['quickcreate.use', 'customer.view', 'invoice.view', 'payment.receive', 'finance.evidence.review', 'residents.view', 'reports.view'],
+  manager: [
+    'quickcreate.use', 'customer.view', 'residents.view', 'operations.view', 'workorder.update', 'visitors.manage', 'invoice.view', 'reports.view',
+    'site.view', 'site.manage', 'opening_balance.import', 'charges.manage', 'billing_run.view', 'billing_run.create', 'billing_run.post',
+  ],
+  treasurer: [
+    'quickcreate.use', 'customer.view', 'invoice.view', 'payment.receive', 'finance.evidence.review', 'residents.view', 'reports.view',
+    'site.view', 'opening_balance.approve', 'billing_run.view', 'billing_run.approve', 'billing_run.post', 'credit_note.create',
+  ],
   maintenance: ['quickcreate.use', 'operations.view', 'workorder.update', 'residents.view'],
   technician: ['operations.view', 'workorder.update'],
   security: ['visitors.manage', 'residents.view'],
@@ -68,11 +77,21 @@ const SHALIMAR_FACILITY_MANAGER: TenantRoleTemplate = {
   holders: ['facility_manager'],
 };
 
+const ALNOOR_ROLE_NAMES: Readonly<Record<string, string>> = {
+  manager: 'common:roles.building_manager',
+  treasurer: 'common:roles.committee_treasurer',
+  security: 'common:roles.security_guard',
+};
+
 const TENANT_ROLES: Readonly<Record<string, readonly TenantRoleTemplate[]>> = {
   tnt_larkspur: starterRoles('tnt_larkspur', 'developer', { administration: ['manager'], sales: ['sales'], finance: ['finance'] }),
   tnt_crescent: starterRoles('tnt_crescent', 'developer', { administration: ['cb_manager'] }),
   tnt_shalimar: starterRoles('tnt_shalimar', 'association', { administrator: ['society_admin'] }).map((r) => (r.id === 'manager' ? SHALIMAR_FACILITY_MANAGER : r)),
   tnt_cedar: starterRoles('tnt_cedar', 'custom', { treasurer: ['cedar_treasurer'] }),
+  // Al-Noor Residency kept the society starters and named three of them after its committee posts.
+  tnt_alnoor: starterRoles('tnt_alnoor', 'association', { manager: ['alnoor_manager'], treasurer: ['alnoor_treasurer'], security: ['alnoor_guard'] }).map((r) =>
+    ALNOOR_ROLE_NAMES[r.id] ? { ...r, labelKey: ALNOOR_ROLE_NAMES[r.id]! } : r,
+  ),
 };
 
 /** The tenant's own roles (a workspace without changes has its starter set). */

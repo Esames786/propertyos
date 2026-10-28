@@ -13,6 +13,9 @@ export interface Persona {
     | 'society_admin'
     | 'cb_manager'
     | 'cedar_treasurer'
+    | 'alnoor_manager'
+    | 'alnoor_treasurer'
+    | 'alnoor_guard'
     | 'supreme_admin'
     | 'commercial_approver'
     | 'platform_support';

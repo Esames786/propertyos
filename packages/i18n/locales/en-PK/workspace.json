@@ -2,7 +2,8 @@
   "signIn": {
     "maintenancePlan": "Maintenance-only plan · all of Shalimar Court",
     "twoSites": "Two sites · Towers: sales and construction · Plaza: maintenance only",
-    "suspended": "Suspended workspace · financial history only"
+    "suspended": "Suspended workspace · financial history only",
+    "society": "Al-Noor Residency: an 80-flat society, setup and monthly billing"
   },
   "plan": {
     "readOnly": "Read-only",

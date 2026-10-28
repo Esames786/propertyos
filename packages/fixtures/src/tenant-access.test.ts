@@ -4,7 +4,7 @@ import { DemoStore } from './demo-store';
 import { MockTransport, type MockContext } from './mock-transport';
 import { findPersona } from './people';
 import { SEED_TENANTS } from './platform/tenants';
-import { ACCESS_TODAY, effectiveAccessFor, TENANT_DIRECTORY } from './tenant-directory';
+import { ACCESS_TODAY, CREATED_IN_HQ_STORYLINE, effectiveAccessFor, TENANT_DIRECTORY } from './tenant-directory';
 
 /**
  * Gate B checkpoint 2: V3.1 effective access in the tenant plane. The maintenance-only client
@@ -20,7 +20,8 @@ const refusedWith = (status: number, code: string) => ({ problem: expect.objectC
 
 describe('one tenant directory for HQ and the workspace', () => {
   it('HQ seeds and the workspace read the same modules, sites and status for every tenant', () => {
-    for (const d of TENANT_DIRECTORY) {
+    // Al-Noor is created by the HQ storyline (platform.test checks that HQ creates the same tenant).
+    for (const d of TENANT_DIRECTORY.filter((t) => !CREATED_IN_HQ_STORYLINE.includes(t.id))) {
       const seeded = SEED_TENANTS.find((t) => t.id === d.id)!;
       expect(seeded, d.id).toBeTruthy();
       expect(seeded.grants).toEqual(d.modules);

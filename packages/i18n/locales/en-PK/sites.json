@@ -1,0 +1,507 @@
+{
+  "occupancy": {
+    "owner_occupied": "Owner lives here",
+    "tenant_occupied": "Rented",
+    "vacant": "Vacant",
+    "association_use": "Association office"
+  },
+  "facts": {
+    "since": "Since",
+    "current": "Current",
+    "upcoming": "Starts later",
+    "ended": "Ended"
+  },
+  "jump": {
+    "label": "Open a flat",
+    "placeholder": "Open a flat, e.g. A-101",
+    "none": "No flat matches",
+    "payer": "Pays: {{name}}"
+  },
+  "checklist": {
+    "steps": {
+      "site": {
+        "title": "Site details",
+        "todo": "Name, address and the legal entity that bills",
+        "done": "Licensed in Platform HQ"
+      },
+      "structure": {
+        "title": "Blocks and floors",
+        "todo": "Blocks, floors and flat types",
+        "done_one": "{{count}} block with floors and flat types",
+        "done_other": "{{count}} blocks with floors and flat types"
+      },
+      "flats": {
+        "title": "Import flats",
+        "todo": "Bring in the flat register from a spreadsheet",
+        "done": "{{count}} flats registered"
+      },
+      "people": {
+        "title": "Owners, occupants and payers",
+        "todo": "Owners, occupants and who pays for each flat",
+        "done": "{{count}} people with their flats"
+      },
+      "opening_balances": {
+        "title": "Opening balances",
+        "todo": "Arrears carried over from the old register",
+        "done": "Approved for {{count}} accounts"
+      },
+      "payee": {
+        "title": "Collection account",
+        "todo": "The association's bank account residents pay into",
+        "done": "Verified by two people"
+      },
+      "charges": {
+        "title": "Charges and rates",
+        "todo": "Monthly charges and which rule applies to which flats",
+        "done": "{{count}} charge rules set"
+      },
+      "first_run": {
+        "title": "First billing run",
+        "todo": "Prepare, approve and post the first month's bills",
+        "done": "Posted"
+      },
+      "invitations": {
+        "title": "Resident invitations",
+        "todo": "Residents see their own bills once invited",
+        "done": "Invited"
+      }
+    },
+    "title": "Setting up the society",
+    "progress": "{{done}} of {{total}} steps done. Each step opens its own screen.",
+    "waitsFor": "Waits for: {{step}}",
+    "state": {
+      "done": "Done",
+      "next": "Next",
+      "todo": "To do",
+      "blocked": "Waiting",
+      "later": "Later"
+    }
+  },
+  "roles": {
+    "owner": "Owner",
+    "occupant": "Occupant",
+    "payer": "Responsible payer"
+  },
+  "flat": {
+    "notFound": "Flat not found",
+    "title": "Flat",
+    "flatN": "Flat {{code}}",
+    "floorN": "Floor {{level}}",
+    "area": "{{area}} sq ft",
+    "exempt": "Exempt from charges",
+    "sharedAccount_one": "Account covers {{count}} flat",
+    "sharedAccount_other": "Account covers {{count}} flats",
+    "floorNav": "Other flats on this floor",
+    "owner": "Owner",
+    "occupant": "Lives here",
+    "payer": "Responsible payer",
+    "payerSince": "Since {{date}}",
+    "balance": "Owed for this flat",
+    "balanceHidden": "Not shown to your role",
+    "actions": "Flat actions",
+    "changePayer": "Change payer",
+    "statement": "Statement",
+    "whichRule": "Which rule wins",
+    "related": "Everything connected",
+    "tabsLabel": "Flat sections",
+    "tabs": {
+      "overview": "Overview",
+      "people": "Ownership and occupancy",
+      "payer": "Payer and account",
+      "charges": "Charges",
+      "invoices": "Invoices and statement",
+      "activity": "Activity"
+    },
+    "relatedPeople": "People",
+    "relatedAccount": "Billing account",
+    "relatedFloor": "Same floor",
+    "monthCharges": "Charges for {{period}}",
+    "allRules": "All rules",
+    "accountTitle": "Billing account",
+    "accountNo": "Account",
+    "holder": "Account holder",
+    "covers": "Covers",
+    "sharedAccountNote": "One account, more than one flat: each flat keeps its own payer, and a payment only settles the flats its payer is liable for.",
+    "ownership": "Ownership",
+    "ownershipHint": "Who owns the flat, with dates. Shares add up to 100 %.",
+    "noOwner": "No owner recorded.",
+    "share": "{{pct}} %",
+    "occupancy": "Occupancy",
+    "occupancyHint": "Who lives here, with dates. Living here is not the same as owning or paying.",
+    "noOccupant": "Nobody lives here (vacant).",
+    "kind": {
+      "owner": "Owner lives here",
+      "tenant": "Tenant",
+      "association": "Association office"
+    },
+    "booking": "Sale or booking",
+    "bookingNone": "No sale or booking record: this building was completed before the society joined, and a society keeps no sales records. Ownership, occupancy and payer are recorded separately above.",
+    "liability": "Who pays for this flat",
+    "liabilityHint": "Liability is held per flat, with dates. A change starts from a month; earlier bills keep the person who was liable then.",
+    "noPayer": "No payer recorded.",
+    "perUnit": "Charges for this flat are always billed to the person liable for this flat in that month, even when the account covers other flats.",
+    "whichRuleTitle": "Which rule sets each charge for {{period}}",
+    "whichRuleHint": "The most specific rule wins: site default, then block, then flat type, then this flat. Approved exemptions apply after that.",
+    "monthTotal": "Total for the month",
+    "invoices": "Invoices for this flat",
+    "noInvoices": "No invoices yet.",
+    "payerOf": "Billed to {{name}}"
+  },
+  "chain": {
+    "title": "How this flat connects",
+    "description": "From the building to the statement. Open any step.",
+    "building": "Block",
+    "floor": "Floor",
+    "flat": "Flat",
+    "owner": "Owner",
+    "occupant": "Occupant",
+    "payer": "Payer",
+    "charges": "{{period}} charges",
+    "invoice": "Latest invoice",
+    "noInvoice": "None yet",
+    "statement": "Owed now",
+    "where": "Where",
+    "who": "Who",
+    "money": "Money"
+  },
+  "payer": {
+    "title": "Change who pays for {{flat}}",
+    "current": "Pays now: {{name}}",
+    "history": "The change starts from the month you choose. Bills already issued keep the person who was liable for them, so October's balance stays with the current payer.",
+    "who": "New responsible payer",
+    "from": "Starting from",
+    "fromNext": "Next month that has not been billed",
+    "save": "Save change",
+    "done": "{{name}} pays for {{flat}} from {{date}}.",
+    "problems": {
+      "party": "Choose the owner or a current occupant of this flat.",
+      "firstOfMonth": "A payer change starts on the first day of a month.",
+      "periodPosted": "That month is already billed. Choose {{period}} or later.",
+      "same": "That person already pays for this flat from that date."
+    }
+  },
+  "types": {
+    "standard": "Standard",
+    "penthouse": "Penthouse",
+    "intro": "The kinds of flat at this site. Charges can be set per type, for example a higher rate for penthouses.",
+    "area": "Default area",
+    "flats": "Flats of this type",
+    "charge": "This month for a {{flat}}-type flat:",
+    "maintenanceBy": "Maintenance set by: {{scope}}"
+  },
+  "list": {
+    "intro": "The sites your organisation is licensed for, with their flats and setup progress.",
+    "emptyTitle": "No sites with flats yet",
+    "emptyBody": "Sites are licensed in Platform HQ. In this demo only Al-Noor Residency has a flat register.",
+    "blocks": "Blocks",
+    "flats": "Flats",
+    "flatsOf": "{{flats}} of {{declared}}",
+    "occupied": "Occupied",
+    "setup": "{{done}} of {{total}} setup steps done"
+  },
+  "site": {
+    "notFound": "Site not found",
+    "summary": "{{blocks}} blocks · {{flats}} of {{declared}} flats registered · {{occupied}} occupied",
+    "tabsLabel": "Site sections",
+    "tabs": {
+      "overview": "Overview and setup",
+      "collection": "Collection account",
+      "methods": "Payment methods",
+      "activity": "Activity"
+    },
+    "blocks": "Blocks",
+    "openStructure": "Open the explorer",
+    "blockLine": "{{floors}} floors · {{flats}} flats · {{vacant}} vacant · {{arrears}} accounts in arrears",
+    "types": "Flat types",
+    "openTypes": "Flat types",
+    "typeLine": "{{flats}} flats · {{area}} sq ft"
+  },
+  "collection": {
+    "payeeTitle": "Collection account",
+    "payeeHint": "Residents pay the association here. It is shown on every bill exactly as below.",
+    "status": "Status",
+    "verified": "Verified",
+    "title": "Account title",
+    "bank": "Bank",
+    "iban": "IBAN",
+    "reference": "Payment reference",
+    "none": "No verified collection account yet.",
+    "change": "Changing it needs a second person to verify the new details.",
+    "rulesTitle": "Billing calendar and rules",
+    "issueDay": "Bills dated",
+    "dueDay": "Due",
+    "dayN": "Day {{day}} of the month",
+    "allocation": "Payments settle",
+    "oldestFirst": "The oldest due first",
+    "lateFees": "Late fees",
+    "lateFeesNone": "None (not set up)",
+    "reminders": "Reminders",
+    "platformNote": "This is the association's own account. The platform's account is never shown to residents and never receives their dues."
+  },
+  "methods": {
+    "title": "How residents may pay",
+    "hint": "The payment methods allowed at this site. Office cash and cheques need a staff permission and arrive with collections.",
+    "allowed": "Allowed",
+    "notAllowed": "Not allowed",
+    "proofNote": "A transfer proof is checked against the bank before anything is marked paid.",
+    "kinds": {
+      "bank_transfer": "Bank transfer",
+      "office_cash": "Cash at the office",
+      "cheque": "Cheque",
+      "online": "Online payment"
+    },
+    "hints": {
+      "bank_transfer": "The resident transfers and uploads proof; the accounts officer verifies it",
+      "office_cash": "Received by staff at the office, with a receipt",
+      "cheque": "Deposited by the association, cleared before it counts",
+      "online": "A card or wallet payment through a payment provider"
+    }
+  },
+  "structure": {
+    "intro": "Every block, floor and flat, as the buildings stand. Open any flat for its 360.",
+    "block": "Block",
+    "allBlocks": "All blocks",
+    "view": "View",
+    "tree": "Floors",
+    "list": "List",
+    "floorsOf": "Floors of {{name}}",
+    "flatsOn": "Flats on floor {{level}} of {{name}}",
+    "owes": "Owes",
+    "count_one": "{{count}} flat",
+    "count_other": "{{count}} flats",
+    "emptyTitle": "No flats yet",
+    "emptyBody": "The site has {{blocks}} blocks and {{floors}} floors ready. Import the flat register to add the flats with their owners, occupants and payers.",
+    "import": "Import flats",
+    "cols": {
+      "flat": "Flat",
+      "block": "Block",
+      "floor": "Floor",
+      "type": "Type",
+      "occupancy": "Occupancy",
+      "owner": "Owner",
+      "payer": "Pays",
+      "owed": "Owed"
+    }
+  },
+  "import": {
+    "intro": "Bring in the society's flat register: each flat with its owner, who lives there and who pays. Every row is checked before anything is created.",
+    "steps": "Import steps",
+    "step": {
+      "upload": "Upload",
+      "check": "Check and fix rows",
+      "import": "Import"
+    },
+    "uploadTitle": "Choose the register",
+    "uploadHint": "A CSV file with one row per flat. The sample is the Al-Noor register, with three rows that need fixing and two repeated rows.",
+    "useSample": "Use the sample register",
+    "choose": "Choose a CSV file",
+    "sampleHint": "Fictional data. Nothing leaves this browser tab.",
+    "readError": "That file couldn't be read. Choose a CSV file.",
+    "columnsTitle": "Columns",
+    "template": "Download an empty template",
+    "columns": {
+      "flat": "Flat number, e.g. A-101",
+      "block": "Block (A or B)",
+      "floor": "Floor (1–5)",
+      "type": "Type (Standard or Penthouse)",
+      "area_sqft": "Area in sq ft",
+      "owner_name": "Owner",
+      "owner_phone": "Owner's phone",
+      "owner_since": "Owner since (YYYY-MM-DD)",
+      "occupancy": "Who lives there: owner, tenant, vacant or office",
+      "occupant_name": "Tenant",
+      "occupant_phone": "Tenant's phone",
+      "occupant_since": "Tenant since",
+      "payer": "Who pays: owner or occupant",
+      "account": "Shared account number (optional)"
+    },
+    "fingerprint": "file fingerprint {{hash}}",
+    "counts": {
+      "rows": "Rows",
+      "valid": "Ready",
+      "errors": "To fix",
+      "duplicates": "Repeated",
+      "existing": "Already registered"
+    },
+    "alreadyTitle": "This file was imported before",
+    "alreadyBody": "All {{count}} rows are flats that are already registered. Importing it again creates nothing.",
+    "alreadyShort": "Already imported; nothing new to create",
+    "errorsTitle_one": "{{count}} row to fix",
+    "errorsTitle_other": "{{count}} rows to fix",
+    "errorsHint": "Correct the value, or use the suggestion. Nothing is fixed without you seeing it.",
+    "applyAll_one": "Use the suggestion",
+    "applyAll_other": "Use all {{count}} suggestions",
+    "suggestionsApplied": "Suggestions applied. Rows still to fix: {{count}}.",
+    "lineN": "Line {{line}}",
+    "problem": "{{column}}: {{problem}}",
+    "saveFix": "Save",
+    "useSuggestion": "Use {{value}}",
+    "duplicatesTitle_one": "{{count}} repeated row",
+    "duplicatesTitle_other": "{{count}} repeated rows",
+    "duplicatesHint": "A flat appears more than once. The first row is kept; repeats are skipped, never merged.",
+    "dupOf": "repeats line {{line}}; it will be skipped",
+    "dupExisting": "already registered; it won't be changed",
+    "andMore": "and {{count}} more",
+    "validTitle_one": "{{count}} row ready",
+    "validTitle_other": "{{count}} rows ready",
+    "validHint": "The first rows, as they will be imported.",
+    "occupancyValue": {
+      "owner": "Owner lives there",
+      "tenant": "Rented",
+      "vacant": "Vacant",
+      "office": "Association office"
+    },
+    "payerValue": {
+      "owner": "Owner pays",
+      "occupant": "Occupant pays"
+    },
+    "commitTitle": "Import",
+    "allOrNothing": "The import is all or nothing: while any row needs fixing, nothing is created. Importing the same file again creates nothing new.",
+    "ack_one": "Skip the {{count}} repeated row",
+    "ack_other": "Skip the {{count}} repeated rows",
+    "ackFirst": "Confirm that the repeated rows are skipped",
+    "fixFirst_one": "Fix {{count}} row first",
+    "fixFirst_other": "Fix {{count}} rows first",
+    "nothingNew": "Nothing new to import",
+    "restart": "Start again",
+    "commit_one": "Import {{count}} flat",
+    "commit_other": "Import {{count}} flats",
+    "committed": "{{count}} flats imported with their people and accounts.",
+    "doneTitle": "{{count}} flats imported",
+    "doneBody": "Their owners, occupants, payers and billing accounts were created from the register. Next, import the opening balances.",
+    "doneNothing": "Nothing new was imported",
+    "doneNothingBody": "All {{count}} flats were already registered; nothing was changed.",
+    "openStructure": "Open the explorer",
+    "nextOpening": "Opening balances",
+    "openPeople": "Owners & Residents",
+    "problems": {
+      "required": "required",
+      "flatFormat": "use the form A-101",
+      "flatPosition": "no such flat on this site",
+      "blockUnknown": "no such block",
+      "blockMismatch": "doesn't match the flat number",
+      "floorUnknown": "this block has no such floor",
+      "floorMismatch": "doesn't match the flat number",
+      "typeUnknown": "not a flat type of this site",
+      "areaPositive": "must be more than 0",
+      "phoneFormat": "use a Pakistani mobile number, e.g. +92 3XX XXXXXXX",
+      "dateFormat": "use a date like 2024-03-01",
+      "dateFuture": "can't be in the future",
+      "occupancyUnknown": "use owner, tenant, vacant or office",
+      "payerUnknown": "use owner or occupant",
+      "payerVacant": "a vacant flat has no occupant to pay",
+      "accountFormat": "use the form ANR-A201",
+      "accountHolder": "flats on one account must have the same owner",
+      "accountUnknown": "no such account",
+      "flatNotOnAccount": "this flat is not on that account",
+      "amountFormat": "use an amount like 1000.00",
+      "asOfDate": "must be the go-live date",
+      "fileEmpty": "the file is empty",
+      "fileTooLarge": "the file is too large for the demo",
+      "columnsMissing": "missing columns: {{columns}}"
+    }
+  },
+  "opening": {
+    "intro": "Arrears carried over from the committee's old register. The total is shown and approved by someone other than the person who imported it; then each becomes an opening-balance invoice dated as of go-live.",
+    "noFlats": "Import the flats first: balances are matched to their accounts.",
+    "emptyTitle": "No opening balances",
+    "emptyBody": "Nothing has been imported yet.",
+    "batchTitle": "Opening balances: {{file}}",
+    "batchMeta": "Imported by {{name}} · {{accounts}} accounts",
+    "state": {
+      "pending_approval": "Waiting for approval",
+      "approved": "Approved",
+      "returned": "Returned"
+    },
+    "total": "Total",
+    "account": "Account",
+    "flat": "Flat",
+    "amount": "Amount",
+    "approvedBy": "Approved by {{name}}",
+    "returnedBy": "Returned by {{name}}",
+    "approve": "Approve",
+    "return": "Return",
+    "waiting": "Waiting for the committee treasurer to approve it.",
+    "waitingMine": "You imported these, so someone else must approve them.",
+    "confirmTitle": "Approve the opening balances?",
+    "confirmEffect": "{{total}} across {{accounts}} accounts becomes opening-balance invoices, dated as of go-live. This can't be edited afterwards.",
+    "returnTitle": "Return the opening balances?",
+    "returnEffect": "They go back to {{name}} with your comment. Nothing is posted.",
+    "approvedToast": "Opening balances of {{total}} approved.",
+    "returnedToast": "Opening balances of {{total}} returned.",
+    "importTitle": "Import opening balances",
+    "importHint": "A CSV with account, flat, amount and the go-live date. The sample has ten accounts in arrears.",
+    "useSample": "Use the sample file",
+    "columns": "Columns: account, flat, amount, as_of",
+    "previewTotal": "Ready to submit: {{accounts}} rows, total",
+    "problems": "Rows with problems",
+    "submit": "Submit for approval",
+    "submitted": "Submitted for approval: {{total}}."
+  },
+  "people": {
+    "intro": "Everyone connected to the society, by what they are to each flat: owner, occupant or the person who pays.",
+    "search": "Find a person",
+    "searchPlaceholder": "Name, phone, reference or flat",
+    "role": "Role",
+    "roles": {
+      "all": "Everyone",
+      "owner": "Owners",
+      "occupant": "Occupants",
+      "payer": "Payers"
+    },
+    "fact": {
+      "owner": "Owns {{flat}}",
+      "occupant": "Lives in {{flat}}",
+      "payer": "Pays for {{flat}}"
+    },
+    "count_one": "{{count}} person",
+    "count_other": "{{count}} people",
+    "emptyTitle": "Nobody found",
+    "emptyBody": "Try another name, phone or flat number."
+  },
+  "person": {
+    "chooseTitle": "Choose a person",
+    "chooseBody": "Open someone from Owners & Residents to see everything they are to the society.",
+    "notFound": "Person not found",
+    "organisation": "Organisation",
+    "tabsLabel": "Person sections",
+    "tabs": {
+      "properties": "Flats and roles",
+      "accounts": "Accounts and statements"
+    },
+    "openFlat": "Open flat",
+    "openAccount": "Open account",
+    "balance": "Owed on this account:",
+    "liableLines": "Only the flats and months this person is liable for are shown.",
+    "holderOnly": "Account holder; other people pay for its flats.",
+    "noAccounts": "No billing accounts."
+  },
+  "roster": {
+    "intro": "Each flat with who lives there, who owns it and who pays. Change a payer from the flat itself.",
+    "occupancy": "Occupancy",
+    "all": "All",
+    "cols": {
+      "flat": "Flat",
+      "occupancy": "Occupancy",
+      "livesHere": "Lives here",
+      "owner": "Owner",
+      "payer": "Pays",
+      "since": "Living here since",
+      "action": "Action"
+    },
+    "changePayerFor": "Change who pays for {{flat}}",
+    "card": "Lives here: {{lives}} · Pays: {{payer}}"
+  },
+  "errors": {
+    "importHasErrors": "Some rows still need fixing; nothing was imported.",
+    "importHasDuplicates": "Confirm that the repeated rows are skipped.",
+    "noFlats": "Import the flats first.",
+    "openingPending": "Opening balances are already waiting for approval."
+  },
+  "occupancyShort": {
+    "owner_occupied": "Owner",
+    "tenant_occupied": "Rented",
+    "vacant": "Vacant",
+    "association_use": "Office"
+  }
+}

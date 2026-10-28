@@ -197,6 +197,55 @@
         "title": "You’re ready",
         "body": "Replay this tour from Help at any time, or keep exploring the demo on your own."
       }
+    },
+    "SOCIETY-TOUR-001": {
+      "name": "Running Al-Noor Residency",
+      "summary": "The society dashboard, one flat's connected facts and the monthly billing run, on the real screens.",
+      "welcome": {
+        "title": "Welcome to Al-Noor Residency",
+        "body": "This tour shows where the money stands, what needs doing and how a month's bills are prepared, approved and posted. It uses fictional data; you can stop at any time."
+      },
+      "sidebar": {
+        "title": "Your areas",
+        "body": "Sites & flats holds every block, floor and flat. Billing holds the monthly runs. Owners & Residents lists everyone by their role.",
+        "bodyMobile": "The bar at the bottom opens Home, Sites & flats and Billing; More has the rest."
+      },
+      "collections": {
+        "title": "Money first",
+        "body": "What was billed this month, what is owed and what is overdue. Each figure opens the accounts or invoices behind it. Collections arrive in the next stage and say so."
+      },
+      "tasks": {
+        "title": "What needs doing",
+        "body": "Your own work comes first. Work waiting for someone else (an approval, for example) says who it waits for."
+      },
+      "approvals": {
+        "title": "Approvals",
+        "body": "Runs, exemptions and opening balances that someone else prepared wait here for your decision. You never approve your own work."
+      },
+      "flatJump": {
+        "title": "Open any flat",
+        "body": "Type part of a flat number (A-10, b5) to open its Flat 360 from anywhere, without searching through menus."
+      },
+      "flat": {
+        "title": "Four facts, kept apart",
+        "body": "Who owns the flat, who lives there, who pays and what is owed are separate facts, each with its own dates and its own record."
+      },
+      "calendar": {
+        "title": "The billing calendar",
+        "body": "Each month at a glance: go-live balances, the month being billed and what opens next."
+      },
+      "newRun": {
+        "title": "Create this month's run",
+        "body": "Create the draft run for the month. Nothing is billed yet. If a run already exists, choose Next."
+      },
+      "preview": {
+        "title": "Generate the preview",
+        "body": "Generate the preview to see every flat's charges and which rule set them. The step completes when the preview is ready."
+      },
+      "help": {
+        "title": "Help is always here",
+        "body": "Help explains each screen, and you can replay this tour from Help → Take a tour."
+      }
     }
   },
   "modules": {

@@ -30,6 +30,34 @@ export const LINKS = {
   invoices: '/backoffice/fin/invoices-list',
 } as const;
 
+/** Society setup and monthly billing (Gate C.1). Addresses follow the screen register. */
+const q = (params: Record<string, string | undefined>) => {
+  const s = new URLSearchParams(Object.entries(params).filter((e): e is [string, string] => !!e[1])).toString();
+  return s ? `?${s}` : '';
+};
+export const SOCIETY = {
+  sites: '/backoffice/sites',
+  site: (siteId: string, tab?: string) => `/backoffice/sites/${siteId}${q({ tab })}`,
+  structure: (siteId: string, building?: string) => `/backoffice/sites/${siteId}/structure${q({ building })}`,
+  importFlats: (siteId: string) => `/backoffice/sites/${siteId}/import`,
+  unitTypes: (siteId: string) => `/backoffice/sites/${siteId}/unit-types`,
+  openingBalances: (siteId: string) => `/backoffice/sites/${siteId}/opening-balances`,
+  flat: (siteId: string, flatId: string, tab?: string) => `/backoffice/sites/${siteId}/units/${flatId}${q({ tab })}`,
+  people: (role?: string) => `/backoffice/cus/customers-list${q({ role })}`,
+  person: (partyId: string, tab?: string) => `/backoffice/cus/customer-360-workspace${q({ record: partyId, tab })}`,
+  roster: (occupancy?: string) => `/backoffice/res/occupancy-list${q({ occupancy })}`,
+  accounts: (status?: string) => `/backoffice/billing/accounts${q({ status })}`,
+  account: (accountId: string, tab?: string) => `/backoffice/billing/accounts/${accountId}${q({ tab })}`,
+  charges: '/backoffice/billing/charges',
+  rules: (flat?: string) => `/backoffice/billing/rules${q({ flat })}`,
+  exemptions: '/backoffice/billing/exemptions',
+  runs: '/backoffice/billing/runs',
+  newRun: '/backoffice/billing/runs/new',
+  run: (runId: string, tab?: string) => `/backoffice/billing/runs/${runId}${q({ tab })}`,
+  invoices: (params: Record<string, string | undefined> = {}) => `/backoffice/fin/invoices-list${q(params)}`,
+  invoice: (invoiceId: string, drawer?: string) => `/backoffice/fin/invoice-workspace${q({ record: invoiceId, drawer })}`,
+} as const;
+
 export const TOUR_LINKS = {
   start: LINKS.start,
   help: '/backoffice/global/context-help',
