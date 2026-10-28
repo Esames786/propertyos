@@ -33,7 +33,8 @@
 ## 2. Group chat (what was seen)
 
 - **Navigation.** Chat is the raised centre button of the phone bottom bar in both modes, with an unread badge. It is also second in the sidebar.
-- **Groups are automatic.** The first intro slide says groups are created for the complex, each section, floor, staff role and the committee. They need no setup, and they update as residents and staff join or leave.
+- **Groups are *described* as automatic.** The first intro slide claims groups are created for the complex, each section, floor, staff role and the committee, with no setup, and that they update as people join or leave.
+  - This is Nizam's own description. It was not verified: no conversation or membership list was opened.
 - **Groups visible in the list:**
   - one for the whole complex;
   - one per block;
@@ -56,8 +57,8 @@
 - **Online.**
   - A "Payment Verifications" queue says residents' online payments are confirmed against the complex's bank. Tabs: To verify / Confirmed / Rejected.
   - The complex's bank account is set in its settings.
-  - This reads like a transfer-and-verify flow. No card or wallet checkout appears in any capture, and the pay action was never opened.
-- **Wallet.** An "Advance Wallet Balance" card with history sits on the resident home.
+  - *Inferred:* this reads like a transfer-and-verify flow. No card or wallet checkout appears in any capture, and the pay action was never opened, so Nizam's gateway (if any) is **UNVERIFIED**.
+- **Wallet.** An "Advance Wallet Balance" card with a history link sits on the resident home. What it does is **UNVERIFIED**.
 
 **Around payments**
 - **After a bill is paid:** a Paid chip, a payment-method chip, "View receipt", and PDF export.
@@ -79,17 +80,17 @@
 
 | # | Nizam feature (as seen) | V3.1 plan before this review | V3.2 proposal |
 |---|---|---|---|
-| F01 | Group chat with automatic groups | None (communications are one-way) | New add-on module `community_chat`, mock only |
-| F02 | SOS button | None | New add-on module `safety`, blocked until a safety review |
+| F01 | Group chat; automatic groups as described in its intro text (conversations not seen) | None (communications are one-way) | New add-on module `community_chat`, mock only |
+| F02 | SOS button (behaviour UNVERIFIED) | None | New add-on module `safety`, restricted; parked until a separate safety design |
 | F03 | Resident login status and WhatsApp invite | None (staff invite only) | `resident_portal` feature: portal access and invitations |
 | F04 | Community complaints with an "affected" count | Mentioned, no screen | `maintenance` feature: community issues on the same request entity |
 | F05 | Committee roster and spend-approval policy | Treasurer only as a billing approver | Committee 360 plus versioned approval policies (APR) |
 | F06 | Staff shifts, on/off duty, attendance | HR for developers only | `hr` offered to societies as an add-on; duty roster |
 | F07 | Payroll with bonuses, loans, advances | Payroll for developers only | `payroll` add-on for societies; loans beside advances |
 | F08 | Rentals (rent collection) | None | New add-on module `rentals` |
-| F09 | Owner payouts | None | Part of `rentals`; recorded, never moved |
-| F10 | Cash book, funds transfer, month close | Accounting periods (developer); bank transfers planned | Cashbook view in `banking`; one shared period lock |
-| F11 | Bulk cash collection | Single office payment | Controlled batch with second-person confirmation |
+| F09 | Owner payouts | None | Part of `rentals`; a payout instruction moves no money until settlement evidence |
+| F10 | Cash book, funds transfer, month close | Accounting periods (developer); bank transfers planned | Cashbook as a derived view, approved cash vouchers, settlement evidence, one shared period lock |
+| F11 | Bulk cash collection | Single office payment | Controlled batch; confirmed cash per site policy; cheques pending until cleared |
 | F12 | Print bills for all houses | None | Print pack on the billing run; dues notices |
 | F13 | Send reminder | Reminder events in the ERD only | Reminder rules with consent, quiet hours and history |
 | F14 | Neighbour-recommended services directory | None | `community_hub` feature, vetted listings only |
@@ -99,7 +100,7 @@
 | F18 | Self-serve backup and export | None | Data export and privacy requests with approval |
 | F19 | Live visitor queue; vehicle approvals | Pre-registered passes; vehicle registry | Live gate queue (simulated); vehicle approval tab |
 | F20 | Transfer and clearance fee | Transfers planned; no fee | Fee via the shared invoice engine; clearance certificate |
-| F21 | Advance wallet | Unapplied credit only | Credit and paid-in-advance display; true wallet deferred |
+| F21 | Advance wallet card (behaviour UNVERIFIED) | Unapplied credit only | Credit and paid-in-advance display; no funded wallet |
 
 **Both products have:**
 - a residents directory;

@@ -1,6 +1,8 @@
 # V3.2 proposal: module and licensing matrix
 
-**Status:** PROPOSAL. It extends A1 §5 (module catalogue) and the catalogue in `packages/fixtures/src/platform/catalog.ts` (version `2026.10-1`, 27 modules).
+**Status:** PROPOSAL, revision 2. **None of the decisions behind it (D-21 to D-48) is approved.**
+
+It extends A1 §5 (module catalogue) and the catalogue in `packages/fixtures/src/platform/catalog.ts` (version `2026.10-1`, 27 modules).
 
 **Approach:**
 - The proposed catalogue would ship as a new catalogue version through Platform HQ's versioned configuration, built in Gate B final.
@@ -80,10 +82,10 @@ Every module stays available to the Custom edition, as today.
 | `payroll.loans` | payroll | on | Loan ledger and deductions | F07 |
 | `payroll.bonuses` | payroll | on | Bonus components | F07 |
 | `rentals.owner_statements` | rentals | on | Owner statements | F09 |
-| `rentals.owner_payouts` | rentals | off | Recorded owner payouts (needs a management agreement) | F09 |
+| `rentals.owner_payouts` | rentals | off | Owner payout instructions and their settlement (needs a management agreement; an instruction never moves cash) | F09 |
 | `rentals.management_fees` | rentals | on | Fee rules | F09 |
-| `banking.cashbook` | banking | on | Cashbook, cash accounts, month close | F10 |
-| `receivables.bulk_office_collection` | receivables | off; requires `receivables.office_collections` | Controlled bulk cash/cheque batch | F11 |
+| `banking.cashbook` | banking | on | Cashbook **view**, cash vouchers (only for cash no other module owns), cash accounts, transfer settlement, month close | F10 |
+| `receivables.bulk_office_collection` | receivables | off; requires `receivables.office_collections` | Controlled bulk batch: confirmed cash per site policy; cheques pending until cleared | F11 |
 | `receivables.reminders` | receivables | on (in-app channel only) | Reminder rules; SMS/WhatsApp also need the metered `communications.sms`/`whatsapp` features | F13 |
 | `community_hub.services_directory` | community_hub | on | Vetted local services | F14 |
 | `community_hub.polls` | community_hub | on | Informal polls and surveys | F15 |
@@ -160,7 +162,10 @@ Existing features are unchanged: `core.multi_entity`, `core.practice_mode`, `rec
 | `owner_payout.approve` | rentals | | | ✓ | | | | |
 | `rentals.configure` | rentals | ✓ | | | | | | |
 | `cashbook.view` | banking | ✓ | ✓ | ✓ | ✓ | | | |
-| `cash.record` | banking | | | | ✓ | | | |
+| `cash_voucher.prepare` | banking | | | | ✓ | | | |
+| `cash_voucher.approve` | banking | | | ✓ | | | | |
+| `settlement.confirm` (match evidence; never the instruction's preparer) | banking | | | | ✓ | | | |
+| `cheque.manage` (deposit, record returned) | receivables | | | | ✓ | | | |
 | `funds_transfer.create` | banking | | | | ✓ | | | |
 | `funds_transfer.approve` | banking | | | ✓ | | | | |
 | `period.close` | banking | | | ✓ | | | | |
@@ -185,6 +190,7 @@ Existing features are unchanged: `core.multi_entity`, `core.practice_mode`, `rec
 
 **Maker-checker pairs** are deliberately split across roles:
 - `funds_transfer.create` / `funds_transfer.approve`
+- `cash_voucher.prepare` / `cash_voucher.approve`
 - `owner_payout.prepare` / `owner_payout.approve`
 - `payroll.prepare` / `payroll.approve`
 - `data_export.request` / `data_export.approve`
@@ -200,9 +206,9 @@ On top of the split, the server still checks that the principal who prepared a r
 | `rentals` on site X without `residents` on site X | Site gap → "enable Residents for site X" |
 | `community_chat` alone | Missing `residents` (site-scoped: same sites) |
 | `payroll` for a society without `hr` | Missing `hr` |
-| `safety` (catalogue status restricted) | Refused: "Available after the safety review" (HQ shows it greyed with the reason) |
+| `safety` (catalogue status restricted) | Refused: "Available after the separate safety design is approved" (HQ shows it greyed with the reason). No safety UI exists before then |
 | `community_hub` + `community_chat` | Integration lights up: polls and listings can link to chat |
-| `rentals` + `banking` | Integration: recorded payouts appear in the cashbook |
+| `rentals` + `banking` | Integration: **settled** payouts appear in the cashbook (instructions do not); client-money accounts become available |
 
 ## 7. Demo tenants (fictional) and when they would gain grants
 

@@ -1,58 +1,67 @@
-# V3.2 proposal: decisions for the owner
+# V3.2 proposal: decisions for the owner (revision 2)
 
-**How to read this.**
-- Numbering continues from the Gate A decisions (D-1 to D-20).
-- Each decision has a recommendation; reply with "approve", or name an alternative.
+**Status: NONE OF THESE DECISIONS IS APPROVED.**
+- GPT's review (Issue #3) approved the product direction *in principle* and recommended directions; those are shown below.
+- A decision becomes final only when the owner accepts it.
+- No decision authorises backend work, changes to `main`, changes to the live register, or starting any milestone.
+
+**How to read this**
+- Numbering continues from Gate A (D-1 to D-20).
+- Reply "approve", or name an alternative.
 - **Blocks** says what cannot start until the decision is made.
-- Nothing in V3.2 starts until D-21, D-23, D-24 and D-43 are settled.
+- Nothing in V3.2 starts until D-21, D-23, D-24 and D-43 are settled **and** the milestone is separately authorised.
 
-## A. Scope, modules and sequence
+## A. Scope, modules, sequence and counting
 
-| # | Decision | Recommendation | Alternatives | Blocks |
+| # | Decision | Recommendation | GPT review | Blocks |
 |---|---|---|---|---|
-| **D-21** | Add four catalogue modules: `community_chat`, `community_hub`, `safety`, `rentals` (27 → 31) | **Approve.** Each has its own cost, legal duties or business line, so HQ must license, price and restrict it separately | (a) Fold chat and the hub into `communications` as features: fewer modules, no separate pricing. (b) Defer some modules entirely | All new-module milestones |
-| **D-22** | Offer `hr` and `payroll` to community and portfolio editions as **add-ons** (one module, edition-aware screens) | **Approve.** No separate "society staff" module | Keep them developer-only (societies wait for Gate E) | S.2 |
-| **D-23** | Milestone order | **D.1 → S.1 → D.2 → D.3 → S.2 → S.3 → (safety review) → S.4 → E → F → G → H.** S.1 comes early because it extends the fresh C.2 engine and holds most of the P0 finance items | Issue #2's order: D.1 → D.2 → D.3 → S.1 → … (finance after all of Gate D) | D.1 start |
-| **D-24** | Split Gate D (now 50 distinct screens) into D.1, D.2 and D.3, with an owner checkpoint after each | **Approve.** Same pattern as C.1/C.2 | One Gate D with a mid-point checkpoint | D.1 start |
-| **D-43** | Register baseline and adoption | **Rebase the delta on the committed C.2 register. Then apply only each milestone's rows when that milestone starts** (D-19 pattern). Counting rule unchanged: only rows whose canonical ID is themselves count | Apply the whole delta at once (adds 32 planned screens and 25 states immediately) | Register sync |
-| **D-44** | Prices for the new add-ons | **The Supreme Admin creates the rate-card components in HQ.** This proposal invents no prices. Suggested metered dimensions are in the matrix §4 | — | Commercial demos of the add-ons |
+| **D-21** | Four new catalogue modules: `community_chat`, `community_hub`, `safety` (**restricted**), `rentals` (27 → 31) | Approve. Alternative: fold chat and the hub into `communications` as features | Sensible; safety restricted | All new-module milestones |
+| **D-22** | `hr` and `payroll` as separately licensed add-ons for community and portfolio (one edition-aware module) | Approve | Agrees; reuse the shared modules | S.2 |
+| **D-23** | Order: C.2 finish → docs baseline review → D.1 → S.1 → D.2 → D.3 → S.2 → S.3 → safety design → S.4 → E/F/G → H, **each bounded and individually authorised** | Approve. Alternative: Issue #2's order with finance after all of Gate D | Agrees | D.1 |
+| **D-24** | Split Gate D (48 distinct, provisional) into D.1, D.2 and D.3, with a checkpoint after each | Approve | Agrees | D.1 |
+| **D-43** | Baseline and adoption | The official baseline is the **committed** register (C.1: 394/335). Regenerate the delta on the committed C.2 register after C.2 review; adopt only each authorised milestone's rows; never change the live register before that | Agrees: 396/337 is uncommitted C.2 | Register sync |
+| **D-44** | Prices for the new add-ons | Supreme Admin sets rate-card components in HQ; no prices proposed | — | Commercial demos |
+| **D-45** *(new)* | Overlay counting rule for the **existing** register. V3.2 counts overlays without their own route as states (SOS-004, PORTAL-033, GLOBAL-015, PORTAL-040). The live register still counts GLOBAL-013 and the GUIDE tour overlays as screens | Align the existing rows the same way in a separate, owner-approved register change after C.2, or document why tours count. No change in this proposal | Requested consistency | Final totals |
 
 ## B. Privacy, community and communication
 
-| # | Decision | Recommendation | Alternatives | Blocks |
+| # | Decision | Recommendation | GPT review | Blocks |
 |---|---|---|---|---|
-| **D-25** | Chat policies | **(1)** Direct messages between residents **off** by default; a tenant may turn them on. **(2)** New members see history from their join date only. **(3)** Moderators reach messages only through reports. **(4)** Default retention 24 months, tenant-configurable. **(5)** Chat takes the phone's centre button only if licensed **and** the tenant chooses it; otherwise Pay stays central | DMs on by default; full history for new members (rejected by Issue #2: "no automatic historical disclosure") | D.3 |
-| **D-27** | Login status visibility and invitation channels | **Only permitted staff; date granularity ("last active 3 Nov"); never visible to residents.** Channels: simulated WhatsApp/SMS with consent, printed codes, in-person | Time-level activity (rejected: profiling) | D.1 |
-| **D-28** | Community complaints model | **One request entity with `kind` (repair \| community issue)**, sharing the maintenance workflow and work orders | A separate complaints module | D.2 |
-| **D-30** | Polls | **Informal polls and surveys only**, labelled "not a formal vote under the bylaws". Formal AGM ballots and elections deferred until a bylaw and legal review | Build formal voting now | D.3 |
-| **D-31** | Marketplace | **Build in D.3 behind `community_hub.marketplace`, off by default**: pre-moderation, prohibited items, expiry, no payments, contact in-app only | Defer the marketplace entirely (recommended if D.3 needs trimming) | D.3 (CMTY-003) |
-| **D-32** | Services directory | **Vetted providers only; the provider's consent for contact details; recommendations as counts (no free-text reviews); disclaimer** | Allow resident reviews (needs moderation and defamation review) | D.3 |
-| **D-38** | Society finance visible to residents | **Only committee-approved aggregate summaries** (income, expense, surplus, cash position). **A resident-visible defaulter list is rejected** | No resident finance view at all | D.3 (Society accounts tab) |
-| **D-39** | Resident "standing" | **Private and opt-in only**: "your account is up to date" on the resident's own screen. No public badges or rankings | Drop it entirely | S.1 (PORTAL-004 card) |
-| **D-40** | Data export and deletion | **Export:** an administrator requests, the treasurer (or a second administrator) approves; files expire in 7 days; audited. **Deletion:** non-financial personal data is anonymised; financial records are kept for the statutory period (adviser to confirm) | Self-serve export without approval (rejected: bulk personal data) | D.1 |
-| **D-41** | App switching | **Allowed** for people holding both a staff role and a verified resident link. Audited; separate scopes and caches. A tenant administrator may disable it for specific roles | Separate accounts per role | D.1 |
+| **D-25** | Chat policies | (1) Resident direct messages **off** by default. (2) No history before joining. (3) **On membership end, revoke access including cached/offline copies, queued messages and notifications.** (4) Moderation only through the report workflow. (5) **Retention is a legally configurable tenant setting with deletion exceptions and user notice; no statutory period presumed; chat stays off until it is set.** (6) Chat takes the phone's centre slot only if licensed and chosen | Privacy-first; revocation and retention as stated | D.3 |
+| **D-27** | Login status visibility and invitation channels | Permitted staff only; date granularity; never visible to residents; simulated WhatsApp/SMS with consent, printed codes | — | D.1 |
+| **D-28** | Community complaints model | One request entity with `kind` (repair \| community issue) | — | D.2 |
+| **D-30** | Polls | Informal only, labelled; formal ballots deferred | — | D.3 |
+| **D-31** | Marketplace | Optional, off by default; reasonable to defer if D.3 grows | Optional/off; may defer | D.3 |
+| **D-32** | Services directory | Vetted only; consent; counts only; disclaimer | — | D.3 |
+| **D-38** | Society finance visible to residents | Aggregate committee-approved summaries only; **no defaulter list** | — | D.3 |
+| **D-39** | Resident "standing" | Private and opt-in only, or drop | — | S.1 |
+| **D-40** | Data export and deletion | Content = granted modules ∩ the **requester's own** effective access, re-checked at generation and download; **approval narrows only, never widens**; approver ≠ requester; purpose required; consent-limited contacts; files expire in 7 days; financial records anonymised, never deleted | Must not expand scope | D.1 |
+| **D-41** | App switching | Allowed for people holding both roles; audited; separate scopes and caches; a tenant can disable it per role | — | D.1 |
+| **D-47** *(new)* | Small-audience privacy threshold | Show affected counts and poll results only when the count ≥ **3** and the eligible audience ≥ **5** households (tenant-configurable upwards, not downwards); otherwise "Reported" / "Not enough responses to show" | Requested review of small audiences | D.2, D.3 |
 
 ## C. Money, governance and legal
 
-| # | Decision | Recommendation | Alternatives | Blocks |
+| # | Decision | Recommendation | GPT review | Blocks |
 |---|---|---|---|---|
-| **D-29** | Approval policies (committee spend thresholds) | **No default amounts in the product.** Each tenant configures versioned rules (subject, amount band, approver office or role, number of approvals) with maker-checker on the policy itself. Demo fixtures use clearly illustrative values | Ship default thresholds | S.1 |
-| **D-33** | Rentals money and legal model | **(1)** Payouts are **recorded, never sent** in the prototype. **(2)** Collecting rent on an owner's behalf requires a management agreement with written authority (extends D-15). **(3)** Who issues the rent invoice (the landlord, or the manager as agent) is decided with a legal and tax adviser before S.3 builds the invoice header. **(4)** Rent tax withholding is a labelled placeholder until confirmed | Manager issues all rent invoices in its own name now | S.3 |
-| **D-34** | Cashbook without the accounting module | **The cashbook is a projection of payments, expenses, transfers, payroll and payouts. Manual entries are allowed only when `payables` is not granted. One period lock per legal entity, shared with accounting** | A separate simple ledger (rejected: two ledgers) | S.1 |
-| **D-35** | Bulk cash controls | **Batch with counted total = sum of lines; a second person confirms before any payment or receipt exists; cheques show as "cheque received" until cleared (status only)** | Receipts at the moment of entry (rejected: weakens "never Paid") | S.1 |
-| **D-36** | Reminder defaults | **In-app always; SMS/WhatsApp only with consent (metered); quiet hours 21:00–09:00; at most 3 per month per payer; never when paid or a proof is pending; no late-fee wording unless late fees are enabled (D-11)** | Tenant-only configuration with no defaults | S.1 |
-| **D-37** | Resident credit and wallet | **Show unapplied credit and allow paying in advance through the existing transfer-and-verify flow; auto-apply only by site policy. A funded wallet (top-up, withdrawal, peer transfer) is deferred** until financial and legal review (it may be regulated e-money) | Build a demo wallet (rejected: "never fake a funded digital wallet") | S.1 |
-| **D-42** | Transfer and clearance fees | **A fee needs a bylaw reference and an effective-dated policy; a clearance certificate needs a zero liable balance or an approved waiver; fee lawfulness reviewed by an adviser before Gate H** | Fixed platform default fee (rejected) | S.1 |
+| **D-29** | Approval policies | No default amounts; versioned rules with maker-checker. **A draft never governs its own approval**: it is approved under the version in force by someone other than its creator, and cannot make its creator an approver of their own requests. Delegates never approve their own requests | Draft policies must not grant approval to their creators | S.1 |
+| **D-33** | Rentals legal model | **Configurable per management agreement, not assumed:** *agent* model (manager issues as agent into a client-money account with an owner sub-ledger) or *principal* model (owner's client legal entity issues into the owner's account). Both prototyped as labelled fictional alternatives. Legal and tax adviser chooses before Gate H. Deposits are liabilities in client or deposit accounts. Nothing reaches the SaaS company | Remains conditional; do not assume the manager issues | S.3 (invoice header) |
+| **D-34** | Cashbook source of truth | **A derived view** over settled source events: confirmed payments, **posted cash vouchers** (approved, reversible, only for cash no other module owns; expense vouchers disabled when `payables` is granted) and **settlement confirmations**. One period lock per legal entity; idempotent by source and settlement leg | Corrected as required | S.1 |
+| **D-35** | Bulk collection, cash vs cheque | Method-specific. **Cash:** counted total = sum, second-person confirmation, recognised per D-46. **Cheque:** "received" acknowledgement only; no payment, allocation or final receipt until cleared; returned cheques settle nothing; reversals after clearing reverse payment, allocation and receipt and reopen lines. A4 §5.3 to be aligned | Corrected as required | S.1 |
+| **D-36** | Reminder defaults | In-app always; SMS/WhatsApp with consent; quiet hours 21:00–09:00; ≤ 3 a month; never when paid or a proof is pending; no late-fee wording unless enabled | — | S.1 |
+| **D-37** | Credit and wallet | Show unapplied credit; allow paying in advance via transfer-and-verify; **no funded wallet** | No funded wallet | S.1 |
+| **D-42** | Transfer and clearance fees | A fee needs a bylaw reference and versioned rate; clearance needs a zero balance or approved waiver; lawfulness reviewed before Gate H | — | S.1 |
+| **D-46** *(new)* | When confirmed office cash counts as received | **On second-person confirmation** (a receipt is issued then), with the later deposit settled by evidence as cash in transit. Alternative: only when the bank deposit settles (safer, but residents wait for receipts) | Allows site policy | S.1 |
+| **D-48** *(new)* | Settlement evidence in the prototype | Allow a **visible demo control** that creates a "Simulated bank confirmation" (never automatic, always labelled) so flows can be shown end to end without live rails | No live rails in UI-first phase | S.1, S.2, S.3 |
 
 ## D. Safety
 
-| # | Decision | Recommendation | Alternatives | Blocks |
+| # | Decision | Recommendation | GPT review | Blocks |
 |---|---|---|---|---|
-| **D-26** | SOS safety review | **No SOS screen until a written safety design is approved by the owner (and a safety adviser if the owner chooses).** Until then `safety` is *restricted* in the catalogue. The prototype will always show national emergency numbers (15 police, 1122 rescue where available; configurable) and never say help is on the way | Build a demo SOS now (rejected by Issue #2) | S.4 |
+| **D-26** | SOS | **Parked.** No UI of any kind (pages, overlays, global buttons), fixtures or contracts until a **separate, owner-approved safety design** exists and S.4 is separately authorised. `safety` stays restricted in the catalogue. Emergency numbers are **verified and region-specific at implementation**; nothing implies live dispatch | Keep restricted; no UI before the design | S.4 |
 
-## E. Already decided (kept for reference)
+## E. Already decided (unchanged)
 
-These rulings carry over into V3.2 unchanged:
+These rulings carry over into V3.2:
 - Frontend first.
 - No defaulter lists to residents.
 - Never mark proofs as Paid.

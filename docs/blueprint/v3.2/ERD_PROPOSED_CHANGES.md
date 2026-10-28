@@ -1,265 +1,368 @@
-# V3.2 proposal: logical ERD changes
+# V3.2 proposal: logical ERD changes (revision 2)
 
-**Status:** PROPOSAL. This is a logical model, not a migration schema. Physical types, indexes and Laravel migrations wait for Gate H, exactly as in A2.
+**Status:** PROPOSAL. **This is a conceptual logical model, not an approved physical schema.**
+- Physical design, indexes and Laravel migrations wait for Gate H.
+- Before Gate H, the whole model needs a separate architecture review.
+- The frontend prototype is completed first.
 
-**What it extends:** [`A2_NORMALIZED_ERD.md`](../v3.1/gate-a/A2_NORMALIZED_ERD.md). All A2 conventions hold:
-- **ULIDs** for every record.
-- **Two planes.** Central tables carry `tenant_id`; tenant tables carry none.
-- **Money** in `DECIMAL(20,2)` with currency. The mock uses integer paisa.
-- **Effective dating** with half-open `[from, to)` ranges.
-- **Immutability** of financial and audit records.
-- **Financial entity isolation** (`legal_entity_id`, I-19).
+**Extends:** [`A2_NORMALIZED_ERD.md`](../v3.1/gate-a/A2_NORMALIZED_ERD.md) and the V2.1 domain model (`01_MASTER_BLUEPRINT_V2.md` §8–9). All A2 conventions hold:
+- ULIDs;
+- two planes;
+- `DECIMAL(20,2)` money with currency;
+- half-open effective dating;
+- immutability of financial and audit records;
+- financial entity isolation (I-19).
 
-## 1. Placement summary
+**Revision 2** answers GPT review Issue #3:
+- **P0-1/2:** cashbook source of truth; instruction vs settlement.
+- **P0-3:** cheques.
+- **P1-6:** deduplication against V2.1/V3.1.
+- **P1-7:** legal-entity separation in rentals.
+- **P1-8:** chat revocation.
+- **P1-9:** governance and export scope.
+- **P1-10:** safety parked.
 
-| Group | Plane | New tables | Changed tables |
-|---|---|---|---|
-| 2.1 Chat | Tenant | 7 | — |
-| 2.2 Safety | Tenant | 5 | — |
-| 2.3 Portal adoption | Tenant (+ central sessions) | 2 (+1 central) | `party_user_links` (invitation link) |
-| 2.4 Community issues | Tenant | 2 | `maintenance_requests` |
-| 2.5 Committee and approvals | Tenant | 9 | — |
-| 2.6 HR shifts, attendance, loans | Tenant | 7 | V2.1 HR/payroll entities (components) |
-| 2.7 Rentals | Tenant | 7 | `billing_accounts.kind`, `customer_invoices.source_type`, `unit_liabilities.basis` |
-| 2.8 Finance operations | Tenant | 9 | `bank_accounts.kind`, `fiscal_periods` (moves to finance core), `reminder_events` |
-| 2.9 Community hub | Tenant | 10 | `documents` (publication) |
-| 2.10 Visitors and vehicles | Tenant | 1 | `vehicles` |
-| 2.11 Transfers and clearance | Tenant | 2 | `ownership_transfers`, `customer_invoices.source_type` |
-| 2.12 Core: export and privacy requests | Tenant | 2 | — (sessions are counted in 2.3) |
-| **Total** | | **63 tenant + 1 central** | |
+## 1. Classification of every proposed entity
 
-Exact counts can move during each milestone's design. The rules in §4 cannot.
+**Classes**
+- **NEW:** a concept that exists in neither V2.1 nor V3.1.
+- **FORMALISED:** V2.1/V3.1 already names the domain or screen, but no logical model defined it. Defined here once and shared.
+- **EXTENDED:** an existing logical entity gains columns or enum values.
+- **VIEW:** derived, not stored. Some views are stored only as a document when issued, like the A2 account statement.
+- **REUSED:** an existing entity used as-is.
+- **PARKED:** belongs to the restricted `safety` module. Not part of any milestone until the safety design is approved.
 
-## 2. New and changed entities
+**Result after deduplication**
+- Revision 1 proposed 63 tenant tables + 1 central table.
+- Revision 2 proposes **38 NEW + 8 FORMALISED** tables, and 3 PARKED.
+- Everything else is EXTENDED, REUSED or a VIEW.
 
-### 2.1 Community chat (`community_chat`)
+| Area | NEW | FORMALISED | EXTENDED / REUSED | VIEW | PARKED |
+|---|---|---|---|---|---|
+| Chat (§2.1) | `chat_audience_rules`, `chat_groups`, `chat_memberships`, `chat_messages` | — | `content_reports`, `user_blocks` (shared, §2.11) | unread counts (from `chat_memberships.last_read_message_id`) | — |
+| Safety (§2.2) | — | — | `party_relationships` (kind = emergency contact), `party_contacts` | responders (settings + roster) | `safety_settings`, `sos_incidents`, `sos_incident_events` |
+| Portal adoption (§2.3) | `portal_invitations` | — | V2.1 identity **sessions** (central; device label, revoke) | login status; portal activity (date level) | — |
+| Community issues (§2.4) | `request_affirmations` | — | `maintenance_requests` (kind, visibility, area, merge); `record_comments` (shared) | affected counts (privacy threshold) | — |
+| Committee and approvals (§2.5) | `committees`, `committee_offices`, `committee_terms`, `committee_resolutions` | `approval_policies`, `approval_policy_rules`, `approval_requests`, `approval_decisions`, `approval_delegations` (V2.1 "central approvals" and "temporary delegation"; register APR-001…005) | `documents` (minutes) | — | — |
+| HR and payroll (§2.6) | `shift_templates`, `shift_assignments` | `attendance_records`, `leave_requests` (V2.1 attendance; HR-005/006) | V2.1 employees (resident visibility and consent); V2.1 **advances** gain kind = loan and instalments (HR-007/008); V2.1 salary components gain bonus and loan-recovery types | — | — |
+| Rentals (§2.7) | `management_agreements`, `leases`, `lease_parties`, `rent_schedules`, `security_deposits`, `owner_payouts` | — | `billing_accounts.kind` + `lease`; `customer_invoices.source_type` + `lease_schedule`; `unit_liabilities.basis`; `legal_entities.kind` + `client_owner`; `bank_accounts.purpose` | owner statement (stored as a document when issued); owner sub-ledger | — |
+| Finance operations (§2.8) | `cash_vouchers`, `settlement_confirmations`, `cheque_instruments`, `cash_counts`, `office_collection_batches`, `office_collection_lines`, `reminder_policies` | `funds_transfers` (register BANK-006, no logical model yet) | `bank_accounts` (kind, purpose); `fiscal_periods` (moved to the finance core); V2.1 expense categories (+ income categories); `reminder_events`; `party_contacts` and `notification_preferences` (consent) | **cashbook**; cash in transit; period-close checklist | — |
+| Community hub (§2.9) | `service_categories`, `directory_listings`, `listing_recommendations`, `polls`, `poll_options`, `poll_responses`, `marketplace_listings` | — | `parties` + `party_roles` (service provider); `documents` (resources, published financial summaries); `content_reports` | poll results (privacy threshold) | — |
+| Visitors and vehicles (§2.10) | — | — | `visitor_passes` (origin = gate request; waiting/approved/denied/expired); `visitor_events`; `vehicles` (approval status) | — | — |
+| Shared core (§2.11) | `generated_file_jobs`, `privacy_requests`, `content_reports`, `user_blocks`, `record_comments` | — | `documents` | — | — |
+| Transfers (§2.12) | `clearance_certificates` | — | `charge_categories` / `charge_rate_versions` (transfer fee with bylaw reference); `ownership_transfers` | — | — |
+| **Totals** | **38** | **8** | | | **3** |
 
-```mermaid
-erDiagram
-  managed_sites ||--o{ chat_audience_rules : defines
-  chat_audience_rules ||--o| chat_groups : "smart group of"
-  chat_groups ||--o{ chat_memberships : has
-  tenant_users ||--o{ chat_memberships : "member as"
-  chat_groups ||--o{ chat_messages : contains
-  chat_messages ||--o{ chat_reports : "reported by"
-  chat_groups ||--o{ chat_message_reads : "read position"
-  tenant_users ||--o{ chat_blocks : blocks
-```
+**Removed as duplicates in revision 2**
+
+| Revision-1 entity | Now |
+|---|---|
+| `cash_movements` | VIEW (cashbook) |
+| `cash_categories` | V2.1 expense/income categories |
+| `chat_message_reads` | A column on memberships |
+| `chat_reports`, `provider_reports`, `listing_reports` | `content_reports` |
+| `chat_blocks` | `user_blocks` |
+| `safety_responders` | VIEW |
+| `emergency_contacts` | `party_relationships` |
+| `portal_activity_summaries` | VIEW |
+| `request_comments` | `record_comments` |
+| `committee_meetings` + `committee_decisions` | `committee_resolutions` (with meeting date and minutes document) |
+| `staff_public_profiles` | Employee columns |
+| `employee_loans`, `loan_repayments` | V2.1 advances |
+| `pay_components` | V2.1 salary components |
+| `owner_statements` | VIEW / document |
+| `document_batches`, `data_export_jobs` | `generated_file_jobs` |
+| `contact_consents` | `party_contacts` / `notification_preferences` |
+| `published_financial_summaries` | `documents` |
+| `visitor_gate_requests` | `visitor_passes` |
+| `transfer_fee_policies` | Charge categories and rate versions |
+| `service_providers` | `parties` + `directory_listings` |
+
+**Owner module for each NEW or FORMALISED entity:** the area's module, except:
+- the shared core entities (`core`);
+- `funds_transfers`, `cash_vouchers`, `settlement_confirmations` and `cash_counts` (`banking`);
+- `cheque_instruments`, office batches and `reminder_policies` (`receivables`).
+
+## 2. Entities by area
+
+### 2.1 Chat (`community_chat`)
 
 | Entity | Key columns | Rules |
 |---|---|---|
-| `chat_audience_rules` | site_id, rule_type (site \| building \| floor \| staff_role \| committee \| custom), params, version, effective_from | A rule is a query over verified facts, never a stored member list. Also reused for poll audiences (§2.9) |
-| `chat_groups` | site_id, kind (smart \| custom \| direct), audience_rule_id?, name, posting_policy (all \| staff_only \| committee_only), archived_at | Direct groups exist only if the tenant enables direct messages (D-25) |
-| `chat_memberships` | group_id, tenant_user_id, source (rule \| manual), joined_at, left_at, **visible_from**, muted, role (member \| moderator) | Derived from the rule on each relevant change (move-in, move-out, role change, term end). `visible_from = joined_at`: no history before joining |
-| `chat_messages` | group_id, author_user_id, kind (text \| system \| link_card), body, link_ref?, reply_to_id?, created_at, deleted_at, moderation_state (visible \| hidden) | Soft delete with a tombstone. System messages are produced by events (a staff member joins) |
-| `chat_message_reads` | group_id, tenant_user_id, last_read_message_id | Unread counts |
-| `chat_reports` | message_id, reporter_user_id, reason, status (open \| actioned \| dismissed), decided_by | Moderators reach a message only through a report |
-| `chat_blocks` | blocker_user_id, blocked_user_id | Hides the blocked person's messages for the blocker |
+| `chat_audience_rules` | site_id, rule_type (site \| building \| floor \| staff_role \| committee \| custom), params, version, effective_from | A query over verified facts, never a stored member list. Reused for poll and document audiences |
+| `chat_groups` | site_id, kind (smart \| custom \| direct), audience_rule_id?, name, posting_policy (all \| staff_only \| committee_only), archived_at | Direct groups exist only if the tenant enables direct messages (D-25; off by default for residents) |
+| `chat_memberships` | group_id, tenant_user_id, source (rule \| manual), joined_at, **ended_at**, **visible_from**, muted, role, last_read_message_id | `visible_from = joined_at`: no history before joining. Membership ends on the effective end of the fact behind it (move-out, role change, committee term end) |
+| `chat_messages` | group_id, author_user_id, kind (text \| system \| link_card), body, link_ref?, reply_to_id?, created_at, deleted_at, moderation_state, legal_hold | Soft delete leaves a tombstone. A link card shows a record only if the reader may open it |
 
-### 2.2 Safety (`safety`, blocked until the safety review)
+**When a membership ends (P1-8), access is revoked everywhere:**
+1. The server refuses reads and posts from that moment.
+2. On the next sync, cached and offline copies on the person's devices are purged (the client honours `ended_at`).
+3. Messages queued by that person but not yet accepted are discarded and never delivered.
+4. Pending notifications for the group are withdrawn.
+5. Attachment and link URLs stop resolving for them.
 
-| Entity | Key columns | Rules |
-|---|---|---|
-| `safety_settings` | site_id, version, escalation_chain, ack_timeout_s, emergency_numbers, resident_guidance, status (draft \| pending \| active), created_by, approved_by, effective_from | Versioned; maker ≠ checker |
-| `safety_responders` | site_id, shift_template_id?, tenant_user_id, priority | Linked to the duty roster (§2.6) when `hr` is granted |
-| `sos_incidents` | site_id, unit_id?, raised_by_user_id, party_id?, raised_at, status (raised \| acknowledged \| responding \| resolved \| false_alarm \| cancelled), closed_at, closure_reason | Unit-level location only; no GPS |
-| `sos_incident_events` | incident_id, at, kind (raised \| notified \| acknowledged \| escalated \| note \| resolved \| cancelled), actor_user_id, payload | **Append-only**; the incident status is derived from it |
-| `emergency_contacts` | party_id, name, relation, phone (encrypted), consent_at | Shown to responders only during an incident |
+**Moderation and retention**
+- **Moderation:** only through `content_reports`. Moderators see the reported message and its immediate context, never private conversations.
+- **Retention:** a legally configurable tenant setting. There is **no presumed statutory period**. It has:
+  - deletion exceptions (legal hold, open reports);
+  - user notice before deletion takes effect.
 
-### 2.3 Portal adoption and invitations (`resident_portal`)
+### 2.2 Safety (`safety`): PARKED
+
+These three tables are recorded for completeness only:
+- `safety_settings` (versioned, maker-checker);
+- `sos_incidents` (unit-level location, no GPS);
+- `sos_incident_events` (append-only).
+
+Responders are a view over settings and the duty roster. Emergency contacts reuse `party_relationships` with consent.
+
+**No screen, overlay, global control or contract is built until the separate safety design is approved (D-26).** Emergency numbers are verified and region-specific at implementation time, and nothing implies live dispatch.
+
+### 2.3 Portal adoption (`resident_portal`)
 
 | Entity | Plane | Key columns | Rules |
 |---|---|---|---|
-| `portal_invitations` | tenant | party_id, unit_id, channel (sms \| whatsapp \| email \| printed_code), status (created \| sent \| opened \| accepted \| expired \| revoked), token_hash, expires_at, sent_by, resend_count | Only for parties with a verified owner, occupant or payer link. Acceptance creates or verifies the `party_user_link` |
-| `portal_activity_summaries` | tenant | party_user_link_id, last_active_on (DATE), platform (web \| pwa \| android \| ios), active_30d | Derived from sessions at **date** granularity. No event log is kept in the tenant DB |
-| `global_user_sessions` | **central** | global_user_id, device_label, platform, created_at, last_seen_at, ip_hash, revoked_at, revoked_by | Identity is global (D-17). Shared with F17 |
+| `portal_invitations` | tenant | party_id, unit_id, channel, status (created \| sent \| opened \| accepted \| expired \| revoked), token_hash, expires_at, sent_by, resend_count | Only for verified owner, occupant or payer links. Acceptance creates or verifies the `party_user_link`. Not the central `tenant_invitations` (that is platform signup, A2 §2) |
+| V2.1 identity sessions (EXTENDED) | central | + device_label, platform, last_seen_at (approximate), ip_hash, revoked_at, revoked_by | Self-revoke, and admin revoke (audited) |
 
-**Login status is a view, not a table:**
+**Login status and activity are views:**
 - **Vacant:** no current occupancy.
 - **Never:** no accepted link.
 - **Invited:** an open invitation.
-- **Active:** active within 30 days.
+- **Active:** active within 30 days, at date granularity.
 - **Inactive:** none of the above.
 
 ### 2.4 Community issues (`maintenance`)
 
-**Changes to `maintenance_requests`:**
+**`maintenance_requests` (EXTENDED):**
 - `kind`: unit_repair \| community_issue
 - `visibility`: private \| community
-- `area_ref`: a site area, building or asset
+- `area_ref`
 - `merged_into_id`
-- `public_summary`: moderated
+- `public_summary`
 
-| Entity | Key columns | Rules |
-|---|---|---|
-| `request_affirmations` | request_id, party_id, created_at, withdrawn_at | "Affects me too". Residents see the count only; staff see identities |
-| `request_comments` | request_id, author_user_id, body, visibility (public \| staff_internal), moderation_state | Moderated; internal notes never reach residents |
+**`request_affirmations` (NEW):** request_id, party_id, created_at, withdrawn_at.
 
-A merge moves affirmations to the surviving request. The merged request keeps its history.
+**Rules**
+- Residents see a count only when it passes the **privacy threshold**: both the count and the eligible audience at or above the configured minimums (D-47). Otherwise the status reads "Reported".
+- Staff see identities.
+- A merge moves affirmations to the surviving request.
+- Comments use `record_comments` (§2.11): public vs staff-internal, moderated.
 
-### 2.5 Committee and approval policies (`residents.committee`, core)
+### 2.5 Committee and approvals (`residents.committee`, core)
 
-| Entity | Key columns | Rules |
-|---|---|---|
-| `committees` | legal_entity_id, site_id?, name, kind (managing \| sub_committee) | An association may have one managing committee per legal entity |
-| `committee_offices` | committee_id, office (president \| secretary \| treasurer \| member \| custom), single_holder, role_id? | Linking an office to a tenant role gives its holder that role's permissions |
-| `committee_terms` | office_id, party_id, from, to, appointment_document_id? | Effective-dated; a single-holder office has no overlaps |
-| `committee_meetings` | committee_id, held_on, minutes_document_id?, attendee_party_ids | Minutes are documents |
-| `committee_decisions` | committee_id, meeting_id?, subject, outcome, votes_summary, recorded_by, published_at? | Residents see only published decisions |
-| `approval_policies` | legal_entity_id, version, status (draft \| pending \| active \| retired), effective_from, created_by, approved_by | Same pattern as HQ `commercial_policies`. Maker ≠ checker |
-| `approval_policy_rules` | policy_id, subject (expense \| work_order \| vendor_bill \| funds_transfer \| owner_payout \| refund \| period_reopen \| data_export), min_amount?, max_amount?, category?, site_id?, approver_office?, approver_role?, approvals_required | No hardcoded amounts. The rule that applied is snapshotted on the request |
-| `approval_requests` | subject_type, subject_id, policy_id, policy_version, rule_id, status (pending \| approved \| rejected \| withdrawn \| expired), requested_by | One open request per subject |
-| `approval_decisions` | request_id, approver_user_id, office?, decision, reason, at | Immutable. The approver is never the requester (checked by principal) |
+| Entity | Class | Key columns | Rules |
+|---|---|---|---|
+| `committees` | NEW | legal_entity_id, site_id?, name, kind | One managing committee per legal entity |
+| `committee_offices` | NEW | committee_id, office, single_holder, role_id? | Linking an office to a role gives its holder that role's permissions |
+| `committee_terms` | NEW | office_id, party_id, from, to, appointment_document_id? | Effective-dated; a single-holder office has no overlaps |
+| `committee_resolutions` | NEW | committee_id, meeting_on?, minutes_document_id?, subject, outcome, votes_summary, recorded_by, published_at? | Residents see only published resolutions |
+| `approval_policies` | FORMALISED | legal_entity_id, version, status (draft \| pending \| active \| retired), effective_from, created_by, approved_by | See the rules below |
+| `approval_policy_rules` | FORMALISED | policy_id, subject (expense \| work_order \| vendor_bill \| funds_transfer \| owner_payout \| cash_voucher \| refund \| period_reopen \| data_export), amount band, category?, site_id?, approver office or role, approvals_required | No hardcoded amounts. The applied rule is snapshotted on the request |
+| `approval_requests` / `approval_decisions` | FORMALISED | subject, policy version, rule, status; approver, decision, reason | The approver is never the requester (checked by principal) |
+| `approval_delegations` | FORMALISED | from_user_id, to_user_id, scope, from, to | Time-bound, audited. **A delegate can never approve their own request** |
 
-**Not migrated.** Billing-run approval (C.1) and beneficiary changes (C.2) keep their own built maker-checker. Moving them onto the generic engine is optional and later.
+**How a policy version gets approved (P1-9)**
+- **A draft never governs its own approval.** It is approved under the version in force, by someone other than its creator.
+- **It may not make its creator an approver of the creator's own requests.**
+- Billing-run (C.1) and beneficiary (C.2) maker-checker stay as built.
 
-### 2.6 HR shifts, attendance and loans (`hr`, `payroll`)
+### 2.6 HR and payroll (`hr`, `payroll`)
 
-| Entity | Key columns | Rules |
-|---|---|---|
-| `shift_templates` | site_id, name, starts_at, ends_at, crosses_midnight | Morning, evening, night are examples, not fixed values |
-| `shift_assignments` | employee_id, shift_template_id, on_date, site_id, status (planned \| swapped \| cancelled) | No overlapping assignments per employee |
-| `attendance_records` | employee_id, shift_assignment_id?, on_date, check_in_at, check_out_at, method (manual \| supervisor), status (present \| late \| absent \| leave) | The prototype has manual or supervisor entry only; biometric and GPS are out of scope |
-| `leave_requests` | employee_id, type, from, to, status, decided_by | Feeds attendance. Merge with the V2.1 leave entity if it already covers this (HR-006) |
-| `staff_public_profiles` | employee_id, show_to_residents, display_role, display_name?, photo_document_id?, consent_at | Residents see staff only through this table |
-| `employee_loans` | employee_id, legal_entity_id, principal, issued_on, instalment, status (active \| settled \| written_off) | Beside V2.1 advances |
-| `loan_repayments` | loan_id, payroll_run_item_id?, amount, on_date | A deduction in payroll, or a manual repayment |
+**NEW**
+- `shift_templates`: site_id, name, starts_at, ends_at, crosses_midnight.
+- `shift_assignments`: employee_id, shift_template_id, on_date, status. No overlaps per employee.
 
-**Payroll components.** V2.1 payroll run items gain `pay_components` lines: earning \| bonus \| allowance \| deduction \| statutory_placeholder. Statutory lines are labelled placeholders until an adviser confirms them.
+**FORMALISED**
+- `attendance_records`: + shift_assignment_id, method (manual \| supervisor), status.
+- `leave_requests`.
 
-### 2.7 Rentals (`rentals`)
+**EXTENDED (V2.1)**
+- **Employees:** + resident_visibility, display_role, consent_at. Residents see staff only through these columns, and only with consent.
+- **Advances:** + kind (advance \| loan), instalment plan. Settlements are deducted in payroll or repaid manually.
+- **Salary components:** + types bonus and loan_recovery. Statutory lines are labelled placeholders until an adviser confirms them.
+
+**Payroll money (P0-2)**
+- A posted payroll run is an **obligation**.
+- Disbursement is an instruction.
+- Only a `settlement_confirmation` makes it settled cash.
+
+### 2.7 Rentals (`rentals`): legal-entity separation (P1-7)
 
 ```mermaid
 erDiagram
-  units ||--o{ leases : "let under"
+  management_agreements ||--o{ leases : governs
   leases ||--o{ lease_parties : "landlords and tenants"
-  parties ||--o{ lease_parties : plays
   leases ||--o{ rent_schedules : "rent periods"
   rent_schedules |o--o| customer_invoice_lines : "posted as"
   leases ||--o| security_deposits : holds
-  management_agreements ||--o{ leases : governs
-  parties ||--o{ management_agreements : "owner of"
-  management_agreements ||--o{ owner_statements : "statements under"
-  owner_statements ||--o{ owner_payouts : "settled by (recorded)"
+  management_agreements ||--o{ owner_payouts : "instructions under"
+  owner_payouts ||--o{ settlement_confirmations : "settled by"
 ```
 
 | Entity | Key columns | Rules |
 |---|---|---|
-| `management_agreements` | owner_party_id, manager_legal_entity_id, fee_rule (pct_of_collected \| fixed_monthly \| per_letting), fee_value, collects_on_behalf, authority_document_id, from, to | Collecting on behalf needs `authority_document_id` (extends D-15) |
-| `leases` | site_id, unit_id, management_agreement_id?, status (draft \| active \| renewal_due \| renewed \| terminated \| expired), start_on, end_on, rent_amount, frequency, escalation_rule, due_day, version, supersedes_id? | Changes are new versions. **The issuing legal entity of rent invoices is an open decision (D-33)** |
-| `lease_parties` | lease_id, party_id, role (landlord \| tenant \| co_tenant \| guarantor), share_pct (landlords) | Landlord shares = 100 |
-| `rent_schedules` | lease_id, lease_version, period_start, period_end, amount, posting_version, invoice_line_id? | A snapshot. Idempotency key = (lease, period, posting_version) |
-| `security_deposits` | lease_id, amount, payment_id?, held_in_account_id?, status (expected \| held \| partially_refunded \| refunded \| forfeited) | A liability, never income. A refund needs approval (§2.5) |
-| `owner_statements` | management_agreement_id, owner_party_id, period, opening_payable, rent_collected, fees, owner_expenses, payouts, closing_payable, status (draft \| issued), document_id? | Lines are derived from source records; stored when issued |
-| `owner_payouts` | owner_statement_id, amount, status (draft \| awaiting_approval \| recorded \| rejected), prepared_by, approved_by, bank_reference?, recorded_on | **Never "sent".** A recorded payout creates a cash movement (§2.8) |
+| `management_agreements` | owner_party_id, manager_legal_entity_id, **model (agent \| principal)**, client_money_account_id? (agent), client_legal_entity_id? (principal), fee_rule, fee_value, authority_document_id, from, to | No agreement means no collection on behalf of the owner. The model is chosen per agreement and **is not assumed** (D-33) |
+| `leases` | site_id, unit_id, management_agreement_id, issuing_legal_entity_id (derived from the model), status, start_on, end_on, rent_amount, frequency, escalation_rule, due_day, version, supersedes_id? | Changes are versions |
+| `lease_parties` | lease_id, party_id, role (landlord \| tenant \| co_tenant \| guarantor), share_pct | Landlord shares = 100 |
+| `rent_schedules` | lease_id, lease_version, period_start, period_end, amount, posting_version, invoice_line_id? | A snapshot. The idempotency key is (lease, period, posting_version). It follows the schedule-item pattern but has **no dependency on developer tables** (A2 §4.3) |
+| `security_deposits` | lease_id, amount, payment_id?, held_in_account_id, status | A **liability** to the tenant. It is held in a client-money or deposit-holding account of the right entity, and is never income of the manager or the SaaS company. A refund is an approved instruction plus a settlement |
+| `owner_payouts` | management_agreement_id, owner_party_id, amount, status (draft \| awaiting_approval \| **approved_instruction** \| settled \| failed \| rejected), prepared_by, approved_by | **An approved instruction is not a payment.** Only a `settlement_confirmation` makes it settled |
 
-**Changes to existing tables:**
-- `billing_accounts.kind` gains `lease`.
-- `customer_invoices.source_type` gains `lease_schedule`.
-- `unit_liabilities` gains `basis` (dues \| lease), so rent liability and dues liability for the same unit never mix.
+**The two issuing models (both built as labelled fictional alternatives until D-33)**
+- **Agent model.**
+  - The manager's legal entity issues the rent invoice **as agent** for the owner.
+  - Rent is collected into a **client-money account** (`bank_accounts.purpose = client_money`) with an **owner sub-ledger**: every movement carries `owner_party_id`.
+  - The manager's fee moves from the client account to the manager's operating account only as an approved fee transfer, plus a settlement. Both accounts belong to one entity, so I-19 holds.
+- **Principal model.**
+  - The owner is set up as a **client legal entity** (`legal_entities.kind = client_owner`) with its own numbering and verified beneficiary.
+  - The owner entity issues the invoices, and the tenant pays into the owner's account.
+  - The manager's fee is an invoice from the manager entity to the owner entity, settled by evidence. No allocation crosses entities.
 
-### 2.8 Finance operations (`banking`, `receivables`, `dues`, `communications`)
+**Owner statement (a VIEW)**
+- Rent collected − management fee − approved owner expenses − **settled** payouts = closing payable.
+- Approved, unsettled instructions are shown separately as "Pending payout".
+- One owner's money never settles another owner's payable.
 
-| Entity | Key columns | Rules |
-|---|---|---|
-| `bank_accounts` (changed) | + kind (bank \| cash \| petty_cash) | Cash is an account, not a module |
-| `fiscal_periods` (moved) | legal_entity_id, period, state (open \| closing \| closed \| reopened), closed_by, closed_at, reopen_request_id? | Moves from accounting-only to the **finance core**, so the cashbook can close a month without the accounting module. One lock per legal entity and period |
-| `cash_movements` | legal_entity_id, account_id, direction (in \| out), amount, on_date, category_id?, source_type (payment \| expense \| supplier_payment \| payroll \| owner_payout \| funds_transfer \| manual), source_id?, period_id, created_by, reversal_of? | **A projection.** One row per source event. `manual` only for "other income/expense" when `payables` is not granted |
-| `cash_categories` | legal_entity_id, name, direction | For manual movements and reports |
-| `funds_transfers` | legal_entity_id, from_account_id, to_account_id, amount, on_date, kind (deposit \| withdrawal \| transfer), status (draft \| awaiting_approval \| recorded \| rejected), maker, checker, evidence_document_id?, bank_transaction_id? | Both accounts in one legal entity (I-19). Matched to the bank feed when reconciled |
-| `cash_counts` | account_id, on_date, counted_amount, denominations, counted_by, witnessed_by | Required by the close-month checklist for cash accounts |
-| `office_collection_batches` | legal_entity_id, site_id, collected_by, collected_on, method (cash \| cheque), declared_total, status (draft \| submitted \| confirmed \| returned), confirmed_by | Confirmation creates `payments` and `receipts` (I-10 holds) |
-| `office_collection_lines` | batch_id, billing_account_id, party_id, unit_id, amount, cheque_number? | Allocation follows C.2 rules: this payer's lines only |
-| `document_batches` | kind (invoice_pack \| dues_notices \| owner_statements), source_type, source_id, status, page_count, file_document_id?, requested_by | Print packs |
-| `reminder_policies` | site_id, version, steps (offset_days, channel, template_id), quiet_hours, monthly_cap, status | Versioned |
-| `reminder_events` (changed) | + policy_id, policy_version, channel, consent_result, skip_reason | Existing A2 table, extended |
-| `contact_consents` | party_id, channel (sms \| whatsapp \| email \| push), purpose (transactional \| community \| marketing), granted_at, withdrawn_at, source | Checked by reminders, invitations, chat notifications and the services directory |
+### 2.8 Finance operations: source of truth (P0-1, P0-2, P0-3)
 
-**No wallet tables.** Unapplied credit stays derived (`payment.amount − Σ allocations`). A site policy `credit_auto_apply` decides whether credit settles future invoices on posting (A4 already anticipates this).
+**Principle:** there is **one set of source events and no second ledger**.
+- Settled cash changes only through:
+  - **confirmed payments** (C.2 verification, or confirmed office cash);
+  - **posted cash vouchers**;
+  - **settled transfer legs**;
+  - **settled disbursements** (owner payouts, payroll, supplier payments at Gate E, refunds), each through a `settlement_confirmation`.
+- The **cashbook** is a VIEW over these events.
 
-### 2.9 Community hub (`community_hub`, `resident_portal`)
+| Entity | Class | Key columns | Rules |
+|---|---|---|---|
+| `cash_vouchers` | NEW | legal_entity_id, account_id, direction (receipt \| payment), category_id, amount, on_date, evidence_document_id, status (draft \| submitted \| approved \| posted \| reversed), prepared_by, approved_by, posted_at, reversal_of?, period_id | The **only** way to record cash that no other module owns: other income, bank charges, and small expenses **only when `payables` is not granted**. Maker ≠ checker under the approval policy. Posted vouchers are immutable; a correction is a reversal voucher in an open period |
+| `funds_transfers` | FORMALISED | legal_entity_id, from_account_id, to_account_id, amount, kind (deposit \| withdrawal \| transfer), status (draft \| awaiting_approval \| approved_instruction \| in_transit \| settled \| failed), maker, checker | See the rules below |
+| `settlement_confirmations` | NEW | subject_type (transfer_leg \| owner_payout \| payroll_disbursement \| deposit_refund \| cheque \| fee_transfer), subject_id, leg?, evidence_type (bank_transaction \| witnessed_deposit_slip \| **simulated_demo**), bank_transaction_id?, document_id?, settled_on, confirmed_by | See the rules below |
+| `cheque_instruments` | NEW | legal_entity_id, payer_party_id, billing_account_id, drawer_bank, cheque_number, cheque_date, amount, source (office_collection_line \| office_payment), status (received \| deposited \| cleared \| returned \| cancelled), deposit_slip_document_id?, returned_reason?, payment_id? | See the rules below |
+| `office_collection_batches` / `office_collection_lines` | NEW | batch: legal_entity_id, site_id, collected_by, collected_on, declared_total, status (draft \| submitted \| confirmed \| returned), confirmed_by. Line: billing_account_id, party_id, unit_id, method (cash \| cheque), amount, cheque_instrument_id? | See the rules below |
+| `cash_counts` | NEW | account_id, on_date, counted_amount, denominations, counted_by, witnessed_by | Required by month close for cash accounts |
+| `reminder_policies` | NEW | site_id, version, steps, quiet_hours, monthly_cap, status | `reminder_events` (EXTENDED) records the policy version, channel, consent result and skip reason |
+| `fiscal_periods` | EXTENDED (moved) | legal_entity_id, period, state (open \| closing \| closed \| reopened), closed_by, reopen_request_id? | Moves to the finance core: one lock per legal entity and period, used by the cashbook with or without `accounting`. Reopening is an approval request |
+| `bank_accounts` | EXTENDED | + kind (bank \| cash \| petty_cash), purpose (operating \| client_money \| deposit_holding) | Client money is never mixed with operating money |
+
+**`funds_transfers` rules**
+- Both accounts belong to one legal entity (I-19).
+- Each leg is settled by evidence.
+- **A cash deposit:** the cash leg settles on a witnessed deposit slip (cash leaves custody, shown as "cash in transit"). The bank leg settles on the matched bank line.
+
+**`settlement_confirmations` rules**
+- **Only this record changes settled cash** for instructions.
+- One bank transaction confirms at most one settlement leg (extends I-20).
+- `simulated_demo` is available only from a visible demo control, is labelled "Simulated bank confirmation" everywhere, and is never automatic.
+
+**`cheque_instruments` rules**
+- A cheque that has not cleared creates **no payment, no allocation and no final receipt**. Only an acknowledgement ("Cheque received — not a receipt of payment") is issued.
+- **Cleared** (by settlement evidence): this creates the payment, allocates it to this payer's lines (C.2 rules) and issues the receipt.
+- **Returned:** nothing is settled and the payer is notified. A bank charge applies only if a configured, lawful policy exists (off by default).
+- **A reversal after clearing:** the payment, allocations and receipt are reversed (receipt marked reversed, never deleted), invoice lines reopen, and the reversal is audited.
+
+**Office collection batch rules**
+- **Cash lines:** the counted total = the sum of cash lines; a second person confirms. Confirmed cash is recognised **per site policy (D-46)**, creating payments, allocations and receipts.
+- **Cheque lines:** handled by `cheque_instruments`.
+- A confirmed cash line can be corrected only by an approved reversal.
+
+**A4 §5.3 alignment.** A4 §5.3 says office payments "produce a payment and receipt immediately" and cheques are allocated when cleared "(configurable)". Revision 2 tightens this:
+- cheques produce **no payment until cleared**, and this is not configurable;
+- C.2's office-payment states are re-checked against this rule once C.2 is committed.
+
+**Cashbook behaviour by add-on**
+
+| Add-ons granted | Expenses come from | Cash vouchers allowed for | Journals |
+|---|---|---|---|
+| `banking` only | Cash vouchers (payment) | Other income, bank charges, small expenses | None. Reports are built from source events |
+| `banking` + `payables` | Payables (EXP / supplier payments, settled by evidence) | Other income and bank charges only (expense vouchers disabled) | None |
+| `banking` + `accounting` | Cash vouchers | As "banking only" | Every source event feeds `accounting_events`; same period lock |
+| `banking` + `payables` + `accounting` | Payables | As "+ payables" | As above |
+
+**Idempotency**
+- Each source event contributes to the cashbook once, keyed by (source_type, source_id, posting_version).
+- Each settlement is unique per (subject_type, subject_id, leg).
+- Bank transactions keep A2 §5.2 identity.
+
+### 2.9 Community hub (`community_hub`)
 
 | Entity | Key columns | Rules |
 |---|---|---|
 | `service_categories` | site_id?, name | |
-| `service_providers` | site_id, category_id, display_name, contact (encrypted), contact_consent_at, vetting_status (pending \| vetted \| suspended), vetted_by, listed_from, listed_to, supplier_id? | Only vetted providers are listed. Contact shown only with consent |
-| `service_recommendations` | provider_id, party_id, created_at, withdrawn_at | Counts only. No free text in this phase |
-| `provider_reports` | provider_id, reporter_party_id, reason, status | |
-| `polls` | site_id, audience_rule_id, question, kind (single \| multiple \| survey), unit_of_response (person \| unit), anonymity (named \| anonymous), opens_at, closes_at, results_visibility (live \| after_close \| staff_only), status | Informal only |
-| `poll_options` | poll_id, label, order | |
-| `poll_responses` | poll_id, respondent_key, option_ids, at | One per respondent key. Anonymous polls store a one-way token, so staff cannot see who voted |
-| `marketplace_listings` | site_id, party_id, title, description, price_text, category, photo_document_ids, status (pending_review \| published \| removed \| expired), expires_at, removed_reason? | No payments. Contact goes through in-app messages only |
-| `listing_reports` | listing_id, reporter_party_id, reason, status | |
-| `published_financial_summaries` | legal_entity_id, period, figures (aggregate only), approved_by, published_at | **No per-person or per-unit figures**, by design |
+| `directory_listings` | party_id (a `parties` record with role service_provider), category_id, site_id, vetting_status (pending \| vetted \| suspended), vetted_by, contact_consent_at, listed_from, listed_to, supplier_ref? | Only vetted listings are shown; contact details only with consent |
+| `listing_recommendations` | listing_id, party_id, created_at, withdrawn_at | Counts only; no free text |
+| `polls` / `poll_options` / `poll_responses` | poll: site_id, audience_rule_id, kind, unit_of_response, anonymity, opens_at, closes_at, results_visibility, status. Response: poll_id, respondent_key, option_ids | One response per respondent key. Anonymous polls store a one-way token. Results below the privacy threshold (D-47) show "Not enough responses to show" |
+| `marketplace_listings` | site_id, party_id, title, description, price_text, status (pending_review \| published \| removed \| expired), expires_at | Off by default; no payments; contact in-app only |
 
-**Change to `documents`:** they gain `published_to_residents` and an audience (an audience rule).
+**Reused:**
+- **resources:** `documents` published to an audience;
+- **published financial summaries:** `documents` with an aggregate snapshot, never per person or per unit;
+- **reports:** `content_reports`.
 
 ### 2.10 Visitors and vehicles
 
-| Entity | Key columns | Rules |
-|---|---|---|
-| `visitor_gate_requests` | site_id, unit_id, visitor_name, purpose, photo_document_id? (consented), requested_by_user_id, requested_at, status (waiting \| approved \| denied \| expired \| withdrawn), decided_by_party_id, decided_at, expires_at, visitor_event_id? | Only current occupants of the unit may decide. Approval creates the check-in `visitor_events` row |
+- **`visitor_passes` (EXTENDED):**
+  - `origin` (pre_registered \| gate_request);
+  - states waiting \| approved \| denied \| expired \| withdrawn;
+  - `decided_by_party_id`.
 
-**Changes to `vehicles`:**
-- `status`: pending \| approved \| rejected \| retired
-- `submitted_by_party_id`, `approved_by`, `decided_at`
+  Only current occupants may decide. Approval creates the check-in `visitor_events` row.
+- **`vehicles` (EXTENDED):** status (pending \| approved \| rejected \| retired), approval fields. A plate is unique per site among approved vehicles.
 
-A plate is unique per site among approved vehicles.
-
-### 2.11 Transfers and clearance (`residents`, `dues`)
+### 2.11 Shared core
 
 | Entity | Key columns | Rules |
 |---|---|---|
-| `transfer_fee_policies` | site_id, version, fee_type (fixed \| by_unit_type \| pct_of_declared_value), amount_or_rate, bylaw_document_id, effective_from, status | No fee without a bylaw reference (D-42) |
-| `clearance_certificates` | unit_id, ownership_transfer_id?, number (from `number_sequences` per legal entity), issued_on, valid_until, balance_checked_at, outstanding_amount, waiver_approval_id?, issued_by, document_id | Issued only if outstanding = 0 or an approved waiver exists |
+| `generated_file_jobs` | kind (invoice_pack \| dues_notices \| owner_statement \| data_export), requested_by, scope (datasets, sites, legal entities), purpose, approval_request_id?, status, file_document_id?, expires_at | **Data exports (P1-9):** the content is the granted modules ∩ the **requester's own** effective permissions and data scopes, re-checked at generation and at download. **Approval can narrow the scope, never widen it.** Approver ≠ requester. Contact data follows consent purpose. Files expire |
+| `privacy_requests` | party_id, kind (access \| correction \| deletion), status, decision, retention_outcome, decided_by | Financial records are retained by law: anonymised, never deleted |
+| `content_reports` | subject_type (chat_message \| comment \| listing \| directory_listing), subject_id, reporter, reason, status, decided_by | The only route for moderators to see reported content |
+| `user_blocks` | blocker, blocked | Chat and marketplace |
+| `record_comments` | subject_type, subject_id, author, body, visibility (public \| internal), moderation_state | Issues, and later other records |
 
-**Changes:**
-- `ownership_transfers` gains `fee_invoice_id` and `clearance_certificate_id`.
-- `customer_invoices.source_type` gains `transfer_fee`.
+### 2.12 Transfers and clearance
 
-### 2.12 Core: data export and privacy requests
+- **Transfer fee:** a charge category with **versioned, effective-dated rates** (EXTENDED `charge_categories` / `charge_rate_versions`) and a required bylaw document reference.
+- **`clearance_certificates` (NEW):** unit_id, ownership_transfer_id?, number (per legal entity), issued_on, valid_until, balance_checked_at, outstanding_amount, waiver_approval_id?, issued_by, document_id. Issued only at a zero liable balance or with an approved waiver.
 
-| Entity | Plane | Key columns | Rules |
+## 3. Invariants
+
+These replace revision 1's I-23 to I-34.
+
+| # | Invariant | Proven in the prototype by |
+|---|---|---|
+| I-23 | No resident sees another resident's debt, login activity, contact details, poll choice or affirmation identity; small counts follow the privacy threshold | No-leak vectors (A-201/A-202, two blocks, one small floor) |
+| I-24 | Chat visibility starts at membership. On membership end, access, cached copies, queued messages and notifications are revoked | Membership vectors; a revocation E2E with an offline cache |
+| I-25 | *(Parked with safety)* Incident timelines are append-only; no wording implies dispatch | After the safety design |
+| I-26 | **Settled cash changes only through confirmed payments, posted vouchers or settlement confirmations.** An instruction never changes settled cash | Cashbook = sources test; instruction-without-settlement test |
+| I-27 | A closed period refuses postings dated in it; reopening needs an approval under the version in force | Period-lock tests on vouchers, payments, transfers and settlements |
+| I-28 | Each source event appears in the cashbook exactly once; each settlement leg is confirmed once; one bank transaction confirms at most one settlement | Idempotency vectors |
+| I-29 | An uncleared cheque settles nothing and yields no final receipt. Returned and reversed cheques leave history and reopen lines | Cheque vectors: received → returned; cleared → reversed |
+| I-30 | Rent and dues liability never mix; lease invoices use `lease` accounts | Separation vectors |
+| I-31 | **Rental money separation:** the issuing entity follows the management agreement model; client money stays in client accounts with an owner sub-ledger; deposits are liabilities; one owner's money never settles another owner's payable; nothing reaches the SaaS company | Two owners, one manager; agent and principal variants |
+| I-32 | An export never exceeds the requester's own effective access; approval narrows only; exports are audited and expire | Scope vectors (approver with wider rights cannot widen) |
+| I-33 | Switching apps never carries the other app's scope or cache | Cross-app no-leak E2E |
+| I-34 | Contact needs recorded consent for that channel and purpose | Consent refusal tests |
+| I-35 | No approval policy, delegation or draft lets a person approve their own request or activate their own policy | Self-approval vectors |
+
+## 4. Contracts (only when each milestone is authorised)
+
+- Contract files will gain:
+  - module keys;
+  - feature keys;
+  - permissions (see the matrix);
+  - types for the NEW and FORMALISED entities above.
+- Fixtures stay fictional and pass the A6 §7 rules.
+- Nothing is added to the code in this revision.
+
+## 5. Data classification
+
+| Data | Sensitivity | Who reads it | Retention |
 |---|---|---|---|
-| `data_export_jobs` | tenant | requested_by, datasets, site_ids, legal_entity_ids, format, status (requested \| approved \| generating \| ready \| expired \| rejected), approved_by, file_ref, expires_at, row_counts | Datasets ⊆ granted modules ∩ the requester's permissions. Maker ≠ checker |
-| `privacy_requests` | tenant | party_id, kind (access \| correction \| deletion), status, decision, retention_outcome, decided_by | Financial records are retained by law: anonymise, never delete |
-| `global_user_sessions` | central | see §2.3 | Self-revoke, and admin revoke (audited) |
-
-## 3. Changes to existing contracts (prototype, when each milestone starts)
-
-| Contract file (proposed) | Adds |
-|---|---|
-| `packages/contracts/src/access.ts` | 4 module keys; `SITE_SCOPED_MODULES` gains `community_chat`, `community_hub`, `safety`, `rentals`; new feature keys; `PERMISSION_MODULE` entries |
-| `packages/contracts/src/permissions.ts` | The §5 permissions of the matrix (illustrative) |
-| `chat.ts`, `safety.ts`, `rentals.ts`, `community.ts`, `hr.ts`, `cashbook.ts` (new) | Types for the entities above; status unions; mock endpoint signatures |
-| `billing.ts`, `portal.ts`, `sites.ts` (extended) | Account kind `lease`; source types `lease_schedule` and `transfer_fee`; office batches; reminders; gate requests; invitations |
-| Fixtures | Al-Noor: committee, chat groups, issues, staff roster, cashbook month. Riverbend: two leases, one landlord, one tenant. All fictional, passing the existing fictional-data rules (A6 §7) |
-
-## 4. New invariants
-
-| # | Invariant | Enforced by (production) | Proven in the prototype by |
-|---|---|---|---|
-| I-23 | No resident sees another resident's debt, login activity, contact details, poll choice or affirmation identity | Query layer + response shaping per audience | No-leak vectors with A-201/A-202 and two blocks |
-| I-24 | Chat visibility starts at membership; membership follows verified, effective-dated facts | Membership derivation service; `visible_from` filter | Membership vectors (join, move-out, term end, tenant vs owner) |
-| I-25 | SOS incident timelines are append-only. The product never asserts that help was dispatched | No update path; wording rules | Wording tests; append-only test (after the safety review) |
-| I-26 | Bulk cash creates payments only on confirmation by a different principal, and only for the liable payer's lines | Batch service | Collector ≠ confirmer test; allocation vectors |
-| I-27 | A closed period refuses new or changed financial records dated in it; reopening needs an approval | Period check in every posting path | Period-lock tests on the cashbook, payments, transfers and payouts |
-| I-28 | The cashbook equals the sum of its sources; one source event yields exactly one movement | Projection with a unique (source_type, source_id) | Reconciliation test: cashbook vs payments, expenses and transfers |
-| I-29 | Owner payouts are recorded, never executed, until Gate H. Payout ≤ statement closing payable | Payout service | Payout vectors; wording test ("Recorded, not sent") |
-| I-30 | Rent liability and dues liability never mix (`unit_liabilities.basis`); lease invoices use `lease` accounts | Engine validation | Separation vectors with one unit holding both |
-| I-31 | An export contains only granted modules, permitted datasets and selected legal entities; it is approved, audited and expires | Export service | Scope vectors; expiry test |
-| I-32 | One poll response per respondent key; anonymous polls cannot be linked back to a voter | Unique key; token design | Poll vectors |
-| I-33 | Switching apps never carries the other app's scope or cache | App-scoped sessions | Cross-app no-leak E2E |
-| I-34 | Contact through reminders, invitations, chat notifications or the directory requires recorded consent for that channel and purpose | Consent check in the delivery service | Consent refusal tests |
-
-## 5. Data classification for the new entities
-
-| Data | Sensitivity | Who reads it | Retention (proposed; confirmed with legal at Gate H) |
-|---|---|---|---|
-| Chat messages | Personal; may include sensitive content | Group members from their join date; moderators via reports | Tenant-set, default 24 months; removed on request where lawful |
-| SOS incidents and emergency contacts | Sensitive (safety) | Responders and reviewers | Set in the safety review |
-| Login activity | Personal (behavioural) | Permitted staff only, date granularity | 12 months of summaries |
-| Staff attendance, payroll, loans | Personal and financial | HR and payroll roles; the person | Statutory (adviser) |
-| Leases, deposits, owner statements | Financial | Rentals roles; landlord and tenant for their own | Statutory (adviser) |
-| Poll responses | Personal (opinion) | Aggregate only, or named polls to staff | Until the poll is archived, plus 12 months |
-| Exports | Bulk personal | Requester and approver | File expires in 7 days; the job record is kept for audit |
+| Chat messages | Personal; may be sensitive | Members from joining until membership ends; moderators via reports | **Tenant-configured with legal review; no presumed period;** deletion exceptions and user notice |
+| Login activity | Personal (behavioural) | Permitted staff, date level | Proposed 12 months of summaries; legal review |
+| Staff attendance, payroll, advances | Personal and financial | HR and payroll roles; the person | Statutory (adviser) |
+| Leases, deposits, owner sub-ledgers | Financial, client money | Rentals roles; landlord and tenant for their own records | Statutory (adviser) |
+| Poll responses | Personal (opinion) | Aggregates above the threshold, or named polls to staff | Poll archive + 12 months (proposed) |
+| Exports | Bulk personal | Requester and approver | Files expire in 7 days; the job is kept for audit |
+| *(Parked)* SOS incidents | Sensitive (safety) | Defined by the safety design | Defined by the safety design |
