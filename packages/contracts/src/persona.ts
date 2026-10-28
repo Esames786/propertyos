@@ -16,6 +16,11 @@ export interface Persona {
     | 'alnoor_manager'
     | 'alnoor_treasurer'
     | 'alnoor_guard'
+    | 'alnoor_accounts'
+    | 'alnoor_resident_a101'
+    | 'alnoor_tenant_a102'
+    | 'alnoor_owner_a201'
+    | 'alnoor_tenant_a202'
     | 'supreme_admin'
     | 'commercial_approver'
     | 'platform_support';

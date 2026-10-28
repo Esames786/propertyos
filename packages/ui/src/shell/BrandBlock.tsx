@@ -19,7 +19,7 @@ export function BrandBlock({ tenantName, compact = false, className }: { tenantN
       </span>
       {!compact && (
         <span className="min-w-0 leading-tight">
-          <span className="line-clamp-2 font-display text-[1rem] leading-tight text-text">
+          <span className="line-clamp-2 font-display text-base leading-tight text-text">
             <bdi>{tenantName}</bdi>
           </span>
           <span className="block truncate text-xs text-muted">

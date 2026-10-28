@@ -91,7 +91,7 @@ export function AppHeader({ tenantName }: { tenantName: string }) {
       >
         <Search aria-hidden className="size-4 shrink-0" />
         <span className="hidden min-w-0 flex-1 truncate text-start lg:inline">{t('nav:header.searchPlaceholder')}</span>
-        <kbd className="ltr-ref hidden rounded-sm bg-sunken px-1.5 py-0.5 text-[11px] text-muted lg:inline">{t('nav:header.searchShortcut')}</kbd>
+        <kbd className="ltr-ref hidden rounded-sm bg-sunken px-1.5 py-0.5 text-mini text-muted lg:inline">{t('nav:header.searchShortcut')}</kbd>
       </AriaButton>
       <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
         <span className="max-xs:hidden">

@@ -36,6 +36,16 @@ async function as(page: Page, persona: PersonaId) {
   }, persona);
 }
 
+/**
+ * C.1 starts from the society set up and ready to bill November (C.2 made "collecting", with
+ * November posted and payments arriving, the default demo; the owner kept "ready" and "fresh").
+ */
+async function seedReady(page: Page, options: Parameters<typeof seed>[1]) {
+  await seed(page, options);
+  await page.goto(`${BO}/backoffice/global/my-access`);
+  expect(await api(page, '/society/demo', 'POST', { mode: 'ready' })).toMatchObject({ ok: true });
+}
+
 async function open(page: Page, path: string, ready: string) {
   await page.goto(`${BO}${path}`);
   await expect(page.getByTestId(ready)).toBeVisible();
@@ -208,14 +218,26 @@ test.describe('Gate C.1: Al-Noor Residency, setup to monthly billing', () => {
     expect(consoleErrors).toEqual([]);
   });
 
-  test('AC-3: a payer change from next month leaves the October balance with the old payer', async ({ page, consoleErrors }) => {
-    await seed(page, { persona: 'alnoor_manager' });
+  test('AC-3: a payer change from next month, requested with a reason and approved by the treasurer, leaves the October balance with the old payer', async ({ page, consoleErrors }) => {
+    await seedReady(page, { persona: 'alnoor_manager' });
     await open(page, `${SITE}/units/unt_anr_b204?tab=payer`, 'flat-workspace');
     await page.getByTestId('flat-change-payer').click();
     const drawer = page.getByTestId('change-payer-drawer');
     await drawer.locator('[data-testid^="change-payer-party-"]', { hasText: 'Hina Rana' }).click();
+    await expect(drawer.getByTestId('change-payer-save')).toBeDisabled();
+    await drawer.getByTestId('change-payer-reason').fill('New tenancy agreement from 1 November.');
     await drawer.getByTestId('change-payer-save').click();
     await expect(drawer).toBeHidden();
+    // Requested, not yet in force: the requester cannot approve it.
+    const change = page.locator('[data-testid="liability-change"]', { hasText: 'Hina Rana' });
+    await expect(change).toHaveAttribute('data-state', 'pending_approval');
+    await expect(change.getByTestId('liability-approve')).toHaveCount(0);
+    await as(page, 'alnoor_treasurer');
+    await open(page, `${SITE}/units/unt_anr_b204?tab=payer`, 'liability-changes');
+    await change.getByTestId('liability-approve').click();
+    await expect(change).toHaveAttribute('data-state', 'approved');
+    await as(page, 'alnoor_manager');
+    await open(page, `${SITE}/units/unt_anr_b204?tab=payer`, 'liability-changes');
     await expect(page.getByTestId('fact-payer')).toContainText('Faisal Chaudhry');
     const history = page.getByTestId('liability-history');
     await expect(history).toContainText('Hina Rana');
@@ -231,7 +253,7 @@ test.describe('Gate C.1: Al-Noor Residency, setup to monthly billing', () => {
 
   test('phone, Urdu: the building manager prepares and sends November for approval', async ({ page, consoleErrors }) => {
     await page.setViewportSize(VIEWPORTS.phone);
-    await seed(page, { persona: 'alnoor_manager', locale: 'ur-PK' });
+    await seedReady(page, { persona: 'alnoor_manager', locale: 'ur-PK' });
     await page.goto(`${BO}/backoffice`);
     await expect(page.getByTestId('society-dashboard')).toBeVisible();
     await expect(page.getByTestId('bottom-nav').getByRole('link', { name: 'بلنگ' })).toBeVisible();
@@ -253,7 +275,7 @@ test.describe('Gate C.1: Al-Noor Residency, setup to monthly billing', () => {
   });
 
   test('keyboard only: find a flat from the dashboard, then create and preview the run', async ({ page, consoleErrors }) => {
-    await seed(page, { persona: 'alnoor_manager' });
+    await seedReady(page, { persona: 'alnoor_manager' });
     await page.goto(`${BO}/backoffice`);
     await expect(page.getByTestId('society-dashboard')).toBeVisible();
     const jump = page.getByTestId('flat-jump').getByRole('combobox');
@@ -279,7 +301,7 @@ test.describe('Gate C.1: Al-Noor Residency, setup to monthly billing', () => {
   });
 
   test('search (Ctrl+K) finds flats, people and the billing screens, and opens them', async ({ page, consoleErrors }) => {
-    await seed(page, { persona: 'alnoor_manager' });
+    await seedReady(page, { persona: 'alnoor_manager' });
     await page.goto(`${BO}/backoffice`);
     await expect(page.getByTestId('society-dashboard')).toBeVisible();
     await page.keyboard.press('Control+k');
@@ -308,7 +330,7 @@ test.describe('Gate C.1: Al-Noor Residency, setup to monthly billing', () => {
   });
 
   test('AC-15: the security guard reaches no billing, payers or statements; other organisations never see Al-Noor', async ({ page, consoleErrors }) => {
-    await seed(page, { persona: 'alnoor_guard' });
+    await seedReady(page, { persona: 'alnoor_guard' });
     await page.goto(`${BO}/backoffice`);
     await expect(page.getByTestId('plan-home')).toBeVisible();
     await expect(nav(page).getByRole('link', { name: 'Billing' })).toHaveCount(0);
@@ -337,7 +359,7 @@ test.describe('Gate C.1: Al-Noor Residency, setup to monthly billing', () => {
   });
 
   test('AC-17: switching to Urdu in the middle of an import keeps the work', async ({ page, consoleErrors }) => {
-    await seed(page, { persona: 'alnoor_manager' });
+    await seedReady(page, { persona: 'alnoor_manager' });
     await page.goto(`${BO}/backoffice`);
     await api(page, '/society/demo', 'POST', { mode: 'fresh' });
     await open(page, `${SITE}/import`, 'import-page');
@@ -356,7 +378,7 @@ test.describe('Gate C.1: Al-Noor Residency, setup to monthly billing', () => {
   });
 
   test('AC-17: 320 px reflow and 200 % zoom on the run workspace, its flats and the statement', async ({ page, consoleErrors }) => {
-    await seed(page, { persona: 'alnoor_manager' });
+    await seedReady(page, { persona: 'alnoor_manager' });
     await page.goto(`${BO}/backoffice`);
     const runId = await novemberRun(page, 'posted');
     for (const vp of ['reflow', 'zoom200'] as const) {
@@ -376,7 +398,7 @@ test.describe('Gate C.1: Al-Noor Residency, setup to monthly billing', () => {
   });
 
   test('AC-18: the building manager tour frames real controls and its guided step completes when the preview is generated', async ({ page, consoleErrors }) => {
-    await seed(page, { persona: 'alnoor_manager', onboarding: 'fresh' });
+    await seedReady(page, { persona: 'alnoor_manager', onboarding: 'fresh' });
     await page.goto(`${BO}/backoffice`);
     await page.getByTestId('welcome-start').click();
     const card = page.getByTestId('tour-card');
@@ -443,7 +465,7 @@ for (const locale of ['en-PK', 'ur-PK'] as Locale[]) {
     test(`axe and reflow: every C.1 screen (${locale}, ${vp})`, async ({ page }, testInfo) => {
       test.setTimeout(240_000);
       await page.setViewportSize(VIEWPORTS[vp]);
-      await seed(page, { persona: 'alnoor_manager', locale });
+      await seedReady(page, { persona: 'alnoor_manager', locale });
       const failures: string[] = [];
       await scanAll(page, testInfo, `${locale}-${vp}`, SCREENS, failures);
       expect(failures).toEqual([]);
@@ -452,7 +474,7 @@ for (const locale of ['en-PK', 'ur-PK'] as Locale[]) {
     test(`axe: run workspace, overlays and the import review (${locale}, ${vp})`, async ({ page }, testInfo) => {
       test.setTimeout(180_000);
       await page.setViewportSize(VIEWPORTS[vp]);
-      await seed(page, { persona: 'alnoor_manager', locale });
+      await seedReady(page, { persona: 'alnoor_manager', locale });
       await page.goto(`${BO}/backoffice`);
       const failures: string[] = [];
       const runId = await novemberRun(page, 'submitted');

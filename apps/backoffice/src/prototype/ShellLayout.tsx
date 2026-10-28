@@ -2,7 +2,7 @@ import type { AccessDecision, DenyReason, RecordAccess } from '@repo/contracts';
 import { AccessOutcomeView, AppShell, contextualNav, usePrototypeTools, withPrototypeTools, dynamicT, InlineAlert, Link, suspensionOf, useApiQuery, useSession, useT, workspaceRouteTarget, type Destination } from '@repo/ui';
 import { useMemo } from 'react';
 import { Navigate, Outlet, useLocation, useMatches, useSearchParams } from 'react-router';
-import { ACCESS_DATE, LINKS, NAV_ITEMS, SOCIETY } from '../nav.config';
+import { ACCESS_DATE, COLLECTIONS, LINKS, NAV_ITEMS, SOCIETY } from '../nav.config';
 import type { RouteHandle } from './handle';
 
 /**
@@ -56,6 +56,16 @@ export function ShellLayout() {
       { id: 'exemptions', label: t('nav:pages.exemptions'), href: SOCIETY.exemptions, permission: 'billing_run.view', keywords: 'exemption waiver exempt' },
       { id: 'billing-accounts', label: t('nav:pages.accounts'), href: SOCIETY.accounts(), permission: 'billing_run.view', keywords: 'billing accounts arrears dues balance statement' },
       { id: 'roster', label: t('nav:pages.roster'), href: SOCIETY.roster(), permission: 'site.view', module: 'residents', keywords: 'occupancy tenants owners payers flats' },
+      // Collections (Gate C.2).
+      { id: 'proof-inbox', label: t('nav:pages.proofInbox'), href: COLLECTIONS.inbox(), permission: 'finance.evidence.review', module: 'dues', keywords: 'proof transfer screenshot verify payment receipt' },
+      { id: 'payments', label: t('nav:pages.payments'), href: COLLECTIONS.payments(), permission: 'invoice.view', module: 'dues', keywords: 'payments received receipts cash' },
+      { id: 'office-cash', label: t('collections:office.title'), href: COLLECTIONS.officePayment(), permission: 'payment.receive', module: 'dues', keywords: 'cash counter office receipt' },
+      { id: 'bank-feed', label: t('nav:pages.bankFeed'), href: COLLECTIONS.bankFeed(), permission: 'bank.view', module: 'dues', keywords: 'bank statement import transactions' },
+      { id: 'reconciliation', label: t('nav:pages.reconciliation'), href: COLLECTIONS.reconciliation, permission: 'bank.view', module: 'dues', keywords: 'reconcile matched unidentified' },
+      { id: 'aging', label: t('nav:pages.aging'), href: COLLECTIONS.aging(), permission: 'collections.view', module: 'dues', keywords: 'aging arrears overdue defaulters' },
+      { id: 'credits', label: t('nav:pages.credits'), href: COLLECTIONS.credits, permission: 'collections.view', module: 'dues', keywords: 'credit overpayment advance unapplied' },
+      { id: 'statement', label: t('nav:pages.statement'), href: COLLECTIONS.statement(), permission: 'invoice.view', module: 'dues', keywords: 'statement account ledger balance' },
+      { id: 'payer-changes', label: t('nav:pages.payerChanges'), href: COLLECTIONS.payerChanges(), permission: 'site.view', module: 'dues', keywords: 'payer liability tenant owner change approve' },
       { id: 'tours', label: t('nav:pages.tourLibrary'), href: '/backoffice/help/tours', keywords: 'tour guide onboarding' },
       { id: 'practice', label: t('nav:pages.practice'), href: '/backoffice/help/practice', permission: 'lead.create', keywords: 'training demo' },
       { id: 'preferences', label: t('nav:pages.preferences'), href: LINKS.preferences, keywords: 'language accessibility motion contrast' },
@@ -68,6 +78,9 @@ export function ShellLayout() {
     [t, prototypeTools],
   );
 
+  // Phone bottom bar: finance people get their own areas first; others keep the menu order.
+  const slots = useMemo(() => (can('finance.evidence.review') && !can('billing_run.create') ? { bottomOrder: ['home', 'collections', 'billing', 'finance'] } : {}), [can]);
+
   if (!persona) {
     const next = encodeURIComponent(`${location.pathname}${location.search}`);
     return <Navigate to={`${returning ? LINKS.signIn : LINKS.getStarted}?next=${next}`} replace />;
@@ -79,7 +92,7 @@ export function ShellLayout() {
   const suspended = access?.tenant.status === 'suspended';
 
   return (
-    <AppShell appName={appName} navItems={navItems} destinations={destinations} links={LINKS} pageTitle={pageTitle} helpKey={handle?.helpKey ?? 'default'}>
+    <AppShell appName={appName} navItems={navItems} destinations={destinations} links={LINKS} pageTitle={pageTitle} helpKey={handle?.helpKey ?? 'default'} slots={slots}>
       {suspended && (
         <InlineAlert tone="warning" title={t('workspace:suspended.title', { organisation: tenant.name })} className="mb-6" role="status">
           <p data-testid="suspended-banner">

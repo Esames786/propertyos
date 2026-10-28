@@ -50,7 +50,7 @@ export function NavList({
             (collapsed ? (
               <div aria-hidden className="mx-auto mb-2 h-px w-6 bg-border" />
             ) : (
-              <p className="mb-2 px-3 text-[0.6875rem] font-semibold tracking-[0.08em] text-muted uppercase">{t(`nav:groups.${group}`)}</p>
+              <p className="mb-2 px-3 text-mini font-semibold tracking-[0.08em] text-muted uppercase">{t(`nav:groups.${group}`)}</p>
             ))}
           <ul className="space-y-1">
             {groupItems.map((item) => {
@@ -65,7 +65,7 @@ export function NavList({
                   aria-label={collapsed ? label : undefined}
                   data-tour-id={`${anchorPrefix}-${item.id}`}
                   className={cn(
-                    'relative flex min-h-11 items-center gap-3 rounded-tile px-3 text-[0.9375rem] outline-none',
+                    'relative flex min-h-11 items-center gap-3 rounded-tile px-3 text-md outline-none',
                     'transition-[background-color,color,translate] duration-[var(--motion-fast)] data-pressed:translate-y-px',
                     'data-focus-visible:outline-2 data-focus-visible:outline-offset-[-2px] data-focus-visible:outline-focus',
                     current ? 'bg-primary-soft font-semibold text-primary' : 'text-muted data-hovered:bg-sunken data-hovered:text-text',

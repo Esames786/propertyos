@@ -61,7 +61,7 @@ export function DoneStep({
           <Check className="size-10" strokeWidth={3} />
         </motion.span>
         <p className="mt-6 text-xs font-semibold tracking-[0.08em] text-accent uppercase">{t('start:setup.done.eyebrow')}</p>
-        <h1 id="page-title" ref={heading} tabIndex={-1} className="mt-2 font-display text-[2rem] leading-tight text-text outline-none sm:text-[2.6rem] [:lang(ur)_&]:leading-[1.75] [:lang(ur)_&]:pt-1">
+        <h1 id="page-title" ref={heading} tabIndex={-1} className="mt-2 font-display text-figure leading-tight text-text outline-none sm:text-figure-lg [:lang(ur)_&]:leading-[1.75] [:lang(ur)_&]:pt-1">
           {t('start:setup.done.heading')}
         </h1>
         <p className="mt-3 max-w-2xl text-base text-muted" data-testid="setup-done-body">

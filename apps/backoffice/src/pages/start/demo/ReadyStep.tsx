@@ -28,13 +28,14 @@ import {
   KeyRound,
   MapPin,
   PhoneCall,
+  Smartphone,
   Sparkles,
   Target,
   type LucideIcon,
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useEffect, useId, useRef } from 'react';
-import { LINKS, SOCIETY } from '../../../nav.config';
+import { COLLECTIONS, LINKS, SOCIETY } from '../../../nav.config';
 import { demoOf, focusHeading, type DemoRole } from '../entry';
 
 type CountId = keyof DemoOverview['counts'];
@@ -52,10 +53,35 @@ const PRACTICE = '/backoffice/help/practice';
 
 type Task = { id: string; href: string };
 
-/** Society demo: the first tasks depend on where the demo starts (before setup, or ready to bill). */
-function societyTasks(role: DemoRole, site: SiteSummary | undefined): Task[] {
+/** Society demo: the first tasks depend on the role and where the demo starts. */
+function societyTasks(role: DemoRole, site: SiteSummary | undefined, mode: SocietyDashboard['mode'] | undefined): Task[] {
   const siteId = site?.id ?? 'site_alnoor';
   const fresh = (site?.flats ?? 0) === 0;
+  const collecting = mode === 'collecting';
+  if (role === 'alnoor_accounts') {
+    return [
+      { id: 'proofs', href: COLLECTIONS.inbox() },
+      { id: 'bank', href: COLLECTIONS.bankFeed() },
+      { id: 'payments', href: COLLECTIONS.payments() },
+      { id: 'reconcile', href: COLLECTIONS.reconciliation },
+    ];
+  }
+  if (role === 'alnoor_manager' && collecting) {
+    return [
+      { id: 'collections', href: COLLECTIONS.dashboard },
+      { id: 'flat', href: SOCIETY.flat(siteId, 'unt_anr_a102') },
+      { id: 'aging', href: COLLECTIONS.aging() },
+      { id: 'people', href: SOCIETY.people() },
+    ];
+  }
+  if (role === 'alnoor_treasurer' && collecting) {
+    return [
+      { id: 'collections', href: COLLECTIONS.dashboard },
+      { id: 'settings', href: SOCIETY.site(siteId, 'payment-methods') },
+      { id: 'account', href: SOCIETY.site(siteId, 'collection-settings') },
+      { id: 'accounts', href: SOCIETY.accounts('arrears') },
+    ];
+  }
   if (role === 'alnoor_manager') {
     return fresh
       ? [
@@ -129,7 +155,8 @@ export function ReadyStep({ role, next, autoFocus, onSwitchRole }: { role: DemoR
   const tourAvailable = !!tour.welcomeTourId && tour.available.some((d) => d.id === tour.welcomeTourId);
   const society = demoOf(role) === 'society';
   const sites = useApiQuery<SiteSummary[]>(society && persona?.permissions.includes('site.view') ? { method: 'GET', path: '/sites' } : null);
-  const tasks = society ? societyTasks(role, sites.data?.[0]) : TASKS[role as keyof typeof TASKS];
+  const dashboard = useApiQuery<SocietyDashboard>(society && persona?.permissions.includes('site.view') ? { method: 'GET', path: '/society/dashboard' } : null);
+  const tasks = society ? societyTasks(role, sites.data?.[0], dashboard.data?.mode) : TASKS[role as keyof typeof TASKS];
 
   const startTour = () => {
     tour.decideWelcome('accepted', true);
@@ -153,7 +180,7 @@ export function ReadyStep({ role, next, autoFocus, onSwitchRole }: { role: DemoR
         </motion.span>
         <div className="min-w-0">
           <p className="text-xs font-semibold tracking-[0.08em] text-accent uppercase">{t('start:demo.ready.eyebrow')}</p>
-          <h1 id="page-title" ref={heading} tabIndex={-1} className="mt-1 font-display text-[2rem] leading-tight text-text outline-none sm:text-[2.6rem] [:lang(ur)_&]:leading-[1.75] [:lang(ur)_&]:pt-1">
+          <h1 id="page-title" ref={heading} tabIndex={-1} className="mt-1 font-display text-figure leading-tight text-text outline-none sm:text-figure-lg [:lang(ur)_&]:leading-[1.75] [:lang(ur)_&]:pt-1">
             {t('start:demo.ready.heading')}
           </h1>
           <p className="mt-2 text-base text-muted">
@@ -299,6 +326,25 @@ function Overview() {
 }
 
 
+/**
+ * The resident's side of the same story: the customer app of this browser shares the society demo
+ * with the office (a proof sent there reaches finance here; the receipt goes back). Labelled as a
+ * prototype link; nothing leaves the browser.
+ */
+function ResidentAppCard() {
+  const { t } = useT();
+  const href = `${window.location.protocol}//${window.location.hostname}:5174/customer/portal`;
+  return (
+    <a href={href} target="_blank" rel="noreferrer" className="mt-4 flex items-start gap-3 rounded-tile border border-border bg-raised p-4 text-start hover:bg-panel focus-visible:outline-2 focus-visible:outline-focus" data-testid="demo-resident-app">
+      <Smartphone aria-hidden className="mt-0.5 size-5 shrink-0 text-primary" />
+      <span className="min-w-0">
+        <span className="block text-sm font-semibold text-text">{t('start:demo.ready.society.residentTitle')}</span>
+        <span className="block text-xs text-muted">{t('start:demo.ready.society.residentBody')}</span>
+      </span>
+    </a>
+  );
+}
+
 /** What the society demo holds for this identity (counted by the API, like the developer demo). */
 function SocietyOverview() {
   const { t } = useT();
@@ -342,8 +388,9 @@ function SocietyOverview() {
         <MapPin aria-hidden className="size-3.5 text-muted" />
         <bdi>{site.name}</bdi>
         <span aria-hidden>·</span>
-        {site.flats === 0 ? t('start:demo.ready.society.fresh') : t('start:demo.ready.society.ready')}
+        {site.flats === 0 ? t('start:demo.ready.society.fresh') : dash.data.mode === 'collecting' ? t('start:demo.ready.society.collecting') : t('start:demo.ready.society.ready')}
       </p>
+      <ResidentAppCard />
     </>
   );
 }

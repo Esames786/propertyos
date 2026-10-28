@@ -1,4 +1,4 @@
-import type { Money, SetupStep, SocietyDashboard, SocietyTask } from '@repo/contracts';
+import type { CollectionsSummary, Money, SetupStep, SocietyDashboard, SocietyTask } from '@repo/contracts';
 import { fromPaisa, toPaisa } from '../portal';
 import { ALNOOR_ENTITY, ALNOOR_SITE } from './alnoor';
 import type { SocietyView, StoredRun } from './state';
@@ -15,7 +15,21 @@ export interface DashboardInput {
   /** The run of the period (not cancelled), with its staleness. */
   run: (StoredRun & { stale: boolean }) | null;
   principalId: string;
-  can: { manageSite: boolean; createRun: boolean; approveRun: boolean; postRun: boolean; approveOpening: boolean; approveExemption: boolean; seeInvoices: boolean };
+  can: {
+    manageSite: boolean;
+    createRun: boolean;
+    approveRun: boolean;
+    postRun: boolean;
+    approveOpening: boolean;
+    approveExemption: boolean;
+    seeInvoices: boolean;
+    reviewProofs: boolean;
+    reconcile: boolean;
+    approveBeneficiary: boolean;
+    approveLiability: boolean;
+  };
+  /** Collections figures, when the person may see them (C.2). */
+  collections: CollectionsSummary | null;
   today: string;
 }
 
@@ -50,6 +64,12 @@ export function buildSocietyDashboard(input: DashboardInput): SocietyDashboard {
   for (const b of state.openingBatches.filter((x) => x.state === 'pending_approval')) {
     approvals.push({ kind: 'opening_balances', id: b.id, label: b.fileName, href: `${SITE}/opening-balances`, yours: can.approveOpening && b.importedBy !== principalId });
   }
+  for (const c of state.payerChanges.filter((x) => x.state === 'pending_approval')) {
+    approvals.push({ kind: 'payer_change', id: c.id, label: c.flatCode, href: `${SITE}/units/${c.flatId}?tab=payer`, yours: can.approveLiability && c.requestedBy !== principalId });
+  }
+  for (const c of state.beneficiaryChanges.filter((x) => x.state === 'pending_approval')) {
+    approvals.push({ kind: 'beneficiary', id: c.id, label: c.proposed.iban, href: `${SITE}?tab=collection-settings`, yours: can.approveBeneficiary && c.proposedBy !== principalId });
+  }
 
   const tasks: SocietyTask[] = [];
   const task = (t: SocietyTask) => tasks.push(t);
@@ -57,6 +77,15 @@ export function buildSocietyDashboard(input: DashboardInput): SocietyDashboard {
   for (const a of approvals) {
     if (a.kind === 'opening_balances') task({ key: 'approve_opening_balances', urgency: 'normal', yours: a.yours, href: a.href });
   }
+  const payerChanges = approvals.filter((a) => a.kind === 'payer_change');
+  if (payerChanges.length) task({ key: 'approve_payer_changes', urgency: 'normal', count: payerChanges.length, yours: payerChanges.some((a) => a.yours), href: payerChanges.length === 1 ? payerChanges[0]!.href : '/backoffice/billing/payer-changes' });
+  const beneficiary = approvals.find((a) => a.kind === 'beneficiary');
+  if (beneficiary) task({ key: 'approve_beneficiary', urgency: 'urgent', yours: beneficiary.yours, href: beneficiary.href });
+  const c = input.collections;
+  if (c && c.queue.toReview) task({ key: 'review_proofs', urgency: 'urgent', count: c.queue.toReview, yours: can.reviewProofs, href: c.queue.href });
+  if (c && c.queue.needsInformation) task({ key: 'proofs_waiting_resident', urgency: 'normal', count: c.queue.needsInformation, yours: false, href: `${c.pending.href}?state=needs_information` });
+  if (c && c.bank.unmatched && can.reconcile) task({ key: 'reconcile_bank', urgency: 'normal', count: c.bank.unmatched, yours: true, href: c.bank.href });
+  if (c && c.credit.accounts && can.reviewProofs) task({ key: 'apply_credit', urgency: 'normal', count: c.credit.accounts, yours: true, href: c.credit.href });
   const pendingExemptions = approvals.filter((a) => a.kind === 'exemption');
   if (pendingExemptions.length) task({ key: 'approve_exemptions', urgency: 'normal', count: pendingExemptions.length, yours: pendingExemptions.some((a) => a.yours), href: '/backoffice/billing/exemptions' });
   if (state.register) {
@@ -78,7 +107,7 @@ export function buildSocietyDashboard(input: DashboardInput): SocietyDashboard {
   const flats = model.flats;
   const count = (o: string) => flats.filter((f) => f.occupancy === o).length;
   const flatOwed = new Map<string, bigint>();
-  for (const i of view.invoices) for (const l of i.lines) flatOwed.set(l.unitId, (flatOwed.get(l.unitId) ?? 0n) + toPaisa(l.amount.amount) - toPaisa(l.credited.amount));
+  for (const i of view.invoices) for (const l of i.lines) flatOwed.set(l.unitId, (flatOwed.get(l.unitId) ?? 0n) + toPaisa(l.amount.amount) - toPaisa(l.credited.amount) - toPaisa(l.allocated.amount));
   const accountsIn = (buildingId: string) => new Set(flats.filter((f) => f.buildingId === buildingId).map((f) => f.billingAccountId));
 
   const holder = (accountId: string) => model.accounts.find((a) => a.id === accountId);
@@ -97,7 +126,7 @@ export function buildSocietyDashboard(input: DashboardInput): SocietyDashboard {
     },
     outstanding: { amount: money(total(owed)), accounts: owed.size, href: '/backoffice/billing/accounts?status=owing' },
     arrears: { amount: money(total(overdue)), accounts: overdue.size, href: '/backoffice/billing/accounts?status=arrears' },
-    collected: { later: 'C.2' },
+    collections: input.collections,
     approvals: { count: approvals.length, yours: approvals.filter((a) => a.yours).length, href: approvals.length === 1 ? approvals[0]!.href : '#approvals', items: approvals },
     occupancy: {
       registered: flats.length,
@@ -145,8 +174,8 @@ export function buildSocietyDashboard(input: DashboardInput): SocietyDashboard {
       }),
     setup: { done, total: input.checklist.filter((s) => s.state !== 'later').length, ...(pending[0] ? { next: pending[0] } : {}) },
     later: [
-      { key: 'collections', gate: 'C.2' },
-      { key: 'proof_queue', gate: 'C.2' },
+      { key: 'online_payments', gate: 'D' },
+      { key: 'late_fees', gate: 'G' },
       { key: 'maintenance', gate: 'D' },
       { key: 'visitors', gate: 'D' },
       { key: 'notices', gate: 'D' },

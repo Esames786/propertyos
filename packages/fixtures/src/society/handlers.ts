@@ -9,7 +9,6 @@ import {
   type BillingRunDetail,
   type ChargeCategoryKey,
   type ChargeRule,
-  type CollectionSettings,
   type CreditNote,
   type Exemption,
   type FlatDetail,
@@ -19,6 +18,7 @@ import {
   type ImportRow,
   type InvoiceDetail,
   type InvoiceList,
+  type LiabilityChange,
   type Money,
   type OccupancyRow,
   type OpeningBalanceBatch,
@@ -42,13 +42,31 @@ import {
 import { authorize, can, decideRecord, matches, notFound, requires, type Handler, type HandlerContext } from '../handler-types';
 import { fromPaisa, toPaisa } from '../portal';
 import { pad } from '../seed';
-import { ALNOOR_ENTITY, ALNOOR_PAYEE, ALNOOR_SITE, DUE_DAY, FIRST_PERIOD, ISSUE_DAY, OPENING_AS_OF, sampleFlatFile, sampleOpeningFile } from './alnoor';
+import { ALNOOR_ENTITY, ALNOOR_SITE, DUE_DAY, FIRST_PERIOD, ISSUE_DAY, OPENING_AS_OF, sampleFlatFile, sampleOpeningFile } from './alnoor';
 import { assess, canStart, isOpen, isPosted, post, STATE_AFTER } from './billing-run';
+import { collectionsSummary } from './collections-read';
 import { resolveCharges } from './charges';
 import { buildSocietyDashboard } from './dashboard';
 import { committable, FLAT_COLUMNS, fingerprint, OPENING_COLUMNS, rowsOf, validateFlats, validateOpening } from './import';
 import { factOn, payerOn } from './model';
-import { flatBalances, initialSociety, openingBatchOf, openingInvoices, readySociety, SOCIETY_SECTION, viewOf, type SocietyAuditEntry, type SocietyState, type SocietyView, type StoredImport, type StoredRun } from './state';
+import { formatRef } from './numbering';
+import { initialSociety } from './scenario';
+import {
+  balances,
+  beneficiaryOn,
+  flatBalances,
+  nextRef,
+  openingBatchOf,
+  openingInvoices,
+  SOCIETY_SECTION,
+  SOCIETY_STATE_VERSION,
+  viewOf,
+  type SocietyAuditEntry,
+  type SocietyState,
+  type SocietyView,
+  type StoredImport,
+  type StoredRun,
+} from './state';
 import { invoiceRow, statementOf } from './statement';
 
 /**
@@ -59,7 +77,7 @@ import { invoiceRow, statementOf } from './statement';
  * idempotent, and posted invoices have no edit path (credit notes correct them).
  */
 
-interface Society {
+export interface Society {
   state: SocietyState;
   view: SocietyView;
   siteId: string;
@@ -68,41 +86,46 @@ interface Society {
 
 const money = (paisa: bigint): Money => ({ amount: fromPaisa(paisa), currency: 'PKR' });
 
-function society(ctx: HandlerContext): Society {
+/** Where a society demo starts when nobody chose (the C.2 storyline: November billed, payments arriving). */
+export const DEFAULT_SOCIETY_MODE = 'collecting' as const;
+
+export function society(ctx: HandlerContext): Society {
   const s = ctx.data.society;
   if (!s) notFound(ctx);
-  const state = ctx.demo.section<SocietyState>(SOCIETY_SECTION, () => readySociety());
+  const state = ctx.demo.section<SocietyState>(SOCIETY_SECTION, () => initialSociety(DEFAULT_SOCIETY_MODE));
+  // A session saved by an earlier prototype version starts again from its own starting point.
+  if (state.version !== SOCIETY_STATE_VERSION) Object.assign(state, initialSociety(state.mode ?? DEFAULT_SOCIETY_MODE));
   return { state, view: viewOf(state, ctx.at), siteId: s.siteId, legalEntityId: s.legalEntityId };
 }
 
-const recordOf = (s: Society, extra: AccessRecord = {}): AccessRecord => ({ siteId: s.siteId, legalEntityId: s.legalEntityId, ...extra });
+export const recordOf = (s: Society, extra: AccessRecord = {}): AccessRecord => ({ siteId: s.siteId, legalEntityId: s.legalEntityId, ...extra });
 
 /** The site named in the address must be this tenant's, licensed and in scope. */
-function siteOf(ctx: HandlerContext, module: Parameters<typeof authorize>[1] = 'core'): Society {
+export function siteOf(ctx: HandlerContext, module: Parameters<typeof authorize>[1] = 'core'): Society {
   const s = society(ctx);
   if (ctx.params.siteId !== undefined && ctx.params.siteId !== s.siteId) notFound(ctx);
   authorize(ctx, module, recordOf(s));
   return s;
 }
 
-function problem(ctx: HandlerContext, status: number, code: string, messageKey: string, errors?: Record<string, Array<{ code: string; params?: Record<string, string> }>>): never {
+export function problem(ctx: HandlerContext, status: number, code: string, messageKey: string, errors?: Record<string, Array<{ code: string; params?: Record<string, string> }>>): never {
   throw new ApiError({ status, code, messageKey, ...(errors ? { errors } : {}), correlationId: ctx.correlationId, changed: false });
 }
 
-const invalidField = (ctx: HandlerContext, field: string, code: string, params?: Record<string, string>): never =>
+export const invalidField = (ctx: HandlerContext, field: string, code: string, params?: Record<string, string>): never =>
   problem(ctx, 422, 'validation_failed', 'errors:validation.summary', { [field]: [{ code, ...(params ? { params } : {}) }] });
 
-const actor = (ctx: HandlerContext) => ({ by: ctx.persona!.principalId, byName: ctx.persona!.displayName });
+export const actor = (ctx: HandlerContext) => ({ by: ctx.persona!.principalId, byName: ctx.persona!.displayName });
 /** The demo's frozen date with the real time of day, so session events keep their order. */
-const stamp = (ctx: HandlerContext) => `${ctx.at}T${new Date().toISOString().slice(11)}`;
+export const stamp = (ctx: HandlerContext) => `${ctx.at}T${new Date().toISOString().slice(11)}`;
 
-function log(ctx: HandlerContext, s: Society, action: string, target: SocietyAuditEntry['target'], extra: Partial<SocietyAuditEntry> = {}) {
+export function log(ctx: HandlerContext, s: Society, action: string, target: SocietyAuditEntry['target'], extra: Partial<SocietyAuditEntry> = {}) {
   s.state.seq += 1;
   const { by, byName } = actor(ctx);
   s.state.audit.push({ id: `aud_anr_s${s.state.seq}`, at: stamp(ctx), by, byName, action, target, ...extra });
 }
 
-const save = (ctx: HandlerContext) => ctx.demo.save();
+export const save = (ctx: HandlerContext) => ctx.demo.save();
 
 const addMonths = (period: string, n: number) => {
   const [y, m] = period.split('-').map(Number) as [number, number];
@@ -112,7 +135,7 @@ const addMonths = (period: string, n: number) => {
 const lastDay = (period: string) => new Date(Date.UTC(Number(period.slice(0, 4)), Number(period.slice(5, 7)), 0)).toISOString().slice(0, 10);
 
 /** The first period that has not been posted yet (the one a new run or rule change affects). */
-function openPeriod(state: SocietyState): string {
+export function openPeriod(state: SocietyState): string {
   const posted = new Set(state.runs.filter((r) => isPosted(r.state)).map((r) => r.period));
   let p = FIRST_PERIOD;
   while (posted.has(p)) p = addMonths(p, 1);
@@ -120,7 +143,7 @@ function openPeriod(state: SocietyState): string {
 }
 
 /** The period the dashboard and workspaces talk about: the latest run's, else the next to bill. */
-function currentPeriod(state: SocietyState): string {
+export function currentPeriod(state: SocietyState): string {
   const latest = [...state.runs].filter((r) => isOpen(r.state)).sort((a, b) => b.period.localeCompare(a.period))[0];
   return latest?.period ?? openPeriod(state);
 }
@@ -130,6 +153,13 @@ const PERIOD = /^\d{4}-(0[1-9]|1[0-2])$/;
 // ---------------------------------------------------------------------------------------------
 // Billing runs
 // ---------------------------------------------------------------------------------------------
+
+/** A run's reference from the numbering scheme; a period run again after a cancellation gets "-2", "-3" … */
+function runRef(state: SocietyState, period: string): string {
+  const base = formatRef(state.numbering.run, { code: state.numbering.code, seq: 1, on: period });
+  const earlier = state.runs.filter((r) => r.period === period).length;
+  return earlier ? `${base}-${earlier + 1}` : base;
+}
 
 function assessmentOf(s: Society, r: Pick<StoredRun, 'id' | 'period' | 'postingVersion'>) {
   return assess({ model: s.view.model, facts: s.view.facts, rules: s.state.rules, exemptions: s.state.exemptions, period: r.period, postingVersion: r.postingVersion, runId: r.id });
@@ -169,7 +199,10 @@ function actionOutcome(ctx: HandlerContext, s: Society, r: StoredRun, action: Bi
   // Whoever prepared the run never decides on it, whatever their role holds (maker ≠ checker, I-17).
   const me = ctx.persona!.principalId;
   if ((action === 'approve' || action === 'return') && (r.createdBy === me || r.submittedBy === me)) return { allowed: false, reason: 'maker_checker_required' };
+  // Posting: never the person who prepared the run, and only roles the site's posting policy names.
+  if ((action === 'post' || action === 'notify') && (r.createdBy === me || r.submittedBy === me)) return { allowed: false, reason: 'maker_checker_required' };
   if (!can(ctx, ACTION_PERMISSION[action])) return { allowed: false, reason: 'permission_missing' };
+  if (action === 'post' && !s.state.posting.roles.includes(ctx.persona!.roleId ?? '')) return { allowed: false, reason: 'posting_policy' };
   if ((action === 'submit' || action === 'approve') && isStale(s, r)) return { allowed: false, reason: 'stale_preview' };
   return { allowed: true };
 }
@@ -213,6 +246,7 @@ function guard(ctx: HandlerContext, s: Society, r: StoredRun, action: BillingRun
   if (o.reason === 'maker_checker_required') problem(ctx, 403, 'maker_checker_required', 'billing:errors.makerChecker');
   if (o.reason === 'stale_preview') problem(ctx, 409, 'stale_preview', 'billing:errors.stalePreview');
   if (o.reason === 'permission_missing') problem(ctx, 403, 'permission_missing', 'errors:access.permission_missing');
+  if (o.reason === 'posting_policy') problem(ctx, 403, 'posting_policy', 'billing:errors.postingPolicy');
   problem(ctx, 409, 'invalid_transition', 'billing:errors.invalidTransition');
 }
 
@@ -249,7 +283,7 @@ function checklistOf(s: Society): SetupStep[] {
     { key: 'payee', state: 'done', href: `${SITE}?tab=collection-settings` },
     { key: 'charges', state: !flats ? 'blocked' : hasRules ? 'done' : 'todo', waitsFor: 'flats', href: '/backoffice/billing/rules', count: st.rules.length },
     { key: 'first_run', state: !hasRules ? 'blocked' : posted ? 'done' : 'todo', waitsFor: 'charges', href: '/backoffice/billing/runs' },
-    { key: 'invitations', state: 'later', gate: 'C.2', href: '/backoffice/res/occupancy-list' },
+    { key: 'invitations', state: 'later', gate: 'D', href: '/backoffice/res/occupancy-list' },
   ];
   const next = steps.find((x) => x.state === 'todo');
   if (next) next.state = 'next';
@@ -285,11 +319,12 @@ function flatOf(ctx: HandlerContext, s: Society, flatId: string) {
 
 const personRoles = (s: Society, partyId: string, on: string) => [...new Set(s.view.facts.filter((f) => f.partyId === partyId && factOn(f, on)).map((f) => f.role))];
 
-function accountRow(s: Society, accountId: string, today: string): BillingAccountRow {
+export function accountRow(s: Society, accountId: string, today: string): BillingAccountRow {
   const a = s.view.model.accounts.find((x) => x.id === accountId)!;
   const flats = s.view.model.flats.filter((f) => f.billingAccountId === a.id);
   const invoices = s.view.invoices.filter((i) => i.billingAccountId === a.id);
-  const balance = invoices.reduce((n, i) => n + toPaisa(i.outstanding.amount), 0n);
+  // Open charges less unapplied credit: below zero means the account is in credit.
+  const balance = balances(s.view).get(a.id) ?? 0n;
   const overdue = invoices.filter((i) => i.overdue).reduce((n, i) => n + toPaisa(i.outstanding.amount), 0n);
   return {
     id: a.id,
@@ -472,7 +507,8 @@ export const SOCIETY_HANDLERS: readonly Handler[] = [
     access: requires('core', 'signed_in', 'operational'),
     handle: (ctx) => {
       if (!ctx.data.society) notFound(ctx);
-      const mode: SocietyDemoMode = (ctx.req.body as { mode?: string } | undefined)?.mode === 'fresh' ? 'fresh' : 'ready';
+      const asked = (ctx.req.body as { mode?: string } | undefined)?.mode;
+      const mode: SocietyDemoMode = asked === 'fresh' || asked === 'ready' || asked === 'collecting' ? asked : DEFAULT_SOCIETY_MODE;
       const fresh = initialSociety(mode);
       const state = ctx.demo.section<SocietyState>(SOCIETY_SECTION, () => fresh);
       Object.assign(state, fresh);
@@ -502,7 +538,12 @@ export const SOCIETY_HANDLERS: readonly Handler[] = [
           approveOpening: can(ctx, 'opening_balance.approve'),
           approveExemption: can(ctx, 'billing_run.approve'),
           seeInvoices: can(ctx, 'invoice.view'),
+          reviewProofs: can(ctx, 'finance.evidence.review'),
+          reconcile: can(ctx, 'bank.reconcile'),
+          approveBeneficiary: can(ctx, 'beneficiary.approve'),
+          approveLiability: can(ctx, 'liability.approve'),
         },
+        collections: can(ctx, 'collections.view', 'history_read') ? collectionsSummary(s, ctx.at, { bank: can(ctx, 'bank.view', 'history_read') }) : null,
         today: ctx.at,
       });
     },
@@ -620,33 +661,118 @@ export const SOCIETY_HANDLERS: readonly Handler[] = [
         balance: money(flatBalances(s.view).get(flat.id) ?? 0n),
         exempt: isExemptNow(s, flat.id),
         floorFlats: m.flats.filter((f) => f.floorId === floor.id).map((f) => ({ id: f.id, code: f.code })),
+        changes: s.state.payerChanges.filter((c) => c.flatId === flat.id).sort((a, b) => b.requestedAt.localeCompare(a.requestedAt)),
+        firstOpenPeriod: openPeriod(s.state),
       };
     },
   },
   {
-    // Change who pays for one flat from a date (A4 §8): the old period ends, history is kept.
+    // Request a change of who pays for one flat from a date (A4 §8). Nothing changes until another
+    // person approves it (owner decision, C.1 review): liability is financial, so it is maker-checker.
+    // A correction names the change it corrects; approving it supersedes that change.
     method: 'POST',
     pattern: /^\/sites\/(?<siteId>[\w-]+)\/units\/(?<flatId>[\w-]+)\/payer$/,
     access: requires('core', 'site.manage', 'operational'),
-    handle: (ctx) => {
+    handle: (ctx): LiabilityChange => {
       const s = siteOf(ctx);
       const flat = flatOf(ctx, s, ctx.params.flatId!);
-      const body = (ctx.req.body ?? {}) as { partyId?: string; from?: string };
+      const body = (ctx.req.body ?? {}) as { partyId?: string; from?: string; reason?: string; corrects?: string };
       const candidates = s.view.facts.filter((f) => f.flatId === flat.id && (f.role === 'owner' || f.role === 'occupant') && factOn(f, ctx.at)).map((f) => f.partyId);
       if (!body.partyId || !candidates.includes(body.partyId)) invalidField(ctx, 'partyId', 'sites:payer.problems.party');
       const from = String(body.from ?? '');
       if (!/^\d{4}-\d{2}-01$/.test(from)) invalidField(ctx, 'from', 'sites:payer.problems.firstOfMonth');
       // A posted period is history: liability for it cannot be rewritten.
       if (from.slice(0, 7) < openPeriod(s.state)) invalidField(ctx, 'from', 'sites:payer.problems.periodPosted', { period: openPeriod(s.state) });
+      const reason = String(body.reason ?? '').trim();
+      if (reason.length < 5) invalidField(ctx, 'reason', 'sites:payer.problems.reason');
+      let corrects: LiabilityChange | undefined;
+      if (body.corrects) {
+        corrects = s.state.payerChanges.find((c) => c.id === body.corrects && c.flatId === flat.id);
+        if (!corrects || corrects.state !== 'approved') invalidField(ctx, 'corrects', 'sites:payer.problems.corrects');
+        if (corrects!.from.slice(0, 7) < openPeriod(s.state)) invalidField(ctx, 'corrects', 'sites:payer.problems.periodPosted', { period: openPeriod(s.state) });
+      }
+      if (s.state.payerChanges.some((c) => c.flatId === flat.id && c.state === 'pending_approval')) problem(ctx, 409, 'change_pending', 'sites:errors.changePending');
       const current = payerOn(s.view.facts, flat.id, from);
-      if (current?.partyId === body.partyId) invalidField(ctx, 'partyId', 'sites:payer.problems.same');
+      if (!corrects && current?.partyId === body.partyId) invalidField(ctx, 'partyId', 'sites:payer.problems.same');
       s.state.seq += 1;
       const { by, byName } = actor(ctx);
-      s.state.payerChanges.push({ id: `chg_anr_s${s.state.seq}`, flatId: flat.id, partyId: body.partyId!, from, by, byName, at: stamp(ctx) });
       const person = s.view.model.people.find((p) => p.id === body.partyId)!;
-      log(ctx, s, 'payerChanged', { kind: 'flat', id: flat.id, label: flat.code }, { flats: [flat.code], values: { from, name: person.displayName, previous: current?.partyName ?? '' } });
+      const change: LiabilityChange = {
+        id: `chg_anr_s${s.state.seq}`,
+        flatId: flat.id,
+        flatCode: flat.code,
+        ...(current ? { previousPartyId: current.partyId, previousName: current.partyName } : {}),
+        partyId: person.id,
+        partyName: person.displayName,
+        from,
+        reason,
+        state: 'pending_approval',
+        ...(corrects ? { corrects: corrects.id } : {}),
+        requestedBy: by,
+        requestedByName: byName,
+        requestedAt: stamp(ctx),
+      };
+      s.state.payerChanges.push(change);
+      log(ctx, s, corrects ? 'payerCorrectionRequested' : 'payerChangeRequested', { kind: 'payer_change', id: change.id, label: flat.code }, { flats: [flat.code], values: { from, name: person.displayName, previous: current?.partyName ?? '', reason } });
       save(ctx);
-      return { ok: true };
+      return change;
+    },
+  },
+  {
+    method: 'GET',
+    pattern: /^\/payer-changes$/,
+    access: requires('core', ['site.view', 'liability.approve'], 'history_read'),
+    handle: (ctx): LiabilityChange[] => {
+      if (!ctx.data.society) return [];
+      const s = siteOf(ctx);
+      const { state, flat } = (ctx.req.query ?? {}) as Record<string, string | undefined>;
+      return [...s.state.payerChanges]
+        .filter((c) => (!state || state === 'all' || c.state === state) && (!flat || c.flatId === flat))
+        .sort((a, b) => b.requestedAt.localeCompare(a.requestedAt));
+    },
+  },
+  {
+    // The second person decides (never the requester). Approval re-checks that the period is unbilled.
+    method: 'POST',
+    pattern: /^\/payer-changes\/(?<changeId>[\w-]+)\/(?<decision>[\w-]+)$/,
+    access: requires('receivables', 'liability.approve', 'operational'),
+    handle: (ctx): LiabilityChange => {
+      const s = siteOf(ctx);
+      const change = s.state.payerChanges.find((c) => c.id === ctx.params.changeId);
+      if (!change || !['approve', 'reject'].includes(ctx.params.decision!)) notFound(ctx);
+      if (change.state !== 'pending_approval') problem(ctx, 409, 'invalid_transition', 'billing:errors.invalidTransition');
+      if (change.requestedBy === ctx.persona!.principalId) problem(ctx, 403, 'maker_checker_required', 'billing:errors.makerChecker');
+      const note = String((ctx.req.body as { note?: string } | undefined)?.note ?? '').trim();
+      const approved = ctx.params.decision === 'approve';
+      if (!approved && note.length < 3) invalidField(ctx, 'note', 'billing:errors.noteRequired');
+      if (approved && change.from.slice(0, 7) < openPeriod(s.state)) problem(ctx, 409, 'period_posted', 'sites:payer.problems.periodPosted', { from: [{ code: 'sites:payer.problems.periodPosted', params: { period: openPeriod(s.state) } }] });
+      const { by, byName } = actor(ctx);
+      Object.assign(change, { state: approved ? 'approved' : 'rejected', decidedBy: by, decidedByName: byName, decidedAt: stamp(ctx), ...(note ? { note } : {}) });
+      if (approved) {
+        // The corrected change, and any earlier approved change for the same flat and date, stop applying.
+        for (const c of s.state.payerChanges) {
+          if (c.id !== change.id && c.state === 'approved' && c.flatId === change.flatId && (c.id === change.corrects || c.from === change.from)) c.state = 'superseded';
+        }
+      }
+      log(ctx, s, approved ? 'payerChangeApproved' : 'payerChangeRejected', { kind: 'payer_change', id: change.id, label: change.flatCode }, { flats: [change.flatCode], values: { from: change.from, name: change.partyName, ...(note ? { note } : {}) } });
+      save(ctx);
+      return change;
+    },
+  },
+  {
+    method: 'POST',
+    pattern: /^\/payer-changes\/(?<changeId>[\w-]+)\/withdraw$/,
+    access: requires('core', 'site.manage', 'operational'),
+    handle: (ctx): LiabilityChange => {
+      const s = siteOf(ctx);
+      const change = s.state.payerChanges.find((c) => c.id === ctx.params.changeId);
+      if (!change) notFound(ctx);
+      if (change.state !== 'pending_approval') problem(ctx, 409, 'invalid_transition', 'billing:errors.invalidTransition');
+      if (change.requestedBy !== ctx.persona!.principalId) problem(ctx, 403, 'not_requester', 'sites:errors.notRequester');
+      change.state = 'withdrawn';
+      log(ctx, s, 'payerChangeWithdrawn', { kind: 'payer_change', id: change.id, label: change.flatCode }, { flats: [change.flatCode], values: { from: change.from, name: change.partyName } });
+      save(ctx);
+      return change;
     },
   },
   {
@@ -829,7 +955,7 @@ export const SOCIETY_HANDLERS: readonly Handler[] = [
       const { by, byName } = actor(ctx);
       const approved = ctx.params.decision === 'approve';
       Object.assign(batch, { state: approved ? 'approved' : 'returned', decidedBy: by, decidedByName: byName, decidedAt: stamp(ctx), ...(note ? { note } : {}) });
-      if (approved) s.state.invoices.push(...openingInvoices(batch, s.view.facts, s.state.invoices.filter((i) => i.source === 'opening_balance').length));
+      if (approved) s.state.invoices.push(...openingInvoices(batch, s.view.facts, s.state.invoices.filter((i) => i.source === 'opening_balance').length, () => nextRef(s.state, 'opening', OPENING_AS_OF)));
       log(ctx, s, approved ? 'openingApproved' : 'openingReturned', { kind: 'opening_balances', id: batch.id, label: batch.fileName }, { values: { total: batch.total.amount, accounts: String(batch.accounts), ...(note ? { note } : {}) }, flats: batch.rows.map((r) => r.flatCode) });
       save(ctx);
       return (({ fileHash: _h, ...b }) => b)(batch);
@@ -1076,7 +1202,7 @@ export const SOCIETY_HANDLERS: readonly Handler[] = [
       const id = `brn_anr_${period.replace('-', '')}_s${s.state.seq}`;
       const run: StoredRun = {
         id,
-        ref: `ANR-RUN-${period.replace('-', '')}${s.state.runs.some((r) => r.period === period) ? `-${s.state.runs.filter((r) => r.period === period).length + 1}` : ''}`,
+        ref: runRef(s.state, period),
         siteId: s.siteId,
         siteName: ALNOOR_SITE.name,
         period,
@@ -1165,6 +1291,7 @@ export const SOCIETY_HANDLERS: readonly Handler[] = [
         run: { id: r.id, ref: r.ref, siteId: r.siteId, period: r.period, postingVersion: r.postingVersion, issueDate: r.issueDate, dueDate: r.dueDate },
         legalEntity: { id: s.legalEntityId, name: ALNOOR_ENTITY.name },
         posted: s.state.invoices.filter((i) => i.siteId === s.siteId),
+        nextRef: () => nextRef(s.state, 'invoice', r.period),
       });
       s.state.invoices.push(...result.created);
       r.items = r.items.map((i) => (result.itemInvoices[i.id] ? { ...i, invoiceId: result.itemInvoices[i.id]!.id, invoiceRef: result.itemInvoices[i.id]!.ref } : i));
@@ -1210,11 +1337,14 @@ export const SOCIETY_HANDLERS: readonly Handler[] = [
       const invoice = s.view.invoices.find((i) => i.id === ctx.params.invoiceId);
       if (!invoice) notFound(ctx);
       authorize(ctx, 'receivables', recordOf(s, { billingAccountId: invoice.billingAccountId, asOf: invoice.issuedOn }));
-      const balance = s.view.invoices.filter((i) => i.billingAccountId === invoice.billingAccountId).reduce((n, i) => n + toPaisa(i.outstanding.amount), 0n);
+      const balance = balances(s.view).get(invoice.billingAccountId) ?? 0n;
       return {
         invoice,
         creditNotes: s.state.creditNotes.filter((c) => c.invoiceId === invoice.id),
-        payee: ALNOOR_PAYEE,
+        payee: beneficiaryOn(s.state, invoice.legalEntityId, ctx.at),
+        payments: s.state.payments
+          .filter((p) => p.allocations.some((a) => a.invoiceId === invoice.id))
+          .map((p) => ({ id: p.id, ref: p.ref, receiptId: p.receiptId, receiptRef: p.receiptRef, receivedOn: p.receivedOn, method: p.method, amount: money(p.allocations.filter((a) => a.invoiceId === invoice.id).reduce((n, a) => n + toPaisa(a.amount.amount), 0n)) })),
         accountBalance: money(balance),
         actions: { creditNote: can(ctx, 'credit_note.create') && toPaisa(invoice.outstanding.amount) > 0n, edit: false },
       };
@@ -1255,14 +1385,15 @@ export const SOCIETY_HANDLERS: readonly Handler[] = [
       if (Object.keys(errors).length) problem(ctx, 422, 'validation_failed', 'errors:validation.summary', errors);
       const n = s.state.creditNotes.length + 1;
       const { by, byName } = actor(ctx);
+      const on = ctx.at > invoice.issuedOn ? ctx.at : invoice.issuedOn;
       const cn: CreditNote = {
-        id: `crn_anr_${pad(n, 4)}`,
-        ref: `ANR-CN-${pad(n, 4)}`,
+        id: `crn_${s.state.numbering.code.toLowerCase()}_${pad(n, 4)}`,
+        ref: nextRef(s.state, 'creditNote', on),
         invoiceId: invoice.id,
         invoiceRef: invoice.ref,
         billingAccountId: invoice.billingAccountId,
         // Never before the invoice it corrects (bills are issued ahead of their period).
-        on: ctx.at > invoice.issuedOn ? ctx.at : invoice.issuedOn,
+        on,
         amount: money(lines.reduce((t, l) => t + toPaisa(l.amount.amount), 0n)),
         lines,
         reason,
@@ -1296,35 +1427,12 @@ export const SOCIETY_HANDLERS: readonly Handler[] = [
         holderName: account.holderName,
         invoices: s.view.invoices,
         creditNotes: s.state.creditNotes,
+        payments: s.state.payments,
         from: from && /^\d{4}-\d{2}-\d{2}$/.test(from) ? from : `${period}-01`,
         to: to && /^\d{4}-\d{2}-\d{2}$/.test(to) ? to : lastDay(period),
         ...(party ? { payer: { partyId: party.id, name: party.displayName } } : {}),
         ...(unit ? { flat: { id: unit.id, code: unit.code } } : {}),
       });
-    },
-  },
-  {
-    method: 'GET',
-    pattern: /^\/sites\/(?<siteId>[\w-]+)\/collection-settings$/,
-    access: requires('receivables', ['invoice.view', 'site.view'], 'history_read'),
-    handle: (ctx): CollectionSettings => {
-      const s = siteOf(ctx, 'receivables');
-      return {
-        siteId: s.siteId,
-        issueDay: ISSUE_DAY,
-        dueDay: DUE_DAY,
-        graceDays: 0,
-        allocation: 'oldest_first',
-        lateFees: 'not_configured',
-        reminders: 'later',
-        payee: ALNOOR_PAYEE,
-        methods: [
-          { method: 'bank_transfer', allowed: true },
-          { method: 'office_cash', allowed: false, gate: 'C.2' },
-          { method: 'cheque', allowed: false, gate: 'C.2' },
-          { method: 'online', allowed: false, gate: 'D' },
-        ],
-      };
     },
   },
 ];

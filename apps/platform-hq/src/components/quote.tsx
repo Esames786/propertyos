@@ -30,7 +30,7 @@ export function explainLine(t: T, fmt: HqFormat, l: QuoteLine): string {
   return parts.join(' · ');
 }
 
-const figure = 'text-[1.4rem] leading-tight font-bold text-text tabular [overflow-wrap:anywhere] @2xl:text-[1.6rem] @4xl:text-[1.85rem]';
+const figure = 'text-lead leading-tight font-bold text-text tabular [overflow-wrap:anywhere] @2xl:text-figure-xs @4xl:text-3xl';
 
 /** The three numbers everyone asks for: first invoice, a typical month, the first year. */
 export function QuoteTotals({ quote, className, compact = false }: { quote: QuotePreview; className?: string; compact?: boolean }) {

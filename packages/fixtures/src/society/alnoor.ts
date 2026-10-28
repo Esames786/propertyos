@@ -1,4 +1,4 @@
-import type { Beneficiary, ChargeCategoryKey, FlatImportColumn, RuleScope } from '@repo/contracts';
+import type { Beneficiary, ChargeCategoryKey, FlatImportColumn, MethodRule, RuleScope } from '@repo/contracts';
 import { FIRST_NAMES, LAST_NAMES, URDU_NAMES } from '../people';
 import { pad } from '../seed';
 
@@ -15,12 +15,15 @@ import { pad } from '../seed';
 export const ALNOOR = { id: 'tnt_alnoor', name: 'Al-Noor Residency (Demo)' } as const;
 export const ALNOOR_SITE = { id: 'site_alnoor', name: 'Al-Noor Residency', city: 'Lahore', declaredFlats: 80 } as const;
 export const ALNOOR_ENTITY = { id: 'le_alnoor', name: 'Al-Noor Residency Owners’ Association (Demo)' } as const;
+/** The association's short code at this site: the numbering scheme's {code} (configurable, never hard-coded in engines). */
+export const ALNOOR_CODE = 'ANR';
 
 /** The society's staff in the demo (principal ids decide maker-checker, never names). */
 export const ALNOOR_STAFF = {
   manager: { principalId: 'usr_anr_0001', name: 'Imran Qureshi' },
   treasurer: { principalId: 'usr_anr_0002', name: 'Ayesha Malik' },
   guard: { principalId: 'usr_anr_0003', name: 'Shahid Hussain' },
+  accounts: { principalId: 'usr_anr_0004', name: 'Saba Javed' },
 } as const;
 
 export const BLOCKS = ['A', 'B'] as const;
@@ -189,11 +192,42 @@ export const OFFICE_EXEMPTION_REASON = 'Association office (committee resolution
 export const ALNOOR_PAYEE: Beneficiary = {
   id: 'ben_anr_main',
   siteId: ALNOOR_SITE.id,
+  legalEntityId: ALNOOR_ENTITY.id,
   legalEntityName: ALNOOR_ENTITY.name,
   bankName: 'Demo Bank',
+  branch: 'Gulberg, Lahore',
   accountTitle: ALNOOR_ENTITY.name,
   iban: 'PK36DEMO0000001234567890',
   referenceFormat: 'ANR-{flat}-{period}',
   status: 'verified',
-  verifiedOn: '2026-10-12',
+  verifiedOn: '2026-10-09',
+  activeFrom: '2026-10-12',
 };
+
+/** The committee's old account, retired when the association's own account took over (12 Oct). */
+export const ALNOOR_OLD_PAYEE: Beneficiary = {
+  id: 'ben_anr_committee',
+  siteId: ALNOOR_SITE.id,
+  legalEntityId: ALNOOR_ENTITY.id,
+  legalEntityName: ALNOOR_ENTITY.name,
+  bankName: 'Demo Bank',
+  branch: 'Model Town, Lahore',
+  accountTitle: 'Al-Noor Residency Welfare Committee (Demo)',
+  iban: 'PK70DEMO0000000987654321',
+  referenceFormat: 'ANR-{flat}-{period}',
+  status: 'retired',
+  verifiedOn: '2024-01-15',
+  activeFrom: '2024-01-15',
+  activeTo: '2026-10-12',
+};
+
+/** Days between approving a new collection account and residents being shown it (D-13). */
+export const COOLING_OFF_DAYS = 3;
+
+/** Method rules at go-live: transfers only; office cash allowed only once the committee turns it on. */
+export const ALNOOR_METHODS: MethodRule[] = [
+  { method: 'bank_transfer', enabled: true },
+  { method: 'office_cash', enabled: false, maxAmount: { amount: '50000.00', currency: 'PKR' }, counter: 'Society office, Block A ground floor · Mon–Sat 10:00–17:00' },
+  { method: 'cheque', enabled: false, gate: 'E' },
+  { method: 'online', enabled: false, gate: 'D' },
+];

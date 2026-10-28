@@ -50,7 +50,7 @@ export function MetricCard({
       <IconTile icon={icon} hue={hue} size="md" />
       <span className="min-w-0 flex-1">
         <span className="line-clamp-2 block text-sm leading-snug text-muted">{label}</span>
-        <span aria-hidden={accessibleValue ? true : undefined} className={cn('mt-0.5 block text-[1.375rem] leading-tight font-bold tracking-tight whitespace-nowrap tabular @[15rem]:text-2xl', VALUE_TONE[valueTone])}>
+        <span aria-hidden={accessibleValue ? true : undefined} className={cn('mt-0.5 block text-lead leading-tight font-bold tracking-tight whitespace-nowrap tabular @[15rem]:text-2xl', VALUE_TONE[valueTone])}>
           {value}
         </span>
         {caption && <span className="mt-0.5 block text-xs text-muted">{caption}</span>}

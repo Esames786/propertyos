@@ -1,4 +1,4 @@
-import { ACCESS_TODAY, BACKOFFICE_TENANTS, effectiveAccessFor, MockTransport, PERSONAS, TENANT } from '@repo/fixtures';
+import { ACCESS_TODAY, BACKOFFICE_TENANTS, DemoStore, effectiveAccessFor, localSharedPartitions, MockTransport, PERSONAS, TENANT } from '@repo/fixtures';
 import { getMissingKeys } from '@repo/i18n';
 import { AppProviders } from '@repo/ui';
 import { StrictMode } from 'react';
@@ -27,7 +27,8 @@ createRoot(document.getElementById('root')!).render(
       accessFor={effectiveAccessFor}
       accessDate={ACCESS_TODAY}
       createTransport={(getContext, getMode) => {
-        transport ??= new MockTransport({ getContext, getMode });
+        // The society demo is shared with the customer app of this browser (see shared-demo.ts).
+        transport ??= new MockTransport({ getContext, getMode, demo: new DemoStore(undefined, localSharedPartitions()) });
         window.__prototype = { transport, missingKeys: getMissingKeys };
         return transport;
       }}

@@ -69,7 +69,7 @@ export function MonogramTile({ letter, size = 'md' }: { letter: string; size?: '
       aria-hidden
       className={cn(
         'relative grid shrink-0 place-items-center bg-primary font-display leading-none text-on-primary shadow-[inset_0_0_0_1px_rgb(181_138_71/0.55)]',
-        size === 'lg' ? 'size-14 rounded-[16px] text-[1.75rem]' : 'size-10 rounded-[12px] text-xl',
+        size === 'lg' ? 'size-14 rounded-[16px] text-figure-sm' : 'size-10 rounded-[12px] text-xl',
       )}
     >
       {letter}

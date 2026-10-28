@@ -36,7 +36,8 @@
     "showMore": "Show more",
     "dismiss": "Dismiss",
     "continue": "Continue",
-    "reset": "Reset"
+    "reset": "Reset",
+    "done": "Done"
   },
   "state": {
     "loading": "Loading…",
@@ -58,7 +59,10 @@
     "treasurer": "Treasurer",
     "alnoor_manager": "Building manager",
     "alnoor_treasurer": "Committee treasurer",
-    "alnoor_guard": "Security guard"
+    "alnoor_guard": "Security guard",
+    "owner_resident": "Owner and resident",
+    "tenant_payer": "Tenant who pays",
+    "alnoor_accounts": "Accounts officer"
   },
   "welcomeBenefit": {
     "manager": "See every project, approve work and move anywhere quickly.",
@@ -74,7 +78,12 @@
     "cedar_treasurer": "Your workspace is suspended. You can still read the co-operative's financial history.",
     "alnoor_manager": "Set up Al-Noor Residency and prepare each month's maintenance bills, with every flat a click away.",
     "alnoor_treasurer": "Approve the billing runs, exemptions and opening balances someone else prepared, and correct posted bills with credit notes.",
-    "alnoor_guard": "Your role covers the gate and visitors. Billing and residents' finances are not part of it."
+    "alnoor_guard": "Your role covers the gate and visitors. Billing and residents' finances are not part of it.",
+    "alnoor_accounts": "Verify residents’ proofs, match the bank and issue receipts",
+    "alnoor_resident_a101": "See your bill, pay the exact total and get your receipt",
+    "alnoor_tenant_a102": "See your bill, pay the exact total and get your receipt",
+    "alnoor_owner_a201": "See your bill, pay the exact total and get your receipt",
+    "alnoor_tenant_a202": "See your bill, pay the exact total and get your receipt"
   },
   "demo": {
     "signInTitle": "Choose a demo identity",
@@ -258,6 +267,17 @@
     "security": "Security",
     "building_manager": "Building manager",
     "committee_treasurer": "Committee treasurer",
-    "security_guard": "Security guard"
+    "security_guard": "Security guard",
+    "accounts_officer": "Accounts officer"
+  },
+  "stepper": {
+    "stepOf": "Step {{n}} of {{total}}",
+    "state": {
+      "done": "done",
+      "current": "in progress",
+      "upcoming": "not yet",
+      "failed": "stopped",
+      "waiting": "waiting"
+    }
   }
 }

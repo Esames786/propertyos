@@ -3,13 +3,17 @@ import { Badge, cn, DateTime, dynamicT, ErrorState, Link, Money, SegmentedContro
 import { Ban, Check, Equal, Minus, Plus } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Radio, RadioGroup, Label as AriaLabel } from 'react-aria-components';
-import { SOCIETY } from '../../nav.config';
+import { COLLECTIONS, SOCIETY } from '../../nav.config';
 import { Loading, useSocietyFormat } from './kit';
 
-/** Months a statement can show in the demo: go-live arrears (October) and the first billed month. */
-export const STATEMENT_PERIODS = ['2026-10', '2026-11'] as const;
+/**
+ * What a statement can show in the demo: go-live arrears (October), the first billed month, and
+ * everything since go-live (payments made before the bill's date appear in their own month).
+ */
+export const STATEMENT_PERIODS = ['2026-10', '2026-11', 'all'] as const;
 
 const lastDay = (period: string) => new Date(Date.UTC(Number(period.slice(0, 4)), Number(period.slice(5, 7)), 0)).toISOString().slice(0, 10);
+const rangeOf = (period: string) => (period === 'all' ? { from: '2026-10-01', to: lastDay('2026-11') } : { from: `${period}-01`, to: lastDay(period) });
 
 /**
  * Account statement (A4 §4), derived by the server. The previous balance is shown apart from the
@@ -18,12 +22,13 @@ const lastDay = (period: string) => new Date(Date.UTC(Number(period.slice(0, 4))
 export function StatementView({ accountId, flat, payer, period, onPeriod, testId = 'statement' }: { accountId: string; flat?: string; payer?: string; period: string; onPeriod: (p: string) => void; testId?: string }) {
   const { t } = useT();
   const fmt = useSocietyFormat();
-  const q = useApiQuery<Statement>({ method: 'GET', path: `/statements/${accountId}`, query: { from: `${period}-01`, to: lastDay(period), ...(flat ? { flat } : {}), ...(payer ? { payer } : {}) } });
+  const q = useApiQuery<Statement>({ method: 'GET', path: `/statements/${accountId}`, query: { ...rangeOf(period), ...(flat ? { flat } : {}), ...(payer ? { payer } : {}) } });
+  const periodLabel = period === 'all' ? t('billing:statement.sinceGoLive') : fmt.period(period);
   return (
     <section className="@container space-y-4" data-testid={testId} aria-label={t('billing:statement.title')}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="text-base font-bold text-text">{t('billing:statement.titleFor', { period: fmt.period(period) })}</h3>
+          <h3 className="text-base font-bold text-text">{t('billing:statement.titleFor', { period: periodLabel })}</h3>
           {q.data && (
             <p className="text-sm text-muted">
               <bdi dir="ltr" className="ltr-ref">
@@ -35,7 +40,7 @@ export function StatementView({ accountId, flat, payer, period, onPeriod, testId
             </p>
           )}
         </div>
-        <SegmentedControl label={t('billing:statement.period')} value={period} onChange={onPeriod} options={STATEMENT_PERIODS.map((p) => ({ id: p, label: fmt.period(p) }))} testId={`${testId}-period`} />
+        <SegmentedControl label={t('billing:statement.period')} value={period} onChange={onPeriod} options={STATEMENT_PERIODS.map((p) => ({ id: p, label: p === 'all' ? t('billing:statement.sinceGoLive') : fmt.period(p) }))} testId={`${testId}-period`} />
       </div>
       {q.isError ? (
         <ErrorState error={q.error} onRetry={() => void q.refetch()} />
@@ -46,7 +51,7 @@ export function StatementView({ accountId, flat, payer, period, onPeriod, testId
           <dl className="grid gap-2 @2xl:grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr] @2xl:items-stretch" data-testid={`${testId}-sum`}>
             <SumCell label={t('billing:statement.previous')} value={<Money value={q.data.previousBalance} />} testId="statement-previous" />
             <Op icon={Plus} />
-            <SumCell label={t('billing:statement.charges', { period: fmt.period(period) })} value={<Money value={q.data.periodCharges} />} testId="statement-charges" />
+            <SumCell label={t('billing:statement.charges', { period: periodLabel })} value={<Money value={q.data.periodCharges} />} testId="statement-charges" />
             <Op icon={Minus} />
             <SumCell label={t('billing:statement.credits')} value={<Money value={q.data.periodCredits} />} testId="statement-credits" />
             <Op icon={Equal} />
@@ -58,7 +63,7 @@ export function StatementView({ accountId, flat, payer, period, onPeriod, testId
           ) : (
             <>
               <table className="hidden w-full text-sm @2xl:table">
-                <caption className="sr-only">{t('billing:statement.titleFor', { period: fmt.period(period) })}</caption>
+                <caption className="sr-only">{t('billing:statement.titleFor', { period: periodLabel })}</caption>
                 <thead>
                   <tr className="border-b border-border text-start text-xs text-muted">
                     <th scope="col" className="py-2 text-start font-medium">{t('billing:statement.date')}</th>
@@ -151,8 +156,15 @@ function Op({ icon: Icon }: { icon: typeof Plus }) {
 
 function EntryLabel({ kind, refText, refId, period, payer }: { kind: string; refText: string; refId: string; period?: string; payer?: string }) {
   const { t } = useT();
-  const label = kind === 'opening_balance' ? t('billing:statement.kinds.opening_balance') : kind === 'credit_note' ? t('billing:statement.kinds.credit_note') : t('billing:statement.kinds.invoice', { period: period ?? '' });
-  const href = kind === 'credit_note' ? undefined : SOCIETY.invoice(refId);
+  const label =
+    kind === 'opening_balance'
+      ? t('billing:statement.kinds.opening_balance')
+      : kind === 'credit_note'
+        ? t('billing:statement.kinds.credit_note')
+        : kind === 'payment'
+          ? t('billing:statement.kinds.payment')
+          : t('billing:statement.kinds.invoice', { period: period ?? '' });
+  const href = kind === 'credit_note' ? undefined : kind === 'payment' ? COLLECTIONS.payment(refId) : SOCIETY.invoice(refId);
   return (
     <span className="min-w-0">
       <span className="block font-medium text-text">{label}</span>

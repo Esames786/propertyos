@@ -15,7 +15,9 @@
     "lab": "Design system lab",
     "help": "Help and tours",
     "sites": "Sites & flats",
-    "billing": "Billing"
+    "billing": "Billing",
+    "collections": "Collections",
+    "bank": "Bank & reconciliation"
   },
   "header": {
     "search": "Search",
@@ -90,7 +92,18 @@
     "charges": "Charges and rates",
     "rules": "Charge rules",
     "exemptions": "Exemptions",
-    "invoice": "Invoice"
+    "invoice": "Invoice",
+    "collections": "Collections",
+    "proofInbox": "Payment proofs",
+    "proofReview": "Review a proof",
+    "payments": "Payments",
+    "payment": "Payment",
+    "credits": "Credit and overpayments",
+    "aging": "Aging and arrears",
+    "statement": "Account statement",
+    "bankFeed": "Bank transactions",
+    "reconciliation": "Reconciliation",
+    "payerChanges": "Payer changes"
   },
   "groups": {
     "workspace": "Workspace",

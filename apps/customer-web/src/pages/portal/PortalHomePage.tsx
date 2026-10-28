@@ -204,7 +204,7 @@ function PropertyHero({ data, fmt, className }: { data: PortalHome; fmt: PortalF
       <Photo imageKey={property.imageKey} sizes="(min-width: 1024px) 640px, 100vw" priority className="absolute inset-0 -z-10 size-full" labelPosition="top-end" />
       <div className="px-5 pb-5 text-inverse sm:px-6 sm:pb-6" style={{ paddingTop: IMAGE_SCRIM.fade, background: imageScrimGradient() }}>
         <p className="text-sm font-medium text-inverse">{t('portal:home.welcome')}</p>
-        <h1 id="page-title" className="mt-0.5 font-display text-[1.875rem] leading-tight text-inverse outline-none sm:text-[2.25rem]">
+        <h1 id="page-title" className="mt-0.5 font-display text-3xl leading-tight text-inverse outline-none sm:text-4xl">
           <bdi>{owner.displayName}</bdi>
         </h1>
         <p className="mt-1 text-sm text-inverse">
@@ -283,7 +283,7 @@ function NextInstalmentCard({ item, fmt, className }: { item: InstalmentItem | n
           <InstalmentStatusChip status={item.status} className="border-transparent" />
         </span>
       </div>
-      <p className="mt-4 text-[2.25rem] leading-none font-bold tracking-tight sm:text-[2.5rem]" data-testid="next-amount">
+      <p className="mt-4 text-4xl leading-none font-bold tracking-tight sm:text-figure-lg" data-testid="next-amount">
         <Amount value={item.amount.amount} />
       </p>
       <p className="mt-2.5 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-sm text-inverse">
@@ -312,7 +312,7 @@ function NextInstalmentCard({ item, fmt, className }: { item: InstalmentItem | n
               href={`${PORTAL.pay}?record=${item.id}&mode=online`}
               variant="plain"
               data-testid="next-pay"
-              className={buttonClass('secondary', 'lg', 'w-full gap-1.5 border-transparent bg-panel px-3 text-[0.9375rem] font-semibold text-primary data-hovered:bg-primary-soft')}
+              className={buttonClass('secondary', 'lg', 'w-full gap-1.5 border-transparent bg-panel px-3 text-md font-semibold text-primary data-hovered:bg-primary-soft')}
             >
               <Wallet aria-hidden className="size-5 shrink-0" />
               <span className="truncate">{t('portal:home.next.payOnline')}</span>
@@ -321,7 +321,7 @@ function NextInstalmentCard({ item, fmt, className }: { item: InstalmentItem | n
               href={`${PORTAL.pay}?record=${item.id}&mode=upload`}
               variant="plain"
               data-testid="next-upload"
-              className={buttonClass('secondary', 'lg', 'w-full gap-1.5 border-inverse/60 bg-transparent px-3 text-[0.9375rem] font-semibold text-inverse data-hovered:bg-inverse/10')}
+              className={buttonClass('secondary', 'lg', 'w-full gap-1.5 border-inverse/60 bg-transparent px-3 text-md font-semibold text-inverse data-hovered:bg-inverse/10')}
             >
               <Upload aria-hidden className="size-5 shrink-0" />
               <span className="truncate">{t('portal:home.next.uploadProof')}</span>
@@ -384,7 +384,7 @@ function ConstructionCard({ data, fmt }: { data: PortalHome; fmt: PortalFormat }
               <bdi dir="ltr" className="ltr-ref block text-base font-bold text-text">
                 {fmt.percent(construction.progress)}
               </bdi>
-              <span className="text-[10px] text-muted">{t('portal:home.construction.built')}</span>
+              <span className="text-micro text-muted">{t('portal:home.construction.built')}</span>
             </span>
           </ProgressRing>
           {latest && (

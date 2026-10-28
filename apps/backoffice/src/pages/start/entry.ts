@@ -1,5 +1,5 @@
 import { useQueryParam, type TileHue } from '@repo/ui';
-import { BadgeCheck, Briefcase, Building, Landmark, ShieldCheck, Wallet, type LucideIcon } from 'lucide-react';
+import { BadgeCheck, Briefcase, Building, Calculator, Landmark, ShieldCheck, Wallet, type LucideIcon } from 'lucide-react';
 
 /** The demos offered on Get started: a developer (Larkspur Estates) and a society (Al-Noor Residency). */
 export const DEMO_KINDS = ['developer', 'society'] as const;
@@ -8,7 +8,15 @@ export const isDemoKind = (v: string | null | undefined): v is DemoKind => DEMO_
 
 /** The backoffice demo roles of each demo (persona ids in the fixtures). */
 export const DEVELOPER_ROLES = ['manager', 'sales', 'finance'] as const;
-export const SOCIETY_ROLES = ['alnoor_manager', 'alnoor_treasurer', 'alnoor_guard'] as const;
+export const SOCIETY_ROLES = ['alnoor_manager', 'alnoor_treasurer', 'alnoor_accounts', 'alnoor_guard'] as const;
+
+/**
+ * Where the society demo starts (owner, C.1 review: Ready and Fresh kept): November billed with
+ * payments arriving (Gate C.2, the default), set up and ready to bill, or before setup.
+ */
+export const SOCIETY_STARTS = ['collecting', 'ready', 'fresh'] as const;
+export type SocietyStart = (typeof SOCIETY_STARTS)[number];
+export const isSocietyStart = (v: string | null | undefined): v is SocietyStart => SOCIETY_STARTS.includes(v as SocietyStart);
 export const DEMO_ROLES = [...DEVELOPER_ROLES, ...SOCIETY_ROLES] as const;
 export type DemoRole = (typeof DEMO_ROLES)[number];
 export const ROLES_OF: Record<DemoKind, readonly DemoRole[]> = { developer: DEVELOPER_ROLES, society: SOCIETY_ROLES };
@@ -24,6 +32,7 @@ export const ROLE_LOOK: Record<DemoRole, { hue: TileHue; icon: LucideIcon }> = {
   finance: { hue: 'gold', icon: Landmark },
   alnoor_manager: { hue: 'emerald', icon: Building },
   alnoor_treasurer: { hue: 'gold', icon: Wallet },
+  alnoor_accounts: { hue: 'teal', icon: Calculator },
   alnoor_guard: { hue: 'slate', icon: ShieldCheck },
 };
 

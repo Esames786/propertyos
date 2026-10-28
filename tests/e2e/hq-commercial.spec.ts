@@ -169,6 +169,8 @@ test.describe('Usage meters, evidence and billing (HQ-014, HQ-015)', () => {
 for (const locale of ['en-PK', 'ur-PK'] as Locale[]) {
   for (const vp of ['desktop', 'phone'] as const) {
     test(`axe: commercial pages (${locale}, ${vp})`, async ({ page }, testInfo) => {
+      // Many pages scanned in one test (usually 30–50 s); a budget like the other multi-screen axe tests.
+      test.setTimeout(150_000);
       await page.setViewportSize(VIEWPORTS[vp]);
       await seedHq(page, 'supreme_admin', locale);
       const failures: string[] = [];

@@ -1,4 +1,5 @@
 import type { ActivityEvent, Lead, SiteVisit, WorkspaceProfile } from '@repo/contracts';
+import type { SharedPartitions } from './shared-demo';
 
 /**
  * Session overlay for the demo environment (Stage 1.5R). Static fixtures stay immutable; actions a
@@ -68,10 +69,22 @@ function defaultStorage(): SessionStorageLike | undefined {
 export class DemoStore {
   private state: DemoSessionState;
   private readonly storage: SessionStorageLike | undefined;
+  /** Partitions shared with the other app of this browser (the society demo), when configured. */
+  readonly shared: SharedPartitions | undefined;
 
-  constructor(storage: SessionStorageLike | undefined = defaultStorage()) {
+  constructor(storage: SessionStorageLike | undefined = defaultStorage(), shared?: SharedPartitions) {
     this.storage = storage;
+    this.shared = shared;
     this.state = this.load();
+  }
+
+  /** Before a request: bring a shared partition up to date with the other app's latest writes. */
+  async prepare(key: string): Promise<void> {
+    if (!this.shared?.shares(key)) return;
+    await this.shared.sync(key);
+    const latest = this.shared.read(key);
+    if (latest) this.state.partitions[key] = { ...empty(), ...latest };
+    else delete this.state.partitions[key];
   }
 
   private load(): DemoSessionState {
@@ -90,8 +103,13 @@ export class DemoStore {
   }
 
   save(): void {
+    const own: DemoSessionState = { version: 2, partitions: {} };
+    for (const [key, overlay] of Object.entries(this.state.partitions)) {
+      if (this.shared?.shares(key)) this.shared.write(key, overlay);
+      else own.partitions[key] = overlay;
+    }
     try {
-      this.storage?.setItem(DEMO_STORE_KEY, JSON.stringify(this.state));
+      this.storage?.setItem(DEMO_STORE_KEY, JSON.stringify(own));
     } catch {
       /* memory copy is kept */
     }
@@ -99,6 +117,7 @@ export class DemoStore {
 
   /** Discards every partition (the visitor's "Reset demo"). */
   reset(): void {
+    for (const key of Object.keys(this.state.partitions)) if (this.shared?.shares(key)) this.shared.remove(key);
     this.state = { version: 2, partitions: {} };
     try {
       this.storage?.removeItem(DEMO_STORE_KEY);

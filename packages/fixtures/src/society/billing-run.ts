@@ -8,6 +8,7 @@ import type {
   CustomerInvoice,
   Exemption,
   FlatFact,
+  InvoiceGrouping,
   InvoiceLine,
   Money,
   UnitTypeCode,
@@ -22,8 +23,11 @@ import { payerOn, periodStart, type SocietyModel } from './model';
  * Billing run engine (A4 §3). The state machine, the assessment snapshot and posting are pure;
  * the mock server only stores what they return. Posting is idempotent: each line carries
  * hash(site, account, flat, period, rule, posting version), and a line already posted is never
- * posted again (I-7). One invoice per billing account and responsible payer: an account covering
- * flats with different payers gives each payer their own invoice (per-unit liability, A2 §4.5).
+ * posted again (I-7). Grouping is a setting: by default one invoice per billing account and
+ * responsible payer, so an account covering flats with different payers gives each payer their own
+ * invoice (per-unit liability, A2 §4.5). "flat" (one invoice per flat) and "payer" (one per payer
+ * across their accounts) keep the same lines; every line carries its own flat, account and payer.
+ * References come from the issuing entity's numbering scheme, never from this code.
  */
 
 /** Which states each action may start from (A4 §3 diagram). */
@@ -101,9 +105,12 @@ export function assessmentHash(items: readonly BillingRunItem[]): string {
 }
 
 const billable = (i: BillingRunItem) => toPaisa(i.total.amount) > 0n;
-const groupKey = (i: BillingRunItem) => `${i.billingAccountId}|${i.payerPartyId}`;
 
-export function totalsOf(items: readonly BillingRunItem[]): BillingRunTotals {
+/** Which lines share an invoice. The default keeps one invoice per account and responsible payer. */
+export const groupKey = (i: BillingRunItem, grouping: InvoiceGrouping = 'account_payer') =>
+  grouping === 'flat' ? i.unitId : grouping === 'payer' ? i.payerPartyId : `${i.billingAccountId}|${i.payerPartyId}`;
+
+export function totalsOf(items: readonly BillingRunItem[], grouping: InvoiceGrouping = 'account_payer'): BillingRunTotals {
   const billed = items.filter(billable);
   const byCategory = new Map<ChargeCategoryKey, { amount: bigint; flats: number }>();
   for (const i of billed) {
@@ -119,7 +126,7 @@ export function totalsOf(items: readonly BillingRunItem[]): BillingRunTotals {
     byType.set(i.type, { amount: t.amount + toPaisa(i.total.amount), flats: t.flats + 1 });
   }
   return {
-    invoices: new Set(billed.map(groupKey)).size,
+    invoices: new Set(billed.map((i) => groupKey(i, grouping))).size,
     flats: billed.length,
     exempt: items.filter((i) => i.exempt).length,
     accounts: new Set(billed.map((i) => i.billingAccountId)).size,
@@ -134,6 +141,9 @@ export interface PostContext {
   legalEntity: { id: string; name: string };
   /** Every invoice already posted for the site (to find lines posted before). */
   posted: readonly CustomerInvoice[];
+  /** The next invoice reference from the issuing entity's numbering scheme (called once per new invoice). */
+  nextRef: () => string;
+  grouping?: InvoiceGrouping;
 }
 
 /**
@@ -148,7 +158,7 @@ export function post(items: readonly BillingRunItem[], ctx: PostContext): { crea
 
   const groups = new Map<string, BillingRunItem[]>();
   for (const item of items.filter(billable)) {
-    const k = groupKey(item);
+    const k = groupKey(item, ctx.grouping);
     groups.set(k, [...(groups.get(k) ?? []), item]);
   }
 
@@ -170,6 +180,8 @@ export function post(items: readonly BillingRunItem[], ctx: PostContext): { crea
             period: run.period,
             amount: l.amount,
             credited: money(0n),
+            allocated: money(0n),
+            billingAccountId: item.billingAccountId,
             sourceType: 'billing_run' as const,
             sourceId: item.id,
             postingVersion: run.postingVersion,
@@ -189,7 +201,7 @@ export function post(items: readonly BillingRunItem[], ctx: PostContext): { crea
     sequence += 1;
     const first = group[0]!;
     const total = lines.reduce((s, l) => s + toPaisa(l.amount.amount), 0n);
-    const ref = `ANR-INV-${run.period.replace('-', '')}-${pad(sequence, 4)}`;
+    const ref = ctx.nextRef();
     const invoice: CustomerInvoice = {
       id: `cin_${run.period.replace('-', '')}_${pad(sequence, 4)}_v${run.postingVersion}`,
       ref,

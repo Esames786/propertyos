@@ -42,7 +42,7 @@ function Workspace({ data }: { data: BillingAccountDetail }) {
       <Breadcrumbs items={[{ label: t('nav:items.billing'), href: SOCIETY.runs }, { label: t('nav:pages.accounts'), href: SOCIETY.accounts() }]} />
       <header className="space-y-3">
         <p className="text-sm text-muted">{t('billing:account.kind')} · <bdi>{data.legalEntityName}</bdi></p>
-        <h1 id="page-title" className="text-[1.75rem] leading-tight font-bold tracking-tight text-text outline-none sm:text-[2rem]">
+        <h1 id="page-title" className="text-figure-sm leading-tight font-bold tracking-tight text-text outline-none sm:text-figure">
           <bdi dir="ltr">{data.accountNo}</bdi>
         </h1>
         <p className="text-sm text-text">{t('billing:account.holder', { name: data.holderName })}</p>

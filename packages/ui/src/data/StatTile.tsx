@@ -80,7 +80,7 @@ export function StatTile({
         )}
       </div>
       <div aria-hidden className="min-w-0">
-        <div className="text-[1.875rem] leading-none font-bold tracking-tight whitespace-nowrap text-text">{value}</div>
+        <div className="text-3xl leading-none font-bold tracking-tight whitespace-nowrap text-text">{value}</div>
         <div className="mt-3 flex items-end justify-between gap-3">
           {context ? <div className="min-w-0 text-xs leading-snug text-muted">{context}</div> : <span />}
           {trend && (

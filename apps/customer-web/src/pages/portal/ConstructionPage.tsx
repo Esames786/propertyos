@@ -39,7 +39,7 @@ function ConstructionView({ data, home }: { data: PortalConstruction; home?: Por
               <h2 id="overall-title" className="text-sm font-semibold tracking-wide text-inverse uppercase">
                 {t('portal:construction.overall')}
               </h2>
-              <p className="mt-1 font-display text-[2rem] leading-tight sm:text-[2.5rem]">
+              <p className="mt-1 font-display text-figure leading-tight sm:text-figure-lg">
                 <bdi>{data.projectName}</bdi>
               </p>
               {property?.towerName && property.possessionOn && (
@@ -61,7 +61,7 @@ function ConstructionView({ data, home }: { data: PortalConstruction; home?: Por
                 <bdi dir="ltr" className="ltr-ref block text-2xl font-bold">
                   {fmt.percent(data.progress)}
                 </bdi>
-                <span className="text-[11px] text-inverse">{t('portal:home.construction.built')}</span>
+                <span className="text-mini text-inverse">{t('portal:home.construction.built')}</span>
               </span>
             </ProgressRing>
           </div>

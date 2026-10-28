@@ -58,7 +58,7 @@ function DemoPill({ className }: { className?: string }) {
       role="note"
       data-testid="demo-environment"
       className={cn(
-        'inline-flex shrink-0 items-center gap-1 rounded-pill border border-demo/30 bg-demo-soft px-2 py-0.5 text-[11px] font-medium text-demo',
+        'inline-flex shrink-0 items-center gap-1 rounded-pill border border-demo/30 bg-demo-soft px-2 py-0.5 text-nav font-medium text-demo',
         className,
       )}
     >
@@ -133,7 +133,7 @@ export function CustomerShell({
           aria-current={on ? 'page' : undefined}
           data-tour-id={`portal-nav-${n.id}`}
           className={cn(
-            'flex h-full min-h-14 flex-col items-center justify-center gap-0.5 rounded-[1rem] px-0.5 text-[11px] leading-tight font-medium data-focus-visible:outline-offset-[-3px]',
+            '@container flex h-full min-h-14 flex-col items-center justify-center gap-0.5 rounded-[1rem] px-0.5 text-nav leading-tight font-medium data-focus-visible:outline-offset-[-3px]',
             focusRing,
             on ? 'font-semibold text-primary' : 'text-muted data-hovered:text-text',
           )}
@@ -149,7 +149,8 @@ export function CustomerShell({
             )}
             <Icon aria-hidden className="relative size-5" strokeWidth={on ? 2.2 : 1.8} />
           </span>
-          <span className="max-w-full truncate">{label(t, n.labelKey)}</span>
+          {/* Never larger than the slot allows (18 % of its width fits "Statement" on a 320 px phone). */}
+          <span className="max-w-full truncate text-[length:min(var(--text-nav),18cqi)]">{label(t, n.labelKey)}</span>
         </Link>
       </li>
     );
@@ -159,7 +160,10 @@ export function CustomerShell({
   const centreOn = centreAction ? current(centreAction) : false;
 
   return (
-    <div id="app-shell" className="min-h-dvh bg-bg [--body-size:1rem] md:flex">
+    <div
+      id="app-shell"
+      className="min-h-dvh bg-bg [--body-size:var(--text-base)] [--portal-nav-height:4.75rem] [--portal-nav-space:calc(var(--portal-nav-height)+max(0.75rem,env(safe-area-inset-bottom))+3rem)] md:flex"
+    >
       <SkipLink />
 
       {/* Tablet / desktop rail */}
@@ -184,7 +188,7 @@ export function CustomerShell({
                 aria-current={centreOn ? 'page' : undefined}
                 data-testid="portal-rail-action"
                 className={cn(
-                  'group flex min-h-12 w-full items-center justify-center gap-2 rounded-tile bg-primary px-4 text-[0.9375rem] font-semibold text-on-primary shadow-fab',
+                  'group flex min-h-12 w-full items-center justify-center gap-2 rounded-tile bg-primary px-4 text-md font-semibold text-on-primary shadow-fab',
                   'transition-[translate,background-color] duration-[var(--motion-fast)] data-hovered:-translate-y-0.5 data-hovered:bg-primary-hover data-pressed:translate-y-0',
                   'data-focus-visible:outline-offset-2',
                   focusRing,
@@ -203,7 +207,7 @@ export function CustomerShell({
             {navGroups.map((g) => (
               <div key={g.id}>
                 {g.labelKey && (
-                  <p className="mb-2 px-3 text-[0.6875rem] font-semibold tracking-[0.08em] text-muted uppercase">
+                  <p className="mb-2 px-3 text-mini font-semibold tracking-[0.08em] text-muted uppercase">
                     {label(t, g.labelKey)}
                   </p>
                 )}
@@ -218,7 +222,7 @@ export function CustomerShell({
                           aria-current={on ? 'page' : undefined}
                           data-tour-id={`portal-side-${n.id}`}
                           className={cn(
-                            'relative flex min-h-11 items-center gap-3 rounded-tile px-3 text-[0.9375rem] data-focus-visible:outline-offset-[-2px]',
+                            'relative flex min-h-11 items-center gap-3 rounded-tile px-3 text-md data-focus-visible:outline-offset-[-2px]',
                             'transition-[background-color,color] duration-[var(--motion-fast)]',
                             focusRing,
                             on
@@ -261,7 +265,7 @@ export function CustomerShell({
           className={cn(
             'sticky z-30 flex items-center gap-2 transition-[border-color,box-shadow] duration-[var(--motion-regular)]',
             // Phone: floating rounded bar
-            'top-2 mx-2 mt-2 h-16 rounded-[1.25rem] border border-border/80 bg-panel/95 ps-2.5 pe-1.5 shadow-card backdrop-blur-md',
+            'top-2 mx-2 mt-2 min-h-16 rounded-[1.25rem] border border-border/80 bg-panel/95 py-1.5 ps-2.5 pe-1.5 shadow-card backdrop-blur-md',
             // Tablet/desktop: a bar over the content column
             'md:top-0 md:mx-0 md:mt-0 md:h-[var(--header-height)] md:rounded-none md:border-x-0 md:border-t-0 md:border-b md:border-transparent md:bg-bg/85 md:px-8 md:shadow-none',
             'md:data-scrolled:border-border md:data-scrolled:shadow-[0_8px_24px_-18px_rgb(23_33_30/0.35)]',
@@ -270,8 +274,8 @@ export function CustomerShell({
           <Monogram name={tenant.name} className="size-9 text-lg md:hidden" />
           <span className="min-w-0 flex-1 leading-tight">
             {/* Inline-block with its own direction: a Latin name truncates at its end in Urdu too. */}
-            <span className="block text-sm font-semibold text-text md:hidden">
-              <span dir="auto" className="inline-block max-w-full truncate align-bottom">
+            <span className="block text-chrome font-semibold text-text md:hidden">
+              <span dir="auto" className="inline-block max-w-full align-bottom [overflow-wrap:anywhere]">
                 {tenant.name}
               </span>
             </span>
@@ -291,7 +295,7 @@ export function CustomerShell({
           id={MAIN_CONTENT_ID}
           tabIndex={-1}
           aria-label={pageTitle}
-          className="mx-auto w-full max-w-6xl px-4 pt-5 pb-[calc(7.5rem+env(safe-area-inset-bottom))] text-base outline-none sm:px-5 md:px-8 md:pt-4 md:pb-12"
+          className="mx-auto w-full max-w-6xl px-4 pt-5 pb-[var(--portal-nav-space)] text-base outline-none sm:px-5 md:px-8 md:pt-4 md:pb-12"
         >
           <PageEnter id={location.pathname}>{children}</PageEnter>
         </main>
@@ -302,9 +306,9 @@ export function CustomerShell({
         aria-label={t('portal:nav.label')}
         data-tour-id="portal-bottom-nav"
         data-testid="portal-bottom-nav"
-        className="fixed inset-x-2 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-30 rounded-[1.5rem] border border-border/80 bg-panel/95 shadow-lift backdrop-blur-md md:hidden"
+        className="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-30 rounded-[1.5rem] border border-border/80 bg-panel/95 shadow-lift backdrop-blur-md md:hidden"
       >
-        <ul className="mx-auto grid h-[4.5rem] max-w-lg grid-cols-5 items-stretch px-1 py-1">
+        <ul className="mx-auto grid h-[var(--portal-nav-height)] max-w-lg grid-cols-5 items-stretch gap-0.5 px-1.5 py-1">
           {bottomItems.slice(0, half).map(bottomItem)}
           {centreAction && CentreIcon ? (
             <li className="relative min-w-0">
@@ -314,7 +318,7 @@ export function CustomerShell({
                 data-tour-id="portal-centre-action"
                 data-testid="portal-centre-action"
                 className={cn(
-                  'group flex h-full flex-col items-center justify-end gap-0.5 rounded-[1rem] pb-1 text-[11px] leading-tight font-semibold data-focus-visible:outline-offset-[-3px]',
+                  'group flex h-full flex-col items-center justify-end gap-0.5 rounded-[1rem] pb-1 text-nav leading-tight font-semibold data-focus-visible:outline-offset-[-3px]',
                   focusRing,
                   centreOn ? 'text-primary' : 'text-text',
                 )}

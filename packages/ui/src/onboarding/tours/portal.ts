@@ -14,7 +14,7 @@ export const PORTAL_TOUR: TourDefinition = {
   id: 'PORTAL-TOUR-001',
   version: 1,
   app: 'customer',
-  applicablePersonas: '*',
+  applicablePersonas: ['resident'],
   nameKey: 'portal:tour.name',
   summaryKey: 'portal:tour.summary',
   steps: [

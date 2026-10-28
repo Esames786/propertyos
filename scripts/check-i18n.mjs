@@ -42,6 +42,8 @@ for (const file of baseFiles) {
     for (const [key, value] of base) {
       if (!other.has(key)) problems.push(`${locale}/${file}: missing ${key}`);
       else if (!String(other.get(key)).trim()) problems.push(`${locale}/${file}: empty value for ${key}`);
+      // A temporary English stub (marked ⟦EN⟧ while a translation is pending) never ships.
+      else if (String(other.get(key)).includes('⟦EN⟧')) problems.push(`${locale}/${file}: untranslated stub for ${key}`);
       else if (placeholders(value) !== placeholders(other.get(key)))
         problems.push(`${locale}/${file}: placeholders differ for ${key} ({${placeholders(value)}} vs {${placeholders(other.get(key))}})`);
     }

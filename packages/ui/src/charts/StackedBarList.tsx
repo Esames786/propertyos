@@ -86,7 +86,7 @@ export function StackedBarList({
                       animate={{ flexGrow: value, opacity: active && active !== row.id ? 0.5 : 1 }}
                       transition={{ duration: reduced ? 0 : 0.7, delay: reduced ? 0 : ri * 0.05 + si * 0.04, ease: [0.16, 1, 0.3, 1] }}
                       className={cn(
-                        'grid min-w-0 basis-0 place-items-center overflow-hidden text-[11px] font-semibold tabular',
+                        'grid min-w-0 basis-0 place-items-center overflow-hidden text-mini font-semibold tabular',
                         si > 0 && 'ms-0.5',
                         isLast && 'rounded-e-[4px]',
                         ser.ink === 'light' ? 'text-inverse' : 'text-text',

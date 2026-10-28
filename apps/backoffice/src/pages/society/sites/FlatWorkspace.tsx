@@ -1,10 +1,12 @@
-import { ApiError, type FlatDetail, type FlatFact, type InvoiceList, type ResolvedCharge, type Money as MoneyValue } from '@repo/contracts';
+import { ApiError, type FlatDetail, type FlatFact, type InvoiceList, type LiabilityChange, type ResolvedCharge, type Money as MoneyValue } from '@repo/contracts';
 import {
   Badge,
   Breadcrumbs,
   Button,
   buttonClass,
   cn,
+  ConfirmDialog,
+  DateTime,
   DirectionalIcon,
   Drawer,
   ErrorState,
@@ -14,6 +16,7 @@ import {
   NotFoundState,
   Panel,
   RelatedDrawer,
+  PlainTextArea,
   UrlTabs,
   useAnnounce,
   useApiMutation,
@@ -23,7 +26,7 @@ import {
   useT,
   useToast,
 } from '@repo/ui';
-import { ArrowRight, Ban, Building, ChevronLeft, ChevronRight, FileText, Layers, Link2, ReceiptText, Repeat2, ScrollText, UserRound, Users, Wallet } from 'lucide-react';
+import { ArrowRight, Ban, BadgeCheck, Building, ChevronLeft, ChevronRight, Clock3, FileText, History, Layers, Link2, ReceiptText, Repeat2, ScrollText, Undo2, UserRound, Users, Wallet, XCircle } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { ACCESS_DATE, SOCIETY } from '../../../nav.config';
 import { FactList, Loading, OccupancyBadge, ProblemAlert, SettlementBadge, useSocietyFormat } from '../kit';
@@ -59,6 +62,7 @@ function Workspace({ data }: { data: FlatDetail }) {
   const fmt = useSocietyFormat();
   const [, setTab] = useQueryParam('tab');
   const [drawer, setDrawer] = useQueryParam('drawer');
+  const [corrects, setCorrects] = useState<string | null>(null);
   const [related, setRelated] = useState(false);
   const { flat, building, floor, type } = data;
   const owner = data.owners.find((f) => isCurrent(f));
@@ -99,7 +103,7 @@ function Workspace({ data }: { data: FlatDetail }) {
             <p className="text-sm text-muted">
               {building.name} · {t('sites:flat.floorN', { level: floor.level })} · {type.name} · {t('sites:flat.area', { area: fmt.count(flat.areaSqft) })}
             </p>
-            <h1 id="page-title" className="mt-0.5 text-[1.75rem] leading-tight font-bold tracking-tight text-text outline-none sm:text-[2rem]">
+            <h1 id="page-title" className="mt-0.5 text-figure-sm leading-tight font-bold tracking-tight text-text outline-none sm:text-figure">
               {t('sites:flat.title')} <bdi dir="ltr" className="whitespace-nowrap">{flat.code}</bdi>
             </h1>
             <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -182,7 +186,17 @@ function Workspace({ data }: { data: FlatDetail }) {
           tab === 'people' ? (
             <PeopleTab data={data} />
           ) : tab === 'payer' ? (
-            <PayerTab data={data} onChange={() => setDrawer('change-payer')} />
+            <PayerTab
+              data={data}
+              onChange={() => {
+                setCorrects(null);
+                setDrawer('change-payer');
+              }}
+              onCorrect={(id) => {
+                setCorrects(id);
+                setDrawer('change-payer');
+              }}
+            />
           ) : tab === 'charges' ? (
             <ChargesTab data={data} />
           ) : tab === 'invoices' ? (
@@ -197,7 +211,15 @@ function Workspace({ data }: { data: FlatDetail }) {
         }
       </UrlTabs>
 
-      {can('site.manage') && <ChangePayerDrawer data={data} isOpen={drawer === 'change-payer'} onOpenChange={(open) => setDrawer(open ? 'change-payer' : null)} />}
+      {can('site.manage') && (
+        <ChangePayerDrawer
+          key={corrects ?? 'new'}
+          data={data}
+          isOpen={drawer === 'change-payer'}
+          onOpenChange={(open) => setDrawer(open ? 'change-payer' : null)}
+          {...((c) => (c ? { corrects: c } : {}))(data.changes.find((c) => c.id === corrects))}
+        />
+      )}
       <RelatedDrawer
         isOpen={related}
         onOpenChange={setRelated}
@@ -398,11 +420,16 @@ function PeopleTab({ data }: { data: FlatDetail }) {
   );
 }
 
-function PayerTab({ data, onChange }: { data: FlatDetail; onChange: () => void }) {
+function PayerTab({ data, onChange, onCorrect }: { data: FlatDetail; onChange: () => void; onCorrect: (changeId: string) => void }) {
   const { t } = useT();
   const { can } = useSession();
   return (
     <div className="grid gap-5 @4xl:grid-cols-[2fr_1fr]">
+      {data.changes.length > 0 && (
+        <div className="@4xl:col-span-2">
+          <LiabilityChanges data={data} onCorrect={onCorrect} />
+        </div>
+      )}
       <Panel
         title={t('sites:flat.liability')}
         description={t('sites:flat.liabilityHint')}
@@ -503,34 +530,43 @@ function InvoicesTab({ data }: { data: FlatDetail }) {
   );
 }
 
-function ChangePayerDrawer({ data, isOpen, onOpenChange }: { data: FlatDetail; isOpen: boolean; onOpenChange: (open: boolean) => void }) {
+/** The next few unbilled months a change may start in (the server checks again on approval). */
+const monthsFrom = (period: string, n = 4) =>
+  Array.from({ length: n }, (_, i) => {
+    const d = new Date(Date.UTC(Number(period.slice(0, 4)), Number(period.slice(5, 7)) - 1 + i, 1));
+    return d.toISOString().slice(0, 10);
+  });
+
+function ChangePayerDrawer({ data, isOpen, onOpenChange, corrects }: { data: FlatDetail; isOpen: boolean; onOpenChange: (open: boolean) => void; corrects?: LiabilityChange }) {
   const { t } = useT();
   const fmt = useSocietyFormat();
   const toast = useToast();
   const announce = useAnnounce();
   const mutation = useApiMutation();
   const people = [...data.owners, ...data.occupants].filter(isCurrent).filter((f, i, all) => all.findIndex((x) => x.partyId === f.partyId) === i);
+  const months = monthsFrom(data.firstOpenPeriod);
   const [partyId, setPartyId] = useState<string | null>(null);
-  const [from, setFrom] = useState<string>('2026-11-01');
-  const months = ['2026-11-01', '2026-12-01', '2027-01-01'];
+  const [from, setFrom] = useState<string>(months[0]!);
+  const [reason, setReason] = useState('');
   const current = data.currentPayer;
 
   const submit = async () => {
     if (!partyId) return;
-    await mutation.mutateAsync({ method: 'POST', path: `/sites/${data.flat.siteId}/units/${data.flat.id}/payer`, body: { partyId, from } });
+    await mutation.mutateAsync({ method: 'POST', path: `/sites/${data.flat.siteId}/units/${data.flat.id}/payer`, body: { partyId, from, reason, ...(corrects ? { corrects: corrects.id } : {}) } });
     const name = people.find((p) => p.partyId === partyId)?.partyName ?? '';
-    const msg = t('sites:payer.done', { name, flat: data.flat.code, date: fmt.date(from) });
+    const msg = t('sites:payer.requested', { name, flat: data.flat.code, date: fmt.date(from) });
     toast.success(msg);
     announce(msg);
     onOpenChange(false);
     setPartyId(null);
+    setReason('');
   };
 
   return (
     <Drawer
       isOpen={isOpen}
       onOpenChange={onOpenChange}
-      title={t('sites:payer.title', { flat: data.flat.code })}
+      title={corrects ? t('sites:payer.correctTitle', { flat: data.flat.code }) : t('sites:payer.title', { flat: data.flat.code })}
       subtitle={current ? t('sites:payer.current', { name: current.partyName }) : undefined}
       testId="change-payer-drawer"
       footer={
@@ -538,21 +574,26 @@ function ChangePayerDrawer({ data, isOpen, onOpenChange }: { data: FlatDetail; i
           <Button variant="secondary" onPress={() => onOpenChange(false)}>
             {t('common:actions.cancel')}
           </Button>
-          <Button variant="primary" onPress={() => void submit()} isDisabled={!partyId} isPending={mutation.isPending} data-testid="change-payer-save">
-            {t('sites:payer.save')}
+          <Button variant="primary" onPress={() => void submit()} isDisabled={!partyId || reason.trim().length < 5} isPending={mutation.isPending} data-testid="change-payer-save">
+            {t('sites:payer.request')}
           </Button>
         </div>
       }
     >
       <div className="space-y-5">
-        <InlineAlert tone="info">{t('sites:payer.history')}</InlineAlert>
+        <InlineAlert tone="info">{t('sites:payer.approvalNote')}</InlineAlert>
+        {corrects && (
+          <InlineAlert tone="warning" title={t('sites:payer.correcting', { name: corrects.partyName, date: fmt.date(corrects.from) })}>
+            <p>{t('sites:payer.correctingBody')}</p>
+          </InlineAlert>
+        )}
         <ChoiceCards
           label={t('sites:payer.who')}
           value={partyId}
           onChange={setPartyId}
           testId="change-payer-party"
           options={people
-            .filter((p) => p.partyId !== current?.partyId)
+            .filter((p) => corrects || p.partyId !== current?.partyId)
             .map((p) => ({ id: p.partyId, title: p.partyName, detail: t(`sites:roles.${p.role}`) }))}
         />
         <ChoiceCards
@@ -562,8 +603,96 @@ function ChangePayerDrawer({ data, isOpen, onOpenChange }: { data: FlatDetail; i
           testId="change-payer-from"
           options={months.map((m) => ({ id: m, title: fmt.period(m.slice(0, 7)), detail: m === months[0] ? t('sites:payer.fromNext') : undefined }))}
         />
+        <PlainTextArea label={t('sites:payer.reason')} description={t('sites:payer.reasonHelp')} value={reason} onChange={setReason} testId="change-payer-reason" />
         {mutation.isError && <ProblemAlert error={mutation.error} />}
       </div>
     </Drawer>
+  );
+}
+
+const CHANGE_STATE: Record<LiabilityChange['state'], ['warning' | 'success' | 'error' | 'neutral', typeof Clock3]> = {
+  pending_approval: ['warning', Clock3],
+  approved: ['success', BadgeCheck],
+  rejected: ['error', XCircle],
+  withdrawn: ['neutral', Undo2],
+  superseded: ['neutral', History],
+};
+
+/**
+ * Changes of liability for this flat: requested by one person, decided by another (never the
+ * requester); an approved change that has not started yet can be corrected (a new request that
+ * supersedes it on approval). History is kept: nothing is overwritten.
+ */
+function LiabilityChanges({ data, onCorrect }: { data: FlatDetail; onCorrect: (changeId: string) => void }) {
+  const { t } = useT();
+  const fmt = useSocietyFormat();
+  const { can, persona } = useSession();
+  const toast = useToast();
+  const mutation = useApiMutation<LiabilityChange>();
+  const [rejecting, setRejecting] = useState<LiabilityChange | null>(null);
+  const [error, setError] = useState<unknown>(null);
+  const decide = async (c: LiabilityChange, decision: 'approve' | 'reject' | 'withdraw', note?: string) => {
+    setError(null);
+    try {
+      await mutation.mutateAsync({ method: 'POST', path: `/payer-changes/${c.id}/${decision}`, body: note ? { note } : {} });
+      toast.success(t(`sites:payer.decided.${decision}`, { flat: c.flatCode }));
+    } catch (e) {
+      setError(e);
+    }
+  };
+  return (
+    <Panel title={t('sites:payer.changesTitle')} description={t('sites:payer.changesHint')}>
+      <ol className="space-y-2" data-testid="liability-changes">
+        {data.changes.map((c) => {
+          const [tone, Icon] = CHANGE_STATE[c.state];
+          const mine = c.requestedBy === persona?.principalId;
+          return (
+            <li key={c.id} className="flex flex-wrap items-start justify-between gap-3 rounded-tile border border-border px-4 py-3" data-testid="liability-change" data-state={c.state}>
+              <span className="min-w-0 text-sm">
+                <span className="block font-semibold text-text">
+                  {t('sites:payer.changeLine', { name: c.partyName, date: fmt.date(c.from) })}
+                </span>
+                <span className="block text-xs text-muted">
+                  {c.previousName && <>{t('sites:payer.insteadOf', { name: c.previousName })} · </>}
+                  {t('sites:payer.requestedBy', { name: c.requestedByName })} · <DateTime value={c.requestedAt} style="dateTime" />
+                  {c.decidedByName && <> · {t('sites:payer.decidedBy', { name: c.decidedByName })}</>}
+                </span>
+                <span className="block text-xs text-muted"><bdi>{t('billing:quote', { text: c.reason })}</bdi></span>
+                {c.corrects && <span className="block text-xs text-muted">{t('sites:payer.isCorrection')}</span>}
+              </span>
+              <span className="flex flex-wrap items-center gap-2">
+                <Badge tone={tone} icon={Icon}>{t(`sites:payer.states.${c.state}`)}</Badge>
+                {c.state === 'pending_approval' && can('liability.approve') && !mine && (
+                  <>
+                    <Button variant="primary" size="sm" icon={BadgeCheck} onPress={() => void decide(c, 'approve')} data-testid="liability-approve">{t('sites:payer.approve')}</Button>
+                    <Button variant="secondary" size="sm" icon={XCircle} onPress={() => setRejecting(c)} data-testid="liability-reject">{t('sites:payer.reject')}</Button>
+                  </>
+                )}
+                {c.state === 'pending_approval' && mine && (
+                  <Button variant="quiet" size="sm" icon={Undo2} onPress={() => void decide(c, 'withdraw')} data-testid="liability-withdraw">{t('sites:payer.withdraw')}</Button>
+                )}
+                {c.state === 'approved' && c.from.slice(0, 7) >= data.firstOpenPeriod && can('site.manage') && !data.changes.some((x) => x.state === 'pending_approval') && (
+                  <Button variant="secondary" size="sm" icon={Repeat2} onPress={() => onCorrect(c.id)} data-testid="liability-correct">{t('sites:payer.correct')}</Button>
+                )}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+      {error ? <ProblemAlert error={error} className="mt-3" /> : null}
+      <ConfirmDialog
+        isOpen={rejecting !== null}
+        onOpenChange={(o) => !o && setRejecting(null)}
+        title={t('sites:payer.rejectTitle')}
+        effect={t('sites:payer.rejectEffect')}
+        confirmLabel={t('sites:payer.reject')}
+        destructive
+        reasonLabel={t('sites:payer.rejectReason')}
+        onConfirm={async (note) => {
+          if (rejecting) await decide(rejecting, 'reject', note);
+          setRejecting(null);
+        }}
+      />
+    </Panel>
   );
 }

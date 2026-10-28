@@ -18,12 +18,15 @@ describe('tenant roles', () => {
     expect(STARTER_ROLE_SETS.society).toHaveLength(6);
   });
 
-  it('every workspace has roles of its own kind; Shalimar defined its own facility manager', () => {
+  it('every workspace has roles of its own kind; Shalimar defined its own facility manager; Al-Noor added an accounts officer', () => {
     for (const t of TENANT_DIRECTORY) {
       const roles = rolesOf(t.id, t.type);
-      expect(roles.length, t.id).toBe(6);
+      expect(roles.length, t.id).toBe(t.id === 'tnt_alnoor' ? 7 : 6);
       expect(roles.every((r) => r.tenantId === t.id)).toBe(true);
     }
+    expect(rolesOf('tnt_alnoor', 'association').find((r) => r.id === 'accounts_officer')).toMatchObject({ starter: null, holders: ['alnoor_accounts'] });
+    // Posting is finance's (owner decision, C.1 review): the building manager no longer holds it.
+    expect(rolesOf('tnt_alnoor', 'association').find((r) => r.id === 'manager')!.permissions).not.toContain('billing_run.post');
     const shalimar = rolesOf('tnt_shalimar', 'association');
     expect(shalimar.find((r) => r.id === 'facility_manager')).toMatchObject({ starter: null, holders: ['facility_manager'] });
     expect(shalimar.some((r) => r.id === 'manager')).toBe(false);

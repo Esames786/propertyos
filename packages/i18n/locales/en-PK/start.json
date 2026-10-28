@@ -114,6 +114,14 @@
         "b": "No bills, balances or payers are shown to this role",
         "c": "Shows how a role is limited by what it holds"
       }
+    },
+    "alnoor_accounts": {
+      "summary": "Turns residents’ transfers into verified payments and receipts.",
+      "points": {
+        "a": "Checks each proof against the bank statement",
+        "b": "Allocates payments and issues receipts",
+        "c": "Reconciles the bank and follows up arrears"
+      }
     }
   },
   "demo": {
@@ -141,7 +149,23 @@
       },
       "scopeSociety": "Al-Noor Residency · 80 flats",
       "freshSociety": "Start before setup",
-      "freshSocietyHint": "Begin with no flats: import the sample register, opening balances and charges yourself. Off: setup is done and November is ready to bill."
+      "freshSocietyHint": "Begin with no flats: import the sample register, opening balances and charges yourself. Off: setup is done and November is ready to bill.",
+      "startLabel": "Where to start",
+      "starts": {
+        "collecting": {
+          "title": "Collections open",
+          "body": "November is billed and residents’ proofs are arriving."
+        },
+        "ready": {
+          "title": "Ready to bill",
+          "body": "Set up; November not billed yet."
+        },
+        "fresh": {
+          "title": "Before setup",
+          "body": "Import the flat register and balances yourself."
+        }
+      },
+      "linkedApps": "The resident app in this browser shares this demo: what a resident sends arrives here."
     },
     "preparing": {
       "heading": "Preparing your demo",
@@ -342,7 +366,10 @@
           "arrears": "Accounts in arrears"
         },
         "fresh": "Before setup: no flats imported yet",
-        "ready": "Set up; November is ready to bill"
+        "ready": "Set up; November is ready to bill",
+        "collecting": "November billed · proofs waiting",
+        "residentTitle": "Open the resident app",
+        "residentBody": "Sign in as Kamran Siddiqui (A-101) to see the bill, pay and send proof. It reaches finance here."
       }
     }
   },

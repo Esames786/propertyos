@@ -231,7 +231,7 @@ export function BankDetails({ account, compact = false }: { account: PortalPayme
             {t('portal:payments.bank.iban')}
           </dt>
           <dd className="flex items-center justify-between gap-2">
-            <bdi dir="ltr" className="ltr-ref font-mono text-[0.8125rem] font-semibold tracking-wide break-all text-text" data-testid="bank-iban">
+            <bdi dir="ltr" className="ltr-ref font-mono text-small font-semibold tracking-wide break-all text-text" data-testid="bank-iban">
               {account.iban}
             </bdi>
             <IconButton label={t('portal:payments.bank.copy')} icon={Copy} onPress={() => void copy()} className="-my-1" />

@@ -13,19 +13,22 @@ const memory = () => {
   return { getItem: (k: string) => data.get(k) ?? null, setItem: (k: string, v: string) => void data.set(k, v), removeItem: (k: string) => void data.delete(k) };
 };
 
-/** One browser session (one demo store) in which people sign in and out. */
-function session() {
+/** One browser session (one demo store) in which people sign in and out. C.1 tests start "ready". */
+function session(mode: 'fresh' | 'ready' | 'collecting' = 'ready') {
   const demo = new DemoStore(memory());
   let personaId: string | null = 'alnoor_manager';
   const t = new MockTransport({ getContext: () => ({ personaId, projectId: 'all' }), getMode: () => 'fast', demo });
+  // The demo starts as the building manager, whoever then signs in.
+  const ready = new MockTransport({ getContext: () => ({ personaId: 'alnoor_manager', projectId: 'all' }), getMode: () => 'fast', demo }).request({ method: 'POST', path: '/society/demo', body: { mode } });
   return {
+    ready,
     as(id: string | null) {
       personaId = id;
       return this;
     },
-    get: <T>(path: string, query?: Record<string, string>) => t.request<T>({ method: 'GET', path, ...(query ? { query } : {}) }),
-    post: <T>(path: string, body: unknown = {}) => t.request<T>({ method: 'POST', path, body }),
-    patch: <T>(path: string, body: unknown = {}) => t.request<T>({ method: 'PATCH', path, body }),
+    get: async <T>(path: string, query?: Record<string, string>) => (await ready, t.request<T>({ method: 'GET', path, ...(query ? { query } : {}) })),
+    post: async <T>(path: string, body: unknown = {}) => (await ready, t.request<T>({ method: 'POST', path, body })),
+    patch: async <T>(path: string, body: unknown = {}) => (await ready, t.request<T>({ method: 'PATCH', path, body })),
   };
 }
 
@@ -149,8 +152,12 @@ describe('Gate C.1 storyline through the mock API', () => {
     const s = session();
     const b204 = await s.get<FlatDetail>(`${SITE}/units/unt_anr_b204`);
     const tenant = b204.occupants[0]!;
-    expect(await problem(s.post(`${SITE}/units/unt_anr_b204/payer`, { partyId: tenant.partyId, from: '2026-10-01' }))).toMatchObject({ status: 422 });
-    await s.post(`${SITE}/units/unt_anr_b204/payer`, { partyId: tenant.partyId, from: '2026-11-01' });
+    expect(await problem(s.post(`${SITE}/units/unt_anr_b204/payer`, { partyId: tenant.partyId, from: '2026-10-01', reason: 'Tenant pays from November' }))).toMatchObject({ status: 422 });
+    const change = await s.post<{ id: string; state: string }>(`${SITE}/units/unt_anr_b204/payer`, { partyId: tenant.partyId, from: '2026-11-01', reason: 'Tenant pays from November' });
+    expect(change.state).toBe('pending_approval');
+    s.as('alnoor_treasurer');
+    expect((await s.post<{ state: string }>(`/payer-changes/${change.id}/approve`)).state).toBe('approved');
+    s.as('alnoor_manager');
     const october = await s.get<InvoiceList>('/billing/invoices', { flat: 'unt_anr_b204', source: 'opening_balance' });
     expect(october.items[0]!.payerName).toBe('Faisal Chaudhry');
     const run = await s.post<BillingRunDetail>('/billing-runs', { period: '2026-11' });
@@ -163,7 +170,7 @@ describe('Gate C.1 storyline through the mock API', () => {
     const d = await s.get<SocietyDashboard>('/society/dashboard');
     expect(d.occupancy).toMatchObject({ registered: 80, occupied: 76, ownerOccupied: 63, tenantOccupied: 12, vacant: 4, association: 1, declared: 80 });
     expect(d.arrears).toMatchObject({ accounts: 10, amount: { amount: '49100.00' } });
-    expect(d.collected).toEqual({ later: 'C.2' });
+    expect(d.collections).toMatchObject({ collected: { amount: { amount: '0.00' }, payments: 0 }, pending: { submissions: 0 } });
     expect(d.tasks[0]).toMatchObject({ key: 'create_run', yours: true, href: '/backoffice/billing/runs/new' });
     const run = await s.post<BillingRunDetail>('/billing-runs', { period: '2026-11' });
     await s.post(`/billing-runs/${run.run.id}/preview`);
@@ -189,6 +196,7 @@ describe('roles, scope and isolation (AC-15)', () => {
     const manager = findPersona('alnoor_manager')!;
     const both = { ...manager, permissions: [...manager.permissions, 'billing_run.approve' as const] };
     const t = new MockTransport({ getContext: () => ({ personaId: 'alnoor_manager', projectId: 'all' }), getMode: () => 'fast', demo: new DemoStore(memory()), personas: [both] });
+    await t.request({ method: 'POST', path: '/society/demo', body: { mode: 'ready' } });
     const run = await t.request<BillingRunDetail>({ method: 'POST', path: '/billing-runs', body: { period: '2026-11' } });
     await t.request({ method: 'POST', path: `/billing-runs/${run.run.id}/preview` });
     const submitted = await t.request<BillingRunDetail>({ method: 'POST', path: `/billing-runs/${run.run.id}/submit` });

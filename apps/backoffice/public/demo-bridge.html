@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>PropertyOS demo link</title>
+    <meta name="robots" content="noindex" />
+  </head>
+  <body>
+    <!--
+      Prototype only. Lets the customer app of this browser read and write the society demo kept in
+      the office app's local storage, so a proof sent by a resident reaches the accounts officer and
+      the receipt comes back. Answers only pages on the same host name; holds fictional data only.
+    -->
+    <script>
+      (function () {
+        var PREFIX = 'demo:shared:';
+        var parentOrigin = null;
+        function allowed(origin) {
+          try {
+            var u = new URL(origin);
+            return u.hostname === location.hostname && (u.protocol === 'http:' || u.protocol === 'https:');
+          } catch (e) {
+            return false;
+          }
+        }
+        window.addEventListener('message', function (e) {
+          var d = e.data;
+          if (!allowed(e.origin) || !d || d.source !== 'propertyos-demo' || typeof d.key !== 'string') return;
+          if (d.key.indexOf(PREFIX) !== -1 || d.key.length > 64) return;
+          parentOrigin = e.origin;
+          var reply = { source: 'propertyos-demo', id: d.id, ok: true };
+          try {
+            if (d.op === 'get') reply.value = localStorage.getItem(PREFIX + d.key);
+            else if (d.op === 'set' && typeof d.value === 'string') localStorage.setItem(PREFIX + d.key, d.value);
+            else if (d.op === 'remove') localStorage.removeItem(PREFIX + d.key);
+            else reply.ok = false;
+          } catch (err) {
+            reply.ok = false;
+          }
+          e.source.postMessage(reply, e.origin);
+        });
+        window.addEventListener('storage', function (e) {
+          if (parentOrigin && e.key && e.key.indexOf(PREFIX) === 0) {
+            parent.postMessage({ source: 'propertyos-demo', op: 'changed', key: e.key.slice(PREFIX.length) }, parentOrigin);
+          }
+        });
+        // Announces itself; the message carries no data.
+        if (parent !== window) parent.postMessage({ source: 'propertyos-demo', op: 'ready' }, '*');
+      })();
+    </script>
+  </body>
+</html>

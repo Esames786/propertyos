@@ -24,7 +24,7 @@ export function PageHeader({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 max-w-3xl space-y-2">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 id="page-title" lang={titleLang} className="text-[1.625rem] leading-tight font-bold tracking-tight text-text outline-none sm:text-[2rem]">
+            <h1 id="page-title" lang={titleLang} className="text-figure-xs leading-tight font-bold tracking-tight text-text outline-none sm:text-figure">
               {title}
             </h1>
             {badge}

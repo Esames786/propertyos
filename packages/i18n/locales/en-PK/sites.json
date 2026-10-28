@@ -177,8 +177,53 @@
       "party": "Choose the owner or a current occupant of this flat.",
       "firstOfMonth": "A payer change starts on the first day of a month.",
       "periodPosted": "That month is already billed. Choose {{period}} or later.",
-      "same": "That person already pays for this flat from that date."
-    }
+      "same": "That person already pays for this flat from that date.",
+      "reason": "Give the reason (at least 5 characters).",
+      "corrects": "Only an approved change that has not started can be corrected."
+    },
+    "correctTitle": "Correct the payer change for {{flat}}",
+    "approvalNote": "A change of who pays is checked by a second person before it applies. Bills already issued keep the person who was liable for them.",
+    "correcting": "Correcting: {{name}} from {{date}}",
+    "correctingBody": "When approved, this replaces that change. Both stay in the history.",
+    "reason": "Reason",
+    "reasonHelp": "Why liability changes (at least 5 characters). The approver and the history see it.",
+    "request": "Send for approval",
+    "requested": "Change sent for approval: {{name}} for {{flat}} from {{date}}.",
+    "changesTitle": "Changes of who pays",
+    "changesHint": "Requested by one person, approved by another. Nothing is overwritten.",
+    "changeLine": "{{name}} pays from {{date}}",
+    "insteadOf": "instead of {{name}}",
+    "requestedBy": "requested by {{name}}",
+    "decidedBy": "decided by {{name}}",
+    "isCorrection": "Corrects an earlier change",
+    "approve": "Approve",
+    "reject": "Reject",
+    "withdraw": "Withdraw",
+    "correct": "Correct",
+    "rejectTitle": "Reject this payer change?",
+    "rejectEffect": "Nothing changes; the request stays in the history with your reason.",
+    "rejectReason": "Reason",
+    "states": {
+      "pending_approval": "Waiting for approval",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "withdrawn": "Withdrawn",
+      "superseded": "Replaced by a correction"
+    },
+    "decided": {
+      "approve": "Payer change approved for {{flat}}",
+      "reject": "Payer change rejected for {{flat}}",
+      "withdraw": "Payer change withdrawn for {{flat}}"
+    },
+    "pageIntro": "Every request to change who pays for a flat, and its decision.",
+    "filter": "Show",
+    "filters": {
+      "pending_approval": "Waiting for approval",
+      "approved": "Approved",
+      "all": "All"
+    },
+    "emptyTitle": "Nothing here",
+    "emptyBody": "Payer changes are requested from a flat’s page (Flat 360 → Payer)."
   },
   "types": {
     "standard": "Standard",
@@ -191,13 +236,35 @@
   },
   "list": {
     "intro": "The sites your organisation is licensed for, with their flats and setup progress.",
-    "emptyTitle": "No sites with flats yet",
-    "emptyBody": "Sites are licensed in Platform HQ. In this demo only Al-Noor Residency has a flat register.",
+    "emptyTitle": "No site set up yet",
+    "emptyBody": "{{organisation}} has no building and flats here yet. Setting a site up takes four steps; the first is done by PropertyOS when the site is licensed.",
     "blocks": "Blocks",
     "flats": "Flats",
     "flatsOf": "{{flats}} of {{declared}}",
     "occupied": "Occupied",
-    "setup": "{{done}} of {{total}} setup steps done"
+    "setup": "{{done}} of {{total}} setup steps done",
+    "emptySteps": {
+      "site": {
+        "title": "Site licensed",
+        "body": "PropertyOS adds the site and its blocks when your plan covers it."
+      },
+      "structure": {
+        "title": "Blocks and floors",
+        "body": "The blocks, floors and flat types of the site."
+      },
+      "flats": {
+        "title": "Flat register",
+        "body": "Import your flats from a spreadsheet (template below)."
+      },
+      "people": {
+        "title": "Owners and payers",
+        "body": "Who owns, who lives there and who pays, for each flat."
+      }
+    },
+    "emptyTemplate": "Download the flat register template",
+    "emptyPlan": "See what your plan includes",
+    "emptyAccess": "See what you can use",
+    "emptyNote": "Your plan today covers maintenance. Monthly dues and residents’ payments come with the community edition."
   },
   "site": {
     "notFound": "Site not found",
@@ -207,7 +274,8 @@
       "overview": "Overview and setup",
       "collection": "Collection account",
       "methods": "Payment methods",
-      "activity": "Activity"
+      "activity": "Activity",
+      "controls": "Billing controls"
     },
     "blocks": "Blocks",
     "openStructure": "Open the explorer",
@@ -496,7 +564,9 @@
     "importHasErrors": "Some rows still need fixing; nothing was imported.",
     "importHasDuplicates": "Confirm that the repeated rows are skipped.",
     "noFlats": "Import the flats first.",
-    "openingPending": "Opening balances are already waiting for approval."
+    "openingPending": "Opening balances are already waiting for approval.",
+    "changePending": "A payer change for this flat is already waiting. Decide or withdraw it first.",
+    "notRequester": "Only the person who requested it can withdraw it."
   },
   "occupancyShort": {
     "owner_occupied": "Owner",

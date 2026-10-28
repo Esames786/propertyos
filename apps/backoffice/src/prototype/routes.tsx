@@ -63,6 +63,54 @@ function InvoiceWorkspaceRoute() {
   );
 }
 
+/**
+ * Collections (Gate C.2): a society's working screens; any other kind of organisation keeps the
+ * register's planned page at these addresses (nothing unfinished looks finished).
+ */
+const CollectionsPage = lazy(() => import('../pages/society/collections/CollectionsPage'));
+const ProofInbox = lazy(() => import('../pages/society/collections/ProofInbox'));
+const PaymentsPage = lazy(() => import('../pages/society/collections/PaymentsPage'));
+const PayerChangesPage = lazy(() => import('../pages/society/collections/PayerChangesPage'));
+const CreditsPage = lazy(() => import('../pages/society/collections/ReportsPages').then((m) => ({ default: m.CreditsPage })));
+const AgingPage = lazy(() => import('../pages/society/collections/ReportsPages').then((m) => ({ default: m.AgingPage })));
+const StatementPage = lazy(() => import('../pages/society/collections/ReportsPages').then((m) => ({ default: m.StatementPage })));
+const BankFeedPage = lazy(() => import('../pages/society/collections/BankPages').then((m) => ({ default: m.BankFeedPage })));
+const ReconciliationPage = lazy(() => import('../pages/society/collections/BankPages').then((m) => ({ default: m.ReconciliationPage })));
+
+function SocietyScreen({ page: Page }: { page: LazyExoticComponent<ComponentType> }) {
+  const { allows } = useSession();
+  return allows({ module: 'dues' }) ? (
+    <Suspense fallback={null}>
+      <Page />
+    </Suspense>
+  ) : (
+    <RegisterResolver />
+  );
+}
+
+/** FIN-007's register address: a society records office cash in the payments list's drawer. */
+function OfficePaymentRedirect() {
+  const { allows } = useSession();
+  return allows({ module: 'dues' }) ? <Navigate to="/backoffice/fin/payment-list?drawer=office" replace /> : <RegisterResolver />;
+}
+
+/** A society record screen addressed by `?record=` (Payment 360, proof review). */
+function SocietyRecord({ page: Page, prefix }: { page: LazyExoticComponent<ComponentType<{ id: string }>>; prefix: string }) {
+  const { allows } = useSession();
+  const [params] = useSearchParams();
+  const record = params.get('record');
+  return allows({ module: 'dues' }) && record?.startsWith(prefix) ? (
+    <Suspense fallback={null}>
+      <Page id={record} />
+    </Suspense>
+  ) : (
+    <RegisterResolver />
+  );
+}
+
+const ProofReviewById = lazy(() => import('../pages/society/collections/ProofReview').then((m) => ({ default: ({ id }: { id: string }) => <m.default submissionId={id} /> })));
+const PaymentById = lazy(() => import('../pages/society/collections/PaymentWorkspace').then((m) => ({ default: ({ id }: { id: string }) => <m.default paymentId={id} /> })));
+
 /** BILL-014's register address opens the invoice workspace with the credit-note drawer. */
 function BillingInvoiceRedirect() {
   const { invoiceId } = useParams();
@@ -179,6 +227,19 @@ const shellChildren: RouteObject[] = [
   { path: 'billing/rules', lazy: page(() => import('../pages/society/billing/RulesPage')), handle: h({ title: (t) => t('nav:pages.rules') }) },
   { path: 'billing/exemptions', lazy: page(() => import('../pages/society/billing/ExemptionsPage')), handle: h({ title: (t) => t('nav:pages.exemptions') }) },
   { path: 'billing/invoices/:invoiceId', element: <BillingInvoiceRedirect /> },
+  { path: 'billing/payer-changes', loader: registerLoader, element: <SocietyScreen page={PayerChangesPage} />, handle: h({ title: (t) => t('nav:pages.payerChanges') }) },
+  // Collections (Gate C.2): register addresses (COL, FIN, BANK).
+  { path: 'col/collections-dashboard', loader: registerLoader, element: <SocietyScreen page={CollectionsPage} />, handle: h({ title: (t) => t('nav:pages.collections') }) },
+  { path: 'col/aging-breakdown', loader: registerLoader, element: <SocietyScreen page={AgingPage} />, handle: h({ title: (t) => t('nav:pages.aging') }) },
+  { path: 'col/customer-statement', loader: registerLoader, element: <SocietyScreen page={StatementPage} />, handle: h({ title: (t) => t('nav:pages.statement') }) },
+  { path: 'fin/unverified-transfers-queue', loader: registerLoader, element: <SocietyScreen page={ProofInbox} />, handle: h({ title: (t) => t('nav:pages.proofInbox') }) },
+  { path: 'fin/transfer-proof-review', loader: registerLoader, element: <SocietyRecord page={ProofReviewById} prefix="psb_" />, handle: h({ title: (t) => t('nav:pages.proofReview') }) },
+  { path: 'fin/payment-list', loader: registerLoader, element: <SocietyScreen page={PaymentsPage} />, handle: h({ title: (t) => t('nav:pages.payments') }) },
+  { path: 'fin/payment-workspace', loader: registerLoader, element: <SocietyRecord page={PaymentById} prefix="pay_" />, handle: h({ title: (t) => t('nav:pages.payment') }) },
+  { path: 'fin/receive-payment-drawer', loader: registerLoader, element: <OfficePaymentRedirect /> },
+  { path: 'fin/customer-credit-overpayments', loader: registerLoader, element: <SocietyScreen page={CreditsPage} />, handle: h({ title: (t) => t('nav:pages.credits') }) },
+  { path: 'bank/bank-transaction-feed', loader: registerLoader, element: <SocietyScreen page={BankFeedPage} />, handle: h({ title: (t) => t('nav:pages.bankFeed') }) },
+  { path: 'bank/reconciliation-workspace', loader: registerLoader, element: <SocietyScreen page={ReconciliationPage} />, handle: h({ title: (t) => t('nav:pages.reconciliation') }) },
   // Society setup and monthly billing (Gate C.1)
   { path: 'billing', element: <Navigate to="/backoffice/billing/runs" replace /> },
   { path: 'billing/runs', lazy: page(() => import('../pages/society/billing/RunsPage')), handle: h({ title: (t) => t('nav:pages.billingRuns') }) },

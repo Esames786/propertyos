@@ -15,6 +15,8 @@ import enPlatform from '../locales/en-PK/platform.json';
 import enWorkspace from '../locales/en-PK/workspace.json';
 import enSites from '../locales/en-PK/sites.json';
 import enBilling from '../locales/en-PK/billing.json';
+import enCollections from '../locales/en-PK/collections.json';
+import enDues from '../locales/en-PK/dues.json';
 import urA11y from '../locales/ur-PK/a11y.json';
 import urCommon from '../locales/ur-PK/common.json';
 import urDashboard from '../locales/ur-PK/dashboard.json';
@@ -32,6 +34,8 @@ import urPlatform from '../locales/ur-PK/platform.json';
 import urWorkspace from '../locales/ur-PK/workspace.json';
 import urSites from '../locales/ur-PK/sites.json';
 import urBilling from '../locales/ur-PK/billing.json';
+import urCollections from '../locales/ur-PK/collections.json';
+import urDues from '../locales/ur-PK/dues.json';
 
 export const NAMESPACES = [
   'common',
@@ -51,6 +55,8 @@ export const NAMESPACES = [
   'workspace',
   'sites',
   'billing',
+  'collections',
+  'dues',
 ] as const;
 
 export type Namespace = (typeof NAMESPACES)[number];
@@ -73,6 +79,8 @@ const en = {
   workspace: enWorkspace,
   sites: enSites,
   billing: enBilling,
+  collections: enCollections,
+  dues: enDues,
 };
 
 const ur: typeof en = {
@@ -93,6 +101,8 @@ const ur: typeof en = {
   workspace: urWorkspace,
   sites: urSites,
   billing: urBilling,
+  collections: urCollections,
+  dues: urDues,
 };
 
 export const resources = { 'en-PK': en, 'ur-PK': ur };

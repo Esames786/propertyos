@@ -22,7 +22,16 @@ export function BottomNav() {
   const { allows, can } = useSession();
   const { location } = useNavigation();
   const reduced = useReducedMotion();
-  const items = navItems.filter((i) => i.bottomBar && allows(i)).slice(0, 3);
+  const rank = (id: string) => {
+    const i = slots.bottomOrder?.indexOf(id) ?? -1;
+    return i < 0 ? Number.MAX_SAFE_INTEGER : i;
+  };
+  const items = navItems
+    .filter((i) => i.bottomBar && allows(i))
+    .map((item, index) => ({ item, index }))
+    .sort((a, b) => rank(a.item.id) - rank(b.item.id) || a.index - b.index)
+    .map(({ item }) => item)
+    .slice(0, 3);
   const more: NavItem | null = links.more ? { id: 'more', labelKey: 'nav:more', href: links.more, icon: LayoutGrid, match: links.more } : null;
   const hasFab = slots.create === undefined ? quickCreateAvailable(can) : slots.create !== null;
   const start = items.slice(0, 2);
@@ -37,7 +46,7 @@ export function BottomNav() {
           href={item.href}
           aria-current={current ? 'page' : undefined}
           data-testid={item.id === 'more' ? 'bottom-nav-more' : undefined}
-          className="group flex h-full flex-col items-center justify-center gap-1 rounded-tile text-[0.6875rem] font-medium text-muted outline-none data-focus-visible:outline-2 data-focus-visible:outline-offset-[-4px] data-focus-visible:outline-focus data-pressed:scale-95 aria-[current=page]:text-primary"
+          className="group flex h-full flex-col items-center justify-center gap-1 rounded-tile text-nav font-medium text-muted outline-none data-focus-visible:outline-2 data-focus-visible:outline-offset-[-4px] data-focus-visible:outline-focus data-pressed:scale-95 aria-[current=page]:text-primary"
         >
           <span className="relative grid h-7 w-12 place-items-center">
             {current && (

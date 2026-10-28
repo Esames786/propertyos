@@ -5,7 +5,7 @@ import { CheckCircle2, CircleAlert, CircleDashed, Hourglass } from 'lucide-react
 import { motion } from 'motion/react';
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import { MonogramTile } from '../EntryFrame';
-import { demoOf, focusHeading, type DemoRole } from '../entry';
+import { demoOf, focusHeading, type DemoRole, type SocietyStart } from '../entry';
 
 type TaskId = 'identity' | 'reset' | 'society' | 'dashboard' | 'projects' | 'notifications' | 'pipeline' | 'overview';
 type TaskState = 'pending' | 'loading' | 'done' | 'error';
@@ -25,12 +25,15 @@ const SETTLE_MS = 450;
 export function PreparingStep({
   role,
   fresh,
+  start,
   autoFocus,
   onReady,
   onChooseAnother,
 }: {
   role: DemoRole;
   fresh: boolean;
+  /** Where the society demo starts (ignored for the developer demo). */
+  start: SocietyStart;
   autoFocus: boolean;
   onReady: () => void;
   onChooseAnother: () => void;
@@ -53,8 +56,8 @@ export function PreparingStep({
   const society = demoOf(role) === 'society';
   const seesSociety = target?.permissions.some((p) => p === 'site.view' || p === 'billing_run.view') ?? false;
 
-  // A society demo always starts from a known point: set up and ready to bill, or (fresh) before
-  // the flat register is imported. Only this organisation's demo changes are reset.
+  // A society demo always starts from a known point: collections open (November billed), set up
+  // and ready to bill, or before setup. Only this organisation's demo changes are reset.
   const tasks = useMemo<Task[]>(
     () =>
       society
@@ -98,7 +101,7 @@ export function PreparingStep({
     if (society && !resetDone.current) {
       mark('society', 'loading');
       try {
-        await reset.mutateAsync({ method: 'POST', path: '/society/demo', body: { mode: fresh ? 'fresh' : 'ready' } });
+        await reset.mutateAsync({ method: 'POST', path: '/society/demo', body: { mode: start } });
         resetDone.current = true;
         mark('society', 'done');
       } catch {
@@ -169,7 +172,7 @@ export function PreparingStep({
   return (
     <div className="mx-auto flex max-w-xl flex-col items-center pt-6 text-center sm:pt-12" data-testid="demo-preparing-step">
       <BrandSpinner active={!failed && doneCount < tasks.length} />
-      <h1 id="page-title" ref={heading} tabIndex={-1} className="mt-6 font-display text-[2rem] leading-tight text-text outline-none sm:text-[2.4rem] [:lang(ur)_&]:leading-[1.75] [:lang(ur)_&]:pt-1">
+      <h1 id="page-title" ref={heading} tabIndex={-1} className="mt-6 font-display text-figure leading-tight text-text outline-none sm:text-figure-lg [:lang(ur)_&]:leading-[1.75] [:lang(ur)_&]:pt-1">
         {t('start:demo.preparing.heading')}
       </h1>
       <p className="mt-3 text-base text-muted">

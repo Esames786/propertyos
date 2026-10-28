@@ -1,3 +1,4 @@
+import type { LiabilityChange } from './collections';
 import type { Money } from './money';
 
 /**
@@ -123,8 +124,8 @@ export interface SiteOverview {
   mode: SocietyDemoMode;
 }
 
-/** How the society demo starts: empty (onboarding from import) or set up and ready to bill. */
-export type SocietyDemoMode = 'fresh' | 'ready';
+/** How the society demo starts: empty (onboarding from import), set up and ready to bill, or billed with collections open. */
+export type SocietyDemoMode = 'fresh' | 'ready' | 'collecting';
 
 /** A flat as the structure explorer shows it. */
 export interface FlatTile {
@@ -160,6 +161,10 @@ export interface FlatDetail {
   exempt: boolean;
   /** Neighbouring flats on the same floor, for moving along the floor without searching. */
   floorFlats: Array<{ id: string; code: string }>;
+  /** Liability changes for this flat: pending, approved, corrected (newest first). */
+  changes: LiabilityChange[];
+  /** First month not billed yet: the earliest a liability change may start. */
+  firstOpenPeriod: string;
 }
 
 // ---------------------------------------------------------------------------------------------

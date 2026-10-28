@@ -1,27 +1,36 @@
-import type { CreditNote, CustomerInvoice, InvoiceRow, Money, Statement, StatementEntry } from '@repo/contracts';
+import type { CollectionPayment, CreditNote, CustomerInvoice, InvoiceRow, Money, Statement, StatementEntry } from '@repo/contracts';
 import { fromPaisa, toPaisa } from '../portal';
 
 /**
  * Invoice read model and account statement (A4 §4, A2 §5). Stored invoices never change: what was
- * credited, what is outstanding and the settlement are derived from credit notes when read. The
- * statement is derived too; the previous balance is never an invoice line.
+ * credited, what payments settled, what is outstanding and the settlement are derived when read
+ * from credit notes and payment allocations. The statement is derived too; the previous balance is
+ * never an invoice line, and a payment is one movement of its whole amount (unapplied credit shows
+ * as a balance below zero, never as a reduced charge).
  */
 
 const money = (paisa: bigint): Money => ({ amount: fromPaisa(paisa), currency: 'PKR' });
 
-/** An invoice as read today: credits applied per line, settlement and overdue derived. */
-export function readInvoice(stored: CustomerInvoice, creditNotes: readonly CreditNote[], today: string): CustomerInvoice {
+/** Allocated amount per invoice line across every payment (including credit applied later). */
+export function allocatedByLine(payments: readonly CollectionPayment[]): Map<string, bigint> {
+  const out = new Map<string, bigint>();
+  for (const p of payments) for (const a of p.allocations) out.set(a.lineId, (out.get(a.lineId) ?? 0n) + toPaisa(a.amount.amount));
+  return out;
+}
+
+/** An invoice as read today: credits and payments applied per line, settlement and overdue derived. */
+export function readInvoice(stored: CustomerInvoice, creditNotes: readonly CreditNote[], today: string, allocated: ReadonlyMap<string, bigint> = new Map()): CustomerInvoice {
   const credits = new Map<string, bigint>();
   for (const cn of creditNotes.filter((c) => c.invoiceId === stored.id)) {
     for (const l of cn.lines) credits.set(l.invoiceLineId, (credits.get(l.invoiceLineId) ?? 0n) + toPaisa(l.amount.amount));
   }
-  const lines = stored.lines.map((l) => ({ ...l, credited: money(credits.get(l.id) ?? 0n) }));
+  const lines = stored.lines.map((l) => ({ ...l, credited: money(credits.get(l.id) ?? 0n), allocated: money(allocated.get(l.id) ?? 0n) }));
   const total = toPaisa(stored.total.amount);
-  const credited = [...credits.values()].reduce((s, c) => s + c, 0n);
-  const allocated = toPaisa(stored.allocated.amount);
-  const outstanding = total - credited - allocated;
-  const settlement: CustomerInvoice['settlement'] = outstanding <= 0n ? (allocated > 0n ? 'paid' : 'credited') : allocated > 0n ? 'partially_paid' : 'unpaid';
-  return { ...stored, lines, credited: money(credited), outstanding: money(outstanding), settlement, overdue: outstanding > 0n && stored.dueOn < today };
+  const credited = lines.reduce((s, l) => s + toPaisa(l.credited.amount), 0n);
+  const paid = lines.reduce((s, l) => s + toPaisa(l.allocated.amount), 0n);
+  const outstanding = total - credited - paid;
+  const settlement: CustomerInvoice['settlement'] = outstanding <= 0n ? (paid > 0n ? 'paid' : 'credited') : paid > 0n ? 'partially_paid' : 'unpaid';
+  return { ...stored, lines, credited: money(credited), allocated: money(paid), outstanding: money(outstanding), settlement, overdue: outstanding > 0n && stored.dueOn < today };
 }
 
 export function invoiceRow(i: CustomerInvoice): InvoiceRow {
@@ -45,8 +54,9 @@ export function invoiceRow(i: CustomerInvoice): InvoiceRow {
 }
 
 /**
- * Statement of one billing account between two dates. With `payerPartyId`, only the lines that
- * party is liable for count (per-unit liability): a tenant-payer never sees the owner's flats.
+ * Statement of one billing account between two dates. With `payer`, only the lines that party is
+ * liable for and the payments they made count (per-unit liability): a tenant-payer never sees the
+ * owner's flats. With `flat`, only that flat's lines and the parts of payments allocated to them.
  */
 export function statementOf(input: {
   accountId: string;
@@ -54,6 +64,7 @@ export function statementOf(input: {
   holderName: string;
   invoices: readonly CustomerInvoice[];
   creditNotes: readonly CreditNote[];
+  payments?: readonly CollectionPayment[];
   from: string;
   to: string;
   payer?: { partyId: string; name: string };
@@ -61,11 +72,12 @@ export function statementOf(input: {
   flat?: { id: string; code: string };
 }): Statement {
   const { invoices, creditNotes, from, to, payer, flat } = input;
-  const lineOk = (l: { payerPartyId: string; unitId: string }) => (!payer || l.payerPartyId === payer.partyId) && (!flat || l.unitId === flat.id);
+  const lineOk = (l: { payerPartyId: string; unitId: string; billingAccountId: string }) =>
+    l.billingAccountId === input.accountId && (!payer || l.payerPartyId === payer.partyId) && (!flat || l.unitId === flat.id);
   const lineIds = new Set<string>();
   const movements: Array<Omit<StatementEntry, 'balance'> & { delta: bigint }> = [];
 
-  for (const inv of invoices.filter((i) => i.billingAccountId === input.accountId)) {
+  for (const inv of invoices) {
     const lines = inv.lines.filter(lineOk);
     if (!lines.length) continue;
     lines.forEach((l) => lineIds.add(l.id));
@@ -87,6 +99,23 @@ export function statementOf(input: {
     if (!lines.length) continue;
     const amount = lines.reduce((s, l) => s + toPaisa(l.amount.amount), 0n);
     movements.push({ on: cn.on, kind: 'credit_note', ref: cn.ref, refId: cn.id, flats: [...new Set(lines.map((l) => l.unitCode))], credit: money(amount), delta: -amount });
+  }
+  for (const p of (input.payments ?? []).filter((x) => x.billingAccountId === input.accountId)) {
+    if (payer && p.payerPartyId !== payer.partyId) continue;
+    // One flat: the part of the payment settling that flat's lines (unapplied credit belongs to no flat).
+    const amount = flat ? p.allocations.filter((a) => lineIds.has(a.lineId)).reduce((s, a) => s + toPaisa(a.amount.amount), 0n) : toPaisa(p.amount.amount);
+    if (amount <= 0n) continue;
+    movements.push({
+      on: p.receivedOn,
+      kind: 'payment',
+      ref: p.receiptRef,
+      refId: p.id,
+      flats: [...new Set(p.allocations.filter((a) => !flat || lineIds.has(a.lineId)).map((a) => a.unitCode))],
+      payerName: p.payerName,
+      method: p.method,
+      credit: money(amount),
+      delta: -amount,
+    });
   }
   // Same day: the charge first, then what corrects or settles it.
   const order: Record<StatementEntry['kind'], number> = { opening_balance: 0, invoice: 1, credit_note: 2, payment: 3 };

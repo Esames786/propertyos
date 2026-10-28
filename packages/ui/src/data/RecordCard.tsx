@@ -57,7 +57,7 @@ export function RecordCard({
       <div className="p-4 sm:p-5">
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
-            {eyebrow && <div className="mb-0.5 text-[0.6875rem] font-semibold tracking-[0.06em] text-muted uppercase">{eyebrow}</div>}
+            {eyebrow && <div className="mb-0.5 text-mini font-semibold tracking-[0.06em] text-muted uppercase">{eyebrow}</div>}
             <H lang={titleLang} className="text-lg leading-snug font-bold tracking-tight text-text">
               {titleHref ? (
                 <Link

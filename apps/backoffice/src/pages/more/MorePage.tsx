@@ -36,7 +36,7 @@ const HUE: Record<string, TileHue> = {
 };
 
 const cardClass =
-  'flex min-h-16 items-center gap-3 rounded-card border border-border/70 bg-panel p-3.5 text-[0.9375rem] font-medium text-text shadow-card outline-none transition-[translate,box-shadow] duration-[var(--motion-regular)] data-hovered:-translate-y-0.5 data-hovered:shadow-lift data-pressed:translate-y-0 data-focus-visible:outline-2 data-focus-visible:outline-offset-2 data-focus-visible:outline-focus';
+  'flex min-h-16 items-center gap-3 rounded-card border border-border/70 bg-panel p-3.5 text-md font-medium text-text shadow-card outline-none transition-[translate,box-shadow] duration-[var(--motion-regular)] data-hovered:-translate-y-0.5 data-hovered:shadow-lift data-pressed:translate-y-0 data-focus-visible:outline-2 data-focus-visible:outline-offset-2 data-focus-visible:outline-focus';
 
 /**
  * More (phone): every area the role can open, as large icon cards, plus the demo controls that do

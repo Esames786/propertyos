@@ -1,7 +1,7 @@
 import { MODULE_KEYS } from '../../packages/contracts/src/access';
 import { SCREENS } from '../../packages/contracts/src/screens/register.generated';
 import { directoryTenant } from '../../packages/fixtures/src/tenant-directory';
-import { BO, CU, expect, HQ, seed, test } from '../support/fixtures';
+import { BO, CU, displayKey, expect, HQ, seed, test } from '../support/fixtures';
 
 /**
  * Blueprint 01 §16, kept for the V3.1 register (adopted in Gate B, D-19): every register address a
@@ -26,26 +26,29 @@ const chunks = <T,>(list: readonly T[], size: number) => Array.from({ length: Ma
 test.describe('Screen register coverage (V3.1)', () => {
   test('the register keeps every V2.1 screen and adds the V3.1 families', () => {
     const ids = new Set(SCREENS.map((s) => s.id));
-    // Gate B final adds GLOBAL-014 (My access) and HQ-026–028 (policy, requests and signup, audit log).
-    expect(SCREENS.length).toBe(394);
+    // Gate B final adds GLOBAL-014 (My access) and HQ-026–028 (policy, requests and signup, audit log);
+    // Gate C.2 adds BILL-016 (billing controls) and BILL-017 (payer changes).
+    expect(SCREENS.length).toBe(396);
     for (const prefix of ['GLOBAL', 'AUTH', 'SAAS', 'CRM', 'PORTAL', 'WEB', 'HQ', 'SITE', 'BILL', 'ENTRY']) {
       expect([...ids].some((id) => id.startsWith(`${prefix}-`)), prefix).toBe(true);
     }
-    expect(SCREENS.filter((s) => s.canonicalId === s.id)).toHaveLength(335);
+    expect(SCREENS.filter((s) => s.canonicalId === s.id)).toHaveLength(337);
   });
 
   for (const [i, group] of chunks(OPENABLE, 25).entries()) {
     test(`register addresses ${i * 25 + 1}–${i * 25 + group.length} of ${OPENABLE.length}`, async ({ page, consoleErrors }) => {
       test.setTimeout(240_000);
       await seed(page, { persona: 'manager' });
-      await page.addInitScript(() => {
+      await page.addInitScript((display) => {
         localStorage.setItem('demo:session:customer', JSON.stringify({ personaId: 'resident', projectId: 'all' }));
+        // The resident has chosen a text size (otherwise the first-run step is shown first).
+        localStorage.setItem(display, JSON.stringify({ version: 1, textScale: 1, chosenAt: '2026-10-26T00:00:00Z' }));
         localStorage.setItem('demo:session:platform', JSON.stringify({ personaId: 'supreme_admin', projectId: 'all' }));
         localStorage.setItem(
           'onboarding:v1:platform:supreme_admin:platform',
           JSON.stringify({ profile: { tenantId: 'platform', personaId: 'supreme_admin', app: 'platform', welcomeDecision: 'declined', autoOffer: false, seenModules: [], updatedAt: '2026-10-26T00:00:00Z' }, progress: {} }),
         );
-      });
+      }, displayKey('resident'));
       for (const screen of group) {
         await page.goto(`${hostFor(screen)}${screen.registerRoute}`);
         await expect(page.locator('h1').first(), `${screen.id} ${screen.registerRoute}`).toBeVisible();

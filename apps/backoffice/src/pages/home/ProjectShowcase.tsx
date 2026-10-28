@@ -90,7 +90,7 @@ export function ProjectShowcase({ projects, fmt }: { projects: Showcase[]; fmt: 
                   })}
                 </span>
               </p>
-              <h2 className="mt-1.5 font-display text-[2rem] leading-[1.05] sm:text-[2.6rem]" data-testid="showcase-title">
+              <h2 className="mt-1.5 font-display text-figure leading-[1.05] sm:text-figure-lg" data-testid="showcase-title">
                 <bdi>{project.name}</bdi>
               </h2>
               <p className="mt-1 text-sm text-inverse">{t('dashboard:showcase.completion', { date: fmt.monthYear(project.completion) })}</p>
@@ -107,7 +107,7 @@ export function ProjectShowcase({ projects, fmt }: { projects: Showcase[]; fmt: 
                 <bdi dir="ltr" className="ltr-ref block text-lg font-semibold">
                   {fmt.percent(project.progress)}
                 </bdi>
-                <span className="text-[10px] tracking-wide text-inverse uppercase">{t('dashboard:showcase.built')}</span>
+                <span className="text-micro tracking-wide text-inverse uppercase">{t('dashboard:showcase.built')}</span>
               </span>
             </ProgressRing>
           </div>
@@ -220,7 +220,7 @@ function MilestoneTrack({ milestones, fmt }: { milestones: ProjectMilestone[]; f
               <span className={cn('mt-1.5 max-w-full truncate px-0.5 text-xs max-sm:sr-only', current ? 'font-semibold text-text' : 'text-muted')}>
                 {t(`dashboard:showcase.milestone.${m.key}`)}
               </span>
-              <span className={cn('text-[11px] text-muted', current ? 'max-sm:sr-only' : 'sr-only')}>{state(m)}</span>
+              <span className={cn('text-mini text-muted', current ? 'max-sm:sr-only' : 'sr-only')}>{state(m)}</span>
             </li>
           );
         })}

@@ -1,16 +1,16 @@
-import { ApiError, type CollectionSettings, type SetupStep, type SiteOverview } from '@repo/contracts';
-import { formatIban } from '@repo/i18n';
+import { ApiError, type SetupStep, type SiteOverview } from '@repo/contracts';
 import { Badge, Breadcrumbs, cn, DirectionalIcon, ErrorState, Link, NotFoundState, Panel, UrlTabs, useApiQuery, useSession, useT } from '@repo/ui';
-import { BadgeCheck, Ban, Building, Check, ChevronRight, CircleDashed, Clock3, Lock, Upload } from 'lucide-react';
+import { Building, Check, ChevronRight, CircleDashed, Clock3, Lock } from 'lucide-react';
 import { SOCIETY } from '../../../nav.config';
 import { FlatJump, LaterBadge, Loading, useSocietyFormat } from '../kit';
+import { BillingControlsTab, CollectionAccountTab, PaymentMethodsTab } from '../collections/SettingsTabs';
 import { AuditList } from '../parts';
 
 /**
  * SITE-002 Site 360 with SITE-008 (the onboarding checklist, A4 §1) as its overview, the verified
- * collection account (BILL-010) and the payment methods allowed at the site (BILL-012). Changing
- * the collection account or the methods needs two people and arrives with collections (C.2); here
- * they are shown read-only, exactly as residents will see them.
+ * collection account (BILL-010, changed by one person and approved by another, then a cooling-off
+ * period), the payment methods allowed at the site (BILL-012) and the billing controls (document
+ * numbering per issuing entity, who may post a run).
  */
 export default function SiteWorkspace({ siteId }: { siteId: string }) {
   const { t } = useT();
@@ -30,6 +30,7 @@ export default function SiteWorkspace({ siteId }: { siteId: string }) {
     { id: 'overview', label: t('sites:site.tabs.overview') },
     { id: 'collection-settings', label: t('sites:site.tabs.collection') },
     { id: 'payment-methods', label: t('sites:site.tabs.methods') },
+    { id: 'billing-controls', label: t('sites:site.tabs.controls') },
     { id: 'activity', label: t('sites:site.tabs.activity') },
   ];
   return (
@@ -38,7 +39,7 @@ export default function SiteWorkspace({ siteId }: { siteId: string }) {
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
           <p className="text-sm text-muted">{data.site.city} · <bdi>{data.site.legalEntityName}</bdi></p>
-          <h1 id="page-title" className="mt-0.5 text-[1.75rem] leading-tight font-bold tracking-tight text-text outline-none sm:text-[2rem]"><bdi>{data.site.name}</bdi></h1>
+          <h1 id="page-title" className="mt-0.5 text-figure-sm leading-tight font-bold tracking-tight text-text outline-none sm:text-figure"><bdi>{data.site.name}</bdi></h1>
           <p className="mt-1 text-sm text-muted">{t('sites:site.summary', { blocks: data.site.buildings, flats: data.site.flats, occupied: data.site.occupied, declared: data.site.declaredFlats })}</p>
         </div>
         {data.site.flats > 0 && <FlatJump siteId={siteId} className="w-full sm:w-72" testId="site-flat-jump" />}
@@ -46,9 +47,11 @@ export default function SiteWorkspace({ siteId }: { siteId: string }) {
       <UrlTabs label={t('sites:site.tabsLabel')} items={tabs}>
         {(tab) =>
           tab === 'collection-settings' ? (
-            <CollectionTab siteId={siteId} />
+            <CollectionAccountTab siteId={siteId} />
           ) : tab === 'payment-methods' ? (
-            <MethodsTab siteId={siteId} />
+            <PaymentMethodsTab siteId={siteId} />
+          ) : tab === 'billing-controls' ? (
+            <BillingControlsTab siteId={siteId} />
           ) : tab === 'activity' ? (
             <Panel title={t('sites:site.tabs.activity')}><AuditList query={{}} /></Panel>
           ) : (
@@ -143,70 +146,3 @@ function ChecklistRow({ step, n, canAct }: { step: SetupStep; n: number; canAct:
   );
 }
 
-function CollectionTab({ siteId }: { siteId: string }) {
-  const { t } = useT();
-  const q = useApiQuery<CollectionSettings>({ method: 'GET', path: `/sites/${siteId}/collection-settings` });
-  if (q.isError) return <ErrorState error={q.error} onRetry={() => void q.refetch()} />;
-  if (!q.data) return <Loading lines={6} />;
-  const s = q.data;
-  return (
-    <div className="grid gap-5 @4xl:grid-cols-2">
-      <Panel title={t('sites:collection.payeeTitle')} description={t('sites:collection.payeeHint')}>
-        {s.payee ? (
-          <dl className="space-y-3 text-sm" data-testid="payee-card">
-            <Row label={t('sites:collection.status')} value={<Badge tone="success" icon={BadgeCheck}>{t('sites:collection.verified')}</Badge>} />
-            <Row label={t('sites:collection.title')} value={<bdi>{s.payee.accountTitle}</bdi>} />
-            <Row label={t('sites:collection.bank')} value={s.payee.bankName} />
-            <Row label={t('sites:collection.iban')} value={<bdi dir="ltr" className="ltr-ref font-mono">{formatIban(s.payee.iban)}</bdi>} />
-            <Row label={t('sites:collection.reference')} value={<bdi dir="ltr" className="ltr-ref font-mono">{s.payee.referenceFormat}</bdi>} />
-          </dl>
-        ) : (
-          <p className="text-sm text-muted">{t('sites:collection.none')}</p>
-        )}
-        <p className="mt-4 flex flex-wrap items-center gap-2 text-xs text-muted">{t('sites:collection.change')} <LaterBadge gate="C.2" /></p>
-      </Panel>
-      <Panel title={t('sites:collection.rulesTitle')}>
-        <dl className="space-y-3 text-sm">
-          <Row label={t('sites:collection.issueDay')} value={t('sites:collection.dayN', { day: s.issueDay })} />
-          <Row label={t('sites:collection.dueDay')} value={t('sites:collection.dayN', { day: s.dueDay })} />
-          <Row label={t('sites:collection.allocation')} value={t('sites:collection.oldestFirst')} />
-          <Row label={t('sites:collection.lateFees')} value={t('sites:collection.lateFeesNone')} />
-          <Row label={t('sites:collection.reminders')} value={<LaterBadge gate="C.2" />} />
-        </dl>
-        <p className="mt-4 text-xs text-muted">{t('sites:collection.platformNote')}</p>
-      </Panel>
-    </div>
-  );
-}
-
-function MethodsTab({ siteId }: { siteId: string }) {
-  const { t } = useT();
-  const q = useApiQuery<CollectionSettings>({ method: 'GET', path: `/sites/${siteId}/collection-settings` });
-  if (q.isError) return <ErrorState error={q.error} onRetry={() => void q.refetch()} />;
-  if (!q.data) return <Loading lines={4} />;
-  return (
-    <Panel title={t('sites:methods.title')} description={t('sites:methods.hint')}>
-      <ul className="divide-y divide-border rounded-tile border border-border" data-testid="payment-methods">
-        {q.data.methods.map((m) => (
-          <li key={m.method} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3" data-method={m.method} data-allowed={m.allowed}>
-            <span className="min-w-0">
-              <span className="block font-semibold text-text">{t(`sites:methods.kinds.${m.method}`)}</span>
-              <span className="block text-xs text-muted">{t(`sites:methods.hints.${m.method}`)}</span>
-            </span>
-            {m.allowed ? <Badge tone="success" icon={Check}>{t('sites:methods.allowed')}</Badge> : m.gate ? <LaterBadge gate={m.gate} /> : <Badge tone="neutral" icon={Ban}>{t('sites:methods.notAllowed')}</Badge>}
-          </li>
-        ))}
-      </ul>
-      <p className="mt-3 flex items-center gap-2 text-xs text-muted"><Upload aria-hidden className="size-3.5" />{t('sites:methods.proofNote')}</p>
-    </Panel>
-  );
-}
-
-function Row({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="flex flex-wrap justify-between gap-x-4 gap-y-1">
-      <dt className="text-muted">{label}</dt>
-      <dd className="text-end font-medium text-text">{value}</dd>
-    </div>
-  );
-}

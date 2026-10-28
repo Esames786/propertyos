@@ -158,7 +158,7 @@ function FlatCell({ siteId, flat, wide }: { siteId: string; flat: FlatTile; wide
           <Icon aria-hidden className="size-3.5" />
         </span>
       </span>
-      <span className="min-w-0 truncate text-[11px] text-muted">
+      <span className="min-w-0 truncate text-mini text-muted">
         {t(`sites:occupancyShort.${flat.occupancy}`)}
         {flat.exempt ? ` · ${t('sites:flat.exempt')}` : owes ? ` · ${t('sites:structure.owes')}` : ''}
       </span>

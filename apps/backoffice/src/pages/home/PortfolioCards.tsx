@@ -191,7 +191,7 @@ export function ResidencesRail({ residences, fmt }: { residences: ResidenceSumma
                   ) : (
                     <PlotIllustration />
                   )}
-                  <span className="absolute bottom-3 start-3 inline-flex max-w-[80%] items-center rounded-pill bg-[rgb(12_17_15/0.66)] px-2.5 py-0.5 text-[11px] font-medium text-inverse backdrop-blur-sm">
+                  <span className="absolute bottom-3 start-3 inline-flex max-w-[80%] items-center rounded-pill bg-[rgb(12_17_15/0.66)] px-2.5 py-0.5 text-mini font-medium text-inverse backdrop-blur-sm">
                     <bdi className="truncate">{r.projectName}</bdi>
                   </span>
                 </div>
@@ -207,7 +207,7 @@ export function ResidencesRail({ residences, fmt }: { residences: ResidenceSumma
                   </div>
                   <div className="mt-auto flex items-end justify-between gap-2 border-t border-border pt-3">
                     <span>
-                      <span className="block text-[11px] text-muted">{t('dashboard:residences.from')}</span>
+                      <span className="block text-mini text-muted">{t('dashboard:residences.from')}</span>
                       <bdi dir="ltr" className="ltr-ref text-base font-semibold text-text">
                         {fmt.money(r.fromPrice.amount, 1)}
                       </bdi>

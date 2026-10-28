@@ -58,6 +58,21 @@ const SHALIMAR_DATA: TenantDataset = {
   refs: { party: 'SHC-', lead: 'SH-LD-', city: 'Lahore' },
 };
 
+/**
+ * Verified links of Al-Noor's resident identities: the flats they are associated with and the account
+ * those flats are billed to. Rabia Hashmi owns A-201 and A-202 on one account; Junaid Akhtar rents
+ * A-202 and pays for it alone, so within that account each sees only their own liability.
+ */
+const anrLink = (partyId: string, flat: string, account: string, from: string) => ({
+  partyId,
+  unitId: `unt_anr_${flat.replace('-', '').toLowerCase()}`,
+  billingAccountId: `ba_anr_${account.replace('-', '').toLowerCase()}`,
+  siteId: 'site_alnoor',
+  legalEntityId: 'le_alnoor',
+  verified: true,
+  from,
+});
+
 /** Al-Noor Residency (Demo): no projects, no developer records (I-2); the society model holds the rest. */
 const ALNOOR_DATA: TenantDataset = {
   tenantId: AL_NOOR.id,
@@ -71,7 +86,13 @@ const ALNOOR_DATA: TenantDataset = {
   invoices: [],
   visits: [],
   notifications: [],
-  partyLinks: [],
+  partyLinks: [
+    anrLink('pty_anr_0001', 'A-101', 'A101', '2017-04-01'),
+    anrLink('pty_anr_0003', 'A-102', 'A102', '2026-03-01'),
+    anrLink('pty_anr_0010', 'A-201', 'A201', '2018-09-01'),
+    anrLink('pty_anr_0010', 'A-202', 'A201', '2020-02-01'),
+    anrLink('pty_anr_0011', 'A-202', 'A201', '2025-08-01'),
+  ],
   refs: { party: 'ANR-P-', lead: 'ANR-LD-', city: 'Lahore' },
   society: { siteId: 'site_alnoor', legalEntityId: 'le_alnoor' },
 };

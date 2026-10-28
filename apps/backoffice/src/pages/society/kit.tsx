@@ -1,6 +1,6 @@
 import { ApiError, type BillingRunEvent, type BillingRunState, type CustomerInvoice, type FlatFact, type Money as MoneyValue, type OccupancyStatus, type SiteStructure } from '@repo/contracts';
 import { formatCalendarDate, formatMoney, formatMoneyCompact, formatNumber, useLocale } from '@repo/i18n';
-import { Badge, cn, DateTime, dynamicT, InlineAlert, Link, SkeletonBlock, useApiQuery, useNavigation, useT, type StatusTone } from '@repo/ui';
+import { Badge, cn, DateTime, dynamicT, InlineAlert, Link, SkeletonBlock, Stepper, useApiQuery, useNavigation, useT, type StatusTone, type StepperStep } from '@repo/ui';
 import {
   BadgeCheck,
   Ban,
@@ -217,7 +217,10 @@ export function FactList({ facts, today, emptyText, testId, renderExtra, hidePer
 
 const STEPS: BillingRunState[] = ['DRAFT', 'PREVIEWED', 'APPROVAL_PENDING', 'APPROVED', 'POSTED', 'NOTIFIED'];
 
-/** StateTimeline for a billing run: every state in order, who moved it and when. */
+/**
+ * A billing run's progress as a compact, responsive stepper (owner, C.1 review): every state in
+ * order and who moved it; on a phone, one row of segments with the current step named.
+ */
 export function RunProgress({ state, history, compact = false }: { state: BillingRunState; history: BillingRunEvent[]; compact?: boolean }) {
   const { t } = useT();
   const at = STEPS.indexOf(state);
@@ -231,29 +234,19 @@ export function RunProgress({ state, history, compact = false }: { state: Billin
       </p>
     );
   }
+  const steps: StepperStep[] = STEPS.map((s, i) => {
+    const event = lastFor(s);
+    return {
+      id: s,
+      label: t(`billing:runState.${s}`),
+      state: i < at || (i === at && state === 'NOTIFIED') ? 'done' : i === at ? 'current' : 'upcoming',
+      ...(event && i <= at && !compact ? { detail: <bdi>{event.byName}</bdi> } : {}),
+    };
+  });
   return (
-    <ol className={cn('grid gap-2', compact ? 'grid-cols-6' : 'sm:grid-cols-6')} aria-label={t('billing:run.progressLabel')} data-testid="run-progress" data-state={state}>
-      {STEPS.map((s, i) => {
-        const current = i === at;
-        const event = lastFor(s);
-        return (
-          <li key={s} aria-current={current ? 'step' : undefined} className="min-w-0">
-            <span aria-hidden className={cn('block h-1.5 rounded-pill', i < at || current ? 'bg-primary' : 'bg-sunken', current && state !== 'NOTIFIED' && 'bg-accent')} />
-            {!compact && (
-              <span className="mt-2 block">
-                <span className={cn('block text-xs font-semibold', current ? 'text-text' : i < at ? 'text-muted' : 'text-subtle')}>{t(`billing:runState.${s}`)}</span>
-                {event && i <= at && (
-                  <span className="block truncate text-xs text-muted">
-                    <bdi>{event.byName}</bdi>
-                  </span>
-                )}
-              </span>
-            )}
-            {compact && <span className="sr-only">{t(`billing:runState.${s}`)}</span>}
-          </li>
-        );
-      })}
-    </ol>
+    <div data-testid="run-progress" data-state={state}>
+      <Stepper steps={steps} label={t('billing:run.progressLabel')} />
+    </div>
   );
 }
 

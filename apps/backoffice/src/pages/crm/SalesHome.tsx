@@ -286,9 +286,9 @@ function Visits({ items, f }: { items: SiteVisit[]; f: CrmFormat }) {
               <RevealItem as="li" key={v.id}>
                 <article className="flex items-start gap-3 rounded-card border border-border/70 bg-panel p-4 shadow-card" data-testid="visit-card">
                   <div aria-hidden className="grid w-14 shrink-0 place-items-center rounded-tile bg-tile-violet-soft py-2 text-tile-violet-ink">
-                    <span className="text-[0.6875rem] font-semibold uppercase">{parts.weekday}</span>
+                    <span className="text-mini font-semibold uppercase">{parts.weekday}</span>
                     <span className="text-xl leading-none font-bold">{parts.day}</span>
-                    <span className="text-[0.6875rem]">{parts.month}</span>
+                    <span className="text-mini">{parts.month}</span>
                   </div>
                   <div className="min-w-0 flex-1">
                     <h3 className="text-base leading-snug font-bold text-text">

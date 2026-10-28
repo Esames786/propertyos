@@ -6,6 +6,8 @@ import { FINANCE_HANDLERS } from './finance-handlers';
 import { MY_ACCESS_HANDLERS } from './my-access-handlers';
 import { PLAN_HANDLERS } from './plan-handlers';
 import { PORTAL_HANDLERS } from './portal-handlers';
+import { COLLECTIONS_HANDLERS } from './society/collections-handlers';
+import { DUES_PORTAL_HANDLERS } from './society/dues-portal-handlers';
 import { SOCIETY_HANDLERS, societyRecordAccess, societySearch } from './society/handlers';
 import { WORKSPACE_HANDLERS } from './workspace-handlers';
 
@@ -279,4 +281,4 @@ const CORE_HANDLERS: readonly Handler[] = [
 ];
 
 /** Core endpoints first; feature modules own their routes. First match wins. */
-export const HANDLERS: readonly Handler[] = [...CORE_HANDLERS, ...CRM_HANDLERS, ...FINANCE_HANDLERS, ...PORTAL_HANDLERS, ...PLAN_HANDLERS, ...MY_ACCESS_HANDLERS, ...WORKSPACE_HANDLERS, ...SOCIETY_HANDLERS];
+export const HANDLERS: readonly Handler[] = [...CORE_HANDLERS, ...CRM_HANDLERS, ...FINANCE_HANDLERS, ...PORTAL_HANDLERS, ...PLAN_HANDLERS, ...MY_ACCESS_HANDLERS, ...WORKSPACE_HANDLERS, ...SOCIETY_HANDLERS, ...COLLECTIONS_HANDLERS, ...DUES_PORTAL_HANDLERS];

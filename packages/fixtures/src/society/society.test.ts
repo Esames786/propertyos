@@ -1,4 +1,4 @@
-import type { BillingRunItem } from '@repo/contracts';
+import type { BillingRunItem, LiabilityChange } from '@repo/contracts';
 import { describe, expect, it } from 'vitest';
 import { toPaisa } from '../portal';
 import { alnoorRegister, OPENING_AS_OF, sampleFlatFile } from './alnoor';
@@ -6,6 +6,7 @@ import { assess, post, type PostContext } from './billing-run';
 import { resolveCharges } from './charges';
 import { committable, FLAT_COLUMNS, fingerprint, rowsOf, validateFlats } from './import';
 import { buildSociety, flatIdOf, payerOn } from './model';
+import { defaultNumbering, formatRef } from './numbering';
 import { readySociety, viewOf, withPayerChanges } from './state';
 import { statementOf } from './statement';
 import vectors from './dues.vectors.json';
@@ -18,10 +19,28 @@ function november(state = readySociety(), postingVersion = 1) {
   return { view, ...assess({ model: view.model, facts: view.facts, rules: state.rules, exemptions: state.exemptions, period: PERIOD, postingVersion, runId: 'brn_test' }) };
 }
 
-const postCtx = (posted: PostContext['posted'] = []): PostContext => ({
-  run: { id: 'brn_test', ref: 'ANR-RUN-202611', siteId: 'site_alnoor', period: PERIOD, postingVersion: 1, issueDate: '2026-11-01', dueDate: '2026-11-10' },
-  legalEntity: { id: 'le_alnoor', name: 'Al-Noor Residency Owners’ Association (Demo)' },
-  posted,
+const postCtx = (posted: PostContext['posted'] = []): PostContext => {
+  let seq = posted.filter((i) => i.source === 'billing_run' && i.period === PERIOD).length;
+  return {
+    run: { id: 'brn_test', ref: 'ANR-RUN-202611', siteId: 'site_alnoor', period: PERIOD, postingVersion: 1, issueDate: '2026-11-01', dueDate: '2026-11-10' },
+    legalEntity: { id: 'le_alnoor', name: 'Al-Noor Residency Owners’ Association (Demo)' },
+    posted,
+    nextRef: () => formatRef(defaultNumbering('ANR').invoice, { code: 'ANR', seq: ++seq, on: PERIOD }),
+  };
+};
+
+const change = (over: Partial<LiabilityChange> & Pick<LiabilityChange, 'id' | 'flatId' | 'partyId' | 'from'>): LiabilityChange => ({
+  flatCode: '',
+  partyName: '',
+  reason: 'Tenant takes over',
+  state: 'approved',
+  requestedBy: 'usr_anr_0001',
+  requestedByName: 'Imran Qureshi',
+  requestedAt: '2026-10-26T10:00:00Z',
+  decidedBy: 'usr_anr_0002',
+  decidedByName: 'Ayesha Malik',
+  decidedAt: '2026-10-26T10:30:00Z',
+  ...over,
 });
 
 const sum = (items: Array<{ total: { amount: string } }>) => items.reduce((s, i) => s + toPaisa(i.total.amount), 0n);
@@ -190,7 +209,7 @@ describe('a payer change does not rewrite history (AC-3, I-5)', () => {
     const state = readySociety();
     const view0 = viewOf(state, TODAY);
     const hina = view0.model.people.find((p) => p.displayName === 'Hina Rana')!;
-    state.payerChanges = [{ id: 'chg1', flatId: flatIdOf('B-204'), partyId: hina.id, from: '2026-11-01', by: 'usr_anr_0001', byName: 'Imran Qureshi', at: '2026-10-26T10:00:00Z' }];
+    state.payerChanges = [change({ id: 'chg1', flatId: flatIdOf('B-204'), partyId: hina.id, from: '2026-11-01' })];
     const view = viewOf(state, TODAY);
     const october = view.invoices.find((i) => i.source === 'opening_balance' && i.lines[0]!.unitCode === 'B-204')!;
     expect(october.payerName).toBe('Faisal Chaudhry');
@@ -202,11 +221,13 @@ describe('a payer change does not rewrite history (AC-3, I-5)', () => {
       ['Faisal Chaudhry', '2016-11-01', '2026-11-01'],
       ['Hina Rana', '2026-11-01', null],
     ]);
-    // Changing again from the same date replaces the pending change instead of stacking periods.
-    const again = withPayerChanges(view0.model.facts, [...state.payerChanges, { ...state.payerChanges[0]!, id: 'chg2', partyId: view0.model.facts.find((f) => f.flatCode === 'B-204' && f.role === 'owner')!.partyId, at: '2026-10-26T11:00:00Z' }], view0.model.people);
-    expect(again.filter((f) => f.role === 'payer' && f.flatCode === 'B-204').map((f) => [f.partyName, f.from])).toEqual([
-      ['Faisal Chaudhry', '2016-11-01'],
-      ['Faisal Chaudhry', '2026-11-01'],
-    ]);
+    // Changing back from the same date replaces the earlier change: the owner simply stays liable (no split).
+    const again = withPayerChanges(view0.model.facts, [...state.payerChanges, change({ id: 'chg2', flatId: flatIdOf('B-204'), partyId: view0.model.facts.find((f) => f.flatCode === 'B-204' && f.role === 'owner')!.partyId, from: '2026-11-01', decidedAt: '2026-10-26T11:00:00Z' })], view0.model.people);
+    expect(again.filter((f) => f.role === 'payer' && f.flatCode === 'B-204').map((f) => [f.partyName, f.from, f.to ?? null])).toEqual([['Faisal Chaudhry', '2016-11-01', null]]);
+    // Pending, rejected and superseded changes never apply.
+    for (const s of ['pending_approval', 'rejected', 'superseded', 'withdrawn'] as const) {
+      const facts = withPayerChanges(view0.model.facts, [change({ id: 'x', flatId: flatIdOf('B-204'), partyId: hina.id, from: '2026-11-01', state: s })], view0.model.people);
+      expect(payerOn(facts, flatIdOf('B-204'), '2026-11-01')?.partyName).toBe('Faisal Chaudhry');
+    }
   });
 });

@@ -6,6 +6,7 @@ import { TransportProvider, type TransportFactory } from '../data/TransportProvi
 import { ToastProvider } from '../feedback/Toast';
 import { TrainingProvider } from '../onboarding/TrainingProvider';
 import { SessionProvider, type SessionTenant } from '../permissions/SessionProvider';
+import { DisplayPreferencesProvider } from '../preferences/DisplayPreferences';
 import { PreferencesProvider } from '../preferences/PreferencesProvider';
 
 /**
@@ -38,11 +39,13 @@ export function AppProviders({
       <PreferencesProvider>
         <LiveAnnouncerProvider>
           <SessionProvider app={app} tenant={tenant} personas={personas} {...(tenants ? { tenants } : {})} {...(accessFor ? { accessFor } : {})} {...(accessDate ? { accessDate } : {})}>
+            <DisplayPreferencesProvider app={app}>
             <TransportProvider createTransport={createTransport}>
               <ToastProvider>
                 <TrainingProvider>{children}</TrainingProvider>
               </ToastProvider>
             </TransportProvider>
+            </DisplayPreferencesProvider>
           </SessionProvider>
         </LiveAnnouncerProvider>
       </PreferencesProvider>

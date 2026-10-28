@@ -1,0 +1,296 @@
+{
+  "shell": {
+    "appName": "Resident app"
+  },
+  "signIn": {
+    "describe": "Resident of Al-Noor Residency: bills, payments and receipts for their own flat"
+  },
+  "nav": {
+    "home": "Home",
+    "bills": "Bills",
+    "pay": "Pay",
+    "history": "Receipts",
+    "statement": "Statement",
+    "settings": "Text size & display",
+    "groups": {
+      "money": "My dues"
+    }
+  },
+  "pages": {
+    "bill": "Bill",
+    "payee": "Bank details",
+    "submission": "Payment proof",
+    "statement": "Statement",
+    "history": "Receipts and proofs"
+  },
+  "status": {
+    "unpaid": "To pay",
+    "overdue": "Overdue",
+    "partially_paid": "Partly paid",
+    "paid": "Paid",
+    "pending_verification": "Pending verification",
+    "nothing_due": "Nothing to pay"
+  },
+  "proofState": {
+    "submitted": "Pending verification",
+    "under_review": "Being checked",
+    "needs_information": "More information needed",
+    "verified": "Verified · receipt issued",
+    "rejected": "Not accepted"
+  },
+  "method": {
+    "bank_transfer": "Bank transfer",
+    "office_cash": "At the office",
+    "cheque": "Cheque",
+    "online": "Online"
+  },
+  "steps": {
+    "label": "Where your payment stands",
+    "sent": "Proof sent",
+    "resent": "Proof sent again",
+    "check": "Checked by the office",
+    "needsInfo": "Office needs more",
+    "verified": "Verified",
+    "rejected": "Not accepted",
+    "receipt": "Receipt"
+  },
+  "demoLink": {
+    "linked": "Demo: linked with the society office app in this browser, so the office sees what you send.",
+    "local": "Demo: the office app could not be reached, so what you send stays in this app."
+  },
+  "home": {
+    "title": "Home",
+    "greeting": "Hello, {{name}}",
+    "flat": "Flat",
+    "account": "Account",
+    "role": {
+      "owner": "owner",
+      "occupant": "resident",
+      "payer": "you pay"
+    },
+    "thisMonth": "This month",
+    "billFor": "{{period}} maintenance",
+    "noBill": "No bill yet",
+    "current": "This month's bill",
+    "previous": "Earlier balance",
+    "credit": "Your credit",
+    "total": "Total to pay",
+    "dueOn": "Due {{date}}",
+    "dueIn_one": "in {{count}} day",
+    "dueIn_other": "in {{count}} days",
+    "dueToday": "due today",
+    "overdueBy_one": "{{count}} day late",
+    "overdueBy_other": "{{count}} days late",
+    "overdueNote": "{{amount}} of this is already overdue.",
+    "pendingNote": "{{amount}} you sent is being checked. It counts once the office verifies it.",
+    "pay": "Pay {{amount}}",
+    "seeProof": "See your proof",
+    "seeBill": "See the bill",
+    "needsInfoTitle": "The office needs more from you",
+    "needsInfoAction": "Send it again",
+    "activityTitle": "Your payments",
+    "allHistory": "All",
+    "activityEmpty": "Nothing sent or paid yet.",
+    "proofOf": "Proof of {{amount}}",
+    "sentOn": "Sent {{date}}",
+    "receipt": "Receipt {{ref}}",
+    "linksTitle": "Quick links",
+    "links": {
+      "statement": "My statement",
+      "history": "Receipts and proofs",
+      "payee": "The society's bank details",
+      "textSize": "Text size"
+    },
+    "cashNote": "You can also pay cash at the office: {{counter}}.",
+    "onlineLater": "Online payment is not available yet (planned for stage {{gate}})."
+  },
+  "bills": {
+    "title": "Your bills",
+    "intro": "Every bill for the flats you pay for. Total to pay now: {{total}}.",
+    "monthly": "Monthly maintenance",
+    "opening": "Balance carried over",
+    "openingTitle": "Balance as of {{date}}",
+    "left": "{{amount}} left",
+    "emptyTitle": "No bills yet",
+    "emptyBody": "Bills appear here once the society issues them."
+  },
+  "bill": {
+    "title": "{{period}} bill",
+    "issued": "Issued {{date}}",
+    "charges": "Charges",
+    "charge": "Charge",
+    "amount": "Amount",
+    "opening": "Balance carried over",
+    "credited": "{{amount}} credited",
+    "paidPart": "{{amount}} paid",
+    "total": "This bill",
+    "creditNotes": "Credit notes",
+    "paid": "Paid",
+    "left": "Left to pay on this bill",
+    "position": "What you owe in all",
+    "positionLine": "Earlier balance {{previous}} + this month {{current}} = total to pay {{total}}",
+    "positionRule": "The earlier balance is shown apart: it is never added to this bill's lines.",
+    "payments": "Payments on this bill"
+  },
+  "history": {
+    "title": "Receipts and proofs",
+    "intro": "What the office has verified (with its receipt), and every proof you have sent.",
+    "receipts": "Receipts",
+    "noReceipts": "No receipts yet. A receipt is issued when the office verifies your payment.",
+    "credit": "{{amount}} kept as credit",
+    "proofs": "Proofs you sent",
+    "noProofs": "You have not sent any proof."
+  },
+  "pay": {
+    "title": "Pay your dues",
+    "intro": "Transfer the total to the society's verified account, then send the receipt here.",
+    "detailsTitle": "The society's bank details",
+    "detailsIntro": "The only account to pay your dues into.",
+    "detailsNext": "Already transferred? Send the proof so the office can check it.",
+    "sendProof": "Send proof",
+    "amountTitle": "Total to pay",
+    "amountBreakdown": "This month {{current}} + earlier balance {{previous}}",
+    "pendingTitle": "You have already sent proof",
+    "pendingLine": "{{amount}} sent {{date}}: {{state}}",
+    "methodLabel": "How you pay",
+    "noPayee": "The society has no verified account at the moment. Please contact the office.",
+    "payeeTitle": "Transfer to",
+    "verified": "Verified account",
+    "payeeOf": "Account of {{entity}}, verified {{date}}.",
+    "changedTitle": "This account changed on {{date}}",
+    "changedBody": "Do not use the old account any more.",
+    "accountTitle": "Account title",
+    "iban": "IBAN",
+    "reference": "Reference to quote",
+    "amount": "Amount",
+    "bank": "{{bank}}, {{branch}}",
+    "copy": "Copy {{label}}",
+    "copied": "{{label}} copied",
+    "copyFailed": "Could not copy. Select the text instead.",
+    "qrTitle": "Scan with your banking app",
+    "qrLabel": "QR code of the payment instruction",
+    "qrDemo": "Demo: a fictional account. Never use it for a real payment.",
+    "onlyThisAccount": "Pay only into this account. Nobody from the society or PropertyOS will ask you to pay into any other account.",
+    "proofTitle": "Already paid? Send your proof",
+    "proofIntro": "A photo or PDF of the bank's receipt. The office checks it against the bank before it counts.",
+    "paidAmount": "Amount you transferred",
+    "transferDate": "Date of the transfer",
+    "yourReference": "Reference you used",
+    "yourReferenceHelp": "As shown on your bank's receipt.",
+    "yourBank": "Your bank",
+    "file": "Transfer receipt",
+    "filePick": "Choose file",
+    "fileChange": "Choose another file",
+    "fileHint": "JPG, PNG, WebP or PDF, up to 5 MB",
+    "fileKb": "{{kb}} KB",
+    "fileRequired": "Choose the transfer receipt.",
+    "fileType": "Use a JPG, PNG, WebP image or a PDF.",
+    "fileSize": "The file must be 5 MB or smaller.",
+    "note": "Note for the office",
+    "pendingRule": "After you send it, your payment shows as \"Pending verification\". It is marked paid only when the office verifies it, and then you get a receipt.",
+    "send": "Send proof",
+    "sent": "Proof sent. It is pending verification.",
+    "duplicateTitle": "Send this again?",
+    "duplicateBody": "You already sent this proof ({{ref}}). Send it again only if the office asked you to.",
+    "duplicateConfirm": "Send again",
+    "cashTitle": "Pay at the society office",
+    "cashBody": "Bring cash to {{counter}}. You get a receipt at the counter.",
+    "cashLimit": "Up to {{max}} in cash per receipt.",
+    "cashReceipt": "Cash is receipted straight away; nothing needs to be sent here.",
+    "cashOff": "The office does not take cash at present. Please pay by bank transfer.",
+    "onlineTitle": "Pay online",
+    "onlineBody": "Card and wallet payments are not available for your society yet.",
+    "onlineLater": "Planned for stage {{gate}}",
+    "amountBreakdownCredit": "This month {{current}} + earlier balance {{previous}} − credit {{credit}}"
+  },
+  "proof": {
+    "title": "Your payment proof",
+    "transferOn": "transfer of {{date}}",
+    "sentTitle": "Proof sent",
+    "sentBody": "The office checks it against the bank. Your payment counts once it is verified, and you get a receipt.",
+    "explain": {
+      "submitted": "Pending verification: the office has not opened it yet. It is not marked paid until it is verified.",
+      "under_review": "The office is checking it against the bank.",
+      "needs_information": "The office needs more from you. Send the proof again below.",
+      "verified": "Verified. Your receipt is ready.",
+      "rejected": "Not accepted. Nothing was recorded as paid."
+    },
+    "askedTitle": "The office asks",
+    "rejectedTitle": "Why it was not accepted",
+    "rejectedNext": "If you paid, contact the office or send a new proof with the correct receipt.",
+    "receiptReady": "Receipt {{ref}}",
+    "receiptOpen": "Open your receipt",
+    "resubmitTitle": "Send the proof again",
+    "resubmit": "Send again",
+    "resubmitted": "Proof sent again. It is pending verification.",
+    "timeline": "What happened",
+    "steps": {
+      "submitted": "You sent the proof",
+      "resubmitted": "You sent it again",
+      "under_review": "The office started checking",
+      "information_requested": "The office asked for more",
+      "verified": "Verified and receipted",
+      "rejected": "Not accepted"
+    },
+    "versions_one": "{{count}} version sent: {{files}}",
+    "versions_other": "{{count}} versions sent: {{files}}"
+  },
+  "receipt": {
+    "title": "Payment receipt",
+    "paid": "Paid",
+    "number": "Receipt",
+    "from": "Received from",
+    "account": "Account and flats",
+    "method": "Method",
+    "received": "Received on",
+    "amount": "Amount received",
+    "credit": "Kept as credit",
+    "issued": "Issued {{date}}",
+    "demo": "Demo document, fictional data",
+    "print": "Print"
+  },
+  "statement": {
+    "title": "Your statement",
+    "intro": "Your own charges and payments from {{from}} to {{to}}",
+    "charges": "Charges",
+    "payments": "Payments and credits",
+    "closing": "Balance now",
+    "inCredit": "You are {{amount}} in credit.",
+    "balance": "Balance",
+    "kinds": {
+      "opening_balance": "Balance carried over",
+      "invoice": "{{period}} bill",
+      "credit_note": "Credit note",
+      "payment": "Payment received"
+    }
+  },
+  "tour": {
+    "name": "Your dues, step by step",
+    "summary": "This month's bill, the exact total, how to pay, and where your proof stands.",
+    "bill": {
+      "title": "This month's bill",
+      "body": "The society's maintenance bill for your flat, with its due date and whether it is paid."
+    },
+    "total": {
+      "title": "The exact total",
+      "body": "This month's bill plus any earlier balance, less any credit. This is what to transfer."
+    },
+    "pay": {
+      "title": "Pay",
+      "body": "Shows the society's verified account to transfer to, then lets you send the bank's receipt."
+    },
+    "status": {
+      "title": "Where your payment stands",
+      "body": "A proof shows \"Pending verification\" until the office checks it against the bank. Then a receipt appears here."
+    },
+    "navigation": {
+      "title": "Find your way",
+      "body": "Bills, receipts and your statement are always in the menu.",
+      "bodyMobile": "Bills, receipts and your statement are in the bar at the bottom; Pay is the round button."
+    },
+    "help": {
+      "title": "Help any time",
+      "body": "Replay this tour from the help button. Text size is in your account menu."
+    }
+  }
+}

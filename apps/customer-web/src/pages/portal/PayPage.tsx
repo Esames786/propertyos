@@ -125,7 +125,7 @@ function PayView({ data }: { data: PortalPayments }) {
             <div className="mt-4 flex flex-wrap items-end justify-between gap-3 rounded-tile bg-sunken/70 p-4">
               <div className="min-w-0">
                 <p className="text-sm text-muted">{instalmentLabel(t, selected)}</p>
-                <p className="text-[1.75rem] leading-tight font-bold tracking-tight text-text" data-testid="pay-amount">
+                <p className="text-figure-sm leading-tight font-bold tracking-tight text-text" data-testid="pay-amount">
                   <Amount value={selected.amount.amount} />
                 </p>
                 <p className="text-sm text-muted">{t('portal:instalment.dueOn', { date: fmt.date(selected.dueDate) })}</p>
@@ -349,7 +349,7 @@ function DoneState({ item, fmt, header, onAnother, hasMore }: { item: Instalment
         <div className="mt-2 flex justify-center">
           <InstalmentStatusChip status={item.status} />
         </div>
-        <p className="mt-3 text-[1.75rem] font-bold text-info">
+        <p className="mt-3 text-figure-sm font-bold text-info">
           <Amount value={item.amount.amount} />
         </p>
         <p className="mt-3 text-sm text-text">{simulated ? t('portal:pay.done.onlineBody', { label }) : t('portal:pay.done.uploadBody', { label })}</p>

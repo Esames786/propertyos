@@ -70,17 +70,15 @@ const EVIDENCE: Record<EvidenceStatus, StatusSpec> = {
   verified: ['success', CheckCircle2],
 };
 
-export function Badge({ tone, icon: Icon, children, className }: { tone: StatusTone; icon?: LucideIcon; children: string; className?: string }) {
+/**
+ * A status chip: tone, icon and words (never colour alone). It wraps rather than clips when space is
+ * short (large personal text sizes), and passes `data-*` attributes through for tests and tours.
+ */
+export function Badge({ tone, icon: Icon, children, className, ...data }: { tone: StatusTone; icon?: LucideIcon; children: string; className?: string } & { [k: `data-${string}`]: string | number | boolean | undefined }) {
   return (
-    <span
-      className={cn(
-        'inline-flex max-w-full items-center gap-1.5 rounded-pill border px-2.5 py-0.5 text-xs font-medium whitespace-nowrap',
-        TONES[tone],
-        className,
-      )}
-    >
+    <span className={cn('inline-flex max-w-full items-center gap-1.5 rounded-pill border px-2.5 py-0.5 text-xs font-medium', TONES[tone], className)} {...data}>
       {Icon && <Icon aria-hidden className="size-3.5 shrink-0" />}
-      <span className="truncate">{children}</span>
+      <span className="min-w-0 [overflow-wrap:anywhere]">{children}</span>
     </span>
   );
 }

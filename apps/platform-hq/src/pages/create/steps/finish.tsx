@@ -170,7 +170,7 @@ export function DoneStep({ result, name }: { result: ActivationResult; name: str
       <div className="flex justify-center">
         <IconTile icon={pending ? FileClock : BadgeCheck} hue={pending ? 'amber' : 'emerald'} variant="solid" size="xl" className="animate-pop-in" />
       </div>
-      <h1 id="page-title" ref={heading} tabIndex={-1} className="mt-5 text-[1.75rem] leading-tight font-bold text-text outline-none">
+      <h1 id="page-title" ref={heading} tabIndex={-1} className="mt-5 text-figure-sm leading-tight font-bold text-text outline-none">
         {pending ? t('platform:wizard.done.pendingTitle', { name }) : t('platform:wizard.done.title', { name })}
       </h1>
       <p className="mx-auto mt-2 max-w-lg text-muted">{pending ? t('platform:wizard.done.pendingBody') : t(`platform:wizard.done.body_${result.status === 'trial' ? 'trial' : 'active'}`)}</p>

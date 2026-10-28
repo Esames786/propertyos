@@ -37,7 +37,7 @@ export function NotificationsPanel({ className }: { className?: string }) {
         data-testid="notifications-button"
         badge={
           unread > 0 ? (
-            <span aria-hidden className="absolute top-1.5 end-1.5 grid min-w-4 place-items-center rounded-pill bg-error px-1 text-[0.625rem] font-semibold text-inverse">
+            <span aria-hidden className="absolute top-1.5 end-1.5 grid min-w-4 place-items-center rounded-pill bg-error px-1 text-micro font-semibold text-inverse">
               {unread}
             </span>
           ) : null

@@ -93,7 +93,7 @@ function Workspace({ data }: { data: BillingRunDetail }) {
               </bdi>{' '}
               · <bdi>{run.siteName}</bdi>
             </p>
-            <h1 id="page-title" className="mt-0.5 text-[1.75rem] leading-tight font-bold tracking-tight text-text outline-none sm:text-[2rem]">
+            <h1 id="page-title" className="mt-0.5 text-figure-sm leading-tight font-bold tracking-tight text-text outline-none sm:text-figure">
               {t('billing:run.title', { period })}
             </h1>
             <p className="mt-1 text-sm text-muted">{t('billing:run.dates', { issue: fmt.date(run.issueDate), due: fmt.date(run.dueDate), name: run.createdByName })}</p>

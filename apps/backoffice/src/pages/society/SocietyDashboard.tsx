@@ -6,7 +6,6 @@ import {
   DirectionalIcon,
   dynamicT,
   ErrorState,
-  IconTile,
   Link,
   Skeleton,
   StackedBarList,
@@ -24,9 +23,12 @@ import {
   ChevronRight,
   ClipboardCheck,
   FilePlus2,
+  FileCheck2,
   FileSpreadsheet,
-  HandCoins,
   Hourglass,
+  Landmark,
+  PiggyBank,
+  UserCog,
   ListChecks,
   ReceiptText,
   RefreshCw,
@@ -39,6 +41,7 @@ import {
 } from 'lucide-react';
 import { useId } from 'react';
 import { ACCESS_DATE, SOCIETY } from '../../nav.config';
+import { CollectionsPanel } from './collections/CollectionsPanel';
 import { FlatJump, LaterBadge, RunProgress, RunStateBadge, useSocietyFormat, type SocietyFormat } from './kit';
 
 const TASK_ICON: Record<SocietyTask['key'], LucideIcon> = {
@@ -54,6 +57,12 @@ const TASK_ICON: Record<SocietyTask['key'], LucideIcon> = {
   stale_run: RefreshCw,
   returned_run: Undo2,
   finish_setup: ListChecks,
+  review_proofs: FileCheck2,
+  proofs_waiting_resident: Hourglass,
+  reconcile_bank: Landmark,
+  approve_beneficiary: Landmark,
+  approve_payer_changes: UserCog,
+  apply_credit: PiggyBank,
 };
 
 /** Occupancy keeps its colour whatever is shown (ordinal evergreen ramp, validated with the dashboard). */
@@ -93,7 +102,7 @@ function DashboardView({ data }: { data: Dashboard }) {
           <p className="text-xs font-semibold tracking-[0.14em] text-accent uppercase">
             <bdi>{data.site.name}</bdi> · {persona ? dt(persona.roleKey) : ''}
           </p>
-          <h1 id="page-title" className="mt-1.5 text-[1.75rem] leading-tight font-bold tracking-tight text-text outline-none sm:text-[2.25rem]">
+          <h1 id="page-title" className="mt-1.5 text-figure-sm leading-tight font-bold tracking-tight text-text outline-none sm:text-4xl">
             {t('dashboard:greeting.morning', { name: firstName })}
           </h1>
           <p className="mt-1.5 text-sm text-muted">{t('billing:dashboard.subtitle', { period, date: fmt.date(ACCESS_DATE) })}</p>
@@ -111,7 +120,7 @@ function DashboardView({ data }: { data: Dashboard }) {
         </div>
       </header>
 
-      <CollectionsRow data={data} fmt={fmt} period={period} />
+      {data.collections ? <CollectionsPanel data={data.collections} /> : <CollectionsRow data={data} fmt={fmt} period={period} />}
 
       <div className="grid gap-5 lg:gap-6 @5xl:grid-cols-12">
         <div className="min-w-0 @5xl:col-span-7">
@@ -149,7 +158,7 @@ function CollectionsRow({ data, fmt, period }: { data: Dashboard; fmt: SocietyFo
       <h2 id={titleId} className="text-xl font-bold tracking-tight text-text sm:text-2xl">
         {t('billing:dashboard.collections', { period })}
       </h2>
-      <div className="grid gap-4 @lg:grid-cols-2 @5xl:grid-cols-4">
+      <div className="grid gap-4 @lg:grid-cols-3">
         <StatTile
           testId="kpi-billed"
           icon={ReceiptText}
@@ -180,16 +189,6 @@ function CollectionsRow({ data, fmt, period }: { data: Dashboard; fmt: SocietyFo
           context={t('billing:dashboard.arrearsContext', { count: data.arrears.accounts })}
           href={data.arrears.href}
         />
-        <div className="flex min-w-0 flex-col justify-between gap-4 rounded-card border border-dashed border-border bg-panel/60 p-5" data-testid="kpi-collected" data-later="C.2">
-          <span className="flex min-w-0 items-center gap-3 text-sm text-muted">
-            <IconTile icon={HandCoins} hue="slate" size="md" />
-            <span className="min-w-0 space-y-1 leading-snug">
-              <span className="block">{t('billing:dashboard.collected')}</span>
-              {'later' in data.collected && <LaterBadge gate={data.collected.later} />}
-            </span>
-          </span>
-          <p className="text-sm text-muted">{t('billing:dashboard.collectedLater')}</p>
-        </div>
       </div>
     </section>
   );

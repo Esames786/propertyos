@@ -15,5 +15,6 @@ export { LAB_TOUR } from './tours/lab';
 export { CRM_TOUR } from './tours/crm';
 export { SOCIETY_TOUR } from './tours/society';
 export { PORTAL_TOUR } from './tours/portal';
+export { DUES_TOUR } from './tours/dues';
 export { HQ_TOUR, HQ_CREATE_TOUR } from './tours/hq';
 export { TourLibraryView, TextGuideView } from './TourLibraryView';

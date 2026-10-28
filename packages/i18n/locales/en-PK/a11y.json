@@ -42,5 +42,37 @@
     "title": "Prototype tools",
     "label": "Show the design system lab in menus and search",
     "description": "For people reviewing the prototype. Clients never see it in their workspace; its addresses keep working either way."
+  },
+  "textSize": {
+    "welcomeEyebrow": "Welcome",
+    "welcomeTitle": "Choose the text size that’s comfortable for you",
+    "welcomeBody": "Tap a size and the page changes straight away. You can change it later in settings.",
+    "sample": "Aa",
+    "percent": "{{value}}%",
+    "names": {
+      "small": "Small",
+      "comfortable": "Comfortable",
+      "large": "Large",
+      "extraLarge": "Extra large",
+      "veryLarge": "Very large",
+      "largest": "Largest"
+    },
+    "previewLabel": "Preview at this size",
+    "preview": {
+      "eyebrow": "Preview",
+      "title": "November maintenance",
+      "body": "Due 10 November",
+      "amount": "Rs 4,200",
+      "action": "Pay now"
+    },
+    "continue": "Continue with {{value}}%",
+    "changeLater": "You can change this any time: account menu → Text size.",
+    "settingsTitle": "Text size",
+    "settingsHint": "Applies straight away on every screen of this app, for you in this organisation.",
+    "settingsLabel": "Text size",
+    "current": "Text size: {{value}}%",
+    "applied": "Text size set to {{value}}%",
+    "reset": "Reset to default",
+    "menu": "Text size"
   }
 }

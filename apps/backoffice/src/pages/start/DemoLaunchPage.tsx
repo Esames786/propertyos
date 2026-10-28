@@ -6,7 +6,7 @@ import { PreparingStep } from './demo/PreparingStep';
 import { ReadyStep } from './demo/ReadyStep';
 import { RoleStep } from './demo/RoleStep';
 import { EntryFrame } from './EntryFrame';
-import { entryHref, isDemoRole, useSafeNext, type DemoRole } from './entry';
+import { demoOf, entryHref, isDemoRole, isSocietyStart, useSafeNext, type DemoRole } from './entry';
 
 type Step = 'role' | 'preparing' | 'ready';
 const parseStep = (v: string | null): Step => (v === 'preparing' || v === 'ready' ? v : 'role');
@@ -22,6 +22,7 @@ export default function DemoLaunchPage() {
   const [stepParam] = useQueryParam('step');
   const [roleParam] = useQueryParam('role');
   const [freshParam] = useQueryParam('fresh');
+  const [startParam] = useQueryParam('start');
   const next = useSafeNext();
   const reduced = useReducedMotion();
 
@@ -60,12 +61,13 @@ export default function DemoLaunchPage() {
             <RoleStep
               next={next}
               autoFocus={autoFocus}
-              onContinue={(r, fresh) => navigate(href('preparing', { role: r, fresh: fresh ? '1' : null }))}
+              onContinue={(r, c) => navigate(href('preparing', { role: r, ...(demoOf(r) === 'society' ? { start: c.start } : { fresh: c.fresh ? '1' : null }) }))}
             />
           ) : step === 'preparing' ? (
             <PreparingStep
               role={role!}
               fresh={freshParam === '1'}
+              start={isSocietyStart(startParam) ? startParam : freshParam === '1' ? 'fresh' : 'collecting'}
               autoFocus={autoFocus}
               onReady={() => navigate(href('ready'), { replace: true })}
               onChooseAnother={toRole}

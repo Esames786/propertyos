@@ -7,6 +7,9 @@ export { SessionProvider, useSession, useCan } from './permissions/SessionProvid
 export { PermissionGate } from './permissions/PermissionGate';
 export { allowed, filterAllowed } from './permissions/can';
 export { PreferencesProvider, usePreferences, useReducedMotion, PREFERENCES_KEY } from './preferences/PreferencesProvider';
+export { DisplayPreferencesProvider, useDisplayPreferences, TEXT_SCALES, FIRST_RUN_SCALES, DEFAULT_TEXT_SCALE, displayPreferencesKey, isTextScale, percentOf, type TextScale, type DisplayPreferences } from './preferences/DisplayPreferences';
+export { TextSizeChooser, TextSizeSettings, TextSizeWelcome } from './preferences/TextSize';
+export { Stepper, type StepperStep } from './data/Stepper';
 export { usePrototypeTools, PrototypeToolsPreference, PROTOTYPE_TOOLS_KEY } from './preferences/prototypeTools';
 export { LanguagePreferences, AccessibilityPreferences, TourPreferences } from './preferences/PreferencesForm';
 
@@ -76,6 +79,7 @@ export { Stagger, RevealItem, PageEnter } from './motion/Reveal';
 
 // Forms
 export { Form, zodResolver, useFormMeta } from './forms/Form';
+export { PlainCheckbox, PlainTextArea, PlainTextField } from './forms/PlainFields';
 export { TextField, TextAreaField, PhoneField, CnicField } from './forms/TextFields';
 export { CheckboxField, RadioGroupField, SelectField, SelectControl, Switch, type Option } from './forms/ChoiceFields';
 export { AsyncSelectField, type AsyncItem } from './forms/AsyncSelectField';

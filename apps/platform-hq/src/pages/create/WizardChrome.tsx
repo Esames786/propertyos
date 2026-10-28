@@ -28,7 +28,7 @@ export function StepFrame({ step, title, intro, autoFocus, children, testId }: {
       <p aria-hidden className="text-xs font-semibold tracking-[0.08em] text-accent uppercase">
         {t('platform:wizard.stepOf', position)}
       </p>
-      <h1 id="page-title" ref={heading} tabIndex={-1} className="mt-1.5 text-[1.6rem] leading-tight font-bold text-text outline-none sm:text-[1.9rem]">
+      <h1 id="page-title" ref={heading} tabIndex={-1} className="mt-1.5 text-figure-xs leading-tight font-bold text-text outline-none sm:text-3xl">
         <span className="sr-only">{t('platform:wizard.stepPrefix', position)} </span>
         {title}
       </h1>

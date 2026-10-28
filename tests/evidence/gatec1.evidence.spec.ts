@@ -26,6 +26,8 @@ async function start(browser: Browser, vp: ViewportName, persona: PersonaId | nu
   await seed(page, { persona, locale, onboarding: 'done', mock: 'fast' });
   if (persona) {
     await page.goto(`${BO}/backoffice/global/my-access`);
+    // C.1 shows the society set up and ready to bill November (C.2 made "collecting" the default demo).
+    if (persona === 'alnoor_manager') await api(page, '/society/demo', 'POST', { mode: 'ready' });
     await settle(page, 300);
   }
   return page;

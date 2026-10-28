@@ -1,0 +1,62 @@
+{
+  "description": "Golden vectors for Gate C.2 collections (A7 §C.2, AC-9 – AC-14). Al-Noor Residency (Demo), November 2026 billed; demo date 2026-10-26. Amounts are PKR with two decimals.",
+  "today": "2026-10-26",
+  "allocation": [
+    {
+      "case": "A-101 pays 5,200: the opening balance and November are settled",
+      "flat": "A-101",
+      "amount": "5200.00",
+      "settled": [{ "source": "opening_balance", "amount": "1000.00" }, { "source": "billing_run", "amount": "4200.00" }],
+      "novemberSettlement": "paid",
+      "open": "0.00",
+      "unapplied": "0.00",
+      "statementClosing": "0.00"
+    },
+    {
+      "case": "A-101 pays 3,000: the opening balance is settled, November is partly paid, 2,200 remains",
+      "flat": "A-101",
+      "amount": "3000.00",
+      "settled": [{ "source": "opening_balance", "amount": "1000.00" }, { "source": "billing_run", "amount": "2000.00" }],
+      "novemberSettlement": "partially_paid",
+      "open": "2200.00",
+      "unapplied": "0.00",
+      "statementClosing": "2200.00"
+    },
+    {
+      "case": "A-101 pays 6,000: everything is settled and 800 is unapplied credit",
+      "flat": "A-101",
+      "amount": "6000.00",
+      "settled": [{ "source": "opening_balance", "amount": "1000.00" }, { "source": "billing_run", "amount": "4200.00" }],
+      "novemberSettlement": "paid",
+      "open": "0.00",
+      "unapplied": "800.00",
+      "statementClosing": "-800.00"
+    }
+  ],
+  "sharedAccount": {
+    "account": "ANR-A201",
+    "payer": "Junaid Akhtar",
+    "amount": "4200.00",
+    "settlesFlats": ["A-202"],
+    "ownerStillOwes": "7200.00",
+    "ownerFlats": ["A-201"]
+  },
+  "entityIsolation": { "otherEntity": "le_other", "problem": "cross_entity_forbidden" },
+  "residentPosition": [
+    { "persona": "Kamran Siddiqui", "current": "4200.00", "previous": "1000.00", "total": "5200.00" },
+    { "persona": "Sana Iqbal", "current": "4200.00", "previous": "0.00", "total": "4200.00" },
+    { "persona": "Rabia Hashmi", "current": "4200.00", "previous": "3000.00", "total": "7200.00" },
+    { "persona": "Junaid Akhtar", "current": "4200.00", "previous": "0.00", "total": "4200.00" }
+  ],
+  "scenario": {
+    "invoices": 79,
+    "billed": "355800.00",
+    "statements": 2,
+    "bankLines": 12,
+    "verifiedPayments": 3,
+    "collected": "12600.00",
+    "queue": 6,
+    "matched": 3,
+    "unidentified": 2
+  }
+}

@@ -49,7 +49,8 @@
       "maker_checker_required": "You prepared this run, so someone else must approve it.",
       "stale_preview": "Charges changed after the preview. Generate it again first.",
       "permission_missing": "Your role doesn't include this step.",
-      "invalid_transition": "This step isn't available at this stage."
+      "invalid_transition": "This step isn't available at this stage.",
+      "posting_policy": "The site’s posting policy names other roles for posting."
     },
     "next": {
       "draftTitle": "Generate the preview",
@@ -227,7 +228,9 @@
     "exemption": "Exemption request",
     "opening_balances": "Opening balances",
     "yours": "Yours to decide",
-    "notYours": "Someone else decides"
+    "notYours": "Someone else decides",
+    "payer_change": "Payer change",
+    "beneficiary": "New collection account"
   },
   "tasks": {
     "import_flats": {
@@ -301,6 +304,47 @@
       "title": "Finish setting up the society",
       "yours": "A few setup steps are still open.",
       "waiting": "Setup is not finished yet."
+    },
+    "review_proofs": {
+      "action": "Review proofs",
+      "title_one": "{{count}} payment proof to review",
+      "title_other": "{{count}} payment proofs to review",
+      "yours": "Match each to the bank and verify, ask for information or reject.",
+      "waiting": "Finance verifies them."
+    },
+    "proofs_waiting_resident": {
+      "action": "See proofs",
+      "title_one": "{{count}} proof waiting for a resident",
+      "title_other": "{{count}} proofs waiting for residents",
+      "yours": "Residents were asked for more information.",
+      "waiting": "Residents were asked for more information."
+    },
+    "reconcile_bank": {
+      "action": "Reconcile",
+      "title_one": "{{count}} bank line to place",
+      "title_other": "{{count}} bank lines to place",
+      "yours": "Match transfers to proofs, or set aside what is not a resident’s payment.",
+      "waiting": "Finance reconciles the bank."
+    },
+    "approve_beneficiary": {
+      "action": "Review account",
+      "title": "New collection account to approve",
+      "yours": "Proposed by someone else. Check the bank letter, then approve or reject.",
+      "waiting": "Waiting for the committee treasurer. Residents keep the current account."
+    },
+    "approve_payer_changes": {
+      "action": "Review changes",
+      "title_one": "{{count}} payer change to approve",
+      "title_other": "{{count}} payer changes to approve",
+      "yours": "Requested by someone else. Check the dates, then approve or reject.",
+      "waiting": "Waiting for the committee treasurer."
+    },
+    "apply_credit": {
+      "action": "See credit",
+      "title_one": "Credit on {{count}} account",
+      "title_other": "Credit on {{count}} accounts",
+      "yours": "Apply it to open charges of the same payer, or keep it for the next bill.",
+      "waiting": "Finance applies credit."
     }
   },
   "dashboard": {
@@ -368,7 +412,9 @@
       "proof_queue": "Transfer proof reviews",
       "maintenance": "Maintenance requests",
       "visitors": "Visitors and gate passes",
-      "notices": "Notices to residents"
+      "notices": "Notices to residents",
+      "online_payments": "Online payments",
+      "late_fees": "Late fees"
     }
   },
   "statement": {
@@ -379,7 +425,7 @@
     "period": "Statement month",
     "previous": "Previous balance",
     "charges": "{{period}} charges",
-    "credits": "Credits",
+    "credits": "Payments and credits",
     "closing": "Total payable",
     "rule": "The previous balance is carried forward on the statement; it is never added to an invoice as a line.",
     "empty": "No invoices or credits in this month.",
@@ -394,8 +440,10 @@
     "kinds": {
       "opening_balance": "Opening balance (arrears carried over)",
       "credit_note": "Credit note",
-      "invoice": "Invoice for {{period}}"
-    }
+      "invoice": "Invoice for {{period}}",
+      "payment": "Payment received"
+    },
+    "sinceGoLive": "Since go-live"
   },
   "charges": {
     "noRules": "No charge applies to this flat for the month.",
@@ -461,7 +509,32 @@
       "run_post": "posted {{label}}: {{invoices}} invoices, {{amount}}",
       "run_notify": "notified residents of {{label}} (simulated)",
       "run_cancel": "cancelled {{label}}: “{{note}}”",
-      "creditNoteIssued": "issued credit note {{ref}} of {{amount}} on {{label}}: “{{reason}}”"
+      "creditNoteIssued": "issued credit note {{ref}} of {{amount}} on {{label}}: “{{reason}}”",
+      "beneficiaryProposed": "proposed a new collection account",
+      "beneficiaryApproved": "approved the new collection account",
+      "beneficiaryRejected": "rejected the proposed collection account",
+      "beneficiaryCancelled": "cancelled the collection-account change",
+      "beneficiaryActivated": "ended the cooling-off period (demo)",
+      "payerChangeRequested": "asked to change who pays",
+      "payerCorrectionRequested": "asked to correct a payer change",
+      "payerChangeApproved": "approved a payer change",
+      "payerChangeRejected": "rejected a payer change",
+      "payerChangeWithdrawn": "withdrew a payer change",
+      "bankStatementImported": "imported a bank statement",
+      "bankLineExcluded": "set a bank line aside",
+      "bankLineRestored": "restored a bank line",
+      "proofSubmitted": "sent a payment proof",
+      "proofResubmitted": "sent a payment proof again",
+      "proofReviewStarted": "started reviewing a payment proof",
+      "proofVerified": "verified a payment proof",
+      "proofVerifiedManually": "verified a payment proof by hand",
+      "proofInformationRequested": "asked a resident for information",
+      "proofRejected": "rejected a payment proof",
+      "officeCashReceived": "received cash at the office",
+      "creditApplied": "applied credit",
+      "methodChanged": "changed the payment methods",
+      "numberingChanged": "changed document numbering",
+      "postingPolicyChanged": "changed who may post runs"
     }
   },
   "runs": {
@@ -520,7 +593,8 @@
     "noRules": "No maintenance charge is set up for this month.",
     "noPayer": "Some flats have no responsible payer.",
     "postedLocked": "A posted invoice can't be edited. Correct it with a credit note.",
-    "noteRequired": "Add a short comment."
+    "noteRequired": "Add a short comment.",
+    "postingPolicy": "Your role is not one the site allows to post runs."
   },
   "accounts": {
     "intro": "One account per flat, or per owner when one person holds several flats. Each flat keeps its own payer.",

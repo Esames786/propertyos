@@ -17,6 +17,10 @@ export interface ApiRequest<TBody = unknown> {
 /** The single seam between UI and data. Prototype: MockTransport. Later: HTTP to the Laravel API. */
 export interface ApiTransport {
   request<T>(request: ApiRequest): Promise<T>;
+  /** Data changed elsewhere (another app or tab of the demo): callers refresh. Optional. */
+  subscribe?(listener: () => void): () => void;
+  /** Prototype: whether the society demo is shared with the other app of this browser. */
+  linkStatus?(): 'linked' | 'local' | 'none';
 }
 
 /**

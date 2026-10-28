@@ -47,7 +47,7 @@ function Workspace({ data }: { data: InvoiceDetail }) {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <p className="text-sm text-muted">{t(`billing:source.${invoice.source}`)} · {fmt.period(invoice.period)} · <bdi>{invoice.legalEntityName}</bdi></p>
-            <h1 id="page-title" className="mt-0.5 text-[1.75rem] leading-tight font-bold tracking-tight text-text outline-none sm:text-[2rem]"><bdi dir="ltr">{invoice.ref}</bdi></h1>
+            <h1 id="page-title" className="mt-0.5 text-figure-sm leading-tight font-bold tracking-tight text-text outline-none sm:text-figure"><bdi dir="ltr">{invoice.ref}</bdi></h1>
             <p className="mt-1 text-sm text-muted">
               {t('billing:invoice.billedTo', { name: invoice.payerName })} · <Link href={SOCIETY.account(invoice.billingAccountId)}><bdi dir="ltr">{invoice.accountNo}</bdi></Link>
               {invoice.runId && <> · <Link href={SOCIETY.run(invoice.runId)}><bdi dir="ltr">{invoice.runRef}</bdi></Link></>}

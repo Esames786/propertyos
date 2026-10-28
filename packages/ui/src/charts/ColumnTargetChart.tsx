@@ -109,7 +109,7 @@ export function ColumnTargetChart({
                   x={rtl ? innerW + 10 : -10}
                   dy="0.32em"
                   textAnchor={rtl ? 'start' : 'end'}
-                  className="fill-muted text-[11px] tabular"
+                  className="fill-muted text-mini tabular"
                   direction="ltr"
                 >
                   {formatTick(t)}
@@ -119,7 +119,7 @@ export function ColumnTargetChart({
             {points.map((p) => {
               const cx = (x(p.id) ?? 0) + x.bandwidth() / 2;
               return (
-                <text key={p.id} aria-hidden x={cx} y={innerH + 20} textAnchor="middle" className="fill-muted text-[11px]">
+                <text key={p.id} aria-hidden x={cx} y={innerH + 20} textAnchor="middle" className="fill-muted text-mini">
                   {p.label}
                 </text>
               );
@@ -196,7 +196,7 @@ export function ColumnTargetChart({
                 y={Math.min(y(labelled.value), y(labelled.target)) - 9}
                 textAnchor="middle"
                 direction="ltr"
-                className="fill-text text-[11px] font-semibold"
+                className="fill-text text-mini font-semibold"
               >
                 {formatValue(labelled.value)}
               </text>

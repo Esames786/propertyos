@@ -1,5 +1,6 @@
+import type { Beneficiary, CollectionMethod, CollectionsSummary } from './collections';
 import type { Money } from './money';
-import type { OccupancyStatus, SetupStep, UnitTypeCode } from './sites';
+import type { OccupancyStatus, SetupStep, SocietyDemoMode, UnitTypeCode } from './sites';
 
 /**
  * Monthly maintenance billing (Gate C.1, A4 §2–4 and A6 §4). Tenant money only: SaaS fees and unit
@@ -179,7 +180,7 @@ export interface BillingRunDetail {
   items: BillingRunItem[];
   checks: RunCheck[];
   /** What the signed-in person may do now, and why not (server-decided, never only hidden). */
-  actions: Partial<Record<BillingRunAction, { allowed: boolean; reason?: 'maker_checker_required' | 'stale_preview' | 'permission_missing' | 'invalid_transition' }>>;
+  actions: Partial<Record<BillingRunAction, { allowed: boolean; reason?: 'maker_checker_required' | 'stale_preview' | 'permission_missing' | 'invalid_transition' | 'posting_policy' }>>;
 }
 
 export interface BillingRunCreateResult {
@@ -208,6 +209,10 @@ export interface InvoiceLine {
   period: string;
   amount: Money;
   credited: Money;
+  /** Settled by payments (derived when read; stored lines never change). */
+  allocated: Money;
+  /** The account this flat's line is billed to (an invoice may group lines of several accounts). */
+  billingAccountId: string;
   sourceType: InvoiceSource;
   sourceId: string;
   postingVersion: number;
@@ -239,7 +244,7 @@ export interface CustomerInvoice {
   lines: InvoiceLine[];
   total: Money;
   credited: Money;
-  /** Payments arrive in Gate C.2; nothing is allocated in C.1. */
+  /** Settled by verified payments (derived when read from their allocations). */
   allocated: Money;
   outstanding: Money;
   settlement: 'unpaid' | 'partially_paid' | 'paid' | 'credited';
@@ -289,6 +294,8 @@ export interface InvoiceDetail {
   invoice: CustomerInvoice;
   creditNotes: CreditNote[];
   payee: Beneficiary | null;
+  /** Verified payments that settle this invoice's lines. */
+  payments: Array<{ id: string; ref: string; receiptId: string; receiptRef: string; amount: Money; receivedOn: string; method: CollectionMethod }>;
   /** The account's statement balance today (the previous balance is not an invoice line). */
   accountBalance: Money;
   actions: { creditNote: boolean; edit: false };
@@ -302,6 +309,7 @@ export interface StatementEntry {
   period?: string;
   flats: string[];
   payerName?: string;
+  method?: CollectionMethod;
   debit?: Money;
   credit?: Money;
   balance: Money;
@@ -326,35 +334,6 @@ export interface Statement {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Payee and collection settings (BILL-010, BILL-012)
-// ---------------------------------------------------------------------------------------------
-
-export interface Beneficiary {
-  id: string;
-  siteId: string;
-  legalEntityName: string;
-  bankName: string;
-  accountTitle: string;
-  /** Fictional: bank code DEMO (fixtures.test). */
-  iban: string;
-  referenceFormat: string;
-  status: 'draft' | 'pending_verification' | 'verified' | 'retired';
-  verifiedOn?: string;
-}
-
-export interface CollectionSettings {
-  siteId: string;
-  issueDay: number;
-  dueDay: number;
-  graceDays: number;
-  allocation: 'oldest_first';
-  lateFees: 'not_configured';
-  reminders: 'later';
-  payee: Beneficiary | null;
-  methods: Array<{ method: 'bank_transfer' | 'office_cash' | 'cheque' | 'online'; allowed: boolean; gate?: string }>;
-}
-
-// ---------------------------------------------------------------------------------------------
 // Society dashboard (HOME-001 society composition)
 // ---------------------------------------------------------------------------------------------
 
@@ -362,7 +341,25 @@ export interface CollectionSettings {
 export type DashboardLink = { href: string } | { later: string };
 
 export interface SocietyTask {
-  key: 'import_flats' | 'approve_opening_balances' | 'approve_exemptions' | 'create_run' | 'preview_run' | 'submit_run' | 'approve_run' | 'post_run' | 'notify_run' | 'stale_run' | 'returned_run' | 'finish_setup';
+  key:
+    | 'import_flats'
+    | 'approve_opening_balances'
+    | 'approve_exemptions'
+    | 'create_run'
+    | 'preview_run'
+    | 'submit_run'
+    | 'approve_run'
+    | 'post_run'
+    | 'notify_run'
+    | 'stale_run'
+    | 'returned_run'
+    | 'finish_setup'
+    | 'review_proofs'
+    | 'proofs_waiting_resident'
+    | 'reconcile_bank'
+    | 'approve_beneficiary'
+    | 'approve_payer_changes'
+    | 'apply_credit';
   urgency: 'urgent' | 'normal';
   count?: number;
   /** Who acts: the signed-in person can act, or waits for another person. */
@@ -374,7 +371,7 @@ export interface SocietyTask {
 export interface SocietyDashboard {
   site: { id: string; name: string; legalEntityName: string };
   period: string;
-  mode: 'fresh' | 'ready';
+  mode: SocietyDemoMode;
   billing: {
     run: { id: string; ref: string; state: BillingRunState; stale: boolean } | null;
     billed: Money;
@@ -384,15 +381,16 @@ export interface SocietyDashboard {
   };
   outstanding: { amount: Money; accounts: number; href: string };
   arrears: { amount: Money; accounts: number; href: string };
-  collected: DashboardLink;
-  approvals: { count: number; yours: number; href: string; items: Array<{ kind: 'billing_run' | 'exemption' | 'opening_balances'; id: string; label: string; href: string; yours: boolean }> };
+  /** Collections (C.2): every figure opens its filtered records. Null when the person may not see money. */
+  collections: CollectionsSummary | null;
+  approvals: { count: number; yours: number; href: string; items: Array<{ kind: 'billing_run' | 'exemption' | 'opening_balances' | 'payer_change' | 'beneficiary'; id: string; label: string; href: string; yours: boolean }> };
   occupancy: { registered: number; occupied: number; ownerOccupied: number; tenantOccupied: number; vacant: number; association: number; declared: number; href: string };
   buildings: Array<{ id: string; code: string; name: string; flats: number; occupied: number; vacant: number; ownerOccupied: number; tenantOccupied: number; association: number; outstanding: Money; arrearsAccounts: number; href: string }>;
   tasks: SocietyTask[];
   topArrears: Array<{ accountId: string; accountNo: string; holderName: string; flats: string[]; amount: Money; href: string }>;
   setup: { done: number; total: number; next?: SetupStep };
   /** Areas of a society that arrive in later gates, listed honestly with their gate. */
-  later: Array<{ key: 'collections' | 'proof_queue' | 'maintenance' | 'visitors' | 'notices'; gate: string }>;
+  later: Array<{ key: 'online_payments' | 'maintenance' | 'visitors' | 'notices' | 'late_fees'; gate: string }>;
 }
 
 /** One entry of the society's audit trail (who did what, to which record, with the values used). */
@@ -403,7 +401,7 @@ export interface SocietyAuditEntry {
   byName: string;
   /** Translation key under `billing:audit.actions`. */
   action: string;
-  target: { kind: 'site' | 'flat' | 'account' | 'run' | 'invoice' | 'rule' | 'exemption' | 'import' | 'opening_balances'; id: string; label: string };
+  target: { kind: 'site' | 'flat' | 'account' | 'run' | 'invoice' | 'rule' | 'exemption' | 'import' | 'opening_balances' | 'submission' | 'payment' | 'bank' | 'beneficiary' | 'settings' | 'payer_change'; id: string; label: string };
   flats?: string[];
   /** Values for the message (as entered or formatted by the server). */
   values?: Record<string, string>;

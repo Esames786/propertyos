@@ -49,7 +49,7 @@ export function QuickActions({ title, actions, tourId, testId = 'quick-actions' 
           const content = (
             <>
               <IconTile icon={a.icon} hue={a.hue} variant="solid" size="lg" className="transition-transform duration-[var(--motion-regular)] ease-[var(--ease-emphasized)] group-data-hovered:scale-105" />
-              <span className="w-full text-[0.75rem] leading-snug font-medium [overflow-wrap:anywhere] text-text sm:text-[0.8125rem]">{a.label}</span>
+              <span className="w-full text-xs leading-snug font-medium [overflow-wrap:anywhere] text-text sm:text-small">{a.label}</span>
             </>
           );
           return (

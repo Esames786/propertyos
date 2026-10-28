@@ -36,7 +36,7 @@ export function StepFrame({
       <p aria-hidden className="text-xs font-semibold tracking-[0.08em] text-accent uppercase">
         {t('start:setup.stepOf', position)}
       </p>
-      <h1 id="page-title" ref={heading} tabIndex={-1} className="mt-1.5 font-display text-[1.75rem] leading-tight text-text outline-none sm:text-[2.15rem] [:lang(ur)_&]:leading-[1.75] [:lang(ur)_&]:pt-1">
+      <h1 id="page-title" ref={heading} tabIndex={-1} className="mt-1.5 font-display text-figure-sm leading-tight text-text outline-none sm:text-4xl [:lang(ur)_&]:leading-[1.75] [:lang(ur)_&]:pt-1">
         <span className="sr-only">{t('start:setup.stepPrefix', position)} </span>
         {title}
       </h1>

@@ -38,7 +38,7 @@ export function AmountStrip({
         <Icon className="size-5" />
       </span>
       <div className="min-w-0 flex-1">
-        <p className={cn('text-[0.6875rem] font-semibold tracking-[0.06em] uppercase', ink)}>{label}</p>
+        <p className={cn('text-mini font-semibold tracking-[0.06em] uppercase', ink)}>{label}</p>
         <p className={cn('text-xl leading-tight font-bold tracking-tight whitespace-nowrap tabular', ink)}>{amount}</p>
       </div>
       {end && <div className={cn('shrink-0 border-s ps-3 text-end', tone === 'neutral' ? 'border-border' : 'border-current/20', ink)}>{end}</div>}

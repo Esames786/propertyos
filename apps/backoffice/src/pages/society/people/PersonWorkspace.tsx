@@ -58,7 +58,7 @@ function Workspace({ data }: { data: PersonDetail }) {
           {data.person.phone && <> · <bdi dir="ltr" className="ltr-ref">{data.person.phone}</bdi></>}
           {data.person.kind === 'organisation' && <> · {t('sites:person.organisation')}</>}
         </p>
-        <h1 id="page-title" className="text-[1.75rem] leading-tight font-bold tracking-tight text-text outline-none sm:text-[2rem]"><bdi>{data.person.displayName}</bdi></h1>
+        <h1 id="page-title" className="text-figure-sm leading-tight font-bold tracking-tight text-text outline-none sm:text-figure"><bdi>{data.person.displayName}</bdi></h1>
         <div className="flex flex-wrap gap-1.5" data-testid="person-roles">
           {data.facts.filter(current).map((f) => (
             <Badge key={f.id} tone={f.role === 'payer' ? 'info' : 'neutral'} icon={ICON[f.role]}>{t(`sites:people.fact.${f.role}`, { flat: f.flatCode })}</Badge>

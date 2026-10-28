@@ -41,6 +41,16 @@ export const PERMISSIONS = [
   'billing_run.approve',
   'billing_run.post',
   'credit_note.create',
+  // Collections (Gate C.2): verifying proofs and receiving cash stay with finance; the collection
+  // account, method rules and posting policy are configured by one person and approved by another.
+  'collections.view',
+  'bank.view',
+  'bank.reconcile',
+  'beneficiary.manage',
+  'beneficiary.approve',
+  'payment_methods.manage',
+  'billing_policy.manage',
+  'liability.approve',
   // Platform HQ (central plane, V3.1). Operators are a separate principal type from tenant staff.
   'platform.dashboard.view',
   'platform.tenants.view',

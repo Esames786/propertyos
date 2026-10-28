@@ -87,6 +87,17 @@ const holds = (tenantId: string, roleId: string) => {
   return { roleId: role.id, roleKey: role.labelKey, permissions: role.permissions };
 };
 
+/**
+ * Al-Noor residents who can sign in to the customer app (party ids are the society register's, see
+ * society/model.ts; the links they hold are in datasets.ts).
+ */
+export const ALNOOR_RESIDENTS = [
+  { id: 'alnoor_resident_a101', principalId: 'usr_anr_r0001', name: 'Kamran Siddiqui', email: 'kamran.siddiqui@example.com', partyId: 'pty_anr_0001', roleKey: 'common:persona.owner_resident', flats: ['A-101'] },
+  { id: 'alnoor_tenant_a102', principalId: 'usr_anr_r0002', name: 'Sana Iqbal', email: 'sana.iqbal@example.com', partyId: 'pty_anr_0003', roleKey: 'common:persona.tenant_payer', flats: ['A-102'] },
+  { id: 'alnoor_owner_a201', principalId: 'usr_anr_r0003', name: 'Rabia Hashmi', email: 'rabia.hashmi@example.com', partyId: 'pty_anr_0010', roleKey: 'common:persona.owner_resident', flats: ['A-201', 'A-202'] },
+  { id: 'alnoor_tenant_a202', principalId: 'usr_anr_r0004', name: 'Junaid Akhtar', email: 'junaid.akhtar@example.com', partyId: 'pty_anr_0011', roleKey: 'common:persona.tenant_payer', flats: ['A-202'] },
+] as const satisfies ReadonlyArray<{ id: Persona['id']; principalId: string; name: string; email: string; partyId: string; roleKey: string; flats: readonly string[] }>;
+
 export const PERSONAS: readonly Persona[] = [
   {
     id: 'manager',
@@ -207,10 +218,38 @@ export const PERSONAS: readonly Persona[] = [
     ...holds(AL_NOOR.id, 'security'),
     projectScope: 'all',
   },
+  {
+    id: 'alnoor_accounts',
+    tenantId: AL_NOOR.id,
+    principalId: 'usr_anr_0004',
+    app: 'backoffice',
+    displayName: 'Saba Javed',
+    email: 'saba.javed@example.com',
+    ...holds(AL_NOOR.id, 'accounts_officer'),
+    projectScope: 'all',
+  },
+  // Al-Noor residents (customer app). Each sees only what their verified links reach and, within a
+  // shared account, only the flats they are liable for (per-unit liability, A2 §4.5).
+  ...ALNOOR_RESIDENTS.map(
+    (r): Persona => ({
+      id: r.id,
+      tenantId: AL_NOOR.id,
+      principalId: r.principalId,
+      app: 'customer',
+      displayName: r.name,
+      roleKey: r.roleKey,
+      email: r.email,
+      permissions: ['portal.use'],
+      projectScope: 'all',
+      partyId: r.partyId,
+    }),
+  ),
 ];
 
 /** Tenants that have backoffice demo identities. */
 export const BACKOFFICE_TENANTS = [TENANT, CRESCENT_BAY, SHALIMAR, CEDAR_HILLS, AL_NOOR] as const;
+/** Tenants that have customer-app (resident) demo identities. */
+export const CUSTOMER_TENANTS = [TENANT, AL_NOOR] as const;
 
 export function findPersona(id: string | null | undefined): Persona | undefined {
   return PERSONAS.find((p) => p.id === id);

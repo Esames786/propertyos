@@ -33,7 +33,7 @@ export default function GetStartedPage() {
               <Sparkles aria-hidden className="size-3.5" />
               {t('start:welcome.eyebrow')}
             </p>
-            <h1 id="page-title" tabIndex={-1} className={cn('mt-4 max-w-2xl font-display text-[2.1rem] leading-[1.12] text-text outline-none sm:text-5xl sm:leading-[1.08] xl:text-[3.35rem]', DISPLAY_UR)}>
+            <h1 id="page-title" tabIndex={-1} className={cn('mt-4 max-w-2xl font-display text-4xl leading-[1.12] text-text outline-none sm:text-5xl sm:leading-[1.08] xl:text-hero', DISPLAY_UR)}>
               {t('start:welcome.heading')}
             </h1>
             <p className="mt-4 max-w-xl text-base text-muted sm:text-lg">{t('start:welcome.intro')}</p>
@@ -151,12 +151,12 @@ function ChoiceCard({
     >
       <IconTile icon={icon} hue={hue} variant="solid" size="xl" className="shadow-card" />
       <span className="block">
-        <span className="block text-xl leading-snug font-bold text-text sm:text-[1.35rem]">{title}</span>
+        <span className="block text-xl leading-snug font-bold text-text sm:text-lead">{title}</span>
         <span aria-hidden className={cn('mt-2 inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-xs font-semibold', TILE_SOFT_BG[hue], TILE_INK[hue])}>
           <Clock3 className="size-3.5 shrink-0" />
           <span>{meta}</span>
         </span>
-        <span id={descId} className="mt-3 block text-[0.95rem] text-muted">
+        <span id={descId} className="mt-3 block text-md text-muted">
           {body} <span className="sr-only">{meta}</span>
         </span>
       </span>
@@ -198,7 +198,7 @@ function HeroVisual() {
           className="aspect-[4/3] w-full sm:aspect-[16/10] lg:aspect-[4/5]"
         />
         <figcaption className="absolute inset-x-0 bottom-0 px-5 pt-14 pb-5 text-inverse sm:px-6 sm:pb-6" style={{ background: imageScrimGradient() }}>
-          <span className="block font-display text-2xl leading-tight sm:text-[1.75rem]">
+          <span className="block font-display text-2xl leading-tight sm:text-figure-sm">
             <bdi>{t('start:welcome.photo.name')}</bdi>
           </span>
           <span className="mt-1 block text-sm text-inverse/90">{t('start:welcome.photo.caption')}</span>

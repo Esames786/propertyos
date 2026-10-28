@@ -12,7 +12,7 @@ const STARTER_PERMISSIONS: Record<StarterRoleKey, readonly Permission[]> = {
     'project.context.use', 'quickcreate.use', 'lead.view', 'lead.create', 'visit.schedule', 'unit.view',
     'unit.hold', 'quote.create', 'customer.view', 'booking.view', 'invoice.view', 'payment.receive',
     'finance.evidence.review', 'expense.create', 'supplier.view', 'procurement.view', 'hr.view',
-    'operations.view', 'residents.view', 'reports.view', 'admin.view', 'construction.view',
+    'operations.view', 'residents.view', 'reports.view', 'admin.view', 'construction.view', 'collections.view', 'bank.view',
   ],
   sales: [
     'project.context.use', 'quickcreate.use', 'lead.view', 'lead.create', 'visit.schedule',
@@ -22,24 +22,29 @@ const STARTER_PERMISSIONS: Record<StarterRoleKey, readonly Permission[]> = {
   inventory: ['project.context.use', 'quickcreate.use', 'unit.view', 'unit.hold', 'booking.view', 'reports.view'],
   finance: [
     'project.context.use', 'quickcreate.use', 'customer.view', 'booking.view', 'invoice.view',
-    'payment.receive', 'finance.evidence.review', 'expense.create', 'supplier.view', 'reports.view',
+    'payment.receive', 'finance.evidence.review', 'expense.create', 'supplier.view', 'reports.view', 'collections.view', 'bank.view',
   ],
   construction: ['project.context.use', 'quickcreate.use', 'construction.view', 'procurement.view', 'supplier.view', 'reports.view'],
-  // Society starters. Billing is split so maker-checker holds (A4 §9): the manager sets up the site
-  // and prepares runs; the treasurer approves runs, exemptions and opening balances. Both may post an
-  // approved run; neither may approve their own work (checked by principal on the server).
+  // Society starters. Billing is split so maker-checker holds (A4 §9): the manager sets up the site,
+  // prepares runs and requests payer changes; the treasurer approves runs, exemptions, opening
+  // balances, payer changes and collection-account changes. Posting an approved run is for finance
+  // (treasurer, accounts) by default (owner decision, C.1 review); the site's posting policy narrows
+  // it further, and nobody approves or posts their own run (checked by principal on the server).
   administrator: [
     'quickcreate.use', 'customer.view', 'residents.view', 'operations.view', 'workorder.update', 'visitors.manage',
     'invoice.view', 'payment.receive', 'finance.evidence.review', 'reports.view', 'admin.view',
     'site.view', 'site.manage', 'opening_balance.import', 'charges.manage', 'billing_run.view', 'billing_run.create', 'billing_run.post',
+    'collections.view', 'bank.view', 'beneficiary.manage', 'payment_methods.manage', 'billing_policy.manage',
   ],
   manager: [
     'quickcreate.use', 'customer.view', 'residents.view', 'operations.view', 'workorder.update', 'visitors.manage', 'invoice.view', 'reports.view',
-    'site.view', 'site.manage', 'opening_balance.import', 'charges.manage', 'billing_run.view', 'billing_run.create', 'billing_run.post',
+    'site.view', 'site.manage', 'opening_balance.import', 'charges.manage', 'billing_run.view', 'billing_run.create',
+    'collections.view', 'beneficiary.manage',
   ],
   treasurer: [
     'quickcreate.use', 'customer.view', 'invoice.view', 'payment.receive', 'finance.evidence.review', 'residents.view', 'reports.view',
     'site.view', 'opening_balance.approve', 'billing_run.view', 'billing_run.approve', 'billing_run.post', 'credit_note.create',
+    'collections.view', 'bank.view', 'beneficiary.approve', 'payment_methods.manage', 'billing_policy.manage', 'liability.approve',
   ],
   maintenance: ['quickcreate.use', 'operations.view', 'workorder.update', 'residents.view'],
   technician: ['operations.view', 'workorder.update'],
@@ -77,6 +82,23 @@ const SHALIMAR_FACILITY_MANAGER: TenantRoleTemplate = {
   holders: ['facility_manager'],
 };
 
+/**
+ * Al-Noor's own "Accounts officer" (A4 §9): verifies proofs, matches the bank feed, receives office
+ * cash, issues receipts and posts approved runs. It cannot approve runs, exemptions, payer changes or
+ * a new collection account, so every one of those keeps a second person.
+ */
+const ALNOOR_ACCOUNTS_OFFICER: TenantRoleTemplate = {
+  id: 'accounts_officer',
+  tenantId: 'tnt_alnoor',
+  starter: null,
+  labelKey: 'common:roles.accounts_officer',
+  permissions: [
+    'quickcreate.use', 'customer.view', 'residents.view', 'invoice.view', 'payment.receive', 'finance.evidence.review', 'reports.view',
+    'site.view', 'billing_run.view', 'billing_run.post', 'collections.view', 'bank.view', 'bank.reconcile', 'beneficiary.manage',
+  ],
+  holders: ['alnoor_accounts'],
+};
+
 const ALNOOR_ROLE_NAMES: Readonly<Record<string, string>> = {
   manager: 'common:roles.building_manager',
   treasurer: 'common:roles.committee_treasurer',
@@ -89,9 +111,12 @@ const TENANT_ROLES: Readonly<Record<string, readonly TenantRoleTemplate[]>> = {
   tnt_shalimar: starterRoles('tnt_shalimar', 'association', { administrator: ['society_admin'] }).map((r) => (r.id === 'manager' ? SHALIMAR_FACILITY_MANAGER : r)),
   tnt_cedar: starterRoles('tnt_cedar', 'custom', { treasurer: ['cedar_treasurer'] }),
   // Al-Noor Residency kept the society starters and named three of them after its committee posts.
-  tnt_alnoor: starterRoles('tnt_alnoor', 'association', { manager: ['alnoor_manager'], treasurer: ['alnoor_treasurer'], security: ['alnoor_guard'] }).map((r) =>
-    ALNOOR_ROLE_NAMES[r.id] ? { ...r, labelKey: ALNOOR_ROLE_NAMES[r.id]! } : r,
-  ),
+  tnt_alnoor: [
+    ...starterRoles('tnt_alnoor', 'association', { manager: ['alnoor_manager'], treasurer: ['alnoor_treasurer'], security: ['alnoor_guard'] }).map((r) =>
+      ALNOOR_ROLE_NAMES[r.id] ? { ...r, labelKey: ALNOOR_ROLE_NAMES[r.id]! } : r,
+    ),
+    ALNOOR_ACCOUNTS_OFFICER,
+  ],
 };
 
 /** The tenant's own roles (a workspace without changes has its starter set). */

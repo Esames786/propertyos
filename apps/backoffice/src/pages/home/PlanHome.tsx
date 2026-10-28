@@ -55,7 +55,7 @@ export function PlanHome() {
         <p className="text-xs font-semibold tracking-[0.08em] text-accent uppercase">
           <bdi>{tenant.name}</bdi>
         </p>
-        <h1 id="page-title" className="text-[1.75rem] leading-tight font-bold text-text outline-none sm:text-[2.25rem]">
+        <h1 id="page-title" className="text-figure-sm leading-tight font-bold text-text outline-none sm:text-4xl">
           {t('workspace:home.greeting', { name: firstName })}
         </h1>
         <p className="text-muted">{t('workspace:home.subtitle', { date: formatCalendarDate(TODAY, locale) })}</p>

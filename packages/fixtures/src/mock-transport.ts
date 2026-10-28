@@ -107,6 +107,9 @@ export class MockTransport implements ApiTransport {
     }
 
     const correlationId = nextCorrelationId();
+    // A partition shared with the other app (the society demo) is read fresh before every request.
+    const signedIn = this.persona();
+    if (signedIn) await this.demo.prepare(signedIn.tenantId);
     if (req.method !== 'GET') {
       this.mutationLog.push({
         at: new Date().toISOString(),
@@ -131,6 +134,16 @@ export class MockTransport implements ApiTransport {
     this.demo.reset();
     this.trainings.clear();
   };
+
+  /** Another app or tab changed the shared demo: callers refresh what they show. */
+  subscribe(listener: () => void): () => void {
+    return this.demo.shared?.subscribe(() => listener()) ?? (() => {});
+  }
+
+  /** Whether the society demo is linked with the other app of this browser, or kept in this app only. */
+  linkStatus(): 'linked' | 'local' | 'none' {
+    return this.demo.shared ? this.demo.shared.status() : 'none';
+  }
 
   /** Mutations that were not training writes; practice tasks must leave this unchanged. */
   liveMutations(): MutationLogEntry[] {

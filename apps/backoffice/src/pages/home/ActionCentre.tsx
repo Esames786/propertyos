@@ -82,13 +82,13 @@ function AttentionList({ kind, items, fmt }: { kind: AttentionKind; items: Atten
                 <span className="flex items-center justify-between gap-3 text-xs text-muted">
                   <span className="min-w-0 truncate">{t(`dashboard:attention.when.${kind}`, { time: fmt.relative(item.at) })}</span>
                   {item.urgent ? (
-                    <span className="inline-flex shrink-0 items-center gap-1 rounded-pill bg-warning-soft px-1.5 py-px text-[11px] font-semibold text-warning">
+                    <span className="inline-flex shrink-0 items-center gap-1 rounded-pill bg-warning-soft px-1.5 py-px text-mini font-semibold text-warning">
                       <TriangleAlert aria-hidden className="size-3" />
                       {t('dashboard:attention.urgent')}
                     </span>
                   ) : (
                     item.ref !== item.name && (
-                      <bdi dir="ltr" className="ltr-ref ref-mono shrink-0 text-[11px]">
+                      <bdi dir="ltr" className="ltr-ref ref-mono shrink-0 text-mini">
                         {item.ref}
                       </bdi>
                     )

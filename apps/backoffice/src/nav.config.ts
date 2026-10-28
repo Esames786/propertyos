@@ -58,6 +58,22 @@ export const SOCIETY = {
   invoice: (invoiceId: string, drawer?: string) => `/backoffice/fin/invoice-workspace${q({ record: invoiceId, drawer })}`,
 } as const;
 
+/** Collections (Gate C.2): proofs, payments, receipts, the bank, reconciliation and reporting. */
+export const COLLECTIONS = {
+  dashboard: '/backoffice/col/collections-dashboard',
+  inbox: (state?: string) => `/backoffice/fin/unverified-transfers-queue${q({ state })}`,
+  review: (submissionId: string) => `/backoffice/fin/transfer-proof-review${q({ record: submissionId })}`,
+  payments: (params: Record<string, string | undefined> = {}) => `/backoffice/fin/payment-list${q(params)}`,
+  payment: (paymentId: string, tab?: string) => `/backoffice/fin/payment-workspace${q({ record: paymentId, tab })}`,
+  officePayment: (account?: string) => `/backoffice/fin/payment-list${q({ drawer: 'office', account })}`,
+  credits: '/backoffice/fin/customer-credit-overpayments',
+  aging: (bucket?: string) => `/backoffice/col/aging-breakdown${q({ bucket })}`,
+  statement: (account?: string) => `/backoffice/col/customer-statement${q({ account })}`,
+  bankFeed: (state?: string) => `/backoffice/bank/bank-transaction-feed${q({ state })}`,
+  reconciliation: '/backoffice/bank/reconciliation-workspace',
+  payerChanges: (state?: string) => `/backoffice/billing/payer-changes${q({ state })}`,
+} as const;
+
 export const TOUR_LINKS = {
   start: LINKS.start,
   help: '/backoffice/global/context-help',

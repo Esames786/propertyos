@@ -15,7 +15,9 @@
     "lab": "ڈیزائن سسٹم لیب",
     "help": "مدد اور ٹورز",
     "sites": "سائٹس اور فلیٹس",
-    "billing": "بلنگ"
+    "billing": "بلنگ",
+    "collections": "وصولیاں",
+    "bank": "بینک اور مطابقت"
   },
   "header": {
     "search": "تلاش",
@@ -90,7 +92,18 @@
     "charges": "چارجز اور نرخ",
     "rules": "چارج کے اصول",
     "exemptions": "چھوٹ",
-    "invoice": "انوائس"
+    "invoice": "انوائس",
+    "collections": "وصولیاں",
+    "proofInbox": "ادائیگی کے ثبوت",
+    "proofReview": "ثبوت کا جائزہ",
+    "payments": "ادائیگیاں",
+    "payment": "ادائیگی",
+    "credits": "کریڈٹ اور اضافی ادائیگیاں",
+    "aging": "تاخیر اور بقایا جات",
+    "statement": "اکاؤنٹ اسٹیٹمنٹ",
+    "bankFeed": "بینک ٹرانزیکشنز",
+    "reconciliation": "مطابقت",
+    "payerChanges": "ادا کنندہ کی تبدیلیاں"
   },
   "groups": {
     "workspace": "کاروبار",

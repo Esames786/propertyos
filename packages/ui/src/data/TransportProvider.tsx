@@ -61,6 +61,10 @@ export function TransportProvider({ createTransport, children }: { createTranspo
     queryClient.getMutationCache().clear();
   }, [personaId, queryClient]);
 
+  // Another app or tab of this browser changed the shared demo (a resident sent a proof, finance
+  // verified it): what is on screen is refetched, so both apps tell the same story.
+  useEffect(() => transport.subscribe?.(() => void queryClient.invalidateQueries()), [transport, queryClient]);
+
   const value: TransportContextValue = {
     transport,
     mockMode,

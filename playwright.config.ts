@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 /**
  * E2E, accessibility and evidence runs against production builds (vite preview).
- * Chromium only in Stage 1; WebKit and Firefox are added in Stage 6.
+ * Chromium for the full suite; Firefox and WebKit run the Gate C.2 smoke (full coverage in Stage 6).
  */
 export default defineConfig({
   testDir: 'tests',
@@ -25,6 +25,10 @@ export default defineConfig({
   projects: [
     { name: 'e2e', testMatch: /e2e[\\/].*\.spec\.ts$/ },
     { name: 'evidence', testMatch: /evidence[\\/].*\.spec\.ts$/, fullyParallel: false },
+    // Gate C.2: cross-browser smoke (`npx playwright install firefox webkit` first). These engines
+    // start slower on Windows, so the first page of a run gets more time.
+    { name: 'firefox-smoke', testMatch: /smoke[\\/].*\.spec\.ts$/, expect: { timeout: 20_000 }, use: { ...devices['Desktop Firefox'], viewport: { width: 1440, height: 900 } } },
+    { name: 'webkit-smoke', testMatch: /smoke[\\/].*\.spec\.ts$/, expect: { timeout: 20_000 }, use: { ...devices['Desktop Safari'], viewport: { width: 1440, height: 900 } } },
   ],
   webServer: [
     {

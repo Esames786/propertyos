@@ -1,18 +1,23 @@
 import { Badge, Button, cn, DirectionalIcon, IconTile, RevealItem, SegmentedControl, Stagger, Switch, useQueryParam, useSession, useT } from '@repo/ui';
-import { ArrowRight, Check, FolderKanban } from 'lucide-react';
+import { ArrowRight, Check, FolderKanban, HandCoins, ListChecks, Upload } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Radio, RadioGroup } from 'react-aria-components';
 import { LINKS } from '../../../nav.config';
 import { EntryBackLink } from '../EntryFrame';
-import { demoOf, DEMO_KINDS, entryHref, focusHeading, isDemoKind, isDemoRole, RECOMMENDED, ROLE_LOOK, ROLES_OF, type DemoKind, type DemoRole } from '../entry';
+import { demoOf, DEMO_KINDS, entryHref, focusHeading, isDemoKind, isDemoRole, RECOMMENDED, ROLE_LOOK, ROLES_OF, SOCIETY_STARTS, type DemoKind, type DemoRole, type SocietyStart } from '../entry';
+
+const START_ICON = { collecting: HandCoins, ready: ListChecks, fresh: Upload } as const;
+/** Test ids: "Before setup" keeps the id of the earlier switch it replaces. */
+const START_TEST_ID: Record<SocietyStart, string> = { collecting: 'demo-start-collecting', ready: 'demo-start-ready', fresh: 'demo-fresh' };
 
 const POINTS = ['a', 'b', 'c'] as const;
 
 /**
  * Demo step 1: choose the demo (a developer or a society, F-9) and which fictional colleague to
  * explore as. Each role sees different menus, figures and actions; the cards say what. The developer
- * demo can clear this tab's earlier changes; the society demo can start before setup, so the
- * building manager imports the flat register from the sample file.
+ * demo can clear this tab's earlier changes; the society demo starts with collections open (the
+ * November bills issued, proofs waiting), ready to bill, or before setup (the building manager
+ * imports the flat register from the sample file).
  */
 export function RoleStep({
   next,
@@ -21,7 +26,7 @@ export function RoleStep({
 }: {
   next: string | null;
   autoFocus: boolean;
-  onContinue: (role: DemoRole, fresh: boolean) => void;
+  onContinue: (role: DemoRole, choice: { fresh: boolean; start: SocietyStart }) => void;
 }) {
   const { t } = useT();
   const { personas, persona, tenants } = useSession();
@@ -33,6 +38,7 @@ export function RoleStep({
   const role = chosen && roles.includes(chosen) ? chosen : RECOMMENDED[kind];
   const tenant = tenants.find((x) => x.id === personas.find((p) => p.id === roles[0])?.tenantId) ?? tenants[0]!;
   const [fresh, setFresh] = useState(false);
+  const [start, setStart] = useState<SocietyStart>('collecting');
   const heading = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
@@ -48,7 +54,7 @@ export function RoleStep({
         <p className="text-xs font-semibold tracking-[0.08em] text-accent uppercase">
           {t('start:demo.role.eyebrow')} · <bdi>{tenant.name}</bdi>
         </p>
-        <h1 id="page-title" ref={heading} tabIndex={-1} className="mt-2 font-display text-[2rem] leading-tight text-text outline-none sm:text-[2.6rem] [:lang(ur)_&]:leading-[1.75] [:lang(ur)_&]:pt-1">
+        <h1 id="page-title" ref={heading} tabIndex={-1} className="mt-2 font-display text-figure leading-tight text-text outline-none sm:text-figure-lg [:lang(ur)_&]:leading-[1.75] [:lang(ur)_&]:pt-1">
           {t('start:demo.role.heading')}
         </h1>
         <p className="mt-3 text-base text-muted sm:text-lg">{t('start:demo.role.intro')}</p>
@@ -69,7 +75,7 @@ export function RoleStep({
       </div>
 
       <RadioGroup value={role} onChange={(v) => setChosen(v as DemoRole)} aria-label={t('start:demo.role.groupLabel')} className="mt-6" data-testid="demo-role-group">
-        <Stagger key={kind} className="grid gap-4 md:grid-cols-3">
+        <Stagger key={kind} className={cn('grid gap-4', kind === 'society' ? 'md:grid-cols-2 xl:grid-cols-4' : 'md:grid-cols-3')}>
           {roles.map((id) => {
             const p = personas.find((x) => x.id === id);
             if (!p) return null;
@@ -127,15 +133,38 @@ export function RoleStep({
         </Stagger>
       </RadioGroup>
 
-      <div className="mt-8 flex flex-col gap-5 rounded-card border border-border bg-panel p-5 shadow-card sm:flex-row sm:items-center sm:justify-between sm:p-6">
-        <Switch
-          isSelected={fresh}
-          onChange={setFresh}
-          label={kind === 'society' ? t('start:demo.role.freshSociety') : t('start:demo.role.fresh')}
-          description={kind === 'society' ? t('start:demo.role.freshSocietyHint') : t('start:demo.role.freshHint')}
-          testId="demo-fresh"
-        />
-        <Button variant="primary" size="lg" onPress={() => onContinue(role, fresh)} data-testid="demo-continue" className="shrink-0 max-sm:w-full">
+      {kind === 'society' && (
+        <RadioGroup value={start} onChange={(v) => setStart(v as SocietyStart)} className="mt-8" data-testid="demo-start" aria-label={t('start:demo.role.startLabel')}>
+          <p aria-hidden className="mb-3 text-sm font-semibold text-text">{t('start:demo.role.startLabel')}</p>
+          <div className="grid gap-3 md:grid-cols-3">
+            {SOCIETY_STARTS.map((s) => {
+              const Icon = START_ICON[s];
+              return (
+                <Radio
+                  key={s}
+                  value={s}
+                  data-testid={START_TEST_ID[s]}
+                  className="group flex cursor-default items-start gap-3 rounded-tile border-2 border-border bg-panel p-4 outline-none data-hovered:border-border-control data-selected:border-primary data-selected:bg-primary-soft/40 data-focus-visible:outline-2 data-focus-visible:outline-offset-2 data-focus-visible:outline-focus"
+                >
+                  <Icon aria-hidden className="mt-0.5 size-5 shrink-0 text-primary" />
+                  <span className="min-w-0">
+                    <span className="block text-sm font-semibold text-text">{t(`start:demo.role.starts.${s}.title`)}</span>
+                    <span className="block text-xs text-muted">{t(`start:demo.role.starts.${s}.body`)}</span>
+                  </span>
+                </Radio>
+              );
+            })}
+          </div>
+        </RadioGroup>
+      )}
+
+      <div className="mt-6 flex flex-col gap-5 rounded-card border border-border bg-panel p-5 shadow-card sm:flex-row sm:items-center sm:justify-between sm:p-6">
+        {kind === 'developer' ? (
+          <Switch isSelected={fresh} onChange={setFresh} label={t('start:demo.role.fresh')} description={t('start:demo.role.freshHint')} testId="demo-fresh" />
+        ) : (
+          <p className="text-sm text-muted">{t('start:demo.role.linkedApps')}</p>
+        )}
+        <Button variant="primary" size="lg" onPress={() => onContinue(role, { fresh, start })} data-testid="demo-continue" className="shrink-0 max-sm:w-full">
           <span className="inline-flex items-center gap-2">
             {t('start:demo.role.continue', { name: personas.find((x) => x.id === role)?.displayName ?? '' })}
             <DirectionalIcon icon={ArrowRight} className="size-4" />

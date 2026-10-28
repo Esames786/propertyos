@@ -135,7 +135,7 @@ function PreviewDrawer({ doc, data, fmt, onClose }: { doc: PortalDocument | null
         <div className="relative overflow-hidden rounded-tile border border-border bg-raised p-5 shadow-inset sm:p-8" data-testid="document-paper">
           <p
             aria-hidden
-            className="pointer-events-none absolute inset-0 grid -rotate-[24deg] place-items-center text-center font-display text-[2.5rem] leading-none text-demo/15 uppercase select-none sm:text-[3.5rem]"
+            className="pointer-events-none absolute inset-0 grid -rotate-[24deg] place-items-center text-center font-display text-figure-lg leading-none text-demo/15 uppercase select-none sm:text-hero"
           >
             {t('portal:documents.watermark')}
           </p>

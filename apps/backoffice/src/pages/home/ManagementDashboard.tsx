@@ -81,7 +81,7 @@ function DashboardView({
       <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 pt-2 motion-safe:animate-rise-in">
         <div className="min-w-0">
           <p className="text-xs font-semibold tracking-[0.14em] text-accent uppercase">{t(`dashboard:eyebrow.${eyebrow}`)}</p>
-          <h1 id="page-title" className="mt-1.5 text-[1.75rem] leading-tight font-bold tracking-tight text-text outline-none sm:text-[2.25rem]">
+          <h1 id="page-title" className="mt-1.5 text-figure-sm leading-tight font-bold tracking-tight text-text outline-none sm:text-4xl">
             {t(`dashboard:greeting.${greeting}`, { name: firstName })}
           </h1>
           <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">

@@ -50,7 +50,7 @@ function ReceiptView({ receipt, crumbs }: { receipt: ReceiptDetail; crumbs: Arra
     [t('portal:receipt.fields.customerRef'), <bdi dir="ltr" className="ltr-ref">{receipt.owner.customerRef}</bdi>],
     [t('portal:receipt.fields.paidOn'), fmt.date(receipt.paidOn)],
     [t('portal:receipt.fields.method'), <MethodChip method={receipt.method} />],
-    [t('portal:receipt.fields.bankReference'), <bdi dir="ltr" className="ltr-ref font-mono text-[0.8125rem]">{receipt.bankReference}</bdi>],
+    [t('portal:receipt.fields.bankReference'), <bdi dir="ltr" className="ltr-ref font-mono text-small">{receipt.bankReference}</bdi>],
     [t('portal:receipt.fields.verifiedOn'), fmt.instantTime(receipt.verifiedAt)],
     [t('portal:receipt.fields.verifiedBy'), <bdi>{receipt.verifiedBy}</bdi>],
   ];
@@ -93,7 +93,7 @@ function ReceiptView({ receipt, crumbs }: { receipt: ReceiptDetail; crumbs: Arra
           </header>
           <div className="py-6 text-center">
             <p className="text-sm text-muted">{t('portal:receipt.amountReceived')}</p>
-            <p className="mt-1 text-[2.25rem] leading-none font-bold tracking-tight text-success sm:text-[2.75rem]" data-testid="receipt-amount">
+            <p className="mt-1 text-4xl leading-none font-bold tracking-tight text-success sm:text-figure-xl" data-testid="receipt-amount">
               <Amount value={receipt.amount.amount} />
             </p>
           </div>

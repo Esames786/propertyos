@@ -63,7 +63,7 @@ export function IllustrativeChip({ className }: { className?: string }) {
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 rounded-pill bg-[rgb(12_17_15/0.66)] px-2 py-0.5 text-[11px] font-medium whitespace-nowrap text-inverse backdrop-blur-sm',
+        'inline-flex items-center gap-1 rounded-pill bg-[rgb(12_17_15/0.66)] px-2 py-0.5 text-mini font-medium whitespace-nowrap text-inverse backdrop-blur-sm',
         className,
       )}
     >

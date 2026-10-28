@@ -10,6 +10,8 @@ export interface ShellSlots {
   context?: ReactNode | null;
   /** Primary create action in its three placements; undefined = Quick create, null = none. */
   create?: { header: ReactNode; compact: ReactNode; fab: ReactNode } | null;
+  /** Phone bottom bar: the person's most used areas first (nav ids); others follow in menu order. */
+  bottomOrder?: readonly string[];
 }
 
 export interface ShellContextValue {

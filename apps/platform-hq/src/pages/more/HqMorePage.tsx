@@ -20,7 +20,7 @@ import { HQ, HQ_NAV } from '../../nav.config';
 const HUE: Record<string, TileHue> = { dashboard: 'emerald', tenants: 'teal', simulator: 'sky', help: 'violet' };
 
 const cardClass =
-  'flex min-h-16 items-center gap-3 rounded-card border border-border/70 bg-panel p-3.5 text-[0.9375rem] font-medium text-text shadow-card outline-none transition-[translate,box-shadow] duration-[var(--motion-regular)] data-hovered:-translate-y-0.5 data-hovered:shadow-lift data-pressed:translate-y-0 data-focus-visible:outline-2 data-focus-visible:outline-offset-2 data-focus-visible:outline-focus';
+  'flex min-h-16 items-center gap-3 rounded-card border border-border/70 bg-panel p-3.5 text-md font-medium text-text shadow-card outline-none transition-[translate,box-shadow] duration-[var(--motion-regular)] data-hovered:-translate-y-0.5 data-hovered:shadow-lift data-pressed:translate-y-0 data-focus-visible:outline-2 data-focus-visible:outline-offset-2 data-focus-visible:outline-focus';
 
 /**
  * More (phone) for Platform HQ: the areas this identity may open (only built ones, flaw F-1), the
