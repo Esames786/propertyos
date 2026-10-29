@@ -1,4 +1,4 @@
-# V3.2 proposal: logical ERD changes (revision 3)
+# V3.2 proposal: logical ERD changes (revision 4)
 
 **Status:** PROPOSAL. **This is a conceptual logical model, not an approved physical schema.**
 - Physical design, indexes and Laravel migrations wait for Gate H.
@@ -30,6 +30,13 @@
 
 The table counts are unchanged.
 
+**Revision 4** reconciles the model with the committed C.2 closure (`e2ccd89`):
+- **Settlement evidence (§2.8)** follows the C.2 ruling. `settlement_confirmations` take a C.2 statement line or a witnessed deposit slip; the `simulated_demo` evidence type is withdrawn (D-48).
+- **C.2's payment entities are REUSED**, not redefined. These are payment submissions with their evidence states, statement lines bound to a verified account, and settlement exceptions.
+- **New documents are numbered by the issuing entity's C.2 patterns** (BILL-016).
+- Two invariants are added (I-37, I-38).
+- No table is added or removed.
+
 ## 1. Classification of every proposed entity
 
 **Classes**
@@ -54,7 +61,7 @@ The table counts are unchanged.
 | Committee and approvals (§2.5) | `committees`, `committee_offices`, `committee_terms`, `committee_resolutions` | `approval_policies`, `approval_policy_rules`, `approval_requests`, `approval_decisions`, `approval_delegations` (V2.1 "central approvals" and "temporary delegation"; register APR-001…005) | `documents` (minutes) | — | — |
 | HR and payroll (§2.6) | `shift_templates`, `shift_assignments` | `attendance_records`, `leave_requests` (V2.1 attendance; HR-005/006) | V2.1 employees (resident visibility and consent); V2.1 **advances** gain kind = loan and instalments (HR-007/008); V2.1 salary components gain bonus and loan-recovery types | — | — |
 | Rentals (§2.7) | `management_agreements`, `leases`, `lease_parties`, `rent_schedules`, `security_deposits`, `owner_payouts` | — | `billing_accounts.kind` + `lease`; `customer_invoices.source_type` + `lease_schedule`; `unit_liabilities.basis`; `legal_entities.kind` + `client_owner`; `bank_accounts.purpose` | owner statement (stored as a document when issued); owner sub-ledger | — |
-| Finance operations (§2.8) | `cash_vouchers`, `settlement_confirmations`, `cheque_instruments`, `cash_counts`, `office_collection_batches`, `office_collection_lines`, `reminder_policies` | `funds_transfers` (register BANK-006, no logical model yet) | `bank_accounts` (kind, purpose); `fiscal_periods` (moved to the finance core); V2.1 expense categories (+ income categories); `reminder_events`; `party_contacts` and `notification_preferences` (consent) | **cashbook**; cash in transit; period-close checklist | — |
+| Finance operations (§2.8) | `cash_vouchers`, `settlement_confirmations`, `cheque_instruments`, `cash_counts`, `office_collection_batches`, `office_collection_lines`, `reminder_policies` | `funds_transfers` (register BANK-006, no logical model yet) | `bank_accounts` (kind, purpose); `fiscal_periods` (moved to the finance core); V2.1 expense categories (+ income categories); `reminder_events`; `party_contacts` and `notification_preferences` (consent). **REUSED from C.2 (revision 4):** payment submissions and their states, statement lines bound to a verified account, settlement exceptions, verified beneficiaries | **cashbook**; cash in transit; period-close checklist | — |
 | Community hub (§2.9) | `service_categories`, `directory_listings`, `listing_recommendations`, `polls`, `poll_options`, `poll_responses`, `marketplace_listings` | — | `parties` + `party_roles` (service provider); `documents` (resources, published financial summaries); `content_reports` | poll results (privacy threshold) | — |
 | Visitors and vehicles (§2.10) | — | — | `visitor_passes` (origin = gate request; waiting/approved/denied/expired); `visitor_events`; `vehicles` (approval status) | — | — |
 | Shared core (§2.11) | `audience_rules` (revision 3: was `chat_audience_rules`), `generated_file_jobs`, `privacy_requests`, `content_reports`, `user_blocks`, `record_comments` | — | `documents` | — | — |
@@ -263,7 +270,7 @@ erDiagram
 |---|---|---|---|
 | `cash_vouchers` | NEW | legal_entity_id, account_id, direction (receipt \| payment), category_id, amount, on_date, evidence_document_id, status (draft \| submitted \| approved \| posted \| reversed), prepared_by, approved_by, posted_at, reversal_of?, period_id | The **only** way to record cash that no other module owns: other income, bank charges, and small expenses **only when `payables` is not granted**. Maker ≠ checker under the approval policy. Posted vouchers are immutable; a correction is a reversal voucher in an open period |
 | `funds_transfers` | FORMALISED | legal_entity_id, from_account_id, to_account_id, amount, kind (deposit \| withdrawal \| transfer), status (draft \| awaiting_approval \| approved_instruction \| in_transit \| settled \| failed), maker, checker | See the rules below |
-| `settlement_confirmations` | NEW | subject_type (transfer_leg \| owner_payout \| payroll_disbursement \| deposit_refund \| cheque \| fee_transfer), subject_id, leg?, evidence_type (bank_transaction \| witnessed_deposit_slip \| **simulated_demo**), bank_transaction_id?, document_id?, settled_on, confirmed_by | See the rules below |
+| `settlement_confirmations` | NEW | subject_type (transfer_leg \| owner_payout \| payroll_disbursement \| deposit_refund \| cheque \| fee_transfer), subject_id, leg?, evidence_type (**statement_line** \| witnessed_deposit_slip), statement_line_id? (a C.2 statement line), exception_id? (a C.2-style exception for a partial match), document_id?, settled_on, confirmed_by | See the rules below. Revision 4: `simulated_demo` withdrawn |
 | `cheque_instruments` | NEW | legal_entity_id, payer_party_id, billing_account_id, drawer_bank, cheque_number, cheque_date, amount, source (office_collection_line \| office_payment), status (received \| deposited \| cleared \| returned \| cancelled), deposit_slip_document_id?, returned_reason?, payment_id? | See the rules below |
 | `office_collection_batches` / `office_collection_lines` | NEW | batch: legal_entity_id, site_id, collected_by, collected_on, declared_total, status (draft \| submitted \| confirmed \| returned), confirmed_by. Line: billing_account_id, party_id, unit_id, method (cash \| cheque), amount, cheque_instrument_id? | See the rules below |
 | `cash_counts` | NEW | account_id, on_date, counted_amount, denominations, counted_by, witnessed_by | Required by month close for cash accounts |
@@ -278,8 +285,15 @@ erDiagram
 
 **`settlement_confirmations` rules**
 - **Only this record changes settled cash** for instructions.
-- One bank transaction confirms at most one settlement leg (extends I-20).
-- `simulated_demo` is available only from a visible demo control, is labelled "Simulated bank confirmation" everywhere, and is never automatic.
+- One statement line confirms at most one settlement leg (extends I-20). A line's identity is (source, account, bank transaction id), as in C.2.
+- **Revision 4, the C.2 closure ruling (D-48).** The evidence for a bank leg is a statement line, and the same rules as C.2 proof verification apply:
+  - the line was imported for the **verified account** that the leg names;
+  - that account belongs to the instruction's legal entity and was in force on the value date (a wrong destination is refused even when the amount matches);
+  - **only a full match** (amount, date, reference, name) confirms directly;
+  - **a partial match** needs an exception: a reason, the line held for this subject, and approval by someone other than the requester (`payment_exception.approve` for incoming money, `settlement_exception.approve` for outgoing legs);
+  - **a rejected exception** releases the line.
+- `confirmed_by` holds `bank.reconcile` and is never the instruction's preparer.
+- **In the prototype, the lines come from labelled sample statements (fictional data)**, imported for the verified account exactly as in C.2. A demo helper may generate such a file, but nothing settles without one.
 
 **`cheque_instruments` rules**
 - A cheque that has not cleared creates **no payment, no allocation and no final receipt**. Only an acknowledgement ("Cheque received — not a receipt of payment") is issued.
@@ -294,7 +308,14 @@ erDiagram
 
 **A4 §5.3 alignment.** A4 §5.3 says office payments "produce a payment and receipt immediately" and cheques are allocated when cleared "(configurable)". Revision 2 tightens this:
 - cheques produce **no payment until cleared**, and this is not configurable;
-- C.2's office-payment states are re-checked against this rule once C.2 is committed.
+- **Re-checked on `e2ccd89` (revision 4).** C.2 records no office cheques (they are shown as later in BILL-012), so nothing conflicts. C.2's single office cash creates a payment and receipt at once, within the site's maximum. Whether that keeps or gains a second-person count is D-46, for S.1.
+
+**C.2 entities reused (revision 4).** These are REUSED as committed and are not redefined:
+- **Payment submissions.** Their states are submitted, under review, awaiting bank evidence, exception pending, needs information, verified and rejected. The proof never settles; only verification against a statement line does.
+- **Statement imports and lines.** They are bound to a verified beneficiary account, its legal entity and a source. A line is held while an exception is pending.
+- **Settlement exceptions** for partial matches.
+- **Payments.** The verification kind (`bank_matched`, `exception_approved`, `counter`) tells the cashbook which account the payment counts on.
+- **Verified beneficiaries** (BILL-010), effective-dated, with maker-checker and cooling-off. `bank_accounts` with `purpose = operating` that receive dues are these same records, never copies.
 
 **Cashbook behaviour by add-on**
 
@@ -349,7 +370,8 @@ erDiagram
 ### 2.12 Transfers and clearance
 
 - **Transfer fee:** a charge category with **versioned, effective-dated rates** (EXTENDED `charge_categories` / `charge_rate_versions`) and a required bylaw document reference.
-- **`clearance_certificates` (NEW):** unit_id, ownership_transfer_id?, number (per legal entity), issued_on, valid_until, balance_checked_at, outstanding_amount, waiver_approval_id?, issued_by, document_id. Issued only at a zero liable balance or with an approved waiver.
+- **`clearance_certificates` (NEW):** unit_id, ownership_transfer_id?, number (from the issuing legal entity's C.2 numbering pattern, BILL-016), issued_on, valid_until, balance_checked_at, outstanding_amount, waiver_approval_id?, issued_by, document_id. Issued only at a zero liable balance or with an approved waiver.
+- **Payer change (revision 4):** an approved transfer raises one ordinary C.2 payer change (BILL-017), effective from the transfer date, with its approval and history. There is no second liability path.
 
 ### 2.13 Official notices (revision 3; included modules only)
 
@@ -380,7 +402,7 @@ These replace revision 1's I-23 to I-34.
 | I-25 | *(Parked with safety)* Incident timelines are append-only; no wording implies dispatch | After the safety design |
 | I-26 | **Settled cash changes only through confirmed payments, posted vouchers or settlement confirmations.** An instruction never changes settled cash | Cashbook = sources test; instruction-without-settlement test |
 | I-27 | A closed period refuses postings dated in it; reopening needs an approval under the version in force | Period-lock tests on vouchers, payments, transfers and settlements |
-| I-28 | Each source event appears in the cashbook exactly once; each settlement leg is confirmed once; one bank transaction confirms at most one settlement | Idempotency vectors |
+| I-28 | Each source event appears in the cashbook exactly once; each settlement leg is confirmed once; one statement line (identity: source, account, bank id) confirms at most one settlement or proof | Idempotency vectors; C.2 `bankIdentity` vectors |
 | I-29 | An uncleared cheque settles nothing and yields no final receipt. Returned and reversed cheques leave history and reopen lines | Cheque vectors: received → returned; cleared → reversed |
 | I-30 | Rent and dues liability never mix; lease invoices use `lease` accounts | Separation vectors |
 | I-31 | **Rental money separation:** the issuing entity follows the management agreement model; client money stays in client accounts with an owner sub-ledger; deposits are liabilities; one owner's money never settles another owner's payable; nothing reaches the SaaS company | Two owners, one manager; agent and principal variants |
@@ -389,6 +411,8 @@ These replace revision 1's I-23 to I-34.
 | I-34 | Contact needs recorded consent for that channel and purpose | Consent refusal tests |
 | I-35 | No approval policy, delegation or draft lets a person approve their own request or activate their own policy | Self-approval vectors |
 | I-36 | *(Revision 3)* Official notices, their notifications and their routes need only included modules. No `community_hub` or `community_chat` grant, permission or entity is ever on that path. A notice is shown only to someone in its audience at read time | Notice journey E2E with a grant set without both add-ons; audience vectors (owner, occupant, tenant-payer, moved out) |
+| I-37 | *(Revision 4)* **Rule R.** A resident reaches a resident-app screen only through `resident_portal` + `portal.use`, on a verified link in force at a site holding `resident_portal`. A screen of a service module also needs that module for the same site and flat. A `core` (or other service) guard alone never opens a resident screen | Per resident screen: `resident_portal` revoked, service module revoked, another site, moved out; PORTAL-042 deep link outside the audience |
+| I-38 | *(Revision 4)* **No settlement without evidence.** A bank leg settles only on a matched statement line of the verified account in force for the right legal entity. A partial match settles only through an exception approved by someone other than the requester. A cash leg settles only on a witnessed deposit slip. No control settles otherwise | C.2 `bankDestination`, `bankIdentity` and `matchStrength` vectors reused for cheques, deposits, transfers and payouts |
 
 ## 4. Contracts (only when each milestone is authorised)
 

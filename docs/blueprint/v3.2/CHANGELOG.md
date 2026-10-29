@@ -1,5 +1,119 @@
 # V3.2 proposal: changelog
 
+## Revision 4: final documentation reconciliation on the committed C.2 register (`e2ccd89`)
+
+**Status:** documentation only. This revision follows two reviews:
+- GPT's re-review of `eba5cec` (Issue #3), which accepted revision 3 with one access-mapping fix;
+- GPT's approval of the C.2 closure `e2ccd89` (Issue #4).
+
+**What is and is not approved**
+- **Not approved:** decisions D-21 to D-49. Five of them (D-21, D-23, D-24, D-43, D-49) are now ready to ratify.
+- **Ratifying them approves documentation only.** D.1 still needs its own authorisation.
+- **Unchanged:**
+  - the live register;
+  - the C.2 branch (`e2ccd89`);
+  - `main` (`d9a420c`);
+  - all code.
+
+### Counts
+
+| Measure | Revision 3 (C.1 base) | Revision 3 replayed on `e2ccd89` | **Revision 4 (final)** |
+|---|---:|---:|---:|
+| Baseline rows / distinct | 394 / 335 | 396 / 337 | **396 / 337** |
+| Delta operations | 108 | 108 | **112** |
+| ADD / ADD-STATE / MODIFY / SUPERSEDE | 28 / 31 / 49 / 0 | 28 / 31 / 49 / 0 | **28 / 31 / 53 / 0** |
+| Rows after the delta | 453 | 455 | **455** |
+| Distinct after the delta | 363 (360 + 3 parked) | 365 (362 + 3 parked) | **365 (362 + 3 parked)** |
+| Built, B and C | 89 | 91 | **91** |
+| D (D.1 / D.2 / D.3) | 49 (15 / 26 / 8) | 49 | **49 (15 / 26 / 8)** |
+| S active (S.1 / S.2 / S.3) + parked | 40 + 3 | 40 + 3 | **40 (15 / 17 / 8) + 3** |
+| E / F / G | 117 / 18 / 47 | 117 / 18 / 47 | **117 / 18 / 47** |
+| Status of distinct screens (BUILT / PARTIAL / PLANNED) | 62 / 18 / 283 | 67 / 30 / 268 | **67 / 30 / 268** |
+
+**Why there are 4 more MODIFY rows.** They reconcile C.2 overlaps: BILL-012, BANK-004, BILL-016 and BILL-017. They change no count.
+
+**How the counts were checked.** An independent verifier recomputed every count and checked the whole register. Planted defects were all caught. See [`SCREEN_COUNT_RECONCILIATION.md`](SCREEN_COUNT_RECONCILIATION.md).
+
+### `SCREEN_REGISTER_DELTA.csv`: exactly what changed
+
+- **Every non-parked row:**
+  - `delta_status` now reads "PROPOSED (baseline: committed C.2 register e2ccd89, 396 rows / 337 distinct; adopted only when its milestone is authorised, D-43)";
+  - the 6 parked SOS rows keep their PARKED status.
+- **Every MODIFY row:** `changed_fields` is rebuilt against the `e2ccd89` values. Fields equal to the committed value are dropped.
+- **39 rows changed in content:**
+
+| Row | Fields | Why |
+|---|---|---|
+| PORTAL-042 | module, feature_grant, min_permission, data_scope, validation, states, tests, notes | **GPT fix.** `core` + `portal.use` → `resident_portal` + `portal.use`, with verified-link, site and audience scope re-checked on read and open; negative tests (revoked `resident_portal`, another site, moved out, withdrawn, deep link outside the audience); the notification service stays `core` |
+| PORTAL-043, PORTAL-023 | data_scope (043), validation, tests | Same guard and negative tests as PORTAL-042 |
+| PORTAL-031, -032 | module, feature_grant, notes | Rule R: `community_chat` → `resident_portal`; `community_chat` becomes the site grant checked second |
+| PORTAL-033 (parked) | module, feature_grant, notes | Rule R (`safety` second); still parked |
+| PORTAL-034, -035 | module, feature_grant, notes | Rule R (`maintenance.community_issues` second) |
+| PORTAL-037 | module, feature_grant, notes | Rule R (`rentals` second) |
+| PORTAL-038, -039 | module, feature_grant, notes | Rule R (`community_hub.marketplace` / `.polls` second) |
+| PORTAL-040 | module, feature_grant, notes | Rule R (`visitors.live_queue` second); missing full stop fixed |
+| PORTAL-041 | module, feature_grant, data_scope, notes | Rule R: was `core` + `portal.use`, the PORTAL-042 defect |
+| PORTAL-036 | notes | Hub tabs also need `community_hub` for the resident's site |
+| FIN-007 | min_permission, gate, notes | C.2 built single office cash. Permission aligned to the contract (`payment.receive` + `receivables.office_collections`). Gate "C (built part: office cash); S.1 (cheques; cash witnessing per D-46)" |
+| BILL-012 (**new MODIFY**) | gate | Society cheque rules move from "Gate E" to S.1. Status stays BUILT for C.2's scope and is reassessed at adoption |
+| BANK-004 (**new MODIFY**) | gate | S.1 settles cheques, deposits and transfer legs with C.2's matching |
+| BANK-001 | linked_records, validation | Receiving accounts are BILL-010's verified beneficiaries, never copies |
+| BANK-002 | linked_records, notes | Reuses C.2's account-bound statement lines and reconciliation |
+| BANK-006 | notes | Settlement evidence per C.2 (replaces "visibly simulated-cleared demo event") |
+| BANK-007 | validation | C.2 payment verification kinds decide the account a receipt counts on |
+| BANK-008 | notes | The close checklist lists C.2's pending proof states and links BANK-004, FIN-008 and BILL-008 |
+| BANK-009, OWN-006 | notes | Numbered with the issuing entity's BILL-016 pattern |
+| FIN-013 | min_permission, linked_records, validation | `payment.receive` (with the feature); each cash line within the site's office-cash maximum; cheques cleared only by C.2 matching |
+| COL-007 | validation | Reminders skipped for every C.2 pending proof state; needs-information gets the information request |
+| FIN-011 | notes | C.2 built unapplied credit; S.1 adds advance payments verified under C.2's rules |
+| PORTAL-004 | tabs, gate, notes | Credit display exists since C.2; S.1 adds "paid in advance"; gate "built; C extends; S.1 and S.3 extend" |
+| OWN-004 | linked_records, validation; tenant_edition dropped | An approved transfer raises a BILL-017 payer change; no-op `tenant_edition` removed |
+| OWN-003 | tenant_edition dropped | No-op removed |
+| BILL-017 (**new MODIFY**) | gate, linked_records | Transfer-sourced payer changes in S.1; status stays BUILT |
+| BILL-016 (**new MODIFY**) | gate, actions | S.1 document kinds (clearance certificate, cash voucher, office collection batch); status stays BUILT |
+| APR-001 | linked_records, notes | The S.1 inbox also lists the C.1/C.2 approval kinds from the dashboard (HOME-001) |
+| APR-004 | notes | Billing-run posting roles stay in BILL-016 |
+| PORTAL-030 | notes | Reuses C.2's first-run text-size step; stays PLANNED |
+| RNT-001, -002, -005, -006 | notes (and actions, mock_api on RNT-006) | Payout settlement on a matched statement line of the paying client-money account (D-48) |
+
+### Other files
+
+| File | Changes |
+|---|---|
+| **`SCREEN_COUNT_RECONCILIATION.md`** (new) | Covers: baseline integrity (git and GitHub copies identical); what C.2 changed; delta operations; counts by gate and milestone; built screens each milestone extends; findings F-1 to F-7 with the C.2 overlap table; validation of the whole register (14 checks); pre-existing register observations |
+| `OWNER_DECISIONS.md` | **New §0:** final recommended resolutions for D-21, D-23, D-24, D-43 and D-49 (ready to ratify; documentation only); the decisions that stay conditional, by review type; the owner's product choices. **D-48 revised** to the C.2 closure ruling (no settlement without a statement line; a demo helper may only generate a sample statement). **Notes added:** D-29, D-34, D-35, D-36, D-37, D-42, D-46 (C.2 single office cash). **D-26 and D-49** counts updated to `e2ccd89`. **§E** adds the C.2 review rulings |
+| `MODULE_AND_LICENSING_MATRIX.md` | **Rule R** (§2). **§5.1:** the C.2 permissions V3.2 reuses, with holders at `e2ccd89`. **§5.2 permission changes:** `settlement.confirm` withdrawn (C.2's `bank.reconcile` matches); `settlement_exception.approve` added for outgoing legs; the accounts officer is noted as Al-Noor's own role, not a starter. **§2:** integrates column for `communications` and `reports` aligned to the committed catalogue. **§6:** two dependency checks (resident-facing add-on without `resident_portal` on the site; bulk collection without office collections) |
+| `FRONTEND_ONLY_EXECUTION_PLAN.md` | **Baseline and counts:** `e2ccd89`; C.2 closed; the gate table is now before/after. **Definition of done:** rule R and "no settlement without evidence" added; wording tests use C.2's sample-statement labels instead of "Simulated bank confirmation". **D.1:** the extended PORTAL-027 and C.2 text-size step, plus two checks. **S.1:** the C.2 screens it extends, and a reference experience and golden vectors on C.2 matching. **D.2:** the PORTAL-042/043/023 negatives and rule R checks. **D.3 and S.3:** rule R checks. **Test assets:** `resident-access.vectors.json` |
+| `PRODUCT_SCOPE_EXPANSION.md` | **Opening sections:** revision 4 note; the package table; the baseline; rule 5 (no settlement without evidence); the register effect. **Rule R:** F01, F02 and F04. **Settlement and permissions:** F07, F09, F10 and F11 (`bank.reconcile`, exceptions, `payment.receive`, C.2 today, A4 re-check). **Other features:** F13 pending states; the F15 PORTAL-042 guard, with the undefined `hub.manage` removed; F20 BILL-017 and BILL-016; F21 credit already shown since C.2. **Controls and risks:** §5 adds two controls; §6 updates R-20 and R-37 and adds R-43 to R-45 |
+| `ERD_PROPOSED_CHANGES.md` | **Revision 4 note.** **Settlement confirmations:** the evidence is a statement line or a witnessed slip, `simulated_demo` is withdrawn, and the C.2 matching rules apply. **§2.8 and §1:** C.2 entities marked REUSED; the A4 alignment re-checked on `e2ccd89`. **Clearance certificates:** numbering via BILL-016, and the payer change via BILL-017. **Invariants:** I-28 uses statement-line identity; I-37 (rule R) and I-38 (no settlement without evidence) added. Table counts unchanged |
+
+### Still open
+
+1. **Ratification.** The owner ratifies, or amends, D-21, D-23, D-24, D-43 and D-49. This is documentation approval only.
+2. **D.1.** A separate, explicit authorisation is needed before any D.1 work. Only then are D.1's delta rows adopted into the live register.
+3. **Conditional decisions** (specialist review):
+   - financial: D-34, D-35, D-37, D-42, D-46, D-48;
+   - legal and tax: D-33, D-42, D-30, chat retention;
+   - privacy: D-25, D-27, D-38, D-39, D-40, D-47;
+   - safety: D-26.
+4. **New in revision 4, for review:**
+   - rule R (part of D-21);
+   - `settlement_exception.approve`;
+   - the withdrawal of `settlement.confirm`;
+   - the four C.2 MODIFY rows.
+5. **Live-register hygiene, outside this branch** (`SCREEN_COUNT_RECONCILIATION.md` §8):
+   - C.2's resident text size is not recorded on PORTAL-027 and PORTAL-030;
+   - register permission names are not yet in the contract;
+   - SITE-006 lists `unit.view`;
+   - GPT's minor `MANUAL_VERIFICATION.md` D3 wording on the C.2 branch.
+6. **Logical model.** An architecture review before Gate H (unchanged).
+
+### Next
+
+1. GPT and the owner review revision 4.
+2. The owner ratifies the five decisions, or amends them.
+3. The owner decides whether, and when, to authorise D.1.
+
 ## Revision 3: amendment after GPT's re-review of `3f018d0` (Issue #3)
 
 **Status:** documentation only.

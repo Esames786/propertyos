@@ -11,20 +11,27 @@
 | `PRODUCT_SCOPE_EXPANSION.md` (this file) | Gap analysis and the 21 feature specifications |
 | [`MODULE_AND_LICENSING_MATRIX.md`](MODULE_AND_LICENSING_MATRIX.md) | Catalogue changes, editions, dependencies, permissions |
 | [`ERD_PROPOSED_CHANGES.md`](ERD_PROPOSED_CHANGES.md) | Logical entities and invariants. Not migrations |
-| [`SCREEN_REGISTER_DELTA.csv`](SCREEN_REGISTER_DELTA.csv) | Row-level changes against the live register (the live register is untouched) |
+| [`SCREEN_REGISTER_DELTA.csv`](SCREEN_REGISTER_DELTA.csv) | Row-level changes against the committed C.2 register `e2ccd89` (the live register is untouched) |
+| [`SCREEN_COUNT_RECONCILIATION.md`](SCREEN_COUNT_RECONCILIATION.md) | Revision 4: baseline integrity, delta operations, counts by gate and milestone, validation of the whole register, findings |
 | [`FRONTEND_ONLY_EXECUTION_PLAN.md`](FRONTEND_ONLY_EXECUTION_PLAN.md) | Milestones, acceptance tests, evidence, stop points |
-| [`OWNER_DECISIONS.md`](OWNER_DECISIONS.md) | Decisions D-21 to D-49 with recommendations (none approved yet) |
-| [`CHANGELOG.md`](CHANGELOG.md) | What changed in revisions 2 and 3, and what is still open |
+| [`OWNER_DECISIONS.md`](OWNER_DECISIONS.md) | Decisions D-21 to D-49 with recommendations. Five are ready to ratify; none is approved yet |
+| [`CHANGELOG.md`](CHANGELOG.md) | What changed in revisions 2 to 4, and what is still open |
 | [`../../design/reference/nizam/NIZAM_FEATURES_AND_GAPS.md`](../../design/reference/nizam/NIZAM_FEATURES_AND_GAPS.md) | What the Nizam benchmark showed (text only) |
 
 **Revision 2** (GPT review, Issue #3) corrects the finance source of truth, the screen counting, the entity model and several privacy rules.
 
 **Revision 3** (GPT re-review of `3f018d0`) makes official notices a complete D.2 journey that never depends on the optional `community_hub`. It also states the limits of offline chat revocation, extends the privacy threshold to differencing across filters and time, and marks the SOS pages as parked potential scope. See [`CHANGELOG.md`](CHANGELOG.md).
 
+**Revision 4** (final documentation reconciliation, after GPT's re-review of `eba5cec` and the C.2 closure `e2ccd89`):
+- The delta is rebased on the committed C.2 register.
+- PORTAL-042's guard is corrected to `resident_portal` + `portal.use`, and the same rule (rule R) is applied to every resident-facing row.
+- Rows that overlap what C.2 built are reconciled.
+- Settlement evidence follows the C.2 closure ruling.
+- See [`SCREEN_COUNT_RECONCILIATION.md`](SCREEN_COUNT_RECONCILIATION.md) and [`CHANGELOG.md`](CHANGELOG.md).
+
 **Baseline**
-- **Register (official).** The committed Gate C.1 register: **394 rows, 335 distinct screens**.
-- **Not yet official.** Gate C.2 has since been committed (`d5e599d`: 396 rows, 337 distinct) and awaits review. Until it is reviewed, its figures are informational.
-- **Provisional.** Every count in this package is provisional. The delta is regenerated on the committed C.2 register after C.2 review. The live register is not changed before then.
+- **Register.** The committed Gate C.2 register at the closure commit `e2ccd89`: **396 rows, 337 distinct screens**. Gate C.2 is closed and approved (Issue #4, 2026-10-29).
+- **Counts.** They are verified, but they remain register counts of proposed scope, not built screens. Delta rows are adopted only when their milestone is authorised (D-43). The live register is not changed by this package.
 - **Architecture.**
   - The 27-module catalogue (`2026.10-1`).
   - The access intersection (tenant, module, site, feature, permission, record scope, workflow state).
@@ -58,7 +65,11 @@
    - Society money is the association's.
    - Owner rent is the owner's.
    - Nothing settles to the SaaS company.
-   - **An approved instruction is not money moving.** Settled cash changes only through a confirmed payment, a posted cash voucher or a settlement confirmation (bank evidence, or a visibly simulated demo event).
+   - **An approved instruction is not money moving.** Settled cash changes only through a confirmed payment, a posted cash voucher or a settlement confirmation.
+   - **No settlement without evidence** (revision 4, the C.2 closure ruling):
+     - a bank leg needs a matched statement line (in the prototype, a line from a sample statement imported for the verified account, as in C.2);
+     - a partial match needs a second person's exception;
+     - a cash leg needs a witnessed deposit slip.
    - An uncleared cheque settles nothing.
    - There is one set of source events; the cashbook is a view, not a second ledger.
 6. **Safety first for SOS.**
@@ -98,12 +109,14 @@
 | F21 | Resident credit balances; future wallet | P2 | `receivables` | Existing | Included; **wallet deferred** | 0 | S.1 |
 | | **Total** | | | 4 new modules | | **28 new (3 parked)** | |
 
-**Effect on the register (provisional; official C.1 baseline)**
-- **Distinct screens:** 335 → **363**, which is 335 plus 28 new screens.
-  - **Revision 3:** Community notices (PORTAL-023) stays its own canonical page and is no longer folded into Community home, so it counts again (+1 against revision 2's 362).
-  - **SOS:** 3 of the 28 (the SOS pages) are **parked potential scope, not authorised work**. They stay unavailable until the safety design is approved. Without them, active scope is **360**.
-  - **On C.2:** on the C.2 commit (`d5e599d`, pending review), the same delta gives 337 → 365. That figure is informational only.
-- **Rows:** 394 → **453**. 31 tab, drawer, overlay and detail-state rows do not count as screens.
+**Effect on the register (revision 4, verified on the committed C.2 register `e2ccd89`)**
+- **Distinct screens:** 337 → **365**, which is 337 plus 28 new screens.
+  - **Revision 3:** Community notices (PORTAL-023) stays its own canonical page and is not folded into Community home.
+  - **SOS:** 3 of the 28 (the SOS pages) are **parked potential scope, not authorised work**. They stay unavailable until the safety design is approved. Without them, active scope is **362**.
+- **Rows:** 396 → **455**. 31 tab, drawer, overlay and detail-state rows do not count as screens.
+- **Delta operations:** 112.
+  - 28 ADD, 31 ADD-STATE, 53 MODIFY, 0 SUPERSEDE.
+  - Revision 3 replayed on `e2ccd89` gives the expected 108. Revision 4 adds 4 MODIFY rows that reconcile C.2 overlaps (BILL-012, BANK-004, BILL-016, BILL-017) and change no count.
 - **Counting rule (revision 2).** Tabs, drawers and overlays without their own page route are **states of a parent screen** (A5 §2). Four overlays that revision 1 counted as screens are now states:
   - SOS-004 → SOS-001;
   - PORTAL-033 → PORTAL-001;
@@ -111,7 +124,7 @@
   - PORTAL-040 → PORTAL-015.
 
   The existing register still counts some older global overlays as screens (GLOBAL-013, the GUIDE tours). That inconsistency is flagged for the owner (D-45) and left unchanged.
-- **Changed rows:** 49 existing rows change. Most of them move earlier (re-gated), or are opened to the community edition. None is superseded.
+- **Changed rows:** 53 existing rows change. Most of them move earlier (re-gated), or are opened to the community edition. Eight C.2 screens record what S.1 adds to them. None is superseded.
 - **Already planned, now scheduled earlier:** 31 screens move from Gates E and G into the new milestones, because societies need them sooner:
   - HR ×9, payroll ×7, approvals ×5, banking ×3, transfers ×2;
   - the finance overview, vehicle registry, quick broadcast, documents and the user workspace (×1 each).
@@ -210,7 +223,7 @@
   - building manager: `chat.groups.manage`;
   - a moderator (manager or committee secretary): `chat.moderate`.
 
-  Residents use the portal (`portal.use` + module).
+  Residents enter through `resident_portal` + `portal.use`, then need `community_chat` for their site (rule R, revision 4).
 - **Screens:**
   - CHAT-001 inbox and conversations, with states CHAT-002 (phone route) and CHAT-004 (report);
   - CHAT-003 groups and moderation;
@@ -291,7 +304,7 @@
     - privacy;
     - liability wording.
 - **Personas and permissions:**
-  - resident: `portal.use` + module;
+  - resident: `resident_portal` + `portal.use`, then `safety` for their site (rule R);
   - guard: `sos.respond`;
   - manager: `sos.respond`, `sos.configure`;
   - committee or safety officer: `sos.review`.
@@ -391,7 +404,7 @@
   - One request entity with a `kind` field (unit repair | community issue).
   - No second ticket system.
 - **Personas and permissions:**
-  - residents raise and affirm (`portal.use`);
+  - residents raise and affirm (`resident_portal` + `portal.use`, then `maintenance.community_issues` for their site: rule R);
   - manager: `issues.view`, `issues.manage`;
   - moderator: `issues.moderate`;
   - technician: work orders (`workorder.update`), as today.
@@ -538,7 +551,7 @@
   - No new screens.
 - **Connections:**
   - payroll run → items → components (bonus, loan instalment, advance recovery);
-  - a posted run is an obligation; a disbursement is an instruction; only a settlement confirmation (bank evidence, or a visibly simulated demo event) affects settled cash (F10).
+  - a posted run is an obligation; a disbursement is an instruction; only a settlement confirmation on a matched statement line affects settled cash (F10; D-48).
 - **ERD:**
   - **No new tables.**
   - V2.1 advances gain kind = loan and an instalment plan.
@@ -629,7 +642,7 @@
   - RNT-007 rental settings (agreements and issuing model, fees, deposits).
 - **Instruction ≠ settlement (revision 2):**
   - An approved payout is an **instruction**. It does not reduce cash or the owner's payable.
-  - Only a **settlement confirmation** does that: a matched bank line, or a visibly labelled "Simulated bank confirmation" from the demo control.
+  - Only a **settlement confirmation** does that, on a matched statement line of the paying client-money account (C.2 matching; in the prototype a sample statement imported for the verified account). No control settles without that evidence (D-48, revision 4).
   - Unsettled instructions show as "Pending payout".
 - **Connections:**
   - **Statement lines** derive from:
@@ -647,7 +660,7 @@
   - `POST /rentals/owner-statements/:id/issue`
   - `POST /rentals/payouts`
   - `POST /rentals/payouts/:id/{approve,reject}`
-  - `POST /settlements` (subject = payout; evidence = bank line or simulated demo)
+  - `POST /settlements` (subject = payout; evidence = a statement line)
   - Payout states: draft → awaiting_approval → approved_instruction → settled | failed; or rejected.
   - **"Approved instruction" is never labelled "sent" or "paid out".**
 - **Compliance:**
@@ -670,7 +683,8 @@
 - **Personas and permissions:**
   - accounts: `cashbook.view`, `cash_voucher.prepare`, `funds_transfer.create`;
   - treasurer: `cash_voucher.approve`, `funds_transfer.approve`, `period.close`;
-  - settlement evidence is matched by the bank reconciliation role (the C.2 permission, name confirmed after C.2 is committed);
+  - settlement evidence is matched with C.2's `bank.reconcile` (the accounts officer), never by the instruction's preparer;
+  - a partial match needs a second person: `payment_exception.approve` for incoming money (C.2), and the new `settlement_exception.approve` for outgoing legs (revision 4);
   - reopening a month goes through an approval policy (F05).
 - **Screens:**
   - new: BANK-007 cashbook, with states BANK-008 close-month review and BANK-009 cash voucher;
@@ -692,9 +706,14 @@
 
   Each voucher is prepared, approved by someone else (approval policy), posted (then immutable) and corrected only by a reversal voucher.
 - **Instructions vs settlement.** A transfer or cash deposit is first an approved **instruction**. Each leg is settled only by evidence:
-  - a matched bank line;
-  - a witnessed deposit slip for the cash leaving custody;
-  - or a visibly labelled simulated demo event.
+  - a matched statement line, exactly as C.2 matches proofs:
+    - the line comes from a statement imported for the verified account;
+    - a full match on the account in force settles directly;
+    - a partial match settles only through a second person's exception;
+    - one line settles one subject once;
+  - a witnessed deposit slip for the cash leaving custody.
+
+  There is no free "simulated confirmation" (D-48, revision 4).
 
   Money between legs shows as "cash in transit".
 - **Behaviour by add-on:**
@@ -708,7 +727,7 @@
 - **Idempotency.** Each source event counts once, keyed by (source type, source id, posting version). Each settlement leg is confirmed once. One bank transaction confirms at most one settlement leg.
 - **Closing checks:**
   - unreconciled lines (BANK-004);
-  - proofs waiting (FIN-008);
+  - proofs waiting (FIN-008), including C.2's `awaiting_bank_evidence` and `exception_pending`;
   - unposted runs (BILL-008);
   - cash in transit;
   - unsettled instructions;
@@ -733,7 +752,7 @@
   - Closed months refuse new postings; corrections are reversal vouchers in an open month.
   - Transfers stay within one legal entity (I-19).
   - Cash counts are witnessed.
-  - Simulated settlements are never automatic and are always labelled.
+  - Nothing settles without evidence. Demo statements are labelled as samples with fictional data, as in C.2.
 - **Tests:**
   - cashbook = the sum of its sources (no double counting);
   - an instruction without settlement changes nothing;
@@ -749,9 +768,12 @@
 - **Home:** `receivables`, new feature `receivables.bulk_office_collection`.
   - Requires `receivables.office_collections`, and the site's payment-method rules must allow cash or cheque (BILL-012, built in C.2).
 - **Personas and permissions:**
-  - collector (accounts officer or manager): `payment.receive.office`;
+  - collector (accounts officer): `payment.receive` with the feature `receivables.office_collections`, the committed C.2 permission (revision 4; the register text said `payment.receive.office`);
   - a second person (treasurer): `payment.batch.confirm`.
 - **Screens:** new FIN-013 bulk office collection (FIN-014 batch review); FIN-007 stays for single payments.
+  - **C.2 today (revision 4):** FIN-007 records single office cash within the site's maximum, with a receipt at once (PARTIAL).
+  - S.1 adds cheques to FIN-007 and to the batch, and decides through D-46 whether single cash also needs a second-person count.
+  - Each batch cash line stays within the site's maximum (a per-site setting; 50,000 is fixture data only).
 - **Method-specific states (revision 2):**
   - **Cash lines.**
     - The counted total must equal the sum of the cash lines.
@@ -760,7 +782,7 @@
     - A wrong line is corrected only by an approved reversal.
   - **Cheque lines.**
     - Confirmation records **"cheque received"** and an acknowledgement ("not a receipt of payment").
-    - The cheque stays **pending**. It settles no invoice and yields **no final receipt** until it is **cleared**, by a matched bank line or a visibly simulated demo event.
+    - The cheque stays **pending**. It settles no invoice and yields **no final receipt** until it is **cleared**, by a matched statement line (C.2 matching: full match, or a partial match only through a second person's exception).
     - **Returned:** nothing settles, the payer is notified, and the history is kept. A bank charge applies only under a configured, lawful policy, off by default.
     - **Reversal after clearing:** the payment, allocations and receipt are reversed (the receipt is marked reversed, never deleted), and the invoice lines reopen.
 - **Connections:**
@@ -775,7 +797,9 @@
   - `POST /payments/:id/reverse`
   - Batch states: draft → submitted → confirmed | returned.
   - Cheque states: received → deposited → cleared | returned; or cancelled.
-- **A4 §5.3 alignment.** A4 lets office cheques produce a payment immediately and allocate "when cleared (configurable)". Revision 2 makes it strict: **no payment until cleared**. C.2's office-payment states are re-checked against this once C.2 is committed.
+- **A4 §5.3 alignment.** A4 lets office cheques produce a payment immediately and allocate "when cleared (configurable)". Revision 2 makes it strict: **no payment until cleared**.
+  - **Re-checked on `e2ccd89` (revision 4):** C.2 builds no office cheques (BILL-012 shows them as later), so nothing conflicts.
+  - C.2's immediate receipt for single office cash is the one open point. It goes to D-46.
 - **Controls:**
   - Nothing shows as Paid before confirmation (cash) or clearance (cheque).
   - Each line settles only its payer's lines.
@@ -828,7 +852,7 @@
   - Delivery states: queued → would-send (demo) | skipped (reason).
 - **Controls:**
   - Reminders go only to the liable payer.
-  - They are skipped if paid, or if a proof is waiting for verification.
+  - They are skipped if paid, or while a proof is in any pending state. That includes C.2's `awaiting_bank_evidence` and `exception_pending` (revision 4). A proof that needs information gets the information request, not a dues reminder.
   - Quiet hours apply, with a monthly cap and consent per channel.
   - Wording is respectful, with no threats; late-fee mentions appear only when late fees are enabled (D-11).
 - **Tests:**
@@ -872,7 +896,7 @@
   | Step | Screen | Licence and permission |
   |---|---|---|
   | 1. The office composes, previews the audience, publishes or schedules, and may ask for acknowledgement | RES-005 notices and announcements (or NOT-003 quick broadcast with "also post as notice") | `residents` + `communications` (both included). Opening needs `residents.view` (unchanged); publishing needs `notices.publish` (`communications`) |
-  | 2. Each resident in the audience gets a notification. SMS/WhatsApp copies are simulated and need consent | PORTAL-042 notifications panel (a state of the resident home); simulated message carries the same link | `core` notifications; `communications.sms` / `whatsapp` only for those channels |
+  | 2. Each resident in the audience gets a notification. SMS/WhatsApp copies are simulated and need consent | PORTAL-042 notifications panel (a state of the resident home); simulated message carries the same link | `resident_portal` + `portal.use`, with the recipient's verified link, site and audience re-checked on read and open (revision 4; the notification service itself stays `core`); `communications.sms` / `whatsapp` only for those channels |
   | 3. The resident opens the notice, and acknowledges it if asked | PORTAL-043 notice detail, `/customer/portal/community-notices/:id` | `resident_portal` + `portal.use` |
   | 4. The resident can find every current notice later | PORTAL-023 Community notices, `/customer/portal/community-notices` (canonical; route unchanged) | `resident_portal` + `portal.use` |
   | 5. The office sees delivered, read and acknowledged counts, and which units have not acknowledged | RES-005 (staff only) | `residents.view` |
@@ -881,10 +905,10 @@
   - **Changes.** Edits create a new version. Withdrawing leaves a dated tombstone. Nothing is deleted.
   - **D.3 Community home.** It may show a "Latest notices" summary that opens these same routes. It never owns, copies or relocates notices.
   - **Without the hub.** Removing `community_hub` hides only the hub tabs. The **Notices** item in the resident navigation declares `requires: { modules: ['resident_portal'], permission: 'portal.use' }`.
-  - **Permissions.** No hub permission (`polls.manage`, `directory.manage`, `marketplace.moderate`, `hub.manage`) ever applies to notices.
+  - **Permissions.** No hub permission (`polls.manage`, `directory.manage`, `marketplace.moderate`) ever applies to notices.
   - **Owner decision.** The alternative design, a minimal Community shell in D.2, is recorded in D-49.
 - **Personas and permissions:**
-  - manager: `polls.manage`, `hub.manage`;
+  - manager: `polls.manage`, `directory.manage` (revision 4: the undefined `hub.manage` is removed);
   - moderator: `marketplace.moderate`;
   - residents read, vote and post listings.
 - **Screens:**
@@ -1044,10 +1068,12 @@
   - OWN-006 clearance certificate (a drawer).
 - **Connections:**
   - transfer request → dues check (the unit's liable balance) → fee invoice through the shared engine (`source_type = transfer_fee`) → clearance certificate → new ownership period;
+  - **the payer change goes through C.2's approval queue** (BILL-017, revision 4): an approved transfer raises one ordinary payer change, effective from the transfer date, never a second liability path;
+  - certificates take the issuing legal entity's numbering pattern (BILL-016);
   - **history is never rewritten** (I-5).
 - **ERD:**
   - The transfer fee is a charge category with versioned rates (existing `charge_categories` / `charge_rate_versions`, plus a bylaw reference).
-  - New: `clearance_certificates`, numbered per legal entity.
+  - New: `clearance_certificates`, numbered with the issuing legal entity's BILL-016 pattern.
 - **Mock contract:**
   - `POST /transfers`
   - `POST /transfers/:id/{check-dues,invoice-fee,issue-clearance,approve}`
@@ -1063,10 +1089,12 @@
 
 ### F21. Resident credit balances and possible future wallet
 - **Home:** `receivables`. Included.
-  - The existing unapplied credit (FIN-011, C.2: paying 6,000 against a 5,200 balance leaves 800 in credit) and **advance payments** (paying ahead through the same transfer-and-verify flow, applied when future bills post if the site's auto-apply policy allows).
+  - The existing unapplied credit (FIN-011, C.2: paying 6,000 against a 5,200 balance leaves 800 in credit).
+  - **Advance payments:** paying ahead through the same transfer-and-verify flow, applied when future bills post if the site's auto-apply policy allows.
+  - Since revision 4, an advance payment is verified under the C.2 settlement rules (a statement line; a full match, or an approved exception).
 - **Screens:**
   - FIN-011 renamed "Credit balances and advance payments";
-  - PORTAL-004 gains a credit/paid-in-advance card.
+  - PORTAL-004 adds "paid in advance" to the credit line that C.2 already shows on the home total, the receipt and the history (revision 4: credit display is not new).
   - **No wallet screens.**
 - **ERD:** no new money tables. A site policy `credit_auto_apply` (A4 already anticipates it).
 - **Controls:**
@@ -1102,6 +1130,8 @@
 | Simulated is labelled simulated | F01, F02, F03, F13, F19 | Visible demo labels; tests assert the text |
 | Nothing is "Paid", "Sent" or "Dispatched" without evidence | F02, F09, F11, F21 | Wording tests (extends the 1.5R "never Paid" test) |
 | Access is decided by the full intersection; menus are not security | all | Access vectors per new module; "not in your plan" pages (GLOBAL-012) |
+| **Rule R (revision 4):** resident screens are entered through `resident_portal` + `portal.use`, for the resident's verified link and site; a service module is then checked for the same site and flat | F01, F04, F08, F15, F17, F19, notices | Per resident screen: `resident_portal` revoked, service module revoked, another site, moved out |
+| **No settlement without evidence** (revision 4, the C.2 closure ruling) | F07, F09, F10, F11, F21 | Settlement vectors reuse C.2's matching (wrong account, used line, partial match → exception) |
 | Moderation, report and block | F01, F04, F14, F15 | Report → hide flows |
 | Audit of sensitive actions | F02, F05, F16, F17, F18 | Audit entries asserted in tests |
 
@@ -1109,7 +1139,7 @@
 
 | # | Conflict or risk | Effect | Proposed handling |
 |---|---|---|---|
-| R-20 | The official baseline is the committed C.1 register (394/335). C.2 is now committed (`d5e599d`, 396/337) but not yet reviewed | The delta could drift | Every count is provisional. The delta is regenerated on the committed C.2 register after C.2 review, before any adoption (D-43). The live register is untouched |
+| R-20 | The delta could drift from the live register | Wrong counts at adoption | **Resolved in revision 4:** the delta is rebased on the committed, approved C.2 register `e2ccd89` (396/337 → 455/365) and verified by an independent program (`SCREEN_COUNT_RECONCILIATION.md`). Any later change to the live register means regenerating and re-verifying before adoption (D-43) |
 | R-21 | Gate D grows from 33 to 49 distinct screens | One huge gate | Split into D.1–D.3, each individually authorised, with a checkpoint after each (D-24) |
 | R-22 | HR and payroll are register-scheduled for Gate E (developer) | Societies would wait for the whole ERP | Build the shared HR/payroll screens edition-aware in S.2; Gate E adds developer specifics only |
 | R-23 | Issue #2 lists the finance extensions as P0, but its sequence places them after Gate D | Ordering ambiguity | Recommend S.1 right after D.1, because it extends the C.2 engine while it is fresh (D-23) |
@@ -1126,12 +1156,15 @@
 | R-34 | Marketplace abuse or fraud | Trust and safety | Off by default; pre-moderation; no in-app payments (D-31) |
 | R-35 | Volume: 28 new screens (3 parked) plus 31 earlier ones before Gate E | Schedule | Bounded slices, each individually authorised; reference experiences first; stop at every checkpoint |
 | R-36 | A new chat centre button competes with "Pay" for the phone bottom bar | UX | Chat takes the centre only when licensed and chosen by the tenant (D-25) |
-| R-37 | A4 §5.3 lets office cheques produce a payment immediately ("configurable") | Contradicts "uncleared cheque settles nothing" | Revision 2 makes it strict. A4 wording and C.2's office states are re-checked after C.2 is committed |
+| R-37 | A4 §5.3 lets office cheques produce a payment immediately ("configurable") | Contradicts "uncleared cheque settles nothing" | Revision 2 makes it strict. **Re-checked on `e2ccd89`:** C.2 has no office cheques, so nothing conflicts; C.2's immediate receipt for single office cash is decided in S.1 (D-46). The A4 wording is aligned at register sync |
 | R-38 | Counts in tiny audiences re-identify people, including by differencing two filters or two snapshots | Privacy | Configurable minimum count and audience size; fixed groupings; complement check; scheduled refresh; poll results after close only (D-47) |
 | R-39 | The existing register counts some global overlays (GLOBAL-013, GUIDE tours) as screens; V3.2 does not | Inconsistent totals | Flagged for the owner (D-45); the live register is not changed here |
 | R-40 | The logical model (38 new + 8 formalised tables) could be read as an approved schema | Premature backend design | Labelled conceptual; separate architecture review before Gate H; no migrations |
 | R-41 | Official notices folded into Community home (revision 2), a D.3 page built around optional hub tabs | Residents would get notices only from D.3, and their availability could be read as tied to the hub licence | Revision 3: PORTAL-023 stays canonical in D.2; Community home only links to it; nav, routes and permissions name no hub key (D-49) |
 | R-42 | A chat revocation promise that a disconnected device cannot keep | False assurance to residents and committees | Server-side revocation at once; device copy removed on next connection; wording never promises immediate remote deletion (D-25) |
+| R-43 | *(Revision 4)* A resident screen guarded by a service module (`core`, `community_chat`, …) + `portal.use` skips the `resident_portal` entitlement, because the transport checks only the declared module | A resident could reach a screen after `resident_portal` is withdrawn | Rule R on all resident rows (PORTAL-031 to -042); negative tests per screen; HQ warns when a resident-facing add-on lacks `resident_portal` on the same site |
+| R-44 | *(Revision 4)* A free "Simulated bank confirmation" control (revision 2's D-48) would settle without the bank evidence that the C.2 closure requires | A demo that contradicts the approved C.2 money rules | D-48 revised: evidence is a statement line from a sample statement imported for the verified account, matched by C.2's rules. A demo helper may only generate such a file |
+| R-45 | *(Revision 4)* V3.2 rows restating what C.2 built (office cash, credit, statement import, payer changes, numbering) | Duplicate screens or rules | Reconciled: each row extends the C.2 screen (`SCREEN_COUNT_RECONCILIATION.md` F-3); four C.2 rows gain MODIFY rows; counts unchanged |
 
 ## 7. What is explicitly not authorised by this document
 

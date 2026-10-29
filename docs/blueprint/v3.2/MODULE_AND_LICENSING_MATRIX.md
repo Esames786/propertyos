@@ -1,8 +1,18 @@
 # V3.2 proposal: module and licensing matrix
 
-**Status:** PROPOSAL, revision 3. **None of the decisions behind it (D-21 to D-49) is approved.**
+**Status:** PROPOSAL, revision 4. **None of the decisions behind it (D-21 to D-49) is approved.** D-21 is ready to ratify (see `OWNER_DECISIONS.md` §0.1).
 
-It extends A1 §5 (module catalogue) and the catalogue in `packages/fixtures/src/platform/catalog.ts` (version `2026.10-1`, 27 modules).
+It extends:
+- A1 §5 (the module catalogue);
+- the catalogue in `packages/fixtures/src/platform/catalog.ts` (version `2026.10-1`, 27 modules), as committed at the C.2 closure `e2ccd89`;
+- the C.2 access contract (`packages/contracts/src/access.ts` and `permissions.ts` at `e2ccd89`).
+
+**Revision 4** (the C.2 reconciliation):
+- **Rule R** for every resident-facing screen (§2).
+- The C.2 permissions that V3.2 reuses (§5.1).
+- `settlement.confirm` withdrawn in favour of C.2's `bank.reconcile` (§5).
+- Corrections to the integrates column and the accounts-officer note.
+- §2 was checked line by line against the committed catalogue (`SCREEN_COUNT_RECONCILIATION.md` §7).
 
 **Approach:**
 - The proposed catalogue would ship as a new catalogue version through Platform HQ's versioned configuration, built in Gate B final.
@@ -15,7 +25,7 @@ It extends A1 §5 (module catalogue) and the catalogue in `packages/fixtures/src
 | **4 new modules** | `community_chat`, `community_hub`, `safety`, `rentals`. Catalogue goes 27 → **31** |
 | **2 modules offered to more editions** | `hr` and `payroll` become add-ons for community and portfolio (today: developer only) |
 | **20 new features** under existing or new modules | Listed in §3 |
-| **New illustrative permissions** | Listed in §5. Same caveat as `permissions.ts`: the backend decides the final set at Gate H |
+| **New illustrative permissions** | Listed in §5. The permissions committed in C.2 are reused, not duplicated (§5.1). Same caveat as `permissions.ts`: the backend decides the final set at Gate H |
 | **Existing tenants** | Unaffected. Editions are presets that pre-fill grants only at creation (D-2), so no existing tenant gains a new module automatically. Each demo tenant gets its new grants through a recorded contract amendment at the milestone that needs them (§7) |
 | **Catalogue version** | Proposed `2026.11-1`, scheduled through HQ's catalogue versioning (draft → approved → scheduled), never edited in place |
 
@@ -52,8 +62,8 @@ Every module stays available to the Custom edition, as today.
 | `visitors` | Passes, gate check-in | community | site | residents | resident_portal, **safety** | ✓ | ✓ | ✓ | + feature `live_queue` |
 | `parking` | Spaces, vehicles | community | site | core | residents, dues | ✓ | ✓ | ✓ | + feature `vehicle_approvals` |
 | `amenities` | Amenities, bookings | community | site | residents | dues | ✓ | ✓ | ✓ | — |
-| `communications` | Notices, messages, templates, delivery | channels | tenant | core | everything | ✓ | ✓ | ✓ | Reminder delivery (simulated); consent records; + permission `notices.publish` (revision 3) |
-| `reports` | Report centre | foundation | tenant | core | all | ✓ | ✓ | ✓ | — |
+| `communications` | Notices, messages, templates, delivery | channels | tenant | core | crm, dues, maintenance, **residents, receivables, resident_portal** | ✓ | ✓ | ✓ | Reminder delivery (simulated); consent records; + permission `notices.publish` (revision 3). Integrates now lists the committed links plus the V3.2 ones (notices, reminders, resident notifications) |
+| `reports` | Report centre | foundation | tenant | core | — (reads every granted module) | ✓ | ✓ | ✓ | — |
 | `public_website` | Project sites | channels | tenant | projects, inventory | crm | add-on | — | — | — |
 | `white_label` | Domain and theme | channels | tenant | core | — | add-on | add-on | add-on | — |
 | `api_access` | API keys | channels | tenant | core | — | add-on | add-on | add-on | — |
@@ -69,12 +79,21 @@ Every module stays available to the Custom edition, as today.
 - **`community_hub`** groups optional engagement tools. Notices stay in `communications` so official notices remain one-way and auditable.
   - **Revision 3:** official notices never depend on `community_hub` or `community_chat`. The whole journey runs on included modules, in D.2:
     - the office publishes in RES-005 or NOT-003 (`residents`, `communications`);
-    - residents are notified (`core` notifications);
+    - residents are notified in PORTAL-042 (entry `resident_portal` + `portal.use`; the notification service itself is `core`; revision 4);
     - residents read in PORTAL-023/043 (`resident_portal`).
   - **No hub permission** applies to notices. The routes and the resident Notices nav item name no hub key. The D.3 Community home only links to them.
   - **Register mismatch (unchanged).** RES-005 is listed under `residents` in the live register but under `communications` in A1. Both are included in every edition. Opening RES-005 keeps `residents.view`, and the new publish action uses `communications`. Aligning the two is left to the register sync.
 
 **Alternative:** fold chat and the hub into `communications` as features. This gives fewer catalogue lines, but HQ could no longer price or restrict them separately. Decision D-21.
+
+**Rule R: how resident-facing screens are guarded (revision 4)**
+- **The rule.**
+  - Every resident-app screen is entered through **`resident_portal` + `portal.use`**, for the resident's verified link in force and its site.
+  - When the screen belongs to a service module, that module's grant is then checked for **the same site and flat**. Examples: chat, community issues, the landlord view, hub tabs, the gate queue.
+  - Neither check alone opens the screen. Withdrawing either grant closes the screen and its API.
+- **Why.** This is how the committed portal handlers already work: `requires('resident_portal', 'portal.use', …)` at entry, then `authorize(ctx, 'maintenance' | 'visitors' | 'construction', flat)`. It is also why GPT flagged PORTAL-042. The mock transport's `decide()` checks only the declared module's grant, so a guard declared as `core` + `portal.use` (or `community_chat` + `portal.use`) would skip the `resident_portal` entitlement.
+- **In the register.** Resident rows carry `module = resident_portal` and `min_permission = portal.use`. Any service grant goes in `feature_grant`. Revision 4 applied this to PORTAL-031 to -042 (`SCREEN_COUNT_RECONCILIATION.md` F-1, F-2).
+- **Platform services stay where they are.** Notifications, for example, stay owned by `core`. Only the resident-facing entry point is guarded by `resident_portal`.
 
 ## 3. Features (granted under a module)
 
@@ -135,9 +154,33 @@ Existing features are unchanged: `core.multi_entity`, `core.practice_mode`, `rec
 
 **How permissions work.** As today, each permission belongs to a module (`PERMISSION_MODULE`), and a person gets it only if the tenant licenses that module.
 
-**How the starter roles are used.** The society starters are administrator, manager, treasurer, maintenance, technician, security, and the accounts officer added in C.2. They are shown as proposals; each tenant edits its own roles.
+**How the starter roles are used.**
+- The society starters are administrator, manager, treasurer, maintenance, technician and security.
+- The **accounts officer** is Al-Noor's own tenant role, added in C.2. It is not a starter (correction in revision 4).
+- The columns show proposals; each tenant edits its own roles.
 
-**Legend:** A = administrator, M = manager, T = treasurer, Ac = accounts officer, Mn = maintenance, Te = technician, S = security. ✓ = granted. "own" = only their own records.
+**Legend:** A = administrator, M = manager, T = treasurer, Ac = accounts officer (Al-Noor's role), Mn = maintenance, Te = technician, S = security. ✓ = granted. "own" = only their own records.
+
+### 5.1 Permissions committed in C.2 that V3.2 reuses (revision 4)
+
+V3.2 builds on these permissions instead of proposing new ones for the same job. Holders are as committed at `e2ccd89` (`role-templates.ts`).
+
+| Permission | Module | Holders at `e2ccd89` | Reused by V3.2 for |
+|---|---|---|---|
+| `payment.receive` (with feature `receivables.office_collections`) | receivables | A, T, Ac | The collector in bulk office collection (FIN-013). The register text `payment.receive.office` on FIN-007 is aligned to it |
+| `finance.evidence.review` | receivables | A, T, Ac | Proof review (unchanged) |
+| `bank.view` | banking | A, T, Ac | Statement lines and the reconciliation views reused by BANK-002 and BANK-004 |
+| `bank.reconcile` | banking | Ac | **Matching a statement line to any subject:** proofs (C.2), and in S.1 cheques, deposit and transfer legs, owner payouts and payroll disbursements. The server refuses the instruction's own preparer. This replaces the proposed `settlement.confirm` |
+| `payment_exception.approve` | receivables | T | Partial matches of incoming money (proofs, cheques, advance payments): the C.2 exception, approved by someone other than the requester |
+| `beneficiary.manage` / `beneficiary.approve` | banking | A, M, Ac / T | Receiving bank accounts (BILL-010), reused by BANK-001 |
+| `payment_methods.manage` | receivables | A, T | Site method rules (BILL-012), including the S.1 cheque rules |
+| `billing_policy.manage` | dues | A, T | Numbering and posting policy (BILL-016), including the S.1 document kinds |
+| `liability.approve` | receivables | T | Payer changes (BILL-017), including those raised by an approved transfer |
+| `collections.view` | receivables | A, M, T, Ac | Aging, print notices, reminders |
+
+### 5.2 New illustrative permissions (proposed)
+
+Columns follow the legend above.
 
 | Permission | Module | A | M | T | Ac | Mn | Te | S |
 |---|---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
@@ -171,7 +214,8 @@ Existing features are unchanged: `core.multi_entity`, `core.practice_mode`, `rec
 | `cashbook.view` | banking | ✓ | ✓ | ✓ | ✓ | | | |
 | `cash_voucher.prepare` | banking | | | | ✓ | | | |
 | `cash_voucher.approve` | banking | | | ✓ | | | | |
-| `settlement.confirm` (match evidence; never the instruction's preparer) | banking | | | | ✓ | | | |
+| ~~`settlement.confirm`~~ (withdrawn in revision 4: matching uses C.2's `bank.reconcile`, §5.1) | — | | | | | | | |
+| `settlement_exception.approve` (partial match of an **outgoing** leg: transfer, payout, payroll disbursement, refund; never the requester; revision 4) | banking | | | ✓ | | | | |
 | `cheque.manage` (deposit, record returned) | receivables | | | | ✓ | | | |
 | `funds_transfer.create` | banking | | | | ✓ | | | |
 | `funds_transfer.approve` | banking | | | ✓ | | | | |
@@ -201,7 +245,8 @@ Existing features are unchanged: `core.multi_entity`, `core.practice_mode`, `rec
 - `owner_payout.prepare` / `owner_payout.approve`
 - `payroll.prepare` / `payroll.approve`
 - `data_export.request` / `data_export.approve`
-- the collector / `payment.batch.confirm`
+- the collector (`payment.receive`) / `payment.batch.confirm`
+- the exception requester / `payment_exception.approve` (incoming) or `settlement_exception.approve` (outgoing)
 
 On top of the split, the server still checks that the principal who prepared a request is not the one who approves it.
 
@@ -217,6 +262,8 @@ On top of the split, the server still checks that the principal who prepared a r
 | `community_hub` + `community_chat` | Integration lights up: polls and listings can link to chat |
 | `resident_portal` without `community_hub` or `community_chat` (revision 3) | No warning needed. Official notices, the resident notifications panel and notice detail work fully (D.2). The D.3 Community home shows only its non-hub sections. Smart groups and polls each use the shared core `audience_rules`, so neither add-on needs the other |
 | `rentals` + `banking` | Integration: **settled** payouts appear in the cashbook (instructions do not); client-money accounts become available |
+| A resident-facing add-on (`community_chat`, `community_hub`, `rentals`) or feature (`maintenance.community_issues`, `visitors.live_queue`) on site X **without `resident_portal` on site X** (revision 4) | Warning: the staff side works, but residents of site X see nothing (rule R needs both grants for the same site) |
+| `receivables.bulk_office_collection` without `receivables.office_collections` | Missing → "also enable office collections" (the batch reuses C.2's office-cash rules) |
 
 ## 7. Demo tenants (fictional) and when they would gain grants
 
@@ -224,7 +271,7 @@ All grant changes go through recorded contract amendments with an impact preview
 
 | Tenant | Today | Proposed amendment | Milestone |
 |---|---|---|---|
-| Al-Noor Residency (community) | Community preset | + `banking.cashbook`, `receivables.bulk_office_collection`, `residents.committee` | S.1 |
+| Al-Noor Residency (community) | Community preset (unchanged by C.2) | + `banking.cashbook`, `receivables.bulk_office_collection`, `residents.committee` | S.1 |
 | | | + `community_hub`, `community_chat` | D.3 |
 | | | + `hr` (+ `payroll` optional) | S.2 |
 | Shalimar Court (core + maintenance; residents and visitors from 1 Nov 2026) | Maintenance-only | `maintenance.community_issues` (included); `visitors.live_queue` (from its visitors grant) | D.2 |
