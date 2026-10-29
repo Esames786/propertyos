@@ -197,11 +197,11 @@ function HeroVisual() {
           priority
           className="aspect-[4/3] w-full sm:aspect-[16/10] lg:aspect-[4/5]"
         />
-        <figcaption className="absolute inset-x-0 bottom-0 px-5 pt-14 pb-5 text-inverse sm:px-6 sm:pb-6" style={{ background: imageScrimGradient() }}>
+        <figcaption className="absolute inset-x-0 bottom-0 px-5 pt-14 pb-5 text-on-image sm:px-6 sm:pb-6" style={{ background: imageScrimGradient() }}>
           <span className="block font-display text-2xl leading-tight sm:text-figure-sm">
             <bdi>{t('start:welcome.photo.name')}</bdi>
           </span>
-          <span className="mt-1 block text-sm text-inverse/90">{t('start:welcome.photo.caption')}</span>
+          <span className="mt-1 block text-sm text-on-image/90">{t('start:welcome.photo.caption')}</span>
         </figcaption>
       </div>
       <div className="relative z-10 mx-4 -mt-6 flex items-center gap-3 rounded-card border border-border bg-panel/95 p-4 shadow-lift backdrop-blur-sm sm:mx-6 lg:absolute lg:-start-8 lg:top-10 lg:mx-0 lg:mt-0 lg:max-w-[18rem]">

@@ -191,7 +191,7 @@ export function ResidencesRail({ residences, fmt }: { residences: ResidenceSumma
                   ) : (
                     <PlotIllustration />
                   )}
-                  <span className="absolute bottom-3 start-3 inline-flex max-w-[80%] items-center rounded-pill bg-[rgb(12_17_15/0.66)] px-2.5 py-0.5 text-mini font-medium text-inverse backdrop-blur-sm">
+                  <span className="absolute bottom-3 start-3 inline-flex max-w-[80%] items-center rounded-pill bg-[rgb(12_17_15/0.66)] px-2.5 py-0.5 text-mini font-medium text-on-image backdrop-blur-sm">
                     <bdi className="truncate">{r.projectName}</bdi>
                   </span>
                 </div>

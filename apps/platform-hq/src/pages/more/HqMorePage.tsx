@@ -8,7 +8,7 @@ import {
   Stagger,
   useAnnounce,
   useApiMutation,
-  useSession,
+  useSession, useSignOut,
   useT,
   useToast,
   type TileHue,
@@ -28,7 +28,8 @@ const cardClass =
  */
 export default function HqMorePage() {
   const { t } = useT();
-  const { persona, personas, signIn, signOut, allows } = useSession();
+  const { persona, personas, signIn, allows } = useSession();
+  const signOut = useSignOut();
   const announce = useAnnounce();
   const toast = useToast();
   const reset = useApiMutation();

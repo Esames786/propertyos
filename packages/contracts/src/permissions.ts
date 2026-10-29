@@ -53,6 +53,14 @@ export const PERMISSIONS = [
   'liability.approve',
   // Settling a proof against a partly matching bank line: approved by someone other than the requester.
   'payment_exception.approve',
+  // Gate D.1: resident portal access, data and privacy, sessions, organisation colours.
+  'portal_access.view',
+  'portal_access.invite',
+  'data_export.request',
+  'data_export.approve',
+  'privacy.requests.manage',
+  'sessions.manage',
+  'admin.branding',
   // Platform HQ (central plane, V3.1). Operators are a separate principal type from tenant staff.
   'platform.dashboard.view',
   'platform.tenants.view',

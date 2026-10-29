@@ -15,6 +15,13 @@ export function isCurrent(pathname: string, item: NavItem): boolean {
   return pathname === prefix || pathname.startsWith(`${prefix}/`);
 }
 
+/** The one current item: the most specific match ("/backoffice/adm/data" over "/backoffice/adm"). */
+export function currentItemId(pathname: string, items: readonly NavItem[]): string | undefined {
+  return items
+    .filter((i) => isCurrent(pathname, i))
+    .sort((a, b) => (b.match ?? b.href).length - (a.match ?? a.href).length)[0]?.id;
+}
+
 const GROUP_ORDER: Array<NavGroup | undefined> = [undefined, 'workspace', 'operations', 'insights', 'support', 'prototype'];
 
 /**
@@ -40,6 +47,7 @@ export function NavList({
   const reduced = useReducedMotion();
   const markerId = useId();
   const visible = items.filter(allows);
+  const currentId = currentItemId(location.pathname, visible);
   const groups = GROUP_ORDER.map((g) => ({ group: g, items: visible.filter((i) => i.group === g) })).filter((g) => g.items.length);
 
   return (
@@ -55,7 +63,7 @@ export function NavList({
           <ul className="space-y-1">
             {groupItems.map((item) => {
               const Icon = item.icon;
-              const current = isCurrent(location.pathname, item);
+              const current = item.id === currentId;
               const label = t(item.labelKey as 'nav:items.home');
               const link = (
                 <Link

@@ -1,4 +1,5 @@
 export { contrastRatio, luminance, parseHex } from './contrast';
+export { checkBrand, isHexColour, mix, type BrandCheck, type BrandFamily } from './brand';
 
 /** WCAG thresholds used by the contrast test and the Tokens lab. */
 export const CONTRAST = {

@@ -294,6 +294,13 @@ export const PERMISSION_MODULE: Partial<Record<Permission, ModuleKey>> = {
   'billing_policy.manage': 'dues',
   'liability.approve': 'receivables',
   'payment_exception.approve': 'receivables',
+  'portal_access.view': 'resident_portal',
+  'portal_access.invite': 'resident_portal',
+  'data_export.request': 'core',
+  'data_export.approve': 'core',
+  'privacy.requests.manage': 'core',
+  'sessions.manage': 'core',
+  'admin.branding': 'core',
 };
 
 /** Something the UI offers (a menu item, action, tour step, link): its module and permission. */
@@ -301,6 +308,8 @@ export interface AccessTarget {
   module?: ModuleKey;
   feature?: FeatureKey;
   permission?: Permission | readonly Permission[];
+  /** At least one of these is needed as well (e.g. a page for both the requester and the approver). */
+  anyOf?: readonly Permission[];
   /** The site in context (the header project's site): the grant must cover it. */
   siteId?: string;
   /** Suspension class of what the target opens; undeclared targets are operational (fail closed). */
@@ -325,6 +334,10 @@ export function decideTarget(access: EffectiveAccess, target: AccessTarget, at: 
       const d = decide(access, { module: own, permission: p, ...context });
       if (!d.allowed) return d;
     } else if (!access.permissions.includes(p)) return deny('permission_missing');
+  }
+  if (target.anyOf?.length) {
+    const one = target.anyOf.some((p) => decide(access, { module: PERMISSION_MODULE[p] ?? module, permission: p, ...context }).allowed);
+    if (!one) return deny('permission_missing');
   }
   return { allowed: true };
 }

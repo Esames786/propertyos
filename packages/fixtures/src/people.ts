@@ -1,4 +1,5 @@
 import type { Party, Persona } from '@repo/contracts';
+import { alnoorRegisterPeople, invitedPersonaId, invitedPrincipalId, type RegisterPerson } from './identity/register-people';
 import { tenantRole } from './role-templates';
 import { createRandom, pad } from './seed';
 
@@ -18,20 +19,9 @@ export const CEDAR_HILLS = { id: 'tnt_cedar', name: 'Cedar Hills Co-operative (D
 /** The Gate C society: setup and monthly maintenance billing (A7 §C.2). */
 export const AL_NOOR = { id: 'tnt_alnoor', name: 'Al-Noor Residency (Demo)' } as const;
 
-export const FIRST_NAMES = [
-  'Ahmed', 'Bilal', 'Faisal', 'Hamza', 'Imran', 'Kamran', 'Omar', 'Saad', 'Usman', 'Zain',
-  'Adeel', 'Haris', 'Junaid', 'Shahid', 'Waqar', 'Ayesha', 'Fatima', 'Hina', 'Iqra', 'Mahnoor',
-  'Maryam', 'Nida', 'Rabia', 'Sana', 'Zara', 'Amna', 'Saba', 'Komal', 'Mehwish', 'Sadia',
-] as const;
-export const LAST_NAMES = [
-  'Khan', 'Malik', 'Qureshi', 'Siddiqui', 'Butt', 'Chaudhry', 'Sheikh', 'Raza', 'Hussain',
-  'Akhtar', 'Javed', 'Iqbal', 'Rana', 'Mirza', 'Abbasi', 'Hashmi',
-] as const;
-/** Some customers' names were entered in Urdu script; free text is never transliterated. */
-export const URDU_NAMES = [
-  'عائشہ ملک', 'حمزہ قریشی', 'مریم صدیقی', 'عمر خان', 'ثنا رضا', 'فیصل بٹ', 'زارا اقبال', 'بلال عباسی',
-  'نادیہ ہاشمی', 'سعد چوہدری', 'رابعہ شیخ', 'حارث مرزا', 'آمنہ جاوید', 'زین اختر', 'ہنا حسین',
-] as const;
+import { FIRST_NAMES, LAST_NAMES, URDU_NAMES } from './names';
+
+export { FIRST_NAMES, LAST_NAMES, URDU_NAMES };
 const COMPANY_PARTS = [
   ['Silverline', 'Northgate', 'Bluewater', 'Evergreen', 'Summit', 'Crescentview', 'Riverbend', 'Oakfield'],
   ['Traders', 'Holdings', 'Enterprises', 'Associates', 'Ventures', 'Builders'],
@@ -218,6 +208,18 @@ export const PERSONAS: readonly Persona[] = [
     ...holds(AL_NOOR.id, 'security'),
     projectScope: 'all',
   },
+  // Gate D.1: the committee's honorary secretary administers the workspace. She is also the owner of
+  // A-201 and A-202 (resident app, alnoor_owner_a201): one person, the same principal, two apps.
+  {
+    id: 'alnoor_admin',
+    tenantId: AL_NOOR.id,
+    principalId: 'usr_anr_r0003',
+    app: 'backoffice',
+    displayName: 'Rabia Hashmi',
+    email: 'rabia.hashmi@example.com',
+    ...holds(AL_NOOR.id, 'administrator'),
+    projectScope: 'all',
+  },
   {
     id: 'alnoor_accounts',
     tenantId: AL_NOOR.id,
@@ -246,11 +248,52 @@ export const PERSONAS: readonly Persona[] = [
   ),
 ];
 
+/**
+ * Gate D.1: every other person of the Al-Noor register as a resident identity. They are not offered
+ * on the demo sign-in page (unlisted): they join by invitation (AUTH-007) and sign in with their
+ * phone and a one-time code (AUTH-006). The mock server lets them in only while their portal access
+ * is active and their link is verified.
+ */
+const FEATURED_PARTIES = new Set<string>(ALNOOR_RESIDENTS.map((r) => r.partyId));
+const roleKeyOf = (p: RegisterPerson) => {
+  const roles = new Set(p.flats.flatMap((f) => f.roles));
+  if (roles.has('owner') && roles.has('occupant')) return 'common:persona.owner_resident';
+  if (roles.has('owner')) return 'common:persona.owner';
+  return roles.has('payer') ? 'common:persona.tenant_payer' : 'common:persona.tenant';
+};
+export const INVITED_RESIDENT_PERSONAS: readonly Persona[] = alnoorRegisterPeople()
+  .filter((p) => !FEATURED_PARTIES.has(p.partyId))
+  .map((p) => ({
+    id: invitedPersonaId(p.partyId),
+    tenantId: AL_NOOR.id,
+    principalId: invitedPrincipalId(p.partyId),
+    app: 'customer' as const,
+    displayName: p.name,
+    roleKey: roleKeyOf(p),
+    email: p.email,
+    permissions: ['portal.use'] as const,
+    projectScope: 'all' as const,
+    partyId: p.partyId,
+    unlisted: true,
+  }));
+
+/** Prototype only: the featured residents' fictional numbers, offered on phone sign-in (AUTH-006). */
+export function demoSignInNumbers(): Array<{ name: string; phone: string }> {
+  const people = alnoorRegisterPeople();
+  return ALNOOR_RESIDENTS.flatMap((r) => {
+    const phone = people.find((p) => p.partyId === r.partyId)?.phone;
+    return phone ? [{ name: r.name, phone }] : [];
+  });
+}
+
+/** Every demo identity, including residents who join by invitation. */
+export const ALL_PERSONAS: readonly Persona[] = [...PERSONAS, ...INVITED_RESIDENT_PERSONAS];
+
 /** Tenants that have backoffice demo identities. */
 export const BACKOFFICE_TENANTS = [TENANT, CRESCENT_BAY, SHALIMAR, CEDAR_HILLS, AL_NOOR] as const;
 /** Tenants that have customer-app (resident) demo identities. */
 export const CUSTOMER_TENANTS = [TENANT, AL_NOOR] as const;
 
 export function findPersona(id: string | null | undefined): Persona | undefined {
-  return PERSONAS.find((p) => p.id === id);
+  return ALL_PERSONAS.find((p) => p.id === id);
 }

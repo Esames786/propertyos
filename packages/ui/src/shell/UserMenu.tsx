@@ -1,4 +1,4 @@
-import { LogOut, RotateCcw, Settings, UserRoundCog, KeyRound } from 'lucide-react';
+import { ArrowLeftRight, LogOut, MonitorSmartphone, RotateCcw, Settings, UserRoundCog, KeyRound } from 'lucide-react';
 import { Dialog, DialogTrigger, Heading, Popover } from 'react-aria-components';
 import { MOCK_MODES_UI } from './mockModes';
 import { useTransport, type MockMode } from '../data/TransportProvider';
@@ -9,10 +9,12 @@ import { useT } from '../lib/useT';
 import { useNavigation } from '../navigation/RouterAdapter';
 import { useGuidedTour } from '../onboarding/GuidedTourProvider';
 import { useSession } from '../permissions/SessionProvider';
+import { useSignOut } from '../permissions/useSignOut';
 import { Button } from '../primitives/Button';
 import { Button as AriaButton } from 'react-aria-components';
 import { LocaleToggle } from './LocaleSwitcher';
 import { useShell } from './ShellContext';
+import { RoleModeChip, useAppSwitch } from '../identity/AppSwitch';
 
 function initials(name: string) {
   return name
@@ -26,7 +28,8 @@ function initials(name: string) {
 /** Account popover: who you are (demo), preferences, identity switch, onboarding reset, simulated network. */
 export function UserMenu() {
   const { t } = useT();
-  const { persona, signOut } = useSession();
+  const { persona } = useSession();
+  const signOut = useSignOut();
   const { mockMode, setMockMode } = useTransport();
   const { navigate } = useNavigation();
   const { links } = useShell();
@@ -55,12 +58,27 @@ export function UserMenu() {
                   <bdi>{persona.displayName}</bdi>
                 </p>
                 <p className="text-sm text-muted">{t(persona.roleKey as 'common:persona.manager')}</p>
-                <div className="mt-2">
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {links.appSwitchUrl && <RoleModeChip app="backoffice" />}
                   <DemoBadge />
                 </div>
               </div>
               <LocaleToggle className="w-full justify-center md:hidden" />
               <div className="grid gap-2">
+                {links.appSwitchUrl && <SwitchButton urlFor={links.appSwitchUrl} />}
+                {links.profile && (
+                  <Button
+                    variant="secondary"
+                    icon={MonitorSmartphone}
+                    onPress={() => {
+                      close();
+                      navigate(links.profile!);
+                    }}
+                    data-testid="user-menu-profile"
+                  >
+                    {t('nav:pages.profile')}
+                  </Button>
+                )}
                 <Button
                   variant="secondary"
                   icon={Settings}
@@ -131,5 +149,17 @@ export function UserMenu() {
         </Dialog>
       </Popover>
     </DialogTrigger>
+  );
+}
+
+/** GLOBAL-015 in the account menu: only for people who also have the resident app. */
+function SwitchButton({ urlFor }: { urlFor: (token: string) => string }) {
+  const { t } = useT();
+  const { target, start, pending } = useAppSwitch(urlFor);
+  if (!target) return null;
+  return (
+    <Button variant="primary" icon={ArrowLeftRight} isPending={pending} onPress={start} data-testid="user-menu-app-switch">
+      {t(`identity:switch.to.${target.app}`)}
+    </Button>
   );
 }

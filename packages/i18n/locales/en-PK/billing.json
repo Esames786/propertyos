@@ -231,7 +231,8 @@
     "notYours": "Someone else decides",
     "payer_change": "Payer change",
     "beneficiary": "New collection account",
-    "payment_exception": "Payment exception"
+    "payment_exception": "Payment exception",
+    "data_export": "Data export"
   },
   "tasks": {
     "import_flats": {
@@ -360,6 +361,27 @@
       "title_other": "{{count}} proofs waiting for their bank line",
       "yours": "Import the next statement; each is verified when its transfer appears.",
       "waiting": "Finance verifies each when its transfer appears."
+    },
+    "approve_data_exports": {
+      "action": "Review exports",
+      "title_one": "{{count}} data export waits for approval",
+      "title_other": "{{count}} data exports wait for approval",
+      "yours": "Someone asked for a copy of the organisation’s data. Check what it holds and why, then approve, narrow or reject.",
+      "waiting": "Waiting for someone who can approve exports."
+    },
+    "portal_invitations_expired": {
+      "action": "Resend invitations",
+      "title_one": "{{count}} resident invitation ran out",
+      "title_other": "{{count}} resident invitations ran out",
+      "yours": "They were not accepted within 14 days. Resend them, or print invitation codes.",
+      "waiting": "The building manager resends invitations."
+    },
+    "household_requests": {
+      "action": "Check requests",
+      "title_one": "{{count}} household member to verify",
+      "title_other": "{{count}} household members to verify",
+      "yours": "Residents asked to add people to their flat. Verify each one before they are listed.",
+      "waiting": "The office verifies household members."
     }
   },
   "dashboard": {

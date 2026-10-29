@@ -35,9 +35,10 @@ export function TextSizeChooser({
   const { t } = useT();
   const reduced = useReducedMotion();
   return (
-    <RadioGroup value={String(value)} onChange={(v) => isTextScale(Number(v)) && onChange(Number(v) as TextScale)} className="min-w-0" data-testid={testId}>
+    <RadioGroup value={String(value)} onChange={(v) => isTextScale(Number(v)) && onChange(Number(v) as TextScale)} className="@container min-w-0" data-testid={testId}>
       <Label className="sr-only">{label}</Label>
-      <div className={cn('grid gap-2.5', layout === 'cards' ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3 sm:grid-cols-6')}>
+      {/* Columns follow the space the chooser has (a settings card or a full page), not the window. */}
+      <div className={cn('grid gap-2.5', layout === 'cards' ? 'grid-cols-2 @[30rem]:grid-cols-4' : 'grid-cols-3 @[38rem]:grid-cols-6')}>
         {scales.map((s) => (
           <Radio
             key={s}
@@ -135,9 +136,10 @@ export function TextSizeSettings({ preview, testId = 'text-size-settings' }: { p
 
 /**
  * First run (owner, C.2): one short, welcoming step before anything else. The whole page resizes as
- * a size is chosen; Continue keeps it; it can be changed later in settings.
+ * a size is chosen; Continue keeps it; it can be changed later in settings. The welcome wizard
+ * (PORTAL-030, Gate D.1) shows it as one of its steps, with its own step label and a way back.
  */
-export function TextSizeWelcome({ appName, organisation, preview, onDone }: { appName: string; organisation: string; preview?: ReactNode; onDone?: () => void }) {
+export function TextSizeWelcome({ appName, organisation, preview, onDone, eyebrow, onBack }: { appName: string; organisation: string; preview?: ReactNode; onDone?: () => void; eyebrow?: string; onBack?: () => void }) {
   const { t } = useT();
   const titleId = useId();
   const { textScale, preview: show, save } = useDisplayPreferences();
@@ -158,7 +160,7 @@ export function TextSizeWelcome({ appName, organisation, preview, onDone }: { ap
           <LocaleToggle />
         </div>
         <div className="mt-8 space-y-2 motion-safe:animate-rise-in sm:mt-12">
-          <p className="text-xs font-semibold tracking-[0.12em] text-accent uppercase">{t('a11y:textSize.welcomeEyebrow')}</p>
+          <p className="text-xs font-semibold tracking-[0.12em] text-accent uppercase">{eyebrow ?? t('a11y:textSize.welcomeEyebrow')}</p>
           <h1 id={titleId} className="text-figure-sm leading-tight font-bold tracking-tight text-text sm:text-4xl">
             {t('a11y:textSize.welcomeTitle')}
           </h1>
@@ -171,6 +173,12 @@ export function TextSizeWelcome({ appName, organisation, preview, onDone }: { ap
           </div>
         </div>
         <div className="mt-auto space-y-3 pt-8">
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
+          {onBack && (
+            <Button variant="quiet" className="w-full justify-center sm:w-auto" onPress={onBack} data-testid="text-size-back">
+              {t('identity:welcome.back')}
+            </Button>
+          )}
           <Button
             variant="primary"
             className="w-full justify-center sm:w-auto"
@@ -182,6 +190,7 @@ export function TextSizeWelcome({ appName, organisation, preview, onDone }: { ap
           >
             {t('a11y:textSize.continue', { value: percentOf(value as TextScale) })}
           </Button>
+          </div>
           <p className="text-sm text-muted">{t('a11y:textSize.changeLater')}</p>
         </div>
       </main>

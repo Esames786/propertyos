@@ -1,5 +1,5 @@
 import type { Beneficiary, ChargeCategoryKey, FlatImportColumn, MethodRule, RuleScope } from '@repo/contracts';
-import { FIRST_NAMES, LAST_NAMES, URDU_NAMES } from '../people';
+import { FIRST_NAMES, LAST_NAMES, URDU_NAMES } from '../names';
 import { pad } from '../seed';
 
 /**

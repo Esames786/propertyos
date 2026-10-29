@@ -8,6 +8,8 @@ export interface NavItem {
   href: string;
   icon: LucideIcon;
   permission?: Permission;
+  /** At least one of these permissions (a page shared by people with different jobs). */
+  anyOf?: readonly Permission[];
   /** Module that must be licensed (defaults to the permission's module). */
   module?: ModuleKey;
   /** Offered while the organisation is suspended only when 'history_read' (operational by default). */
@@ -47,4 +49,8 @@ export interface ShellLinks {
   more?: string;
   /** "My access": what the signed-in person can use (tenant workspace only). */
   myAccess?: string;
+  /** GLOBAL-008 profile and signed-in devices (Gate D.1). */
+  profile?: string;
+  /** GLOBAL-015: the other app's landing for a one-time switch ticket (office app only). */
+  appSwitchUrl?: (token: string) => string;
 }

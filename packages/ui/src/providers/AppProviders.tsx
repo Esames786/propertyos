@@ -7,7 +7,6 @@ import { ToastProvider } from '../feedback/Toast';
 import { TrainingProvider } from '../onboarding/TrainingProvider';
 import { SessionProvider, type SessionTenant } from '../permissions/SessionProvider';
 import { DisplayPreferencesProvider } from '../preferences/DisplayPreferences';
-import { PreferencesProvider } from '../preferences/PreferencesProvider';
 
 /**
  * Cross-cutting providers shared by every app. The app supplies its identity, demo personas and
@@ -34,21 +33,21 @@ export function AppProviders({
   createTransport: TransportFactory;
   children: ReactNode;
 }) {
+  // Personal preferences (the person's, or the device's before sign-in) are applied by
+  // DisplayPreferencesProvider, which also provides the accessibility context (usePreferences).
   return (
     <LocaleProvider>
-      <PreferencesProvider>
-        <LiveAnnouncerProvider>
-          <SessionProvider app={app} tenant={tenant} personas={personas} {...(tenants ? { tenants } : {})} {...(accessFor ? { accessFor } : {})} {...(accessDate ? { accessDate } : {})}>
-            <DisplayPreferencesProvider app={app}>
+      <LiveAnnouncerProvider>
+        <SessionProvider app={app} tenant={tenant} personas={personas} {...(tenants ? { tenants } : {})} {...(accessFor ? { accessFor } : {})} {...(accessDate ? { accessDate } : {})}>
+          <DisplayPreferencesProvider app={app}>
             <TransportProvider createTransport={createTransport}>
               <ToastProvider>
                 <TrainingProvider>{children}</TrainingProvider>
               </ToastProvider>
             </TransportProvider>
-            </DisplayPreferencesProvider>
-          </SessionProvider>
-        </LiveAnnouncerProvider>
-      </PreferencesProvider>
+          </DisplayPreferencesProvider>
+        </SessionProvider>
+      </LiveAnnouncerProvider>
     </LocaleProvider>
   );
 }

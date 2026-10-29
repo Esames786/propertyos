@@ -1,5 +1,5 @@
 import { AL_NOOR, CEDAR_HILLS, CRESCENT_BAY, LEADS, SHALIMAR } from '@repo/fixtures';
-import { DemoSignIn, Link, useSession, useT } from '@repo/ui';
+import { AppSwitchLanding, DemoSignIn, Link, useSession, useT } from '@repo/ui';
 import { lazy, Suspense, type ComponentType, type LazyExoticComponent } from 'react';
 import { createBrowserRouter, Navigate, useLoaderData, useNavigate, useParams, useSearchParams, type RouteObject } from 'react-router';
 import TextGuidePage from '../pages/help/TextGuidePage';
@@ -88,6 +88,48 @@ function SocietyScreen({ page: Page }: { page: LazyExoticComponent<ComponentType
   );
 }
 
+/** Gate D.1: a society screen that also needs a permission (resident app access, household members). */
+function SocietyPermitted({ page: Page, permission }: { page: LazyExoticComponent<ComponentType>; permission: Parameters<ReturnType<typeof useSession>['can']>[0] }) {
+  const { allows, can } = useSession();
+  return allows({ module: 'dues' }) && can(permission) ? (
+    <Suspense fallback={null}>
+      <Page />
+    </Suspense>
+  ) : (
+    <RegisterResolver />
+  );
+}
+
+const PortalAccessPage = lazy(() => import('../pages/society/portal/PortalAccessPage'));
+const HouseholdMembersPage = lazy(() => import('../pages/society/portal/HouseholdMembersPage'));
+const DataPrivacyPage = lazy(() => import('../pages/adm/data/DataPrivacyPage'));
+
+const BrandingPage = lazy(() => import('../pages/adm/BrandingPage'));
+
+/** ADM-022: whoever may change the organisation's colours (presets for all; a custom colour needs white label). */
+function BrandingRoute() {
+  const { can } = useSession();
+  return can('admin.branding') ? (
+    <Suspense fallback={null}>
+      <BrandingPage />
+    </Suspense>
+  ) : (
+    <RegisterResolver />
+  );
+}
+
+/** ADM-024: for whoever requests exports, approves them, or answers privacy requests (society data in the prototype). */
+function DataPrivacyRoute() {
+  const { allows } = useSession();
+  return allows({ module: 'dues', anyOf: ['data_export.request', 'data_export.approve', 'privacy.requests.manage'], suspension: 'history_read' }) ? (
+    <Suspense fallback={null}>
+      <DataPrivacyPage />
+    </Suspense>
+  ) : (
+    <RegisterResolver />
+  );
+}
+
 /** FIN-007's register address: a society records office cash in the payments list's drawer. */
 function OfficePaymentRedirect() {
   const { allows } = useSession();
@@ -153,6 +195,11 @@ export function useNextHref(): string {
   const [params] = useSearchParams();
   const next = params.get('next');
   return next && next.startsWith('/backoffice/') && !next.startsWith('/backoffice/get-started') && !next.startsWith('/backoffice/sign-in') ? next : LINKS.start;
+}
+
+function SwitchRoute() {
+  const { token = '' } = useParams();
+  return <AppSwitchLanding token={token} homeHref={LINKS.start} signInHref={LINKS.signIn} />;
 }
 
 /** Returning visitors pick a demo identity; new visitors are pointed to Get started. */
@@ -240,6 +287,12 @@ const shellChildren: RouteObject[] = [
   { path: 'fin/customer-credit-overpayments', loader: registerLoader, element: <SocietyScreen page={CreditsPage} />, handle: h({ title: (t) => t('nav:pages.credits') }) },
   { path: 'bank/bank-transaction-feed', loader: registerLoader, element: <SocietyScreen page={BankFeedPage} />, handle: h({ title: (t) => t('nav:pages.bankFeed') }) },
   { path: 'bank/reconciliation-workspace', loader: registerLoader, element: <SocietyScreen page={ReconciliationPage} />, handle: h({ title: (t) => t('nav:pages.reconciliation') }) },
+  // Gate D.1: resident app access (RES-007).
+  { path: 'residents/portal-access', loader: registerLoader, element: <SocietyPermitted page={PortalAccessPage} permission="portal_access.view" />, handle: h({ title: (t) => t('nav:pages.portalAccess') }) },
+  { path: 'res/household-members', loader: registerLoader, element: <SocietyPermitted page={HouseholdMembersPage} permission="residents.view" />, handle: h({ title: (t) => t('nav:pages.householdMembers') }) },
+  { path: 'adm/data', loader: registerLoader, element: <DataPrivacyRoute />, handle: h({ title: (t) => t('nav:pages.dataPrivacy') }) },
+  { path: 'adm/branding', loader: registerLoader, element: <BrandingRoute />, handle: h({ title: (t) => t('nav:pages.branding') }) },
+  { path: 'adm/user-workspace', lazy: page(() => import('../pages/adm/UserWorkspacePage')), handle: h({ title: (t) => t('nav:pages.users') }) },
   // Society setup and monthly billing (Gate C.1)
   { path: 'billing', element: <Navigate to="/backoffice/billing/runs" replace /> },
   { path: 'billing/runs', lazy: page(() => import('../pages/society/billing/RunsPage')), handle: h({ title: (t) => t('nav:pages.billingRuns') }) },
@@ -274,7 +327,7 @@ const shellChildren: RouteObject[] = [
   { path: 'global/quick-create', lazy: page(() => import('../pages/global/QuickCreatePage')), handle: h({ title: (t) => t('common:quickCreate.label') }) },
   { path: 'global/notifications', lazy: page(() => import('../pages/global/NotificationsPage')), handle: h({ title: (t) => t('nav:header.notifications') }) },
   { path: 'global/context-help', lazy: page(() => import('../pages/global/HelpPage')), handle: h({ title: (t) => t('help:drawerTitle') }) },
-  { path: 'global/profile--preferences', ...preferences('language') },
+  { path: 'global/profile--preferences', lazy: page(() => import('../pages/settings/ProfilePage')), handle: h({ title: (t) => t('nav:pages.profile'), helpKey: 'preferences' }) },
   { path: 'global/language-switcher', ...preferences('language') },
   { path: 'global/accessibility-preferences', ...preferences('accessibility') },
   { path: 'settings/onboarding', ...preferences('tours') },
@@ -292,6 +345,8 @@ const entryChildren: RouteObject[] = [
   { path: 'get-started/demo', lazy: page(() => import('../pages/start/DemoLaunchPage')) },
   { path: 'get-started/setup', lazy: page(() => import('../pages/start/WorkspaceSetupPage')) },
   { path: 'sign-in', element: <SignInRoute /> },
+  // GLOBAL-015: a switch from the resident app lands here and starts this app's own session.
+  { path: 'switch/:token', element: <SwitchRoute /> },
 ];
 
 export const router = createBrowserRouter([

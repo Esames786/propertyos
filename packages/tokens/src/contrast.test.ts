@@ -32,13 +32,26 @@ const toHex = (rgb: readonly number[]) => `#${rgb.map((c) => Math.round(c).toStr
 
 const base = colours(block(/@theme\s*\{/));
 const moreContrast = { ...base, ...colours(block(/:root\[data-contrast='more'\]\s*\{/)) };
-const night = { ...base, ...colours(block(/:root\[data-theme='night'\]\s*\{/)) };
+const dark = { ...base, ...colours(block(/:root\[data-theme='dark'\]\s*\{/)) };
+const highLight = { ...base, ...colours(block(/:root\[data-contrast='high'\]\[data-theme\]\s*\{/)) };
+const highDark = { ...dark, ...colours(block(/:root\[data-contrast='high'\]\[data-theme='dark'\]\s*\{/)) };
+/** Gate D.1 palettes: each changes the action colour family only, in light and dark. */
+const PALETTES = ['ocean', 'indigo', 'warm'] as const;
+const paletteSets: Array<[string, Record<string, string>]> = PALETTES.flatMap((p): Array<[string, Record<string, string>]> => [
+  [`${p} (light)`, { ...base, ...colours(block(new RegExp(`:root\\[data-palette='${p}'\\]\\s*\\{`))) }],
+  [`${p} (dark)`, { ...dark, ...colours(block(new RegExp(`:root\\[data-theme='dark'\\]\\[data-palette='${p}'\\]\\s*\\{`))) }],
+]);
 
-describe.each([
+const SETS: Array<[string, Record<string, string>]> = [
   ['standard', base],
   ['more contrast', moreContrast],
-  ['night (authored, not exposed)', night],
-])('token contrast (%s)', (_name, palette) => {
+  ['dark', dark],
+  ['high contrast (light)', highLight],
+  ['high contrast (dark)', highDark],
+  ...paletteSets,
+];
+
+describe.each(SETS)('token contrast (%s)', (_name, palette) => {
   it.each(CONTRAST_PAIRS.map((p) => [p.usage, p] as const))('%s', (_usage, pair) => {
     const fg = palette[pair.fg];
     const bg = palette[pair.bg];

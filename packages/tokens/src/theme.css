@@ -28,6 +28,8 @@
   --color-muted: #58625d;
   --color-subtle: #5f6863;
   --color-inverse: #ffffff;
+  /* Text on photos: their scrim is dark in every theme, so this stays white (Gate D.1 dark mode). */
+  --color-on-image: #ffffff;
 
   /* Lines: decorative hairlines vs. boundaries of interactive controls (WCAG 1.4.11 needs >= 3:1) */
   --color-border: #e6e7e1;
@@ -128,8 +130,8 @@
    * Type. Latin-first stacks: Geist/Newsreader have no Arabic glyphs, so Urdu falls through to
    * Noto Naskh (interface) or Gulzar (display) while Latin names inside Urdu keep Latin faces.
    */
-  --font-sans: 'Geist Variable', 'Noto Naskh Arabic Variable', ui-sans-serif, system-ui, sans-serif;
-  --font-display: 'Newsreader Variable', 'Gulzar', 'Noto Naskh Arabic Variable', Georgia, serif;
+  --font-sans: var(--font-latin-face), var(--font-urdu-face), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-display-face), 'Gulzar', 'Noto Naskh Arabic Variable', Georgia, serif;
   --font-mono: 'Geist Mono Variable', ui-monospace, 'SFMono-Regular', monospace;
   --font-urdu: 'Noto Naskh Arabic Variable', serif;
 
@@ -272,12 +274,17 @@
   --tour-ring-width: 3px;
 
   /*
-   * Personal display preferences (set per person and organisation on <html>; see
-   * DisplayPreferencesProvider). Only text size is offered in Gate C.2; theme, palette, density and
-   * fonts arrive with the Gate D personalization hub and attach here the same way.
+   * Personal display preferences (Gate C.2 text size; Gate D.1 personalization hub). Set per person
+   * and organisation on <html> by PersonalPreferencesProvider: --text-scale and the data-theme,
+   * data-contrast, data-palette, data-density, data-reading, data-font-latin and data-font-urdu
+   * attributes below. Accessibility settings (high contrast, reduced motion, text size) always win
+   * over an organisation's colours.
    */
   --text-scale: 1;
   --chrome-scale: min(var(--text-scale), 1.12);
+  --font-latin-face: 'Geist Variable';
+  --font-urdu-face: 'Noto Naskh Arabic Variable';
+  --font-display-face: 'Newsreader Variable';
 
   --body-size: calc(0.875rem * var(--text-scale));
   --body-leading: 1.5;
@@ -308,10 +315,11 @@
 }
 
 /*
- * Night palette (Direction C "Nocturne", owner-approved as the basis of a future dark theme).
- * Authored and contrast-tested now; NOT exposed in the UI until the dark theme is approved.
+ * Dark theme (Gate D.1; the "Nocturne" palette authored in Stage 1.5, owner-approved as its basis).
+ * Chosen per person (Light, Dark, or System, which follows the device). Contrast-tested with every
+ * pair in tokens.ts, like the light theme.
  */
-:root[data-theme='night'] {
+:root[data-theme='dark'] {
   --color-bg: #0c0e11;
   --color-panel: #15181c;
   --color-raised: #1b1f24;
@@ -364,7 +372,241 @@
   --color-tile-slate-ink: #b6c2ce;
   --color-tile-gold-soft: #2d2412;
   --color-tile-gold-ink: #dcb873;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 14px -6px rgb(0 0 0 / 0.5);
+  --shadow-lift: 0 2px 4px rgb(0 0 0 / 0.35), 0 18px 36px -16px rgb(0 0 0 / 0.7);
+  --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.4), 0 18px 40px -16px rgb(0 0 0 / 0.65);
+  --shadow-overlay: 0 28px 56px -16px rgb(0 0 0 / 0.75), 0 2px 8px rgb(0 0 0 / 0.4);
+  --shadow-inset: inset 0 1px 0 rgb(255 255 255 / 0.04), inset 0 0 0 1px rgb(255 255 255 / 0.05);
   color-scheme: dark;
+}
+
+/*
+ * Colour palettes (Gate D.1, V3.1 §05: Evergreen, Ocean, Indigo, Warm Neutral and the optional
+ * organisation brand). A palette changes only the action colour family; text, surfaces and status
+ * colours stay. Evergreen is the default (no attribute rules). Each value is contrast-tested with the
+ * same pairs as the defaults, in light and dark.
+ */
+:root[data-palette='ocean'] {
+  --color-primary: #0e5a78;
+  --color-primary-hover: #0a4660;
+  --color-primary-soft: #e0edf3;
+  --color-focus: #0e5a78;
+}
+
+:root[data-palette='indigo'] {
+  --color-primary: #3b3f98;
+  --color-primary-hover: #2e3179;
+  --color-primary-soft: #e7e8f6;
+  --color-focus: #3b3f98;
+}
+
+:root[data-palette='warm'] {
+  --color-primary: #7b4527;
+  --color-primary-hover: #62361e;
+  --color-primary-soft: #f3e7dd;
+  --color-focus: #7b4527;
+}
+
+:root[data-theme='dark'][data-palette='ocean'] {
+  --color-primary: #6bbfe0;
+  --color-primary-hover: #8acdea;
+  --color-primary-soft: #11303d;
+  --color-focus: #6bbfe0;
+}
+
+:root[data-theme='dark'][data-palette='indigo'] {
+  --color-primary: #a4a8f2;
+  --color-primary-hover: #bcbff6;
+  --color-primary-soft: #22244a;
+  --color-focus: #a4a8f2;
+}
+
+:root[data-theme='dark'][data-palette='warm'] {
+  --color-primary: #e2a77f;
+  --color-primary-hover: #ebbb9a;
+  --color-primary-soft: #33231a;
+  --color-focus: #e2a77f;
+}
+
+/*
+ * An organisation's own brand colour (white label, ADM-022). The app sets --brand-* on <html> only
+ * after the colour passed the same contrast pairs (packages/ui brand guardrails); people who choose
+ * their own palette, and anyone using high contrast, never see it.
+ */
+:root[data-palette='brand'] {
+  --color-primary: var(--brand-primary);
+  --color-primary-hover: var(--brand-primary-hover);
+  --color-primary-soft: var(--brand-primary-soft);
+  --color-focus: var(--brand-primary);
+}
+
+:root[data-theme='dark'][data-palette='brand'] {
+  --color-primary: var(--brand-dark-primary);
+  --color-primary-hover: var(--brand-dark-primary-hover);
+  --color-primary-soft: var(--brand-dark-primary-soft);
+  --color-focus: var(--brand-dark-primary);
+}
+
+/*
+ * High contrast (Gate D.1): a personal accessibility setting, stronger than the device's "more
+ * contrast". It replaces any palette or organisation colour (accessibility beats branding), thickens
+ * the focus ring and makes every boundary visible. These two blocks come after the palettes and use
+ * the same or higher specificity, so they always win.
+ */
+:root[data-contrast='high'][data-theme] {
+  --color-bg: #ffffff;
+  --color-panel: #ffffff;
+  --color-raised: #f7f7f7;
+  --color-sunken: #f2f2f2;
+  --color-text: #000000;
+  --color-muted: #1a1a1a;
+  --color-subtle: #1a1a1a;
+  --color-inverse: #ffffff;
+  --color-border: #4d4d4d;
+  --color-border-control: #000000;
+  --color-primary: #003d30;
+  --color-primary-hover: #002a21;
+  --color-primary-soft: #d6ebe4;
+  --color-on-primary: #ffffff;
+  --color-accent: #5c3c12;
+  --color-accent-soft: #f3eadc;
+  --color-focus: #000000;
+  --color-success: #0a5a2a;
+  --color-success-soft: #e3f2e8;
+  --color-warning: #6a3c00;
+  --color-warning-soft: #f6ead7;
+  --color-error: #8c1d0e;
+  --color-error-soft: #fbe6e2;
+  --color-info: #1d3c6b;
+  --color-info-soft: #e3ebf7;
+  --color-demo: #4e2f73;
+  --color-demo-soft: #efe8f8;
+  --color-scrim: rgb(0 0 0 / 0.75);
+  --color-chart-grid: #8a8a8a;
+  --color-chart-axis: #4d4d4d;
+  --focus-ring-width: 3px;
+  --tour-ring-width: 4px;
+  --shadow-card: 0 0 0 1px #4d4d4d;
+  --shadow-lift: 0 0 0 2px #000000;
+}
+
+:root[data-contrast='high'][data-theme='dark'] {
+  --color-bg: #000000;
+  --color-panel: #0a0a0a;
+  --color-raised: #121212;
+  --color-sunken: #000000;
+  --color-text: #ffffff;
+  --color-muted: #e8e8e8;
+  --color-subtle: #e8e8e8;
+  --color-inverse: #000000;
+  --color-border: #8a8a8a;
+  --color-border-control: #ffffff;
+  --color-primary: #7ff0dc;
+  --color-primary-hover: #a8f6e9;
+  --color-primary-soft: #0b2c27;
+  --color-on-primary: #000000;
+  --color-accent: #ffd27a;
+  --color-accent-soft: #2a200d;
+  --color-focus: #ffd400;
+  --color-success: #86e6a8;
+  --color-success-soft: #0f2417;
+  --color-warning: #ffd27a;
+  --color-warning-soft: #2a200d;
+  --color-error: #ffa494;
+  --color-error-soft: #2e1712;
+  --color-info: #b2cdff;
+  --color-info-soft: #141d2e;
+  --color-demo: #d4bdf7;
+  --color-demo-soft: #211a2e;
+  --color-chart-grid: #4d4d4d;
+  --color-chart-axis: #8a8a8a;
+  --shadow-card: 0 0 0 1px #8a8a8a;
+  --shadow-lift: 0 0 0 2px #ffffff;
+}
+
+/* High contrast: links are always underlined, not told apart by colour alone. */
+:root[data-contrast='high'] :where(main) :where(a:not([role='button'], [data-variant='plain'])) {
+  text-decoration-line: underline;
+  text-underline-offset: 0.18em;
+}
+
+/*
+ * Density (Gate D.1). Compact tightens every spacing step (Tailwind's --spacing) for people who want
+ * more on screen. Only with a fine pointer on a tablet-sized screen or larger: on touch screens the
+ * controls keep their full size, so a compact choice never makes a target hard to hit.
+ */
+@media (pointer: fine) and (min-width: 48rem) {
+  :root[data-density='compact'] {
+    --spacing: 0.21875rem;
+    --header-height: 4rem;
+  }
+}
+
+/*
+ * Reading mode (Gate D.1): simplified and calmer. Decorative pictures and flourishes are hidden,
+ * movement stops, shadows flatten, lines get more room and links are underlined. Content and every
+ * action stay where they are.
+ */
+:root[data-reading='on'] {
+  --body-leading: 1.75;
+  --text-sm--line-height: 1.7;
+  --text-base--line-height: 1.75;
+  --motion-fast: 0ms;
+  --motion-regular: 0ms;
+  --motion-slow: 0ms;
+  --motion-tour: 0ms;
+  --shadow-card: 0 0 0 1px var(--color-border);
+  --shadow-lift: 0 0 0 1px var(--color-border-control);
+  --shadow-raised: 0 0 0 1px var(--color-border);
+}
+
+/* Urdu already has generous line heights; reading mode only adds to them. */
+:root[data-reading='on']:lang(ur) {
+  --body-leading: 2.05;
+  --text-sm--line-height: 2.05;
+  --text-base--line-height: 2.05;
+}
+
+:root[data-reading='on'] [data-decorative] {
+  display: none !important;
+}
+
+:root[data-reading='on'] .animate-shimmer {
+  animation: none;
+}
+
+:root[data-reading='on'] :where(main) :where(p, li, dd) :where(a) {
+  text-decoration-line: underline;
+  text-underline-offset: 0.18em;
+}
+
+/*
+ * Fonts (Gate D.1). Latin: Geist (default), the device's own font, or Atkinson Hyperlegible (made for
+ * readers with low vision). Urdu: Naskh (Noto Naskh Arabic, clear at small sizes; the default for the
+ * interface) or Nastaliq (Gulzar, the traditional Urdu hand), which needs more line height.
+ */
+:root[data-font-latin='system'] {
+  --font-latin-face: system-ui;
+  --font-display-face: system-ui;
+}
+
+:root[data-font-latin='readable'] {
+  --font-latin-face: 'Atkinson Hyperlegible';
+  --font-display-face: 'Atkinson Hyperlegible';
+}
+
+:root[data-font-urdu='nastaliq'] {
+  --font-urdu-face: 'Gulzar';
+}
+
+:root[data-font-urdu='nastaliq']:lang(ur) {
+  --body-leading: 2.15;
+  --text-xs--line-height: 2.1;
+  --text-sm--line-height: 2.15;
+  --text-base--line-height: 2.15;
+  --text-lg--line-height: 2.1;
+  --text-xl--line-height: 2;
+  --text-2xl--line-height: 2;
 }
 
 /* Reduced motion (OS setting or in-app preference): durations collapse, content stays */
@@ -446,7 +688,7 @@
   .ltr-ref {
     direction: ltr;
     unicode-bidi: isolate;
-    font-family: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
+    font-family: var(--font-latin-face), ui-sans-serif, system-ui, sans-serif;
     font-variant-numeric: tabular-nums;
   }
 
@@ -536,4 +778,29 @@
  */
 [data-testid='hidden-select-container'] {
   margin: 0 !important;
+}
+
+/* Gate D.1: printed invitation letters (RES-009). Printing shows only the letters, one per page
+   area, in black on white whatever the screen's theme. */
+@media print {
+  body:has(.print-sheet) * {
+    visibility: hidden;
+  }
+  body:has(.print-sheet) .print-sheet,
+  body:has(.print-sheet) .print-sheet * {
+    visibility: visible;
+    color: #000 !important;
+    background: #fff !important;
+  }
+  body:has(.print-sheet) .print-sheet {
+    position: fixed;
+    inset: 0;
+    overflow: visible;
+    padding: 1.5cm;
+  }
+  .print-sheet section {
+    break-inside: avoid;
+    border: 1px dashed #000 !important;
+    margin-block-end: 1cm;
+  }
 }

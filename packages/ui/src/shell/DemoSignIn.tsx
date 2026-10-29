@@ -26,7 +26,9 @@ export function DemoSignIn({
   describe?: (persona: Persona) => string;
 }) {
   const { t } = useT();
-  const { personas, signIn, tenant, tenants } = useSession();
+  const { personas: everyone, signIn, tenant, tenants, notice, clearNotice } = useSession();
+  // Residents who joined by invitation sign in with their phone (AUTH-006), not by picking a name.
+  const personas = everyone.filter((p) => !p.unlisted);
   const announce = useAnnounce();
   // One section per organisation when the app has people from more than one (e.g. a developer and a society).
   const groups = tenants
@@ -51,6 +53,11 @@ export function DemoSignIn({
           <h1 className="text-2xl font-semibold text-text">{t('common:demo.signInTitle')}</h1>
           <p className="text-muted">{t('common:demo.signInIntro')}</p>
         </div>
+        {notice && (
+          <InlineAlert tone={notice.reason === 'portal_access_revoked' ? 'warning' : 'info'} title={t('identity:signIn.noticeTitle')} data-testid="sign-out-notice" data-reason={notice.reason}>
+            {t(`identity:signIn.notice.${notice.reason}`)}
+          </InlineAlert>
+        )}
         <InlineAlert tone="info">{t('common:demo.fictional')}</InlineAlert>
         {(grouped ? groups : [{ tenant, people: personas }]).map((g) => (
           <section key={g.tenant.id} aria-labelledby={grouped ? `sign-in-org-${g.tenant.id}` : undefined} className="space-y-3" data-testid={`sign-in-org-${g.tenant.id}`}>
@@ -80,6 +87,7 @@ export function DemoSignIn({
                   <Button
                     variant="primary"
                     onPress={() => {
+                      clearNotice();
                       signIn(p.id);
                       announce(t('a11y:announce.identityChanged', { name: p.displayName, role: t(p.roleKey as 'common:persona.manager') }));
                       onSignedIn?.(p.id);

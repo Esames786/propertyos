@@ -6,13 +6,15 @@
   "exports": {
     ".": "./src/tokens.ts",
     "./theme.css": "./src/theme.css",
-    "./fonts.css": "./src/fonts.css"
+    "./fonts.css": "./src/fonts.css",
+    "./brand": "./src/brand.ts"
   },
   "dependencies": {
     "@fontsource-variable/geist": "5.3.0",
     "@fontsource-variable/geist-mono": "5.3.0",
     "@fontsource-variable/newsreader": "5.3.0",
     "@fontsource-variable/noto-naskh-arabic": "5.3.0",
+    "@fontsource/atkinson-hyperlegible": "5.3.0",
     "@fontsource/gulzar": "5.3.0"
   }
 }

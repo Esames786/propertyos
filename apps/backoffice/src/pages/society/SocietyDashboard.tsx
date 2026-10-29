@@ -37,6 +37,9 @@ import {
   Undo2,
   UserCheck,
   Wallet,
+  DatabaseZap,
+  MailWarning,
+  UsersRound,
   type LucideIcon,
 } from 'lucide-react';
 import { useId } from 'react';
@@ -65,6 +68,9 @@ const TASK_ICON: Record<SocietyTask['key'], LucideIcon> = {
   approve_payment_exceptions: BadgeCheck,
   proofs_awaiting_bank: Landmark,
   apply_credit: PiggyBank,
+  approve_data_exports: DatabaseZap,
+  portal_invitations_expired: MailWarning,
+  household_requests: UsersRound,
 };
 
 /** Occupancy keeps its colour whatever is shown (ordinal evergreen ramp, validated with the dashboard). */

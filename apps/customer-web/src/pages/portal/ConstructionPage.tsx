@@ -34,16 +34,16 @@ function ConstructionView({ data, home }: { data: PortalConstruction; home?: Por
       <section aria-labelledby="overall-title" className="relative isolate overflow-hidden rounded-card bg-text shadow-raised">
         {latest?.imageKey && <Photo imageKey={latest.imageKey} sizes="(min-width: 1024px) 1100px, 100vw" priority className="absolute inset-0 -z-10 size-full" labelPosition="top-end" />}
         <div className="flex min-h-[15rem] flex-col justify-end sm:min-h-[18rem]">
-          <div className="flex flex-wrap items-end justify-between gap-5 px-5 pb-5 text-inverse sm:px-7 sm:pb-6" style={{ paddingTop: IMAGE_SCRIM.fade, background: imageScrimGradient() }}>
+          <div className="flex flex-wrap items-end justify-between gap-5 px-5 pb-5 text-on-image sm:px-7 sm:pb-6" style={{ paddingTop: IMAGE_SCRIM.fade, background: imageScrimGradient() }}>
             <div className="min-w-0">
-              <h2 id="overall-title" className="text-sm font-semibold tracking-wide text-inverse uppercase">
+              <h2 id="overall-title" className="text-sm font-semibold tracking-wide text-on-image uppercase">
                 {t('portal:construction.overall')}
               </h2>
               <p className="mt-1 font-display text-figure leading-tight sm:text-figure-lg">
                 <bdi>{data.projectName}</bdi>
               </p>
               {property?.towerName && property.possessionOn && (
-                <p className="mt-2 flex max-w-xl items-start gap-2 text-sm text-inverse">
+                <p className="mt-2 flex max-w-xl items-start gap-2 text-sm text-on-image">
                   <KeyRound aria-hidden className="mt-0.5 size-4 shrink-0" />
                   {t('portal:construction.yourTower', { tower: property.towerName, date: fmt.date(property.possessionOn) })}
                 </p>
@@ -61,7 +61,7 @@ function ConstructionView({ data, home }: { data: PortalConstruction; home?: Por
                 <bdi dir="ltr" className="ltr-ref block text-2xl font-bold">
                   {fmt.percent(data.progress)}
                 </bdi>
-                <span className="text-mini text-inverse">{t('portal:home.construction.built')}</span>
+                <span className="text-mini text-on-image">{t('portal:home.construction.built')}</span>
               </span>
             </ProgressRing>
           </div>

@@ -95,6 +95,8 @@
       "title": "We couldn't find that record",
       "body": "It may not exist, or it isn't part of {{organisation}}'s records you can open.",
       "next": "Check the address or search for the record."
-    }
+    },
+    "session_ended": "You were signed out on this device. Sign in again to continue.",
+    "portal_access_revoked": "Your access to the resident app has been withdrawn by your society office."
   }
 }

@@ -110,7 +110,7 @@ function AccessibilityControl() {
 /** Decorative wash behind the page: a soft evergreen glow and a faint site-plan grid. */
 function Backdrop() {
   return (
-    <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[34rem] overflow-hidden">
+    <div aria-hidden data-decorative className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[34rem] overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_0%,var(--color-primary-soft),transparent_70%)] opacity-80" />
       <div className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent,var(--color-bg)),repeating-linear-gradient(90deg,rgb(30_77_66/0.05)_0_1px,transparent_1px_56px),repeating-linear-gradient(0deg,rgb(30_77_66/0.05)_0_1px,transparent_1px_56px)]" />
     </div>

@@ -1,13 +1,17 @@
-import { CustomerShell, DemoSignIn, IconButton, MenuButton, NavigationProvider, TextSizeWelcome, useDisplayPreferences, useSession, useT } from '@repo/ui';
+import { CustomerShell, DemoSignIn, IconButton, Link, RoleModeChip, useAppSwitch, useOrgAppearanceSync, MenuButton, NavigationProvider, TextSizeWelcome, useDisplayPreferences, useSession, useSignOut, useT } from '@repo/ui';
 import { DUES_TOUR, GuidedTourProvider, PORTAL_TOUR, useGuidedTour } from '@repo/ui/onboarding';
-import { Accessibility, CircleHelp, Compass, LogOut, Type } from 'lucide-react';
+import { Accessibility, ArrowLeftRight, CircleHelp, Compass, LogOut, Smartphone, Type, UserRound } from 'lucide-react';
 import { useCallback } from 'react';
 import { Button as AriaButton } from 'react-aria-components';
 import { Outlet, ScrollRestoration, useHref, useLocation, useMatches, useNavigate } from 'react-router';
-import { CUSTOMER_BOTTOM_NAV, CUSTOMER_CENTRE_ACTION, CUSTOMER_NAV_ALIASES, CUSTOMER_NAV_GROUPS, DUES, DUES_BOTTOM_NAV, DUES_CENTRE_ACTION, DUES_NAV_ALIASES, DUES_NAV_GROUPS, PORTAL, START } from '../nav.config';
+import { switchToOfficeUrl, CUSTOMER_BOTTOM_NAV, CUSTOMER_CENTRE_ACTION, CUSTOMER_NAV_ALIASES, CUSTOMER_NAV_GROUPS, DUES, DUES_BOTTOM_NAV, DUES_CENTRE_ACTION, DUES_NAV_ALIASES, DUES_NAV_GROUPS, PORTAL, START } from '../nav.config';
+
+const PHONE_SIGN_IN = '/shared/auth/customer-portal-login';
 
 export interface CustomerHandle {
   title: (t: ReturnType<typeof useT>['t'], data: unknown) => string;
+  /** A full-page step without the portal's navigation (PORTAL-030 welcome). */
+  bare?: boolean;
 }
 
 /** A society resident (the dues edition): their organisation licenses dues. */
@@ -56,13 +60,17 @@ function initials(name: string) {
 /** Header end: replay the tour, and the account menu (text size, preferences, tour, sign out). */
 function HeaderActions() {
   const { t } = useT();
-  const { persona, signOut } = useSession();
+  const { persona } = useSession();
+  const signOut = useSignOut();
   const tour = useGuidedTour();
   const dues = useIsDuesResident();
   const tourId = persona ? TOUR_OF(persona.id) : PORTAL_TOUR.id;
+  const appSwitch = useAppSwitch(switchToOfficeUrl);
   if (!persona) return null;
   return (
     <>
+      {/* Below 400px the header keeps room for the organisation name; the menu heading names the mode. */}
+      <RoleModeChip app="customer" compact className="max-[25rem]:hidden" />
       <IconButton label={t('portal:shell.help')} icon={CircleHelp} onPress={() => tour.start(tourId)} data-tour-id="portal-help" data-testid="portal-help" />
       <MenuButton
         label={t('portal:shell.account', { name: persona.displayName })}
@@ -78,18 +86,21 @@ function HeaderActions() {
         groups={[
           {
             id: 'who',
-            title: t('portal:shell.signedInAs', { name: persona.displayName }),
+            title: appSwitch.target ? `${t('portal:shell.signedInAs', { name: persona.displayName })} · ${t('identity:switch.mode.customer')}` : t('portal:shell.signedInAs', { name: persona.displayName }),
             items: [
+              { id: 'profile', label: t('nav:pages.profile'), icon: UserRound, href: PORTAL.profile, testId: 'menu-profile' },
               { id: 'text-size', label: t('a11y:textSize.menu'), icon: Type, href: `${PORTAL.accessibility}#text-size`, testId: 'menu-text-size' },
               { id: 'accessibility', label: t('portal:shell.accessibility'), icon: Accessibility, href: PORTAL.accessibility },
               { id: 'tour', label: t('portal:shell.replayTour'), icon: Compass },
             ],
           },
+          ...(appSwitch.target ? [{ id: 'app-switch', items: [{ id: 'switch', label: t(`identity:switch.to.${appSwitch.target.app}`), icon: ArrowLeftRight, testId: 'menu-app-switch' }] }] : []),
           { id: 'session', items: [{ id: 'signout', label: t('portal:shell.signOut'), icon: LogOut, testId: 'customer-sign-out' }] },
         ]}
         onAction={(id) => {
           if (id === 'tour') tour.start(dues ? DUES_TOUR.id : PORTAL_TOUR.id);
           if (id === 'signout') signOut();
+          if (id === 'switch') appSwitch.start();
         }}
       />
     </>
@@ -101,11 +112,27 @@ function SignedIn() {
   const { persona, tenant } = useSession();
   const display = useDisplayPreferences();
   const dues = useIsDuesResident();
+  // ADM-022: the organisation's colours (a resident's own palette and high contrast still win).
+  useOrgAppearanceSync();
   const matches = useMatches();
   const appName = dues ? t('dues:shell.appName') : t('portal:shell.ownerPortal');
   const match = [...matches].reverse().find((m) => (m.handle as CustomerHandle | undefined)?.title);
   const pageTitle = match ? (match.handle as CustomerHandle).title(t, match.data) : appName;
-  if (!persona) return <DemoSignIn appName={t('common:app.customerPortal')} describe={(p) => (p.tenantId === 'tnt_alnoor' ? t('dues:signIn.describe') : t('common:demo.scopeOne', { project: 'Larkspur Heights' }))} />;
+  if (!persona)
+    return (
+      <DemoSignIn
+        appName={t('common:app.customerPortal')}
+        describe={(p) => (p.tenantId === 'tnt_alnoor' ? t('dues:signIn.describe') : t('common:demo.scopeOne', { project: 'Larkspur Heights' }))}
+        footer={
+          <Link href={PHONE_SIGN_IN} className="inline-flex items-center gap-1.5 font-medium" data-testid="sign-in-with-phone">
+            <Smartphone aria-hidden className="size-4" />
+            {t('identity:accept.signIn')}
+          </Link>
+        }
+      />
+    );
+  // The welcome wizard (PORTAL-030) brings its own text-size step.
+  if (matches.some((m) => (m.handle as CustomerHandle | undefined)?.bare)) return <Outlet />;
   // First run: one short, welcoming step to choose a comfortable text size (changeable later).
   if (!display.saved) return <TextSizeWelcome appName={appName} organisation={tenant.name} />;
   return (

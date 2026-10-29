@@ -175,7 +175,9 @@ describe('Gate C.1 storyline through the mock API', () => {
     const run = await s.post<BillingRunDetail>('/billing-runs', { period: '2026-11' });
     await s.post(`/billing-runs/${run.run.id}/preview`);
     await s.post(`/billing-runs/${run.run.id}/submit`);
-    expect((await s.get<SocietyDashboard>('/society/dashboard')).tasks[0]).toMatchObject({ key: 'approve_run', yours: false });
+    // Gate D.1: the manager's own resident-app tasks (expired invitations, household requests) rank
+    // above work waiting for someone else ("yours first"), so the run is found by its key.
+    expect((await s.get<SocietyDashboard>('/society/dashboard')).tasks.find((x) => x.key === 'approve_run')).toMatchObject({ key: 'approve_run', yours: false });
     s.as('alnoor_treasurer');
     const t = await s.get<SocietyDashboard>('/society/dashboard');
     expect(t.approvals).toMatchObject({ count: 1, yours: 1 });

@@ -18,7 +18,8 @@ export function FirstLoginWelcome({ isOpen }: { isOpen: boolean }) {
   const { decideWelcome } = useGuidedTour();
   const [dontOffer, setDontOffer] = useState(false);
   if (!persona) return null;
-  const benefit = t(`common:welcomeBenefit.${persona.id}`);
+  // Residents who joined by invitation share one welcome line (their persona ids are generated).
+  const benefit = t(`common:welcomeBenefit.${persona.unlisted ? 'invited_resident' : (persona.id as 'manager')}`);
   return (
     <Dialog
       isOpen={isOpen}

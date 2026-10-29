@@ -17,7 +17,10 @@
     "sites": "Sites & flats",
     "billing": "Billing",
     "collections": "Collections",
-    "bank": "Bank & reconciliation"
+    "bank": "Bank & reconciliation",
+    "portalAccess": "Resident app access",
+    "users": "Users and sessions",
+    "dataPrivacy": "Data and privacy"
   },
   "header": {
     "search": "Search",
@@ -103,7 +106,20 @@
     "statement": "Account statement",
     "bankFeed": "Bank transactions",
     "reconciliation": "Reconciliation",
-    "payerChanges": "Payer changes"
+    "payerChanges": "Payer changes",
+    "portalAccess": "Resident app access",
+    "householdMembers": "Household members",
+    "profile": "Profile and devices",
+    "users": "Users and sessions",
+    "userWorkspace": "User",
+    "dataPrivacy": "Data and privacy",
+    "branding": "Organisation colours",
+    "welcome": "Welcome and setup",
+    "acceptInvitation": "Accept invitation",
+    "portalSignIn": "Sign in",
+    "myProperties": "My properties",
+    "propertyDetail": "Flat",
+    "household": "Household"
   },
   "groups": {
     "workspace": "Workspace",

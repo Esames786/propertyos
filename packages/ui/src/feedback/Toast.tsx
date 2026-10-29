@@ -6,7 +6,7 @@ import { Reference } from '../data/Reference';
 import { cn } from '../lib/cn';
 import { useT } from '../lib/useT';
 import { usePreferences } from '../preferences/PreferencesProvider';
-import { playTone } from '../preferences/sound';
+import { playTone, vibrate } from '../preferences/sound';
 
 type Tone = 'success' | 'error' | 'info';
 
@@ -68,10 +68,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       setItems((prev) => [...prev.slice(-3), { id, tone, message, ...(reference ? { reference } : {}) }]);
       const spoken = reference ? `${message} ${t('errors:states.reference', { id: reference })}` : message;
       announce(spoken, tone === 'error' ? 'assertive' : 'polite');
-      if (preferences.sound && tone !== 'info') playTone(tone);
+      if (preferences.sound && tone !== 'info') playTone(tone, preferences.volume);
+      if (preferences.haptics && tone !== 'info') vibrate(tone);
       if (tone !== 'error') schedule(id);
     },
-    [announce, preferences.sound, schedule, t],
+    [announce, preferences.sound, preferences.volume, preferences.haptics, schedule, t],
   );
 
   const api = useMemo<ToastApi>(

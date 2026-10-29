@@ -63,7 +63,7 @@ export function ProjectShowcase({ projects, fmt }: { projects: Showcase[]; fmt: 
         <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-linear-to-b from-[rgb(12_17_15/0.4)] to-transparent" />
 
         <div className="relative flex items-start justify-between gap-3 p-4 max-sm:justify-end sm:p-5">
-          <span className="inline-flex items-center gap-1.5 rounded-pill bg-[rgb(12_17_15/0.66)] px-3 py-1 text-xs font-medium whitespace-nowrap text-inverse backdrop-blur-md max-sm:hidden">
+          <span className="inline-flex items-center gap-1.5 rounded-pill bg-[rgb(12_17_15/0.66)] px-3 py-1 text-xs font-medium whitespace-nowrap text-on-image backdrop-blur-md max-sm:hidden">
             <span aria-hidden className="size-1.5 rounded-pill bg-brass" />
             {t('dashboard:showcase.eyebrow')}
           </span>
@@ -78,10 +78,10 @@ export function ProjectShowcase({ projects, fmt }: { projects: Showcase[]; fmt: 
           </div>
         </div>
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 px-4 pb-4 text-inverse sm:px-6 sm:pb-6" style={{ paddingTop: IMAGE_SCRIM.fade, background: imageScrimGradient() }}>
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 px-4 pb-4 text-on-image sm:px-6 sm:pb-6" style={{ paddingTop: IMAGE_SCRIM.fade, background: imageScrimGradient() }}>
           <div className="flex items-end justify-between gap-4">
             <div className="min-w-0">
-              <p className="flex items-center gap-1.5 text-sm text-inverse">
+              <p className="flex items-center gap-1.5 text-sm text-on-image">
                 <MapPin aria-hidden className="size-4 shrink-0" />
                 <span className="truncate">
                   {t(project.kind === 'towers' ? 'dashboard:showcase.metaTowers' : 'dashboard:showcase.metaPlots', {
@@ -93,7 +93,7 @@ export function ProjectShowcase({ projects, fmt }: { projects: Showcase[]; fmt: 
               <h2 className="mt-1.5 font-display text-figure leading-[1.05] sm:text-figure-lg" data-testid="showcase-title">
                 <bdi>{project.name}</bdi>
               </h2>
-              <p className="mt-1 text-sm text-inverse">{t('dashboard:showcase.completion', { date: fmt.monthYear(project.completion) })}</p>
+              <p className="mt-1 text-sm text-on-image">{t('dashboard:showcase.completion', { date: fmt.monthYear(project.completion) })}</p>
             </div>
             <ProgressRing
               value={project.progress}
@@ -107,11 +107,11 @@ export function ProjectShowcase({ projects, fmt }: { projects: Showcase[]; fmt: 
                 <bdi dir="ltr" className="ltr-ref block text-lg font-semibold">
                   {fmt.percent(project.progress)}
                 </bdi>
-                <span className="text-micro tracking-wide text-inverse uppercase">{t('dashboard:showcase.built')}</span>
+                <span className="text-micro tracking-wide text-on-image uppercase">{t('dashboard:showcase.built')}</span>
               </span>
             </ProgressRing>
           </div>
-          <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-inverse/20 pt-4 sm:grid-cols-4">
+          <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-on-image/20 pt-4 sm:grid-cols-4">
             <Stat label={t('dashboard:showcase.sold')} value={fmt.count(project.units.sold)} hint={fmt.percent(soldShare)} />
             <Stat label={t('dashboard:showcase.available')} value={fmt.count(project.units.available)} />
             <Stat label={t('dashboard:showcase.salesToDate')} value={fmt.money(project.salesValue.amount)} />
@@ -157,13 +157,13 @@ export function ProjectShowcase({ projects, fmt }: { projects: Showcase[]; fmt: 
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div className="min-w-0">
-      <dt className="text-xs text-inverse">{label}</dt>
+      <dt className="text-xs text-on-image">{label}</dt>
       <dd className="mt-0.5 flex items-baseline gap-1.5">
         <bdi dir="ltr" className="ltr-ref truncate text-lg font-semibold">
           {value}
         </bdi>
         {hint && (
-          <bdi dir="ltr" className="ltr-ref text-xs text-inverse">
+          <bdi dir="ltr" className="ltr-ref text-xs text-on-image">
             {hint}
           </bdi>
         )}
@@ -178,7 +178,7 @@ function CarouselButton({ label, onPress, icon, testId }: { label: string; onPre
       aria-label={label}
       onPress={onPress}
       data-testid={testId}
-      className="grid size-9 place-items-center rounded-pill bg-[rgb(12_17_15/0.5)] text-inverse outline-none backdrop-blur-md transition-colors duration-[var(--motion-fast)] data-hovered:bg-[rgb(12_17_15/0.7)] data-focus-visible:outline-2 data-focus-visible:outline-offset-2 data-focus-visible:outline-inverse data-focus-visible:ring-4 data-focus-visible:ring-[rgb(12_17_15/0.85)] pointer-coarse:size-11"
+      className="grid size-9 place-items-center rounded-pill bg-[rgb(12_17_15/0.5)] text-on-image outline-none backdrop-blur-md transition-colors duration-[var(--motion-fast)] data-hovered:bg-[rgb(12_17_15/0.7)] data-focus-visible:outline-2 data-focus-visible:outline-offset-2 data-focus-visible:outline-inverse data-focus-visible:ring-4 data-focus-visible:ring-[rgb(12_17_15/0.85)] pointer-coarse:size-11"
     >
       <DirectionalIcon icon={icon} className="size-5" />
     </AriaButton>

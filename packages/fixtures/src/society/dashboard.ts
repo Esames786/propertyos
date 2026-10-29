@@ -32,6 +32,8 @@ export interface DashboardInput {
   /** Collections figures, when the person may see them (C.2). */
   collections: CollectionsSummary | null;
   today: string;
+  /** Gate D.1: decisions and tasks from identity (data exports, invitations, households). */
+  extra?: { approvals: SocietyDashboard['approvals']['items']; tasks: SocietyTask[] };
 }
 
 const money = (paisa: bigint): Money => ({ amount: fromPaisa(paisa), currency: 'PKR' });
@@ -75,7 +77,8 @@ export function buildSocietyDashboard(input: DashboardInput): SocietyDashboard {
     approvals.push({ kind: 'payment_exception', id: x.id, label: x.ref, href: `/backoffice/fin/transfer-proof-review?record=${x.id}`, yours: can.approvePaymentException && x.exception!.requestedBy !== principalId });
   }
 
-  const tasks: SocietyTask[] = [];
+  approvals.push(...(input.extra?.approvals ?? []));
+  const tasks: SocietyTask[] = [...(input.extra?.tasks ?? [])];
   const task = (t: SocietyTask) => tasks.push(t);
   if (!state.register) task({ key: 'import_flats', urgency: 'urgent', yours: can.manageSite, href: `${SITE}/import` });
   for (const a of approvals) {

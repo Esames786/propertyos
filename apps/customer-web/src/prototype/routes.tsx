@@ -1,8 +1,8 @@
 import { findScreenByRegisterRoute } from '@repo/contracts/screens';
-import { INVOICES, UNITS } from '@repo/fixtures';
-import { LocaleToggle, NavigationProvider, NotFoundState, PlannedScreenView, useT } from '@repo/ui';
+import { demoSignInNumbers, INVOICES, UNITS } from '@repo/fixtures';
+import { AppSwitchLanding, LocaleToggle, NavigationProvider, NotFoundState, PlannedScreenView, useT } from '@repo/ui';
 import { lazy, Suspense, useCallback, type ComponentType, type LazyExoticComponent } from 'react';
-import { createBrowserRouter, Navigate, useHref, useLoaderData, useLocation, useNavigate, useParams, type RouteObject } from 'react-router';
+import { createBrowserRouter, Navigate, Outlet, useHref, useLoaderData, useLocation, useNavigate, useParams, type RouteObject } from 'react-router';
 import AccessibilityPreferencesPage from '../pages/AccessibilityPreferencesPage';
 import CustomerLab, { type CustomerLabProps } from '../pages/CustomerLab';
 import { START } from '../nav.config';
@@ -19,25 +19,50 @@ function RegisterResolver() {
   return data.screen ? <PlannedScreenView screen={data.screen} record={data.record} startHref={START} /> : <NotFoundState headingLevel={1} />;
 }
 
-/** Register routes served outside the portal shell: customer sign-in (AUTH-006) and the public site (Stage 5). */
-function Standalone() {
-  const { t } = useT();
+/** Pages outside the portal shell: invitation and phone sign-in (Gate D.1) and register placeholders. */
+function StandaloneNavigation() {
   const navigate = useNavigate();
   const location = useLocation();
   const nav = useCallback((href: string, o?: { replace?: boolean }) => navigate(href, { replace: o?.replace }), [navigate]);
   return (
     <NavigationProvider navigate={nav} location={location} useHref={useHref}>
-      <div className="min-h-dvh bg-bg">
-        <header className="flex items-center justify-between border-b border-border bg-panel px-4 py-3">
-          <span className="font-semibold text-text">{t('common:app.productName')}</span>
-          <LocaleToggle />
-        </header>
-        <main id="main-content" tabIndex={-1} className="mx-auto max-w-3xl px-4 py-8 outline-none">
-          <RegisterResolver />
-        </main>
-      </div>
+      <Suspense fallback={null}>
+        <Outlet />
+      </Suspense>
     </NavigationProvider>
   );
+}
+
+/** Register routes not built yet that live outside the portal shell (e.g. the public site, Stage 5). */
+function Standalone() {
+  const { t } = useT();
+  return (
+    <div className="min-h-dvh bg-bg">
+      <header className="flex items-center justify-between border-b border-border bg-panel px-4 py-3">
+        <span className="font-semibold text-text">{t('common:app.productName')}</span>
+        <LocaleToggle />
+      </header>
+      <main id="main-content" tabIndex={-1} className="mx-auto max-w-3xl px-4 py-8 outline-none">
+        <RegisterResolver />
+      </main>
+    </div>
+  );
+}
+
+// Gate D.1: AUTH-007 accept invitation, AUTH-006 phone sign-in, PORTAL-030 welcome.
+const InvitationPage = lazy(() => import('../pages/auth/InvitationPage'));
+const PortalSignInPage = lazy(() => import('../pages/auth/PortalSignInPage'));
+const WelcomePage = lazy(() => import('../pages/auth/WelcomePage'));
+const ProfilePage = lazy(() => import('../pages/profile/ProfilePage'));
+
+function SwitchRoute() {
+  const { token = '' } = useParams();
+  return <AppSwitchLanding token={token} homeHref={START} signInHref="/shared/auth/customer-portal-login" />;
+}
+
+function InvitationRoute() {
+  const { token = '' } = useParams();
+  return <InvitationPage token={token} />;
 }
 
 function CustomerLabRoute() {
@@ -67,6 +92,11 @@ const developer = {
   construction: lazy(() => import('../pages/portal/ConstructionPage')),
   services: lazy(() => import('../pages/portal/ServicesPage')),
   documents: lazy(() => import('../pages/portal/DocumentsPage')),
+};
+const household = {
+  properties: lazy(() => import('../pages/household/HouseholdPages').then((m) => ({ default: m.MyPropertiesPage }))),
+  property: lazy(() => import('../pages/household/HouseholdPages').then((m) => ({ default: m.PropertyPage }))),
+  household: lazy(() => import('../pages/household/HouseholdPages').then((m) => ({ default: m.HouseholdPage }))),
 };
 const DuesPayDetails = lazy(() => import('../pages/dues/DuesPay').then((m) => ({ default: () => <m.default mode="details" /> })));
 const DuesSubmission = lazy(() => import('../pages/dues/DuesPages').then((m) => ({ default: m.DuesSubmissionPage })));
@@ -134,6 +164,20 @@ const portalChildren: RouteObject[] = [
     element: <CustomerLabRoute />,
     handle: handle({ title: (t) => t('nav:pages.customerLab') }),
   },
+  {
+    path: 'welcome',
+    element: (
+      <Suspense fallback={null}>
+        <WelcomePage />
+      </Suspense>
+    ),
+    handle: handle({ title: (t) => t('nav:pages.welcome'), bare: true }),
+  },
+  // Gate D.1: PORTAL-002 my properties, PORTAL-003 Property 360, PORTAL-025 household (society edition).
+  { path: 'my-properties', loader: registerLoader, element: <Edition dues={household.properties} />, handle: handle({ title: (t) => t('nav:pages.myProperties') }) },
+  { path: 'property-360-workspace', loader: registerLoader, element: <Edition dues={household.property} />, handle: handle({ title: (t) => t('nav:pages.propertyDetail') }) },
+  { path: 'household', loader: registerLoader, element: <Edition dues={household.household} />, handle: handle({ title: (t) => t('nav:pages.household') }) },
+  { path: 'profile', element: <Suspense fallback={null}><ProfilePage /></Suspense>, handle: handle({ title: (t) => t('nav:pages.profile') }) },
   { path: 'accessibility-preferences', element: <AccessibilityPreferencesPage />, handle: handle({ title: (t) => t('nav:pages.accessibility') }) },
   { path: 'help/tours', loader: registerLoader, element: <RegisterResolver />, handle: handle({ title: (t) => t('nav:pages.tourLibrary') }) },
   { path: '*', loader: registerLoader, element: <RegisterResolver />, handle: handle({ title: (t, d) => (d as RegisterData | undefined)?.screen?.name ?? t('nav:pages.notFound') }) },
@@ -144,5 +188,15 @@ export const router = createBrowserRouter([
   { path: '/customer/portal', element: <RootLayout />, children: portalChildren },
   // GUIDE-005 register URL lacked the /customer prefix (Stage 0 conflict C12): keep it working as an alias.
   { path: '/portal/help/tours', element: <Navigate to="/customer/portal/help/tours" replace /> },
-  { path: '*', loader: registerLoader, element: <Standalone /> },
+  {
+    element: <StandaloneNavigation />,
+    children: [
+      { path: '/shared/auth/invite/:token', element: <InvitationRoute /> },
+      // GLOBAL-015: a switch from the office app lands here and starts this app's own session.
+      { path: '/shared/auth/switch/:token', element: <SwitchRoute /> },
+      // Prototype: the featured residents' fictional numbers are offered as demo shortcuts.
+      { path: '/shared/auth/customer-portal-login', element: <PortalSignInPage demoNumbers={demoSignInNumbers()} /> },
+      { path: '*', loader: registerLoader, element: <Standalone /> },
+    ],
+  },
 ]);

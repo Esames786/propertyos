@@ -23,14 +23,17 @@ export function FieldDescription({ children }: { children?: string }) {
   );
 }
 
+/** Server error params are strings; i18next picks the plural form only from a numeric count. */
+const withCount = (params?: Record<string, string>) => (params?.count !== undefined ? { ...params, count: Number(params.count) } : params);
+
 /** Error text linked to the control by React Aria (aria-describedby); icon + text, not colour alone. */
-export function FieldErrorText({ messageKey }: { messageKey?: string; }) {
+export function FieldErrorText({ messageKey, params }: { messageKey?: string; params?: Record<string, string> }) {
   const { t } = useT();
   if (!messageKey) return null;
   return (
     <FieldError className={errorClass}>
       <CircleAlert aria-hidden className="mt-0.5 size-4 shrink-0" />
-      <span>{t(messageKey as 'forms:errors.required')}</span>
+      <span>{t(messageKey as 'forms:errors.required', withCount(params))}</span>
     </FieldError>
   );
 }

@@ -10,6 +10,12 @@ import { COLLECTIONS_HANDLERS } from './society/collections-handlers';
 import { DUES_PORTAL_HANDLERS } from './society/dues-portal-handlers';
 import { SOCIETY_HANDLERS, societyRecordAccess, societySearch } from './society/handlers';
 import { WORKSPACE_HANDLERS } from './workspace-handlers';
+import { ADMIN_IDENTITY_HANDLERS } from './identity/admin-handlers';
+import { APPEARANCE_HANDLERS } from './identity/appearance-handlers';
+import { DATA_HANDLERS } from './identity/data-handlers';
+import { HOUSEHOLD_HANDLERS } from './identity/household-handlers';
+import { ME_HANDLERS } from './identity/me-handlers';
+import { PORTAL_ACCESS_HANDLERS } from './identity/portal-access-handlers';
 
 export type { Handler, HandlerAccess, HandlerContext } from './handler-types';
 
@@ -281,4 +287,6 @@ const CORE_HANDLERS: readonly Handler[] = [
 ];
 
 /** Core endpoints first; feature modules own their routes. First match wins. */
-export const HANDLERS: readonly Handler[] = [...CORE_HANDLERS, ...CRM_HANDLERS, ...FINANCE_HANDLERS, ...PORTAL_HANDLERS, ...PLAN_HANDLERS, ...MY_ACCESS_HANDLERS, ...WORKSPACE_HANDLERS, ...SOCIETY_HANDLERS, ...COLLECTIONS_HANDLERS, ...DUES_PORTAL_HANDLERS];
+export const HANDLERS: readonly Handler[] = [...CORE_HANDLERS, ...CRM_HANDLERS, ...FINANCE_HANDLERS, ...PORTAL_HANDLERS, ...PLAN_HANDLERS, ...MY_ACCESS_HANDLERS, ...WORKSPACE_HANDLERS, ...SOCIETY_HANDLERS, ...COLLECTIONS_HANDLERS, ...DUES_PORTAL_HANDLERS,
+  // Gate D.1: identity, devices, portal access, households, data and privacy, organisation colours.
+  ...ME_HANDLERS, ...ADMIN_IDENTITY_HANDLERS, ...PORTAL_ACCESS_HANDLERS, ...HOUSEHOLD_HANDLERS, ...DATA_HANDLERS, ...APPEARANCE_HANDLERS];

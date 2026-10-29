@@ -1,7 +1,8 @@
 import { generateVisits } from './crm-data';
 import type { TenantDataset } from './dataset-types';
 import { FLOORS, GARDEN_BLOCKS, PROJECTS, TOWERS, UNITS } from './inventory';
-import { AL_NOOR, PARTIES, SHALIMAR, TENANT } from './people';
+import { alnoorRegisterPeople, registerLinks } from './identity/register-people';
+import { ALNOOR_RESIDENTS, AL_NOOR, PARTIES, SHALIMAR, TENANT } from './people';
 import { billingAccountOf, INVOICES, LEADS, NOTIFICATIONS } from './records';
 import { CEDAR } from './tenants/cedar';
 import { CRESCENT } from './tenants/crescent';
@@ -92,6 +93,11 @@ const ALNOOR_DATA: TenantDataset = {
     anrLink('pty_anr_0010', 'A-201', 'A201', '2018-09-01'),
     anrLink('pty_anr_0010', 'A-202', 'A201', '2020-02-01'),
     anrLink('pty_anr_0011', 'A-202', 'A201', '2025-08-01'),
+    // Gate D.1: everyone else on the register, for residents who join by invitation. A link is
+    // verified only when the register is (two tenants' agreements are not on file yet).
+    ...alnoorRegisterPeople()
+      .filter((p) => !ALNOOR_RESIDENTS.some((r) => r.partyId === p.partyId))
+      .flatMap(registerLinks),
   ],
   refs: { party: 'ANR-P-', lead: 'ANR-LD-', city: 'Lahore' },
   society: { siteId: 'site_alnoor', legalEntityId: 'le_alnoor' },

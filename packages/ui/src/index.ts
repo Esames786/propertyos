@@ -3,7 +3,9 @@ export { AppProviders } from './providers/AppProviders';
 export { NavigationProvider, useNavigation, useQueryParam, useQueryParams, type AppLocation, type NavigateOptions } from './navigation/RouterAdapter';
 export { TransportProvider, useTransport, useApiQuery, queryOwner, MOCK_MODE_KEY, type MockMode, type TransportFactory } from './data/TransportProvider';
 export { useApiMutation, useApiPrefetch } from './data/useApi';
-export { SessionProvider, useSession, useCan } from './permissions/SessionProvider';
+export { SessionProvider, useSession, useCan, type SignOutNotice } from './permissions/SessionProvider';
+export { useSignOut } from './permissions/useSignOut';
+export { describeDevice } from './lib/device';
 export { PermissionGate } from './permissions/PermissionGate';
 export { allowed, filterAllowed } from './permissions/can';
 export { PreferencesProvider, usePreferences, useReducedMotion, PREFERENCES_KEY } from './preferences/PreferencesProvider';
@@ -12,6 +14,27 @@ export { TextSizeChooser, TextSizeSettings, TextSizeWelcome } from './preference
 export { Stepper, type StepperStep } from './data/Stepper';
 export { usePrototypeTools, PrototypeToolsPreference, PROTOTYPE_TOOLS_KEY } from './preferences/prototypeTools';
 export { LanguagePreferences, AccessibilityPreferences, TourPreferences } from './preferences/PreferencesForm';
+export { PersonalizationHub, ThemeChoice, PALETTE_SWATCHES, type HubSection } from './preferences/PersonalizationHub';
+export { AppearancePreview } from './preferences/AppearancePreview';
+export { ChoiceCards, type ChoiceCard } from './preferences/ChoiceCards';
+export {
+  migrate as migratePreferences,
+  resolve as resolveAppearance,
+  htmlState as appearanceHtmlState,
+  defaultsFrom as preferenceDefaults,
+  THEMES,
+  CONTRASTS,
+  PALETTES,
+  ORG_PALETTES,
+  DENSITIES,
+  LATIN_FONTS,
+  URDU_FONTS,
+  type PersonalPreferences,
+  type OrgAppearance,
+  type OrgPalette,
+  type BrandColours,
+  type ResolvedAppearance,
+} from './preferences/personal';
 
 // Accessibility
 export { LiveAnnouncerProvider, useAnnounce } from './a11y/LiveAnnouncer';
@@ -80,6 +103,7 @@ export { Stagger, RevealItem, PageEnter } from './motion/Reveal';
 // Forms
 export { Form, zodResolver, useFormMeta } from './forms/Form';
 export { PlainCheckbox, PlainTextArea, PlainTextField } from './forms/PlainFields';
+export { DemoCodeNotice, OneTimeCodeField } from './forms/OneTimeCode';
 export { TextField, TextAreaField, PhoneField, CnicField } from './forms/TextFields';
 export { CheckboxField, RadioGroupField, SelectField, SelectControl, Switch, type Option } from './forms/ChoiceFields';
 export { AsyncSelectField, type AsyncItem } from './forms/AsyncSelectField';
@@ -107,3 +131,9 @@ export type { NavItem, Destination, HelpKey, ShellLinks } from './shell/types';
 export { cn } from './lib/cn';
 export { useT, dynamicT } from './lib/useT';
 export { useMediaQuery, useIsDesktop, useIsTabletUp, BREAKPOINTS } from './lib/useMediaQuery';
+// Gate D.1 identity: profile, devices, security activity, app switch.
+export { DevicesPanel, SecurityActivity, useDeviceName } from './identity/Sessions';
+export { ProfileDetails, useMyProfile } from './identity/Profile';
+export { AppSwitchCard, AppSwitchLanding, RoleModeChip, useAppSwitch, type SwitchableApp } from './identity/AppSwitch';
+export { saveFile } from './lib/download';
+export { useOrgAppearanceSync, type OrgAppearanceAnswer } from './identity/OrgAppearance';

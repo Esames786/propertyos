@@ -202,12 +202,12 @@ function PropertyHero({ data, fmt, className }: { data: PortalHome; fmt: PortalF
       className={cn('relative isolate flex min-h-[16rem] flex-col justify-end overflow-hidden rounded-card bg-text shadow-raised motion-safe:animate-rise-in sm:min-h-[18rem]', className)}
     >
       <Photo imageKey={property.imageKey} sizes="(min-width: 1024px) 640px, 100vw" priority className="absolute inset-0 -z-10 size-full" labelPosition="top-end" />
-      <div className="px-5 pb-5 text-inverse sm:px-6 sm:pb-6" style={{ paddingTop: IMAGE_SCRIM.fade, background: imageScrimGradient() }}>
-        <p className="text-sm font-medium text-inverse">{t('portal:home.welcome')}</p>
-        <h1 id="page-title" className="mt-0.5 font-display text-3xl leading-tight text-inverse outline-none sm:text-4xl">
+      <div className="px-5 pb-5 text-on-image sm:px-6 sm:pb-6" style={{ paddingTop: IMAGE_SCRIM.fade, background: imageScrimGradient() }}>
+        <p className="text-sm font-medium text-on-image">{t('portal:home.welcome')}</p>
+        <h1 id="page-title" className="mt-0.5 font-display text-3xl leading-tight text-on-image outline-none sm:text-4xl">
           <bdi>{owner.displayName}</bdi>
         </h1>
-        <p className="mt-1 text-sm text-inverse">
+        <p className="mt-1 text-sm text-on-image">
           {property.towerName && property.floor !== undefined
             ? t('portal:home.propertyLine', { project: property.projectName, tower: property.towerName, floor: fmt.count(property.floor) })
             : property.projectName}
@@ -227,7 +227,7 @@ function PropertyHero({ data, fmt, className }: { data: PortalHome; fmt: PortalF
             {t('portal:home.owner')}
           </span>
           {property.possessionOn && (
-            <span className={cn(chip, 'bg-[rgb(12_17_15/0.66)] font-medium text-inverse backdrop-blur-sm')}>
+            <span className={cn(chip, 'bg-[rgb(12_17_15/0.66)] font-medium text-on-image backdrop-blur-sm')}>
               <UserRound aria-hidden className="size-4" />
               {t('portal:home.possession', { date: fmt.monthYear(property.possessionOn) })}
             </span>

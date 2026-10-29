@@ -58,8 +58,16 @@ const problem = async (p: Promise<unknown>) => {
   throw new Error('expected a refusal');
 };
 
-/** A concrete path for a handler's pattern (named groups become `x1`). */
-const samplePath = (re: RegExp) => re.source.replace(/^\^/, '').replace(/\$$/, '').replace(/\(\?<\w+>[^)]*\)/g, 'x1').replace(/\\\//g, '/');
+/**
+ * A concrete path for a handler's pattern: named groups become `x1`, except a group of literal
+ * alternatives (an action such as `resend|revoke`), which takes its first word.
+ */
+const samplePath = (re: RegExp) =>
+  re.source
+    .replace(/^\^/, '')
+    .replace(/\$$/, '')
+    .replace(/\(\?<\w+>([^)]*)\)/g, (_m, body: string) => (/^[a-z-]+(\|[a-z-]+)+$/.test(body) ? body.split('|')[0]! : 'x1'))
+    .replace(/\\\//g, '/');
 
 /** The fixture handlers with spies instead of bodies: a refusal must leave every spy uncalled. */
 function spied() {
@@ -83,7 +91,7 @@ describe('1. every endpoint declares its access and the transport fails closed',
     expect(visitors.sort()).toEqual(['GET /workspace', 'POST /demo/reset', 'POST /workspace', 'POST /workspace/verify']);
     for (const h of HANDLERS) {
       const a = h.access;
-      if (a.kind === 'visitor') {
+      if (a.kind === 'visitor' || a.kind === 'public') {
         expect(a.why.length, samplePath(h.pattern)).toBeGreaterThan(20);
         continue;
       }

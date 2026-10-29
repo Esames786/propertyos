@@ -47,6 +47,7 @@ import { assess, canStart, isOpen, isPosted, post, STATE_AFTER } from './billing
 import { collectionsSummary } from './collections-read';
 import { resolveCharges } from './charges';
 import { buildSocietyDashboard } from './dashboard';
+import { identityDashboardExtras } from '../identity/dashboard-extras';
 import { committable, FLAT_COLUMNS, fingerprint, OPENING_COLUMNS, rowsOf, validateFlats, validateOpening } from './import';
 import { factOn, payerOn } from './model';
 import { formatRef } from './numbering';
@@ -546,6 +547,7 @@ export const SOCIETY_HANDLERS: readonly Handler[] = [
         },
         collections: can(ctx, 'collections.view', 'history_read') ? collectionsSummary(s, ctx.at, { bank: can(ctx, 'bank.view', 'history_read') }) : null,
         today: ctx.at,
+        extra: identityDashboardExtras(ctx),
       });
     },
   },

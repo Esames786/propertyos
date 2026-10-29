@@ -28,11 +28,13 @@ test.describe('Screen register coverage (V3.1)', () => {
     const ids = new Set(SCREENS.map((s) => s.id));
     // Gate B final adds GLOBAL-014 (My access) and HQ-026–028 (policy, requests and signup, audit log);
     // Gate C.2 adds BILL-016 (billing controls) and BILL-017 (payer changes).
-    expect(SCREENS.length).toBe(396);
+    // Gate D.1 adopts its V3.2 rows only (D-43): RES-007, AUTH-007 and ADM-024, and the states
+    // RES-009, SITE-009, GLOBAL-015, GLOBAL-016 and PORTAL-041.
+    expect(SCREENS.length).toBe(404);
     for (const prefix of ['GLOBAL', 'AUTH', 'SAAS', 'CRM', 'PORTAL', 'WEB', 'HQ', 'SITE', 'BILL', 'ENTRY']) {
       expect([...ids].some((id) => id.startsWith(`${prefix}-`)), prefix).toBe(true);
     }
-    expect(SCREENS.filter((s) => s.canonicalId === s.id)).toHaveLength(337);
+    expect(SCREENS.filter((s) => s.canonicalId === s.id)).toHaveLength(340);
   });
 
   for (const [i, group] of chunks(OPENABLE, 25).entries()) {

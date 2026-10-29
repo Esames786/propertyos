@@ -15,3 +15,4 @@ export * from './commercial';
 export * from './sites';
 export * from './billing';
 export * from './collections';
+export * from './identity';

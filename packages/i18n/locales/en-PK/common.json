@@ -62,7 +62,10 @@
     "alnoor_guard": "Security guard",
     "owner_resident": "Owner and resident",
     "tenant_payer": "Tenant who pays",
-    "alnoor_accounts": "Accounts officer"
+    "alnoor_accounts": "Accounts officer",
+    "owner": "Owner (lives elsewhere)",
+    "tenant": "Tenant",
+    "alnoor_admin": "Committee secretary"
   },
   "welcomeBenefit": {
     "manager": "See every project, approve work and move anywhere quickly.",
@@ -83,7 +86,9 @@
     "alnoor_resident_a101": "See your bill, pay the exact total and get your receipt",
     "alnoor_tenant_a102": "See your bill, pay the exact total and get your receipt",
     "alnoor_owner_a201": "See your bill, pay the exact total and get your receipt",
-    "alnoor_tenant_a202": "See your bill, pay the exact total and get your receipt"
+    "alnoor_tenant_a202": "See your bill, pay the exact total and get your receipt",
+    "alnoor_admin": "Run the society’s workspace: flats and people, billing and collections, who uses the resident app, and the organisation’s settings.",
+    "invited_resident": "See your bill, pay by bank transfer and keep your receipts, all in one place."
   },
   "demo": {
     "signInTitle": "Choose a demo identity",
@@ -268,7 +273,8 @@
     "building_manager": "Building manager",
     "committee_treasurer": "Committee treasurer",
     "security_guard": "Security guard",
-    "accounts_officer": "Accounts officer"
+    "accounts_officer": "Accounts officer",
+    "committee_secretary": "Committee secretary"
   },
   "stepper": {
     "stepOf": "Step {{n}} of {{total}}",

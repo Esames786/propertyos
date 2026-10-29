@@ -20,7 +20,8 @@
     "passwordShort": "Use at least 10 characters.",
     "passwordWeak": "Add a number or symbol to make the password stronger.",
     "passwordMismatch": "The passwords don’t match.",
-    "timeRequired": "Choose a time."
+    "timeRequired": "Choose a time.",
+    "reasonRequired": "Give a short reason (at least 5 characters)."
   },
   "summary": {
     "title_one": "Fix {{count}} problem to continue",

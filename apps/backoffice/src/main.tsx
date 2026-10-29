@@ -1,4 +1,4 @@
-import { ACCESS_TODAY, BACKOFFICE_TENANTS, DemoStore, effectiveAccessFor, localSharedPartitions, MockTransport, PERSONAS, TENANT } from '@repo/fixtures';
+import { ACCESS_TODAY, BACKOFFICE_TENANTS, DemoStore, effectiveAccessFor, localSharedPartitions, MockTransport, ALL_PERSONAS, TENANT } from '@repo/fixtures';
 import { getMissingKeys } from '@repo/i18n';
 import { AppProviders } from '@repo/ui';
 import { StrictMode } from 'react';
@@ -23,7 +23,7 @@ createRoot(document.getElementById('root')!).render(
       app="backoffice"
       tenant={TENANT}
       tenants={BACKOFFICE_TENANTS}
-      personas={PERSONAS}
+      personas={ALL_PERSONAS}
       accessFor={effectiveAccessFor}
       accessDate={ACCESS_TODAY}
       createTransport={(getContext, getMode) => {

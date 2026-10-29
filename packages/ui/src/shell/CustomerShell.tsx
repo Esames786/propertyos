@@ -329,7 +329,8 @@ export function CustomerShell({
           <span className="hidden md:inline-flex">
             <DemoPill className="py-1 text-xs" />
           </span>
-          <LocaleToggle className="text-chrome max-xs:px-2.5 max-md:min-h-10 max-md:px-3" />
+          {/* Below 360px the button is icon-only (its name is still spoken) so the organisation name fits. */}
+          <LocaleToggle className="text-chrome max-xs:px-2.5 max-md:min-h-10 max-md:px-3 max-xs:[&>span]:sr-only" />
           {headerEnd}
         </header>
 

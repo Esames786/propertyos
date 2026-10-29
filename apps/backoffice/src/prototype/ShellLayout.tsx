@@ -1,5 +1,5 @@
 import type { AccessDecision, DenyReason, RecordAccess } from '@repo/contracts';
-import { AccessOutcomeView, AppShell, contextualNav, usePrototypeTools, withPrototypeTools, dynamicT, InlineAlert, Link, suspensionOf, useApiQuery, useSession, useT, workspaceRouteTarget, type Destination } from '@repo/ui';
+import { AccessOutcomeView, AppShell, contextualNav, usePrototypeTools, withPrototypeTools, dynamicT, InlineAlert, Link, suspensionOf, useApiQuery, useOrgAppearanceSync, useSession, useT, workspaceRouteTarget, type Destination } from '@repo/ui';
 import { useMemo } from 'react';
 import { Navigate, Outlet, useLocation, useMatches, useSearchParams } from 'react-router';
 import { ACCESS_DATE, COLLECTIONS, LINKS, NAV_ITEMS, SOCIETY } from '../nav.config';
@@ -15,6 +15,8 @@ import type { RouteHandle } from './handle';
 export function ShellLayout() {
   const { t } = useT();
   const { persona, returning, tenant, decide, can, access } = useSession();
+  // ADM-022: the organisation's colours apply once someone is signed in (their own palette still wins).
+  useOrgAppearanceSync();
   const location = useLocation();
   const [params] = useSearchParams();
   const matches = useMatches();
@@ -45,6 +47,11 @@ export function ShellLayout() {
       { id: 'leads', label: t('nav:pages.leadsList'), href: LINKS.leads, permission: 'lead.view', keywords: 'crm leads customers prospects' },
       { id: 'plan', label: t('nav:pages.plan'), href: LINKS.plan, permission: 'admin.view', keywords: 'plan modules licence subscription' },
       { id: 'my-access', label: t('nav:pages.myAccess'), href: LINKS.myAccess, keywords: 'access permissions role sites modules' },
+      // Gate D.1: identity, devices, data and the organisation's colours.
+      { id: 'profile', label: t('nav:pages.profile'), href: LINKS.profile, suspension: 'history_read', keywords: 'profile devices sessions sign out security contact' },
+      { id: 'appearance', label: t('nav:pages.accessibility'), href: LINKS.preferences, suspension: 'history_read', keywords: 'text size theme dark contrast palette font language' },
+      { id: 'branding', label: t('nav:pages.branding'), href: '/backoffice/adm/branding', permission: 'admin.branding', keywords: 'colours colors brand palette theme organisation' },
+      { id: 'portal-access', label: t('nav:pages.portalAccess'), href: '/backoffice/residents/portal-access', permission: 'portal_access.view', keywords: 'invite residents app access login' },
       { id: 'lab-tokens', label: t('nav:pages.labTokens'), href: '/backoffice/lab/tokens', keywords: 'colour contrast typography' },
       { id: 'lab-components', label: t('nav:pages.labComponents'), href: '/backoffice/lab/components', keywords: 'button dialog drawer toast' },
       { id: 'lab-forms', label: t('nav:pages.labForms'), href: '/backoffice/lab/forms', keywords: 'form validation unit picker' },

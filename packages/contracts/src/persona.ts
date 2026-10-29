@@ -21,9 +21,12 @@ export interface Persona {
     | 'alnoor_tenant_a102'
     | 'alnoor_owner_a201'
     | 'alnoor_tenant_a202'
+    | 'alnoor_admin'
     | 'supreme_admin'
     | 'commercial_approver'
-    | 'platform_support';
+    | 'platform_support'
+    /** Gate D.1: a resident who joined by invitation (generated from the society register). */
+    | `res_${string}`;
   tenantId: string;
   app: AppId;
   /**
@@ -43,4 +46,9 @@ export interface Persona {
   partyId?: string;
   /** Staff: the tenant role they hold (its permissions are theirs). */
   roleId?: string;
+  /**
+   * Gate D.1: not offered on the demo sign-in pages. Residents who joined by invitation sign in with
+   * their phone and a one-time code (AUTH-006), never by picking a name.
+   */
+  unlisted?: boolean;
 }

@@ -13,6 +13,8 @@ const STARTER_PERMISSIONS: Record<StarterRoleKey, readonly Permission[]> = {
     'unit.hold', 'quote.create', 'customer.view', 'booking.view', 'invoice.view', 'payment.receive',
     'finance.evidence.review', 'expense.create', 'supplier.view', 'procurement.view', 'hr.view',
     'operations.view', 'residents.view', 'reports.view', 'admin.view', 'construction.view', 'collections.view', 'bank.view',
+    // Gate D.1: residents' portal access, data requests, staff sessions and the organisation's colours.
+    'portal_access.view', 'portal_access.invite', 'data_export.request', 'privacy.requests.manage', 'sessions.manage', 'admin.branding',
   ],
   sales: [
     'project.context.use', 'quickcreate.use', 'lead.view', 'lead.create', 'visit.schedule',
@@ -23,6 +25,8 @@ const STARTER_PERMISSIONS: Record<StarterRoleKey, readonly Permission[]> = {
   finance: [
     'project.context.use', 'quickcreate.use', 'customer.view', 'booking.view', 'invoice.view',
     'payment.receive', 'finance.evidence.review', 'expense.create', 'supplier.view', 'reports.view', 'collections.view', 'bank.view',
+    // Gate D.1: approves data exports that someone else requested (maker-checker by principal).
+    'data_export.approve',
   ],
   construction: ['project.context.use', 'quickcreate.use', 'construction.view', 'procurement.view', 'supplier.view', 'reports.view'],
   // Society starters. Billing is split so maker-checker holds (A4 §9): the manager sets up the site,
@@ -35,16 +39,22 @@ const STARTER_PERMISSIONS: Record<StarterRoleKey, readonly Permission[]> = {
     'invoice.view', 'payment.receive', 'finance.evidence.review', 'reports.view', 'admin.view',
     'site.view', 'site.manage', 'opening_balance.import', 'charges.manage', 'billing_run.view', 'billing_run.create', 'billing_run.post',
     'collections.view', 'bank.view', 'beneficiary.manage', 'payment_methods.manage', 'billing_policy.manage',
+    // Gate D.1: portal access, data requests, staff sessions and the organisation's colours.
+    'portal_access.view', 'portal_access.invite', 'data_export.request', 'privacy.requests.manage', 'sessions.manage', 'admin.branding',
   ],
   manager: [
     'quickcreate.use', 'customer.view', 'residents.view', 'operations.view', 'workorder.update', 'visitors.manage', 'invoice.view', 'reports.view',
     'site.view', 'site.manage', 'opening_balance.import', 'charges.manage', 'billing_run.view', 'billing_run.create',
     'collections.view', 'beneficiary.manage',
+    // Gate D.1: invites residents to the portal and sees who uses it.
+    'portal_access.view', 'portal_access.invite',
   ],
   treasurer: [
     'quickcreate.use', 'customer.view', 'invoice.view', 'payment.receive', 'finance.evidence.review', 'residents.view', 'reports.view',
     'site.view', 'opening_balance.approve', 'billing_run.view', 'billing_run.approve', 'billing_run.post', 'credit_note.create',
     'collections.view', 'bank.view', 'beneficiary.approve', 'payment_methods.manage', 'billing_policy.manage', 'liability.approve', 'payment_exception.approve',
+    // Gate D.1: sees portal adoption; approves data exports someone else requested.
+    'portal_access.view', 'data_export.approve',
   ],
   maintenance: ['quickcreate.use', 'operations.view', 'workorder.update', 'residents.view'],
   technician: ['operations.view', 'workorder.update'],
@@ -100,6 +110,7 @@ const ALNOOR_ACCOUNTS_OFFICER: TenantRoleTemplate = {
 };
 
 const ALNOOR_ROLE_NAMES: Readonly<Record<string, string>> = {
+  administrator: 'common:roles.committee_secretary',
   manager: 'common:roles.building_manager',
   treasurer: 'common:roles.committee_treasurer',
   security: 'common:roles.security_guard',
@@ -112,7 +123,7 @@ const TENANT_ROLES: Readonly<Record<string, readonly TenantRoleTemplate[]>> = {
   tnt_cedar: starterRoles('tnt_cedar', 'custom', { treasurer: ['cedar_treasurer'] }),
   // Al-Noor Residency kept the society starters and named three of them after its committee posts.
   tnt_alnoor: [
-    ...starterRoles('tnt_alnoor', 'association', { manager: ['alnoor_manager'], treasurer: ['alnoor_treasurer'], security: ['alnoor_guard'] }).map((r) =>
+    ...starterRoles('tnt_alnoor', 'association', { administrator: ['alnoor_admin'], manager: ['alnoor_manager'], treasurer: ['alnoor_treasurer'], security: ['alnoor_guard'] }).map((r) =>
       ALNOOR_ROLE_NAMES[r.id] ? { ...r, labelKey: ALNOOR_ROLE_NAMES[r.id]! } : r,
     ),
     ALNOOR_ACCOUNTS_OFFICER,

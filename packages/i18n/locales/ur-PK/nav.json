@@ -17,7 +17,10 @@
     "sites": "سائٹس اور فلیٹس",
     "billing": "بلنگ",
     "collections": "وصولیاں",
-    "bank": "بینک اور مطابقت"
+    "bank": "بینک اور مطابقت",
+    "portalAccess": "ریذیڈنٹ ایپ تک رسائی",
+    "users": "صارفین اور سیشن",
+    "dataPrivacy": "ڈیٹا اور رازداری"
   },
   "header": {
     "search": "تلاش",
@@ -103,7 +106,20 @@
     "statement": "اکاؤنٹ اسٹیٹمنٹ",
     "bankFeed": "بینک ٹرانزیکشنز",
     "reconciliation": "مطابقت",
-    "payerChanges": "ادا کنندہ کی تبدیلیاں"
+    "payerChanges": "ادا کنندہ کی تبدیلیاں",
+    "portalAccess": "ریذیڈنٹ ایپ تک رسائی",
+    "householdMembers": "گھر کے افراد",
+    "profile": "پروفائل اور ڈیوائسز",
+    "users": "صارفین اور سیشن",
+    "userWorkspace": "صارف",
+    "dataPrivacy": "ڈیٹا اور رازداری",
+    "branding": "تنظیم کے رنگ",
+    "welcome": "خوش آمدید اور ترتیب",
+    "acceptInvitation": "دعوت نامہ قبول کریں",
+    "portalSignIn": "سائن اِن",
+    "myProperties": "میری جائیدادیں",
+    "propertyDetail": "فلیٹ",
+    "household": "گھرانہ"
   },
   "groups": {
     "workspace": "کاروبار",

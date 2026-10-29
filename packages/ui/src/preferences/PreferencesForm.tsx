@@ -88,7 +88,7 @@ export function TourPreferences() {
         description={t('onboarding:preferences.textOnlyHint')}
         testId="tour-text-only"
       />
-      <Button variant="secondary" onPress={() => setConfirmOpen(true)}>
+      <Button variant="secondary" className="max-w-full whitespace-normal text-start" onPress={() => setConfirmOpen(true)}>
         {t('onboarding:preferences.reset')}
       </Button>
       <ConfirmDialog

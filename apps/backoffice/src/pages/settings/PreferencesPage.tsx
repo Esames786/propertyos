@@ -1,36 +1,16 @@
-import { AccessibilityPreferences, LanguagePreferences, PageHeader, Panel, PrototypeToolsPreference, TourPreferences, UrlTabs, useT } from '@repo/ui';
+import { PageHeader, PersonalizationHub, PrototypeToolsPreference, useT, type HubSection } from '@repo/ui';
 
 /**
- * Preferences (GLOBAL-008/009/010, GUIDE-006). One page with tabs; each register URL opens its tab
- * (Stage 0 conflict C13). The profile section of GLOBAL-008 arrives in Stage 2.
+ * Appearance and accessibility (GLOBAL-010, with GLOBAL-009 language and GUIDE-006 tours as its
+ * sections; Gate D.1 personalization hub). Each register address opens the page at its section.
  */
 export default function PreferencesPage({ defaultTab }: { defaultTab: 'language' | 'accessibility' | 'tours' }) {
   const { t } = useT();
+  const section: HubSection | undefined = defaultTab === 'accessibility' ? undefined : defaultTab;
   return (
     <>
-      <PageHeader title={t('nav:pages.preferences')} description={t('help:pages.preferences.body')} />
-      <UrlTabs
-        label={t('nav:pages.preferences')}
-        defaultId={defaultTab}
-        items={[
-          { id: 'language', label: t('a11y:language.title') },
-          { id: 'accessibility', label: t('a11y:preferences.title') },
-          { id: 'tours', label: t('onboarding:preferences.title') },
-        ]}
-      >
-        {(tab) => (
-          <Panel className="max-w-2xl">
-            {tab === 'language' && <LanguagePreferences />}
-            {tab === 'accessibility' && <AccessibilityPreferences />}
-            {tab === 'tours' && (
-              <div className="space-y-8">
-                <TourPreferences />
-                <PrototypeToolsPreference />
-              </div>
-            )}
-          </Panel>
-        )}
-      </UrlTabs>
+      <PageHeader title={t('nav:pages.preferences')} description={t('a11y:hub.intro')} />
+      <PersonalizationHub initialSection={section} tourExtras={<PrototypeToolsPreference />} />
     </>
   );
 }

@@ -12,6 +12,7 @@ import { ProjectSwitcher } from './ProjectSwitcher';
 import { QuickCreateMenu } from './QuickCreateMenu';
 import { useShell } from './ShellContext';
 import { UserMenu } from './UserMenu';
+import { RoleModeChip } from '../identity/AppSwitch';
 
 /** True once the page has scrolled, so the header can gain its hairline only when content passes under it. */
 function useScrolled(threshold = 4) {
@@ -58,7 +59,7 @@ export function DemoEnvironmentPill({ className }: { className?: string }) {
  */
 export function AppHeader({ tenantName }: { tenantName: string }) {
   const { t } = useT();
-  const { setPaletteOpen, slots } = useShell();
+  const { setPaletteOpen, slots, links } = useShell();
   const scrolled = useScrolled();
   return (
     <header
@@ -106,6 +107,7 @@ export function AppHeader({ tenantName }: { tenantName: string }) {
           <NotificationsPanel />
         </span>
         <HelpMenu />
+        {links.appSwitchUrl && <RoleModeChip app="backoffice" className="max-lg:hidden" />}
         <UserMenu />
       </div>
     </header>

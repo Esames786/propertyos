@@ -10,9 +10,17 @@ export const NAV_ITEMS: NavItem[] = TENANT_NAV;
 /** The demo's frozen "today" (fixtures' ACCESS_TODAY); access and labels are evaluated on it. */
 export const ACCESS_DATE = '2026-10-26';
 
+/** The resident app in this browser (same host, port 5174 unless VITE_CUSTOMER_ORIGIN says otherwise). */
+export const customerOrigin = () => (import.meta.env.VITE_CUSTOMER_ORIGIN as string | undefined) ?? `${window.location.protocol}//${window.location.hostname}:5174`;
+
 export const LINKS = {
   start: '/backoffice/home/role-aware-dashboard',
-  preferences: '/backoffice/global/profile--preferences',
+  /** GLOBAL-010 appearance and accessibility (the personalization hub). */
+  preferences: '/backoffice/global/accessibility-preferences',
+  /** GLOBAL-008 profile, signed-in devices and security activity (Gate D.1). */
+  profile: '/backoffice/global/profile--preferences',
+  /** GLOBAL-015: where a switch ticket opens the resident app. */
+  appSwitchUrl: (token: string) => `${customerOrigin()}/shared/auth/switch/${token}`,
   signIn: '/backoffice/sign-in',
   getStarted: '/backoffice/get-started',
   demoLaunch: '/backoffice/get-started/demo',

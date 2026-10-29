@@ -1,0 +1,772 @@
+{
+  "channels": {
+    "sms": "SMS",
+    "whatsapp": "WhatsApp",
+    "email": "Email",
+    "printed_code": "Printed letter"
+  },
+  "devices": {
+    "unknown": "an unknown device",
+    "family": {
+      "android_phone": "Android phone",
+      "ios_phone": "iPhone",
+      "android_tablet": "Android tablet",
+      "ios_tablet": "iPad",
+      "windows_desktop": "Windows computer",
+      "macos_desktop": "Mac",
+      "linux_desktop": "Linux computer",
+      "other_desktop": "Computer",
+      "other_phone": "Phone",
+      "other_tablet": "Tablet"
+    }
+  },
+  "portal": {
+    "intro": "Who uses the resident app, who has not signed in for a month, who was invited and who is still to be invited. Last sign-in is shown as a date and a kind of device only, and residents never see any of this about each other. Invitations are simulated: nothing is sent.",
+    "adoptionTitle": "Flats using the resident app",
+    "adoptionBody": "{{flats}} of {{occupied}} occupied flats have someone who signed in during the last 30 days.",
+    "kpi": {
+      "active": "Active in the last 30 days",
+      "activeHint": "Signed in recently",
+      "inactive": "Not signed in for 30 days",
+      "inactiveHint": "Account open, not used lately",
+      "invited": "Invited, not yet joined",
+      "invitedHint": "Invitation still valid",
+      "never": "Never signed in",
+      "neverHint": "{{expired}} invitations ran out · {{notInvited}} not invited yet",
+      "expired_one": "{{count}} invitation ran out",
+      "expired_other": "{{count}} invitations ran out",
+      "unverified_one": "{{count}} person to verify first",
+      "unverified_other": "{{count}} people to verify first",
+      "revoked_one": "{{count}} account closed",
+      "revoked_other": "{{count}} accounts closed",
+      "vacant_one": "{{count}} vacant flat",
+      "vacant_other": "{{count}} vacant flats"
+    },
+    "households": "Household members",
+    "filterStatus": "Show",
+    "filters": {
+      "all": "Everyone",
+      "active": "Active",
+      "inactive": "Inactive",
+      "invited": "Invited",
+      "expired": "Invitation ran out",
+      "not_invited": "Not invited",
+      "unverified": "Not verified",
+      "revoked": "Closed"
+    },
+    "building": "Block",
+    "role": "Role",
+    "search": "Search by name or flat",
+    "peopleTitle_one": "{{count}} person",
+    "peopleTitle_other": "{{count}} people",
+    "selectAll": "Select all who can be invited ({{count}})",
+    "select": "Select {{name}}",
+    "inviteSelected_one": "Invite {{count}} person",
+    "inviteSelected_other": "Invite {{count}} people",
+    "emptyTitle": "Nobody matches",
+    "emptyBody": "Try another filter, block or search.",
+    "lastSignIn": "Last signed in {{date}} on {{device}}",
+    "invitedOn": "Invited {{date}} by {{channel}} · valid until {{expires}}",
+    "neverInvited": "Not invited yet",
+    "unverifiedHint": "Their link to the flat is not verified, so they cannot be invited yet. Verify it on the flat first.",
+    "noConsents": "No message consent recorded",
+    "consented": "consent recorded",
+    "notConsented": "no consent",
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "invited": "Invited",
+      "expired": "Invitation ran out",
+      "not_invited": "Not invited",
+      "revoked": "Access closed",
+      "unverified": "Not verified"
+    },
+    "roles": {
+      "owner": "Owner",
+      "occupant": "Lives here",
+      "payer": "Pays",
+      "household": "Household"
+    },
+    "actionsFor": "Actions for {{name}}",
+    "actions": {
+      "invite": "Invite",
+      "resend": "Resend invitation",
+      "revokeInvitation": "Withdraw invitation",
+      "revoke": "Close app access"
+    },
+    "invitationRevoked": "Invitation to {{name}} withdrawn.",
+    "revokeTitle": "Close app access for {{name}}?",
+    "revokeEffect": "They are signed out of the resident app on every device at once, and cannot sign in again until they are invited again. Their bills, payments and receipts are not affected.",
+    "revokeConfirm": "Close access",
+    "revokeReason": "Reason (kept in the audit trail)",
+    "revoked": "App access for {{name}} closed. Their devices are signed out.",
+    "revokeFailed": "Access could not be closed. Try again.",
+    "vacantTitle_one": "{{count}} vacant flat",
+    "vacantTitle_other": "{{count}} vacant flats",
+    "vacantBody": "Nobody lives here, so there is nobody to invite. Each opens its flat.",
+    "flatTab": {
+      "title": "Resident app access",
+      "intro": "The people linked to this flat and whether they use the resident app.",
+      "vacant": "This flat is vacant: nobody to invite.",
+      "empty": "Nobody is linked to this flat yet.",
+      "all": "Open resident app access for the whole society"
+    }
+  },
+  "invite": {
+    "titleOne": "Invite {{name}}",
+    "titleMany_one": "Invite {{count}} person",
+    "titleMany_other": "Invite {{count}} people",
+    "subtitle": "To the resident app (simulated: nothing is sent)",
+    "channel": "Send by",
+    "channelHint": {
+      "whatsapp": "A WhatsApp message with a personal link. Only for people who agreed to WhatsApp messages.",
+      "sms": "A text message with a personal link. Only for people who agreed to text messages.",
+      "email": "An email with a personal link. Only for people who agreed to emails.",
+      "printed_code": "A printed letter to hand over or put under the door: no consent needed, nothing is sent electronically."
+    },
+    "willSkip_one": "{{count}} person will be skipped",
+    "willSkip_other": "{{count}} people will be skipped",
+    "skip": {
+      "not_verified": "their link to the flat is not verified",
+      "no_consent": "no consent for this channel",
+      "no_contact": "no mobile number on file",
+      "already_active": "already uses the app",
+      "resend_limit": "already sent three times this week",
+      "revoked": "access was closed"
+    },
+    "previewTitle": "The message",
+    "message": "Assalam-o-alaikum {{name}}, Al-Noor Residency invites you to its resident app for flat {{flat}}: see your bills, pay by bank transfer and keep your receipts. Open your personal link within {{days}} days. A one-time code confirms it is you.",
+    "letter": "Dear {{name}}, Al-Noor Residency invites you to its resident app for flat {{flat}}. Open the address on this letter within {{days}} days; a one-time code to your phone confirms it is you.",
+    "letterSteps": "Open this address on your phone, confirm the code we send to your number, then choose your language and text size.",
+    "rules": "Invitations are bound to this society, the flat and the verified person, and run out after 14 days. A person can be sent at most three times a week.",
+    "send_one": "Send {{count}} invitation",
+    "send_other": "Send {{count}} invitations",
+    "prepareCodes_one": "Prepare {{count}} letter",
+    "prepareCodes_other": "Prepare {{count}} letters",
+    "sentAnnounce": "{{count}} invitations prepared.",
+    "sentToast_one": "{{count}} invitation prepared (simulated).",
+    "sentToast_other": "{{count}} invitations prepared (simulated).",
+    "resultTitle_one": "{{count}} invitation ready",
+    "resultTitle_other": "{{count}} invitations ready",
+    "simulated": "Nothing was sent: this is a demo. Each invitation below shows the personal link a real message would carry.",
+    "expires": "valid until {{date}}",
+    "resent_one": "resent {{count}} time",
+    "resent_other": "resent {{count}} times",
+    "openAsResident": "Open as the resident (demo)",
+    "copy": "Copy link",
+    "copied": "Link copied.",
+    "skippedTitle_one": "{{count}} person skipped",
+    "skippedTitle_other": "{{count}} people skipped",
+    "print": "Print the letters",
+    "done": "Done",
+    "errors": {
+      "tooMany": "Invite at most 50 people at a time.",
+      "notOpen": "This invitation is no longer open."
+    },
+    "closed": "This invitation is no longer open. Ask your society office for a new one.",
+    "linkEnded": "Your link to this flat has ended, so this invitation cannot be used. Ask your society office."
+  },
+  "code": {
+    "expired": "That code has expired. Ask for a new one.",
+    "locked": "Too many wrong codes. Ask for a new code.",
+    "wrong": "That code is not right.",
+    "wrongField_one": "That code is not right. {{count}} try left.",
+    "wrongField_other": "That code is not right. {{count}} tries left.",
+    "label": "6-digit code",
+    "hint": "Digits only. The code works for 10 minutes.",
+    "required": "Enter the 6-digit code.",
+    "demoTitle": "Demo: no message was sent",
+    "demoBody": "A real system would send this code to <b>{{to}}</b>. Here it is shown on screen.",
+    "demoCodeLabel": "The code",
+    "sentTo": "Code sent to {{to}}",
+    "resend": "Send a new code",
+    "resent": "A new code was sent.",
+    "useIt": "Fill in the demo code"
+  },
+  "sessions": {
+    "errors": {
+      "current": "This is the device you are using. Use “Sign out” instead.",
+      "ended": "This session has already ended."
+    },
+    "title": "Signed-in devices",
+    "intro": "Every device and app where you are signed in. Sign out of any you do not recognise.",
+    "current": "This device",
+    "app": {
+      "backoffice": "Office app",
+      "customer": "Resident app",
+      "platform": "Platform HQ"
+    },
+    "lastActive": "Last active {{when}}",
+    "since": "Signed in {{date}}",
+    "device": "{{browser}} on {{platform}}",
+    "platform": {
+      "windows": "Windows",
+      "macos": "macOS",
+      "linux": "Linux",
+      "android": "Android",
+      "ios": "iOS",
+      "other": "another system"
+    },
+    "signOutHere": "Sign out here",
+    "revoke": "Sign out this device",
+    "revokeTitle": "Sign out {{device}}?",
+    "revokeEffect": "Whoever uses that device will have to sign in again. Nothing else changes.",
+    "revoked": "{{device}} was signed out.",
+    "signOutOthers": "Sign out all other devices",
+    "signOutOthersEffect": "Every device except this one is signed out. You stay signed in here.",
+    "othersDone_one": "{{count}} device signed out.",
+    "othersDone_other": "{{count}} devices signed out.",
+    "noOthers": "You are signed in only on this device.",
+    "activeCount_one": "{{count}} active session",
+    "activeCount_other": "{{count}} active sessions",
+    "endedTitle": "Signed out recently",
+    "endReason": {
+      "signed_out": "Signed out",
+      "revoked_by_self": "Signed out by you",
+      "signed_out_elsewhere": "Signed out from another device",
+      "revoked_by_admin": "Signed out by an administrator",
+      "portal_access_revoked": "Access closed by the office",
+      "expired": "Expired"
+    },
+    "endedOn": "{{reason}} · {{date}}",
+    "endedBy": "{{reason}} ({{name}}) · {{date}}",
+    "failed": "That did not work. Try again.",
+    "around": "around {{place}}"
+  },
+  "profile": {
+    "errors": {
+      "phoneForMessages": "Add a mobile number to receive text or WhatsApp messages."
+    },
+    "tabs": {
+      "profile": "Profile",
+      "devices": "Signed-in devices",
+      "activity": "Security activity",
+      "data": "My data"
+    },
+    "tabsLabel": "Profile sections",
+    "introStaff": "Your details, the devices you are signed in on, and recent security activity.",
+    "introResident": "Your contact details, the devices you use, and your data.",
+    "details": "Your details",
+    "name": "Name",
+    "role": "Role",
+    "organisation": "Organisation",
+    "flats": "Your flats",
+    "contact": {
+      "title": "Contact and messages",
+      "intro": "Used to reach you about your account and your flat. Messages go only on the channels you agree to.",
+      "phone": "Mobile number",
+      "email": "Email",
+      "save": "Save contact details",
+      "saved": "Contact details saved."
+    },
+    "consents": {
+      "title": "Service messages",
+      "hint": "Notices, reminders and invitations. Never advertising.",
+      "sms": "Text messages (SMS)",
+      "whatsapp": "WhatsApp",
+      "email": "Email"
+    },
+    "signIn": {
+      "title": "How you sign in",
+      "password": "Password",
+      "sms_code": "One-time code by text message",
+      "passkey": "Passkey",
+      "on": "On",
+      "off": "Off",
+      "lastUsed": "Last used {{date}}",
+      "simulated": "Prototype: sign-in methods are simulated."
+    },
+    "links": {
+      "appearance": "Appearance and accessibility",
+      "access": "What I can use"
+    }
+  },
+  "household": {
+    "errors": {
+      "notHousehold": "Only someone who owns or lives in the flat can add a household member.",
+      "notPending": "This request has already been decided."
+    },
+    "intro": "The people registered at your flats. Only the society office can add someone: ask here and the office checks first.",
+    "relationship": {
+      "spouse": "Spouse",
+      "child": "Son or daughter",
+      "parent": "Parent",
+      "sibling": "Brother or sister",
+      "relative": "Other relative",
+      "domestic_staff": "Domestic staff",
+      "other": "Other"
+    },
+    "occupancy": {
+      "owner_occupied": "Owner lives here",
+      "tenant_occupied": "Tenant lives here",
+      "vacant": "Vacant",
+      "association_use": "Society use"
+    },
+    "you": "You",
+    "unverified": "Not verified yet",
+    "since": "Since {{date}}",
+    "addTitle": "Ask to add someone",
+    "flat": "Flat",
+    "name": "Full name",
+    "relationshipLabel": "Relationship",
+    "phone": "Mobile number",
+    "phoneHint": "Optional. Only the office sees it.",
+    "submit": "Send to the office",
+    "sent": "Sent: the office will check and add {{name}}.",
+    "requestsTitle": "Your requests",
+    "state": {
+      "pending": "Waiting for the office",
+      "approved": "Added",
+      "rejected": "Not added",
+      "withdrawn": "Withdrawn"
+    },
+    "withdraw": "Withdraw",
+    "withdrawnToast": "Request withdrawn.",
+    "noRequests": "No requests.",
+    "privacyNote": "Other residents never see who lives in your flat. The office sees names and roles only to run the building.",
+    "office": {
+      "intro": "Who lives in each flat, and residents’ requests to add household members. Approving adds the person as verified.",
+      "tabsLabel": "Household sections",
+      "tabs": {
+        "flats": "Flats and people",
+        "requests": "Requests"
+      },
+      "search": "Search flat or name",
+      "building": "Block",
+      "occupancy": "Occupancy",
+      "flats_one": "{{count}} flat",
+      "flats_other": "{{count}} flats",
+      "pending_one": "{{count}} request waiting",
+      "pending_other": "{{count}} requests waiting",
+      "approve": "Approve and add",
+      "reject": "Decline",
+      "rejectTitle": "Decline adding {{name}}?",
+      "rejectEffect": "The resident sees your reason.",
+      "reason": "Reason (the resident sees this)",
+      "approved": "{{name}} added to {{flat}}.",
+      "declined": "Request declined.",
+      "requestedBy": "Asked by {{name}} · {{date}}",
+      "decided": "{{state}} by {{name}} · {{date}}",
+      "empty": "No flats match.",
+      "noRequests": "No requests.",
+      "nobody": "Nobody registered.",
+      "failed": "That did not work. Try again."
+    }
+  },
+  "export": {
+    "errors": {
+      "purpose": "Say what the export is for (at least 10 characters).",
+      "nothing": "Nothing you chose is yours to export.",
+      "notWaiting": "This export is not waiting for a decision.",
+      "cannotWiden": "An approval can only remove data from an export, never add it.",
+      "expired": "This export has expired. Ask for a new one.",
+      "notReady": "This export is not ready to download."
+    },
+    "new": "New export",
+    "newTitle": "New data export",
+    "newSubtitle": "Only what you can already open is included. Personal or financial data needs an approver.",
+    "datasetsLabel": "What to include",
+    "datasets": {
+      "people": "People and contacts",
+      "flats": "Flats",
+      "invoices": "Bills",
+      "payments": "Payments",
+      "bank_lines": "Bank lines",
+      "portal_access": "Resident app access",
+      "audit": "Activity log"
+    },
+    "rows_one": "{{count}} row",
+    "rows_other": "{{count}} rows",
+    "reason": {
+      "module_not_licensed": "Not in your organisation’s plan",
+      "permission_missing": "Not part of your role",
+      "outside_scope": "Outside your sites",
+      "removed_by_approver": "Removed by the approver"
+    },
+    "personal": "Personal data",
+    "financial": "Financial data",
+    "format": "File type",
+    "csv": "CSV (spreadsheet)",
+    "json": "JSON",
+    "purpose": "Why is it needed?",
+    "purposeHint": "At least 10 characters. The approver sees this.",
+    "previewTitle": "What the file will hold",
+    "previewLoading": "Checking what you can include…",
+    "needsApproval": "Contains personal or financial data, so someone with approval rights must approve it before you can download it.",
+    "noApproval": "No personal or financial data: ready to download straight away.",
+    "submit": "Send for approval",
+    "submitReady": "Prepare the file",
+    "created": "Export {{ref}} sent for approval.",
+    "createdReady": "Export {{ref}} is ready to download.",
+    "empty": "No exports yet",
+    "emptyBody": "Ask for a copy of records you can open, for a meeting or an audit.",
+    "state": {
+      "awaiting_approval": "Waiting for approval",
+      "approved": "Approved",
+      "rejected": "Declined",
+      "ready": "Ready to download",
+      "downloaded": "Downloaded",
+      "expired": "Expired",
+      "cancelled": "Cancelled"
+    },
+    "requestedBy": "Requested by {{name}} · {{date}}",
+    "decidedBy": "{{state}} by {{name}} · {{date}}",
+    "expires": "Download by {{date}}",
+    "purposeLine": "Purpose: {{text}}",
+    "download": "Download",
+    "downloaded": "Saved as {{file}}.",
+    "cancel": "Cancel request",
+    "cancelEffect": "The request is withdrawn. Nothing is exported.",
+    "cancelled": "Request {{ref}} cancelled.",
+    "review": "Review",
+    "yours": "Your request: someone else with approval rights decides.",
+    "decideTitle": "Review {{ref}}",
+    "decideSubtitle": "Requested by {{name}}. Approve all of it, remove datasets, or decline. Nothing can be added.",
+    "keep": "Datasets to approve",
+    "approve": "Approve",
+    "approveSome": "Approve {{count}} of {{total}}",
+    "reject": "Decline",
+    "note": "Note to the requester",
+    "noteHint": "Required when declining (at least 5 characters).",
+    "approved": "Export {{ref}} approved.",
+    "rejected": "Export {{ref}} declined.",
+    "failed": "That did not work. Try again."
+  },
+  "privacy": {
+    "errors": {
+      "closed": "This request is already closed.",
+      "details": "Tell us a little more (at least 10 characters).",
+      "open": "You already have an open request of this kind."
+    },
+    "intro": "Requests from residents to see, correct or delete their data. Answer within 30 days.",
+    "kind": {
+      "access": "Full copy",
+      "correction": "Correction",
+      "deletion": "Deletion"
+    },
+    "via": {
+      "resident_app": "From the resident app",
+      "office": "Recorded by the office"
+    },
+    "due": "Due {{date}}",
+    "flats": "Flats {{flats}}",
+    "complete": "Mark completed",
+    "reject": "Decline",
+    "completeTitle": "Complete {{ref}}?",
+    "rejectTitle": "Decline {{ref}}?",
+    "completeEffect": {
+      "access": "Confirm that the copy was given to the resident.",
+      "correction": "Confirm that the record was corrected.",
+      "deletion": "The resident’s account and contact details are removed. Bills and payments are kept, without the name, as the law requires."
+    },
+    "rejectEffect": "The resident sees your reason.",
+    "noteLabel": "What was done (the resident sees this)",
+    "completed": "Request {{ref}} completed.",
+    "declined": "Request {{ref}} declined.",
+    "empty": "No privacy requests.",
+    "retention": {
+      "contacts_removed_financial_kept": "Contact details and the resident app account were removed. Bills and payments are kept without the name, as the law requires."
+    }
+  },
+  "appearance": {
+    "errors": {
+      "whiteLabel": "A custom brand colour needs the White-label add-on.",
+      "contrast": "This colour is not readable enough with the interface.",
+      "contrastField": "Not readable enough ({{failures}}). Try {{suggestion}}."
+    }
+  },
+  "accept": {
+    "loading": "Opening your invitation…",
+    "eyebrow": "Invitation",
+    "title": "Welcome, {{name}}",
+    "intro": "Your society office invited you to its resident app.",
+    "joining": "You are joining",
+    "organisation": "Society",
+    "flat": "Flat",
+    "expires": "Valid until {{date}}",
+    "notYou": "Not {{name}}, or not your flat? Do not continue. Ask your society office to correct it.",
+    "benefitsTitle": "In the app you can",
+    "benefits": {
+      "bills": "See your bills and pay by bank transfer",
+      "receipts": "Get receipts and your statement",
+      "household": "See who is registered in your household",
+      "privacy": "Only you and the society office see your details"
+    },
+    "language": "Language",
+    "languageHint": "You can change it at any time.",
+    "confirmTitle": "Confirm it is you",
+    "confirmBody": "We send a 6-digit code to {{to}}. It proves the invitation reached the right person.",
+    "confirmBodyNoPhone": "We send a 6-digit code to the contact your society office has for you.",
+    "sendCode": "Send my code",
+    "join": "Confirm and join",
+    "signedInAs": "This device is signed in as {{name}}. Joining signs that account out here.",
+    "joinedAnnounce": "You have joined {{organisation}}. Next, set up the app.",
+    "states": {
+      "expired": {
+        "title": "This invitation has expired",
+        "body": "Invitations last 14 days. Ask your society office to send a new one."
+      },
+      "accepted": {
+        "title": "This invitation was already used",
+        "body": "If you joined already, sign in with your mobile number."
+      },
+      "revoked": {
+        "title": "This invitation is no longer valid",
+        "body": "The society office cancelled it, or your link to the flat changed. Ask the office if you think this is a mistake."
+      },
+      "not_found": {
+        "title": "We could not find this invitation",
+        "body": "Check the link in your message, or ask your society office for a new one."
+      }
+    },
+    "signIn": "Sign in with my mobile number"
+  },
+  "signIn": {
+    "title": "Sign in to the resident app",
+    "intro": "Use the mobile number your society office has for you. We send you a one-time code.",
+    "phone": "Mobile number",
+    "phoneHint": "For example +92 399 5100778",
+    "sendCode": "Send code",
+    "verifyTitle": "Enter your code",
+    "verify": "Sign in",
+    "changeNumber": "Use a different number",
+    "noCode": "If this number has resident app access, a code is on its way. No code? Ask your society office for an invitation.",
+    "noCodeDemo": "Demo: this number has no active resident app account, so nothing was sent. A real system shows the same message either way, so nobody can find out who lives here.",
+    "welcomeBack": "Welcome back",
+    "demoNumbersTitle": "Demo numbers with access",
+    "demoNumbersBody": "Fictional residents whose accounts are active. Anyone who joins by invitation can sign in with their own number too.",
+    "demoIdentities": "Use a demo identity instead",
+    "notice": {
+      "session_ended": "You were signed out because this device was signed out from another device.",
+      "portal_access_revoked": "Your resident app access was closed by the society office. Ask the office if you think this is a mistake.",
+      "switched_app": "You switched to the other app on this device."
+    },
+    "noticeTitle": "You are signed out"
+  },
+  "welcome": {
+    "stepOf": "Step {{step}} of {{total}}",
+    "skip": "Skip for now",
+    "back": "Back",
+    "continue": "Continue",
+    "language": {
+      "title": "Choose your language",
+      "body": "The app and its messages use this language. You can change it later in Settings."
+    },
+    "theme": {
+      "title": "Light or dark?",
+      "body": "Choose what is easiest on your eyes. “Follow my device” changes when your phone does."
+    },
+    "done": {
+      "title": "You are all set, {{name}}",
+      "body": "Your flat {{flats}} is connected to {{organisation}}.",
+      "next": "What you can do now",
+      "bills": "See what you owe and pay it",
+      "receipts": "Find receipts and your statement",
+      "profile": "Check your contact details and devices",
+      "settings": "Text size, language and colours stay in Settings.",
+      "home": "Go to my home"
+    },
+    "chosen": "Text size {{value}} %, chosen earlier: kept."
+  },
+  "activity": {
+    "title": "Security activity",
+    "intro": "Sign-ins, sign-outs and changes to your account, newest first.",
+    "empty": "Nothing yet.",
+    "kind": {
+      "signed_in": "Signed in",
+      "signed_out": "Signed out",
+      "session_revoked": "Signed out a device",
+      "other_sessions_signed_out": "Signed out all other devices",
+      "session_revoked_by_admin": "A device was signed out by an administrator",
+      "switched_app": "Switched apps",
+      "invitation_accepted": "Joined the resident app",
+      "portal_access_revoked": "Resident app access closed",
+      "code_failed": "A wrong code was entered",
+      "contact_changed": "Contact details changed",
+      "export_requested": "Data export requested",
+      "export_downloaded": "Data export downloaded",
+      "privacy_request_submitted": "Privacy request sent"
+    },
+    "by": "by {{name}}",
+    "unfamiliarStaff": "Something you do not recognise? Sign out that device and tell your administrator.",
+    "unfamiliarResident": "Something you do not recognise? Sign out that device and tell the society office."
+  },
+  "switch": {
+    "mode": {
+      "backoffice": "Management",
+      "customer": "Resident"
+    },
+    "modeLabel": "You are using the {{app}} as {{role}}",
+    "to": {
+      "backoffice": "Switch to the office app",
+      "customer": "Switch to the resident app"
+    },
+    "appName": {
+      "backoffice": "office app",
+      "customer": "resident app"
+    },
+    "cardTitle": "You can also use the {{app}}",
+    "cardBody": "As {{role}}, with the same account. Each app keeps its own sign-in, and nothing from one appears in the other.",
+    "opening": "Opening the {{app}}…",
+    "failed": "The switch did not work. Try again.",
+    "landingTitle": "Switching apps",
+    "expiredTitle": "This switch has expired",
+    "expiredBody": "A switch works once, within two minutes. Go back and switch again, or sign in here.",
+    "signIn": "Sign in",
+    "arrived": "You are in the {{app}} as {{role}}."
+  },
+  "myData": {
+    "title": "My data",
+    "intro": "Download a copy of your own records, or ask the office to correct or delete them.",
+    "holdsTitle": "What the society holds about you",
+    "holds": {
+      "flats": "Flats",
+      "bills": "Bills",
+      "payments": "Payments",
+      "proofs": "Payment proofs",
+      "devices": "Devices"
+    },
+    "download": "Download my data",
+    "downloadHint": "A JSON file with your details, flats, bills, payments and devices. Nothing about other people.",
+    "downloaded": "Saved as {{file}}.",
+    "requestsTitle": "Requests",
+    "requestsIntro": "The society office answers within 30 days.",
+    "newRequest": "New request",
+    "kindLabel": "What do you need?",
+    "kind": {
+      "access": "A full copy from the office",
+      "correction": "Correct something",
+      "deletion": "Delete my data"
+    },
+    "kindHint": {
+      "access": "The office prepares everything it holds about you.",
+      "correction": "Say what is wrong and what it should say.",
+      "deletion": "Your account and contact details are removed. Bills and payments are kept as the law requires, without your name."
+    },
+    "details": "Details",
+    "detailsHint": "At least 10 characters.",
+    "submit": "Send request",
+    "sent": "Request {{ref}} sent.",
+    "none": "No requests yet.",
+    "state": {
+      "submitted": "Sent",
+      "in_review": "Being reviewed",
+      "completed": "Completed",
+      "rejected": "Declined"
+    },
+    "due": "Answer due {{date}}",
+    "outcome": "Outcome: {{text}}"
+  },
+  "data": {
+    "intro": "Ask for a copy of records you can already open, decide on exports waiting for approval, and answer residents’ privacy requests. Files are simulated.",
+    "tabsLabel": "Data and privacy sections",
+    "tabs": {
+      "exports": "Exports",
+      "privacy": "Privacy requests"
+    }
+  },
+  "users": {
+    "intro": "Your organisation’s staff, where they are signed in to the office app, and their recent security activity. Residents’ access is managed in Resident app access.",
+    "active_one": "{{count}} active session",
+    "active_other": "{{count}} active sessions",
+    "none": "Not signed in anywhere",
+    "lastActive": "Last active {{when}}",
+    "alsoResident": "Also a resident",
+    "you": "You",
+    "permissions_one": "{{count}} permission",
+    "permissions_other": "{{count}} permissions",
+    "open": "Sessions and activity",
+    "sessionsTitle": "Office app sessions",
+    "signOutDevice": "Sign out this device",
+    "signOutTitle": "Sign out {{device}} for {{name}}?",
+    "signOutEffect": "{{name}} will have to sign in again on that device. It is recorded in their security activity.",
+    "signedOut": "{{device}} signed out for {{name}}.",
+    "signOutAll": "Sign out all their devices",
+    "signOutAllTitle": "Sign out all of {{name}}’s devices?",
+    "signOutAllEffect": "Every office app session of {{name}} ends. It is recorded in their security activity.",
+    "signedOutAll_one": "{{count}} device signed out.",
+    "signedOutAll_other": "{{count}} devices signed out.",
+    "noManage": "You can see sessions but not end them: that needs session management.",
+    "yoursHint": "This is you. Sign out your own devices in Profile and devices.",
+    "activityTitle": "Recent security activity",
+    "residentNote": "Resident app sessions are never shown here.",
+    "noSessions": "No office app sessions."
+  },
+  "branding": {
+    "intro": "The colours of the office app and the resident app for everyone in {{org}}. The page shows your choice straight away; nothing changes for others until you save.",
+    "presetsTitle": "Colour palette",
+    "inUse": "In use",
+    "save": "Use these colours",
+    "saved": "Colours updated for everyone in {{org}}.",
+    "unchanged": "These colours are already in use.",
+    "changedBy": "Last changed by {{name}} · {{date}}",
+    "neverChanged": "Not chosen yet: Evergreen, the PropertyOS default, is used.",
+    "overrideNote": "Anyone who chose their own palette, or high contrast, keeps it: personal accessibility settings always come first.",
+    "yourOverride": "You chose your own palette or high contrast, so this page cannot preview the organisation’s colours for you. Others see them.",
+    "brandTitle": "Your own brand colour",
+    "brandIntro": "A custom colour must stay readable on every surface in light and dark mode. The platform checks it and works out the hover, soft and dark-mode shades.",
+    "brandLocked": "Saving a custom colour needs the White-label add-on. You can still check a colour and preview it here.",
+    "brandLabel": "Brand",
+    "colour": "Brand colour",
+    "colourHint": "Six-digit hex, for example #1e4d42.",
+    "check": "Check and preview",
+    "pass": "Readable everywhere. The other shades were worked out for you.",
+    "fail": "Not readable enough in some places:",
+    "suggestion": "The nearest darker shade that passes is {{colour}}.",
+    "useSuggestion": "Use {{colour}}",
+    "invalid": "Enter a colour like #1e4d42.",
+    "pair": {
+      "primary_on_panel": "links and buttons on cards",
+      "primary_on_page": "links on the page background",
+      "primary_on_soft": "text on highlighted areas",
+      "label_on_primary": "button labels",
+      "label_on_hover": "button labels on hover",
+      "dark_primary_on_panel": "links on cards (dark mode)",
+      "dark_primary_on_page": "links on the page (dark mode)",
+      "dark_primary_on_soft": "text on highlighted areas (dark mode)",
+      "dark_label_on_primary": "button labels (dark mode)",
+      "dark_label_on_hover": "button labels on hover (dark mode)",
+      "not_a_colour": "not a colour"
+    }
+  },
+  "properties": {
+    "intro": "Your flats in {{org}}, what you owe on each, and who is registered there.",
+    "balanceState": {
+      "paid_up": "Paid up",
+      "due": "Due",
+      "overdue": "Overdue",
+      "credit": "In credit"
+    },
+    "owes": "You owe {{amount}}",
+    "inCredit": "In credit {{amount}}",
+    "nothingOwed": "Nothing to pay",
+    "account": "Account {{account}}",
+    "since": "Since {{date}}",
+    "facts": "{{type}} · {{area}} sq ft · Floor {{floor}}",
+    "open": "Open",
+    "tabsLabel": "Flat sections",
+    "tabs": {
+      "overview": "Overview",
+      "bills": "Bills",
+      "household": "Household"
+    },
+    "billsTitle": "Your bills for this flat",
+    "billState": {
+      "paid": "Paid",
+      "partly_paid": "Partly paid",
+      "due": "Due",
+      "overdue": "Overdue"
+    },
+    "pay": "Pay",
+    "seeBill": "See bill",
+    "statement": "Statement",
+    "noBills": "No bills yet.",
+    "onlyYours": "Only the bills you are responsible for are shown.",
+    "notFound": "This flat is not one of yours.",
+    "label": {
+      "flat": "Flat",
+      "account": "Billing account",
+      "since": "Linked since"
+    }
+  }
+}

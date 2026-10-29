@@ -17,6 +17,7 @@ import enSites from '../locales/en-PK/sites.json';
 import enBilling from '../locales/en-PK/billing.json';
 import enCollections from '../locales/en-PK/collections.json';
 import enDues from '../locales/en-PK/dues.json';
+import enIdentity from '../locales/en-PK/identity.json';
 import urA11y from '../locales/ur-PK/a11y.json';
 import urCommon from '../locales/ur-PK/common.json';
 import urDashboard from '../locales/ur-PK/dashboard.json';
@@ -36,6 +37,7 @@ import urSites from '../locales/ur-PK/sites.json';
 import urBilling from '../locales/ur-PK/billing.json';
 import urCollections from '../locales/ur-PK/collections.json';
 import urDues from '../locales/ur-PK/dues.json';
+import urIdentity from '../locales/ur-PK/identity.json';
 
 export const NAMESPACES = [
   'common',
@@ -57,6 +59,7 @@ export const NAMESPACES = [
   'billing',
   'collections',
   'dues',
+  'identity',
 ] as const;
 
 export type Namespace = (typeof NAMESPACES)[number];
@@ -81,6 +84,7 @@ const en = {
   billing: enBilling,
   collections: enCollections,
   dues: enDues,
+  identity: enIdentity,
 };
 
 const ur: typeof en = {
@@ -103,6 +107,7 @@ const ur: typeof en = {
   billing: urBilling,
   collections: urCollections,
   dues: urDues,
+  identity: urIdentity,
 };
 
 export const resources = { 'en-PK': en, 'ur-PK': ur };

@@ -31,6 +31,7 @@ import { useState, type ReactNode } from 'react';
 import { ACCESS_DATE, SOCIETY } from '../../../nav.config';
 import { FactList, Loading, OccupancyBadge, ProblemAlert, SettlementBadge, useSocietyFormat } from '../kit';
 import { AuditList, ChargesTable, ChoiceCards, StatementView } from '../parts';
+import { FlatPortalTab } from '../portal/FlatPortalTab';
 
 /**
  * SITE-006 Flat 360 (Gate C.1 reference experience B). One flat and everything connected to it:
@@ -80,6 +81,7 @@ function Workspace({ data }: { data: FlatDetail }) {
     { id: 'payer', label: t('sites:flat.tabs.payer') },
     ...(seesCharges ? [{ id: 'charges', label: t('sites:flat.tabs.charges') }] : []),
     ...(seesMoney ? [{ id: 'invoices', label: t('sites:flat.tabs.invoices') }] : []),
+    ...(can('portal_access.view') ? [{ id: 'portal', label: t('sites:flat.tabs.portal') }] : []),
     { id: 'activity', label: t('sites:flat.tabs.activity') },
   ];
 
@@ -201,6 +203,8 @@ function Workspace({ data }: { data: FlatDetail }) {
             <ChargesTab data={data} />
           ) : tab === 'invoices' ? (
             <InvoicesTab data={data} />
+          ) : tab === 'portal' && can('portal_access.view') ? (
+            <FlatPortalTab flatId={flat.id} />
           ) : tab === 'activity' ? (
             <Panel title={t('sites:flat.tabs.activity')}>
               <AuditList query={{ flat: flat.id }} />

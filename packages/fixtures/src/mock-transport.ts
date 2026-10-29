@@ -1,13 +1,14 @@
-import { ApiError, decide, PERMISSION_MODULE, type AccessDecision, type ApiRequest, type ApiTransport, type EffectiveAccess, type Permission, type Persona } from '@repo/contracts';
+import { ApiError, decide, PERMISSION_MODULE, type AccessDecision, type ApiRequest, type ApiTransport, type DeviceInfo, type EffectiveAccess, type Permission, type Persona } from '@repo/contracts';
 import type { TenantDataset } from './dataset-types';
 import { datasetFor } from './datasets';
 import { DemoStore, VISITOR_PARTITION } from './demo-store';
 import { HANDLERS, type Handler, type HandlerAccess, type HandlerContext } from './handlers';
 import { refused } from './handler-types';
-import { PERSONAS } from './people';
+import { ALL_PERSONAS } from './people';
 import { ACCESS_TODAY, effectiveAccessFor } from './tenant-directory';
 import { createRandom } from './seed';
 import { TrainingStore } from './training-store';
+import { sessionGate } from './identity/gate';
 
 export type MockMode = 'normal' | 'fast' | 'slow' | 'error' | 'offline';
 export const MOCK_MODES: readonly MockMode[] = ['normal', 'fast', 'slow', 'error', 'offline'];
@@ -16,6 +17,12 @@ export interface MockContext {
   personaId: string | null;
   /** Selected project context in the header, or 'all'. */
   projectId: string;
+  /** Gate D.1: this browser's session (absent for a sign-in made before sessions were kept). */
+  sessionId?: string | null;
+  /** The app that calls (its sessions are kept apart from the other app's). */
+  app?: 'backoffice' | 'customer' | 'platform';
+  /** The calling device, as the app describes it (kind, platform and browser only). */
+  device?: DeviceInfo;
 }
 
 export interface MutationLogEntry {
@@ -107,9 +114,6 @@ export class MockTransport implements ApiTransport {
     }
 
     const correlationId = nextCorrelationId();
-    // A partition shared with the other app (the society demo) is read fresh before every request.
-    const signedIn = this.persona();
-    if (signedIn) await this.demo.prepare(signedIn.tenantId);
     if (req.method !== 'GET') {
       this.mutationLog.push({
         at: new Date().toISOString(),
@@ -124,8 +128,13 @@ export class MockTransport implements ApiTransport {
       if (handler.method !== req.method) continue;
       const match = handler.pattern.exec(req.path);
       if (!match) continue;
-      const ctx = this.authorize(handler, correlationId);
-      return handler.handle({ ...ctx, req, params: match.groups ?? {} }) as T;
+      const params = match.groups ?? {};
+      // A partition shared with the other app (the society demo) is read fresh before every request:
+      // the signed-in person's organisation, or the one a public endpoint's token or code names.
+      const tenantKey = handler.access.kind === 'public' ? handler.access.tenantOf(req, params) : this.persona()?.tenantId;
+      if (tenantKey) await this.demo.prepare(tenantKey);
+      const ctx = this.authorize(handler, correlationId, req, params);
+      return handler.handle({ ...ctx, req, params }) as T;
     }
     throw new ApiError({ status: 404, code: 'not_found', messageKey: 'errors:api.notFound', correlationId, changed: false });
   }
@@ -152,12 +161,12 @@ export class MockTransport implements ApiTransport {
 
   private persona(): Persona | undefined {
     const { personaId } = this.options.getContext();
-    return (this.options.personas ?? PERSONAS).find((p) => p.id === personaId);
+    return (this.options.personas ?? ALL_PERSONAS).find((p) => p.id === personaId);
   }
 
   /** The gate in front of every handler; returns the context it may use, or throws the refusal. */
-  private authorize(handler: Handler, correlationId: string): Omit<HandlerContext, 'req' | 'params'> {
-    const { projectId } = this.options.getContext();
+  private authorize(handler: Handler, correlationId: string, req: ApiRequest, params: Record<string, string>): Omit<HandlerContext, 'req' | 'params'> {
+    const { projectId, sessionId, app, device } = this.options.getContext();
     const persona = this.persona();
     const declared = handler.access;
 
@@ -166,6 +175,18 @@ export class MockTransport implements ApiTransport {
         persona: undefined, tenantId: undefined, access: null, data: NO_RECORDS, allowsProject: () => false,
         at: ACCESS_TODAY, suspension: 'operational', correlationId,
         training: this.trainingFor(VISITOR_PARTITION), demo: this.demo.partition(VISITOR_PARTITION), resetDemo: this.resetDemo,
+      };
+    }
+    if (declared.kind === 'public') {
+      // Scoped by a token or code: one organisation's records, no identity. The handler checks the
+      // token or code before it reveals or changes anything.
+      const tenantId = declared.tenantOf(req, params);
+      const data = tenantId ? datasetFor(tenantId) : undefined;
+      return {
+        persona: undefined, tenantId, access: null, data: data ?? NO_RECORDS, allowsProject: () => false,
+        at: ACCESS_TODAY, suspension: 'operational', correlationId,
+        training: this.trainingFor(VISITOR_PARTITION), demo: this.demo.partition(tenantId && data ? tenantId : VISITOR_PARTITION), resetDemo: this.resetDemo,
+        ...(app ? { app } : {}), ...(device ? { device } : {}),
       };
     }
     if (!persona) {
@@ -178,6 +199,14 @@ export class MockTransport implements ApiTransport {
     }
     const decision = decideEndpoint(access, declared, ACCESS_TODAY);
     if (!decision.allowed) refused(decision, correlationId);
+
+    // Gate D.1: the session must still be active (another device or an administrator may have ended
+    // it), and a resident of a portal-managed society must hold an active portal account.
+    const callerApp = app ?? (persona.app === 'customer' ? 'customer' : persona.app === 'platform' ? 'platform' : 'backoffice');
+    const gate = sessionGate({ demo: this.demo.partition(persona.tenantId), persona, sessionId: sessionId ?? undefined, device, app: callerApp, stamp: `${ACCESS_TODAY}T${new Date().toISOString().slice(11)}` });
+    if (!gate.ok) {
+      throw new ApiError({ status: 401, code: gate.reason, messageKey: `errors:access.${gate.reason}`, correlationId, changed: false });
+    }
 
     const scope = persona.projectScope;
     return {
@@ -192,6 +221,9 @@ export class MockTransport implements ApiTransport {
       training: this.trainingFor(persona.tenantId),
       demo: this.demo.partition(persona.tenantId),
       resetDemo: this.resetDemo,
+      sessionId: gate.session.id,
+      app: callerApp,
+      ...(device ? { device } : {}),
     };
   }
 

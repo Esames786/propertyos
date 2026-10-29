@@ -13,7 +13,7 @@ export function PlotIllustration({ className }: { className?: string }) {
     }
   }
   return (
-    <svg aria-hidden viewBox="0 0 320 200" preserveAspectRatio="xMidYMid slice" className={cn('block size-full', className)}>
+    <svg aria-hidden data-decorative viewBox="0 0 320 200" preserveAspectRatio="xMidYMid slice" className={cn('block size-full', className)}>
       <rect width="320" height="200" fill="var(--color-raised)" />
       {/* roads */}
       <rect x="0" y="20" width="320" height="6" fill="var(--color-sunken)" />

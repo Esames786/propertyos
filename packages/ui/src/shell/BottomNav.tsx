@@ -6,7 +6,7 @@ import { useT } from '../lib/useT';
 import { useNavigation } from '../navigation/RouterAdapter';
 import { useSession } from '../permissions/SessionProvider';
 import { useReducedMotion } from '../preferences/PreferencesProvider';
-import { isCurrent } from './NavList';
+import { currentItemId } from './NavList';
 import { QuickCreateMenu, quickCreateAvailable } from './QuickCreateMenu';
 import { useShell } from './ShellContext';
 
@@ -37,9 +37,10 @@ export function BottomNav() {
   const start = items.slice(0, 2);
   const end = [...items.slice(2), ...(more ? [more] : [])];
 
+  const currentId = currentItemId(location.pathname, [...items, ...(more ? [more] : [])]);
   const cell = (item: NavItem) => {
     const Icon = item.icon;
-    const current = isCurrent(location.pathname, item);
+    const current = item.id === currentId;
     return (
       <li key={item.id} className="flex-1">
         <Link

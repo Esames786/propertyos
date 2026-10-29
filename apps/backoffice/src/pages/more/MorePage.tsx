@@ -8,14 +8,14 @@ import {
   Stagger,
   useAnnounce,
   useApiMutation,
-  useSession,
+  useSession, useSignOut,
   useShell,
   useT,
   useToast,
   type NavItem,
   type TileHue,
 } from '@repo/ui';
-import { Accessibility, Bell, Compass, GraduationCap, LogOut, RotateCcw, Settings, ShieldCheck, KeyRound } from 'lucide-react';
+import { Accessibility, Bell, Compass, GraduationCap, LogOut, MonitorSmartphone, RotateCcw, Settings, ShieldCheck, KeyRound } from 'lucide-react';
 import { Link } from 'react-aria-components';
 import { LINKS } from '../../nav.config';
 
@@ -44,7 +44,8 @@ const cardClass =
  */
 export default function MorePage() {
   const { t } = useT();
-  const { persona, personas, signIn, signOut, allows } = useSession();
+  const { persona, personas, signIn, allows } = useSession();
+  const signOut = useSignOut();
   const announce = useAnnounce();
   const toast = useToast();
   const reset = useApiMutation();
@@ -54,9 +55,9 @@ export default function MorePage() {
   const colleagues = personas.filter((p) => p.tenantId === persona?.tenantId);
 
   const settings: Array<{ id: string; label: string; href: string; icon: typeof Settings; hue: TileHue }> = [
-    { id: 'preferences', label: t('nav:pages.preferences'), href: LINKS.preferences, icon: Settings, hue: 'slate' },
+    { id: 'profile', label: t('nav:pages.profile'), href: LINKS.profile, icon: MonitorSmartphone, hue: 'slate' },
     { id: 'my-access', label: t('nav:pages.myAccess'), href: LINKS.myAccess, icon: KeyRound, hue: 'emerald' },
-    { id: 'accessibility', label: t('nav:pages.accessibility'), href: '/backoffice/global/accessibility-preferences', icon: Accessibility, hue: 'sky' },
+    { id: 'accessibility', label: t('nav:pages.accessibility'), href: LINKS.preferences, icon: Accessibility, hue: 'sky' },
     { id: 'notifications', label: t('nav:header.notifications'), href: '/backoffice/global/notifications', icon: Bell, hue: 'amber' },
     { id: 'tours', label: t('nav:pages.tourLibrary'), href: LINKS.tourLibrary, icon: Compass, hue: 'emerald' },
     { id: 'practice', label: t('nav:pages.practice'), href: '/backoffice/help/practice', icon: GraduationCap, hue: 'gold' },

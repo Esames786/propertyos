@@ -1,4 +1,4 @@
-import { ApiError, decide, denyStatus, PERMISSION_MODULE, type AccessDecision, type AccessRecord, type ApiRequest, type EffectiveAccess, type Invoice, type ModuleKey, type Permission, type Persona, type SuspensionClass } from '@repo/contracts';
+import { ApiError, decide, denyStatus, PERMISSION_MODULE, type AccessDecision, type AccessRecord, type ApiRequest, type DeviceInfo, type EffectiveAccess, type Invoice, type ModuleKey, type Permission, type Persona, type SuspensionClass } from '@repo/contracts';
 import type { TenantDataset } from './dataset-types';
 import { billingAccountOf, entityOfProject, siteOfProject } from './dataset-types';
 import type { DemoPartition } from './demo-store';
@@ -28,6 +28,10 @@ export interface HandlerContext {
   demo: DemoPartition;
   /** Prototype "Reset demo": discards every partition of this browser session and all practice records. */
   resetDemo: () => void;
+  /** Gate D.1: the session the request came from (absent for visitors), its app and device. */
+  sessionId?: string;
+  app?: 'backoffice' | 'customer' | 'platform';
+  device?: DeviceInfo;
 }
 
 /**
@@ -41,10 +45,24 @@ export interface HandlerContext {
  */
 export type HandlerAccess =
   | { kind: 'tenant'; module: ModuleKey; permission: Permission | readonly Permission[] | 'signed_in'; suspension: SuspensionClass }
-  | { kind: 'visitor'; why: string };
+  | { kind: 'visitor'; why: string }
+  | {
+      /**
+       * Gate D.1: before sign-in, scoped by something the caller holds (an invitation token, a phone
+       * number for a one-time code). The transport gives the handler only the organisation that
+       * `tenantOf` names and no identity; the handler must check the token or code itself and
+       * reveal nothing until it does.
+       */
+      kind: 'public';
+      why: string;
+      tenantOf: (req: ApiRequest, params: Record<string, string>) => string | undefined;
+    };
 
 /** A tenant endpoint's declaration: module, permission and suspension class, all stated explicitly. */
 export const requires = (module: ModuleKey, permission: Permission | readonly Permission[] | 'signed_in', suspension: SuspensionClass): HandlerAccess => ({ kind: 'tenant', module, permission, suspension });
+
+/** An endpoint before sign-in scoped to one organisation by a token or code the caller holds (Gate D.1). */
+export const publicFor = (why: string, tenantOf: (req: ApiRequest, params: Record<string, string>) => string | undefined): HandlerAccess => ({ kind: 'public', why, tenantOf });
 
 /** An endpoint open before sign-in (it never reads or changes tenant records). */
 export const visitor = (why: string): HandlerAccess => ({ kind: 'visitor', why });

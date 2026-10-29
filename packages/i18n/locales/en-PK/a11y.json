@@ -74,5 +74,178 @@
     "applied": "Text size set to {{value}}%",
     "reset": "Reset to default",
     "menu": "Text size"
+  },
+  "hub": {
+    "appliedTitle": "In use now",
+    "appliedOne": "{{setting}} applied",
+    "index": "Settings on this page",
+    "resetAll": "Reset everything to default",
+    "resetAllTitle": "Reset appearance and accessibility?",
+    "resetAllEffect": "Text size, fonts, spacing, reading mode, theme, contrast, colours, motion, sound and guided-tour settings return to their defaults. Your language is kept, and you will not be asked to choose a text size again.",
+    "resetDone": "Everything is back to its default.",
+    "saved": "Saved for {{name}} at {{org}} in this browser (prototype). In the product, your settings are kept with your profile and follow you to every device you sign in on.",
+    "savedDevice": "Before you sign in, these settings belong to this device.",
+    "languageKept": "{{language}} is used whenever you sign in here.",
+    "chips": {
+      "text": "Text {{value}}%",
+      "light": "Light",
+      "dark": "Dark",
+      "high": "High contrast",
+      "more": "More contrast",
+      "palette": "{{name}} colours",
+      "compact": "Compact spacing",
+      "reading": "Reading mode",
+      "reduced": "Reduced motion"
+    },
+    "fonts": {
+      "title": "Fonts",
+      "intro": "Choose a typeface for each script. Figures and references stay easy to read either way.",
+      "latin": "English and numbers",
+      "urdu": "Urdu",
+      "geist": {
+        "label": "Geist",
+        "description": "Clean and modern (default)"
+      },
+      "system": {
+        "label": "Your device's font",
+        "description": "The font your phone or computer already uses"
+      },
+      "readable": {
+        "label": "Atkinson Hyperlegible",
+        "description": "Designed for readers with low vision"
+      },
+      "naskh": {
+        "label": "Naskh",
+        "description": "Clear at small sizes (default)"
+      },
+      "nastaliq": {
+        "label": "Nastaliq",
+        "description": "The traditional Urdu hand; lines get more room"
+      }
+    },
+    "density": {
+      "title": "Spacing",
+      "intro": "How much room there is around buttons, lists and cards.",
+      "comfortable": {
+        "label": "Comfortable",
+        "description": "More room around everything (default)"
+      },
+      "compact": {
+        "label": "Compact",
+        "description": "More on screen at once"
+      },
+      "touchNote": "On touch screens and phones, buttons keep their full size whichever you choose."
+    },
+    "reading": {
+      "title": "Reading mode",
+      "label": "Simplified reading mode",
+      "description": "Hides decorative pictures, stops movement, flattens shadows, adds line spacing and underlines links. Nothing you need is removed."
+    },
+    "theme": {
+      "title": "Theme",
+      "intro": "Light or dark backgrounds, or follow your device.",
+      "light": {
+        "label": "Light",
+        "description": "Light backgrounds"
+      },
+      "dark": {
+        "label": "Dark",
+        "description": "Dark backgrounds, gentler at night"
+      },
+      "system": {
+        "label": "Follow my device",
+        "description": "Changes when your device does"
+      },
+      "deviceNow": "Your device is using {{mode}} right now."
+    },
+    "contrast": {
+      "title": "Contrast",
+      "intro": "Stronger contrast makes text, borders and the keyboard focus easier to see.",
+      "system": {
+        "label": "Follow my device setting",
+        "description": "Uses more contrast when your device asks for it"
+      },
+      "standard": {
+        "label": "Standard",
+        "description": "The normal design"
+      },
+      "more": {
+        "label": "More contrast",
+        "description": "Darker text and visible borders"
+      },
+      "high": {
+        "label": "High contrast",
+        "description": "Maximum contrast with strong outlines and underlined links. Replaces colour palettes."
+      }
+    },
+    "palette": {
+      "title": "Colour palette",
+      "intro": "Colours for buttons, links and highlights. Text and status colours stay readable whichever you choose.",
+      "paused": "High contrast is on, so colour palettes and your organisation's colours are paused. Your choice comes back when you turn high contrast off.",
+      "organisation": {
+        "label": "{{org}} colours",
+        "chosen": "Chosen by your organisation",
+        "none": "Your organisation has not chosen colours, so Evergreen is used"
+      },
+      "evergreen": {
+        "label": "Evergreen",
+        "description": "Calm green (PropertyOS default)"
+      },
+      "ocean": {
+        "label": "Ocean",
+        "description": "Deep sea blue"
+      },
+      "indigo": {
+        "label": "Indigo",
+        "description": "Rich blue-violet"
+      },
+      "warm": {
+        "label": "Warm neutral",
+        "description": "Earthy brown"
+      }
+    },
+    "motion": {
+      "title": "Motion",
+      "system": {
+        "label": "Follow my device setting",
+        "description": "Reduces movement when your device asks for it"
+      },
+      "reduce": {
+        "label": "Reduce motion",
+        "description": "Turns off animation and movement; content stays"
+      },
+      "full": {
+        "label": "Allow motion",
+        "description": "Shows all animation, even if your device asks for less"
+      }
+    },
+    "sound": {
+      "title": "Sound and vibration",
+      "volume": "Volume",
+      "quiet": "Quiet",
+      "normal": "Normal",
+      "haptics": "Vibrate with messages",
+      "hapticsHint": "A short vibration with success and error messages.",
+      "hapticsUnavailable": "This device cannot vibrate, so nothing changes here."
+    },
+    "preview": {
+      "title": "Live preview",
+      "live": "Updates as you choose",
+      "someone": "Friend",
+      "eyebrow": "Your workspace",
+      "dueLabel": "This month",
+      "greeting": "Good afternoon, {{name}}",
+      "body": "Your November bill is ready. Pay by 10 November to stay up to date.",
+      "amountLabel": "Amount due",
+      "amount": "PKR 4,200.00",
+      "paid": "Paid",
+      "pending": "Awaiting verification",
+      "overdue": "Overdue",
+      "pay": "Pay now",
+      "view": "View bill",
+      "link": "See your statement"
+    },
+    "intro": "Make the app comfortable for you. Every change applies at once and is saved for you in this organisation.",
+    "platformName": "PropertyOS"
   }
 }

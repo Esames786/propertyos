@@ -18,18 +18,17 @@ export function InlineAlert({
   children,
   role,
   className,
-  'data-testid': testId,
+  ...data
 }: {
   tone?: Tone;
   title?: string;
   children?: ReactNode;
   role?: 'alert' | 'status';
   className?: string;
-  'data-testid'?: string;
-}) {
+} & { [k: `data-${string}`]: string | number | boolean | undefined }) {
   const [style, Icon] = STYLE[tone];
   return (
-    <div role={role} className={cn('flex gap-3 rounded-card border p-3 text-sm', style, className)} data-testid={testId}>
+    <div role={role} className={cn('flex gap-3 rounded-card border p-3 text-sm', style, className)} {...data}>
       <Icon aria-hidden className="mt-0.5 size-5 shrink-0" />
       <div className="min-w-0 text-text">
         {title && <p className="font-semibold">{title}</p>}

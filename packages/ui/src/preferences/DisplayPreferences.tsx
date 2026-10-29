@@ -1,96 +1,193 @@
-import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from 'react';
+import { useLocale, type AppLocale } from '@repo/i18n';
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useMediaQuery } from '../lib/useMediaQuery';
 import { readJson, writeJson } from '../lib/storage';
 import { useSession } from '../permissions/SessionProvider';
+import {
+  DEFAULT_TEXT_SCALE,
+  defaultsFrom,
+  htmlState,
+  migrate,
+  readDevice,
+  resetAll as resetAllOf,
+  resolve,
+  type OrgAppearance,
+  type PersonalPreferences,
+  type ResolvedAppearance,
+  type TextScale,
+} from './personal';
+import { PREFERENCES_KEY, PreferencesContext, type Preferences, type PreferencesContextValue } from './PreferencesProvider';
+
+export { TEXT_SCALES, FIRST_RUN_SCALES, DEFAULT_TEXT_SCALE, isTextScale, percentOf, type TextScale } from './personal';
+/** A person's saved settings (Gate C.2 text size; Gate D.1 the whole personalization hub). */
+export type DisplayPreferences = PersonalPreferences;
 
 /**
- * Personal display preferences (Gate C.2: text size; Gate D: the personalization hub). Kept per
- * person AND organisation (one person may use two workspaces differently), applied to <html> as
- * CSS custom properties that the design tokens read (see tokens/theme.css): `--text-scale` now;
- * theme, palette, contrast, motion, density and fonts later, the same way. Device-level settings
- * (motion, contrast; PreferencesProvider) keep working underneath.
+ * Personal display and accessibility preferences (Gate C.2 text size; Gate D.1 the personalization
+ * hub). Kept per person AND organisation (one person may use two workspaces differently) and applied
+ * to <html> as attributes and custom properties the design tokens read (tokens/theme.css). Before
+ * anyone signs in, the device's own settings apply.
  *
- * The prototype stores the record in this browser; the API keeps it with the person's profile.
+ * The prototype stores the record in this browser under the same key as Gate C.2 (older records are
+ * upgraded, never re-asked); the API keeps it with the person's profile, for every signed-in device.
  */
-
-/** 100 %, 112 %, 125 %, 150 %, 175 %, 200 % (WCAG 1.4.4 asks for 200 % without loss). */
-export const TEXT_SCALES = [1, 1.12, 1.25, 1.5, 1.75, 2] as const;
-export type TextScale = (typeof TEXT_SCALES)[number];
-/** Offered at first run: Small, Comfortable, Large, Extra large (owner, C.2). */
-export const FIRST_RUN_SCALES: readonly TextScale[] = [1, 1.12, 1.25, 1.5];
-export const DEFAULT_TEXT_SCALE: TextScale = 1;
-
-export interface DisplayPreferences {
-  version: 1;
-  textScale: TextScale;
-  /** When the person chose (first run or settings); absent record = not chosen yet. */
-  chosenAt: string;
-  // Gate D adds: theme ('system' | 'light' | 'dark'), palette, contrast, motion, density, fontLatin, fontUrdu.
-}
-
 export const displayPreferencesKey = (app: string, tenantId: string, userId: string) => `pref:display:v1:${app}:${tenantId}:${userId}`;
-
-export const isTextScale = (v: unknown): v is TextScale => (TEXT_SCALES as readonly unknown[]).includes(v);
-export const percentOf = (s: TextScale) => Math.round(s * 100);
+/** The organisation's colours seen last, so they apply on the first paint after a reload. */
+const orgCacheKey = (app: string, tenantId: string) => `pref:org-appearance:${app}:${tenantId}`;
 
 interface DisplayPreferencesValue {
+  /** The settings in force (a text-size preview applied on top of what is saved). */
+  prefs: PersonalPreferences;
+  /** What the page shows after the device and the organisation are taken into account. */
+  resolved: ResolvedAppearance;
   /** What is applied now (a preview, else the saved choice, else 100 %). */
   textScale: TextScale;
-  /** The saved record; null when the signed-in person has not chosen yet (first run). */
-  saved: DisplayPreferences | null;
+  /** The saved record once the person has chosen a text size; null before that (first run). */
+  saved: PersonalPreferences | null;
+  /** Whether anything at all has been saved for this person and organisation. */
+  hasRecord: boolean;
   /** Show a size without saving it (null returns to the saved size). */
   preview: (s: TextScale | null) => void;
   save: (s: TextScale) => void;
-  /** Back to 100 % (kept as a choice, so the first-run step does not return). */
+  /** Text size back to 100 % (kept as a choice, so the first-run step does not return). */
   reset: () => void;
+  /** Change any setting; applied and saved at once. */
+  update: (patch: Partial<PersonalPreferences>) => void;
+  /** Every setting back to its default (language and the first-run choice are kept). */
+  resetAll: () => void;
   signedIn: boolean;
+  organisation: OrgAppearance | null;
+  /** The app supplies the organisation's colours once it knows them (ADM-022). */
+  setOrganisation: (org: OrgAppearance | null) => void;
 }
 
 const Ctx = createContext<DisplayPreferencesValue | null>(null);
 
-function apply(scale: TextScale) {
+function applyToHtml(state: ReturnType<typeof htmlState>) {
   if (typeof document === 'undefined') return;
   const html = document.documentElement;
-  if (scale === DEFAULT_TEXT_SCALE) html.style.removeProperty('--text-scale');
-  else html.style.setProperty('--text-scale', String(scale));
-  html.dataset.textScale = String(percentOf(scale));
+  for (const [name, value] of Object.entries(state.attributes)) {
+    if (value === undefined) html.removeAttribute(name);
+    else html.setAttribute(name, value);
+  }
+  for (const [name, value] of Object.entries(state.properties)) {
+    if (value === undefined) html.style.removeProperty(name);
+    else html.style.setProperty(name, value);
+  }
 }
 
 export function DisplayPreferencesProvider({ app, children }: { app: string; children: ReactNode }) {
   const { persona, tenant } = useSession();
+  const { locale, setLocale } = useLocale();
   const key = persona ? displayPreferencesKey(app, tenant.id, persona.principalId) : null;
-  const read = useCallback((k: string | null): DisplayPreferences | null => {
-    if (!k) return null;
-    const v = readJson<DisplayPreferences | null>(k, null);
-    return v && v.version === 1 && isTextScale(v.textScale) ? v : null;
-  }, []);
-  const [saved, setSaved] = useState<DisplayPreferences | null>(() => read(key));
+  const orgKey = persona ? orgCacheKey(app, tenant.id) : null;
+  const [device, setDevice] = useState(() => readDevice(readJson<unknown>(PREFERENCES_KEY, null)));
+  const read = useCallback((k: string | null) => (k ? migrate(readJson<unknown>(k, null), device) : null), [device]);
+  const [record, setRecord] = useState<PersonalPreferences | null>(() => read(key));
+  const [org, setOrg] = useState<OrgAppearance | null>(() => (orgKey ? readJson<OrgAppearance | null>(orgKey, null) : null));
   const [previewing, setPreviewing] = useState<TextScale | null>(null);
+  const systemDark = useMediaQuery('(prefers-color-scheme: dark)');
+  const systemReduce = useMediaQuery('(prefers-reduced-motion: reduce)');
 
-  // Another person (or organisation) signs in: their own record applies.
+  // Another person (or organisation) signs in: their own record and organisation colours apply.
   useEffect(() => {
-    setSaved(read(key));
+    setRecord(read(key));
+    setOrg(orgKey ? readJson<OrgAppearance | null>(orgKey, null) : null);
     setPreviewing(null);
-  }, [key, read]);
+  }, [key, orgKey, read]);
 
-  const textScale: TextScale = previewing ?? saved?.textScale ?? DEFAULT_TEXT_SCALE;
-  useLayoutEffect(() => apply(key ? textScale : DEFAULT_TEXT_SCALE), [key, textScale]);
+  const base = useMemo(() => record ?? defaultsFrom(device), [record, device]);
+  const prefs = useMemo<PersonalPreferences>(() => (previewing ? { ...base, textScale: previewing } : base), [base, previewing]);
+  const resolved = useMemo(() => resolve(prefs, { systemDark, systemReduce, org }), [prefs, systemDark, systemReduce, org]);
+  useLayoutEffect(() => applyToHtml(htmlState(resolved, org)), [resolved, org]);
 
-  const save = useCallback(
-    (s: TextScale) => {
-      if (!key) return;
-      const record: DisplayPreferences = { version: 1, textScale: s, chosenAt: new Date().toISOString() };
-      writeJson(key, record);
-      setSaved(record);
+  const update = useCallback(
+    (patch: Partial<PersonalPreferences>) => {
+      if (!key) {
+        // Signed out: only the device's accessibility settings exist.
+        setDevice((prev) => {
+          const next = { ...prev, ...(patch.motion ? { motion: patch.motion } : {}), ...(patch.contrast && patch.contrast !== 'high' ? { contrast: patch.contrast } : {}), ...(patch.sound !== undefined ? { sound: patch.sound } : {}), ...(patch.textOnlyGuide !== undefined ? { textOnlyGuide: patch.textOnlyGuide } : {}) };
+          writeJson(PREFERENCES_KEY, next);
+          return next;
+        });
+        return;
+      }
+      setRecord((prev) => {
+        const next: PersonalPreferences = { ...(prev ?? defaultsFrom(device)), ...patch, version: 2, updatedAt: new Date().toISOString() };
+        writeJson(key, next);
+        return next;
+      });
       setPreviewing(null);
     },
-    [key],
+    [key, device],
   );
 
-  const value = useMemo<DisplayPreferencesValue>(
-    () => ({ textScale, saved, preview: setPreviewing, save, reset: () => save(DEFAULT_TEXT_SCALE), signedIn: !!key }),
-    [textScale, saved, save, key],
+  // Language: a person's choice made while signed in follows them; the device keeps its own.
+  const appliedLocale = useRef<{ key: string; locale: AppLocale } | null>(null);
+  useEffect(() => {
+    if (!key) {
+      appliedLocale.current = null;
+      return;
+    }
+    const mine = read(key)?.locale;
+    appliedLocale.current = { key, locale: mine ?? locale };
+    if (mine && mine !== locale) setLocale(mine);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only when the person changes
+  }, [key]);
+  useEffect(() => {
+    const last = appliedLocale.current;
+    if (!key || !last || last.key !== key || last.locale === locale) return;
+    appliedLocale.current = { key, locale };
+    update({ locale });
+  }, [key, locale, update]);
+
+  const setOrganisation = useCallback(
+    (next: OrgAppearance | null) => {
+      setOrg(next);
+      if (orgKey) writeJson(orgKey, next);
+    },
+    [orgKey],
   );
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+
+  const value = useMemo<DisplayPreferencesValue>(() => {
+    const now = () => new Date().toISOString();
+    return {
+      prefs,
+      resolved,
+      textScale: prefs.textScale,
+      saved: record?.chosenAt ? record : null,
+      hasRecord: !!record,
+      preview: setPreviewing,
+      save: (s) => update({ textScale: s, chosenAt: now() }),
+      reset: () => update({ textScale: DEFAULT_TEXT_SCALE, chosenAt: record?.chosenAt ?? now() }),
+      update,
+      resetAll: () => {
+        if (!key) return;
+        const next = resetAllOf(prefs, now());
+        writeJson(key, next);
+        setRecord(next);
+        setPreviewing(null);
+      },
+      signedIn: !!key,
+      organisation: org,
+      setOrganisation,
+    };
+  }, [prefs, resolved, record, update, key, org, setOrganisation]);
+
+  const legacy = useMemo<PreferencesContextValue>(
+    () => ({
+      preferences: { motion: prefs.motion, contrast: prefs.contrast, sound: prefs.sound, volume: prefs.volume, haptics: prefs.haptics, textOnlyGuide: prefs.textOnlyGuide, reading: prefs.reading },
+      update: (patch: Partial<Preferences>) => update(patch),
+      reducedMotion: resolved.reducedMotion,
+    }),
+    [prefs, resolved.reducedMotion, update],
+  );
+
+  return (
+    <Ctx.Provider value={value}>
+      <PreferencesContext.Provider value={legacy}>{children}</PreferencesContext.Provider>
+    </Ctx.Provider>
+  );
 }
 
 export function useDisplayPreferences(): DisplayPreferencesValue {

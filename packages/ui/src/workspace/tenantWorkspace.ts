@@ -1,6 +1,6 @@
 import { decideTarget, MODULE_KEYS, type AccessDecision, type AccessTarget, type EffectiveAccess, type ModuleKey, type SuspensionClass } from '@repo/contracts';
 import { findScreenByRegisterRoute } from '@repo/contracts/screens';
-import { Banknote, BarChart3, Briefcase, Building, Building2, Compass, Contact, FlaskConical, HandCoins, Home, Landmark, ReceiptText, Settings2, ShoppingCart, Users, UsersRound, Wrench } from 'lucide-react';
+import { Banknote, BarChart3, Briefcase, Building, Building2, Compass, Contact, DatabaseZap, FlaskConical, HandCoins, Home, Landmark, MonitorSmartphone, ReceiptText, Settings2, ShoppingCart, Smartphone, Users, UsersRound, Wrench } from 'lucide-react';
 import { LIVE, PLANNED } from '../shell/QuickCreateMenu';
 import type { NavItem } from '../shell/types';
 
@@ -28,9 +28,14 @@ export const TENANT_NAV: NavItem[] = [
   { id: 'procurement', labelKey: 'nav:items.procurement', href: '/backoffice/proc/procurement-overview', icon: ShoppingCart, permission: 'procurement.view', match: '/backoffice/proc', group: 'operations' },
   { id: 'hr', labelKey: 'nav:items.hr', href: '/backoffice/hr/hr-dashboard', icon: UsersRound, permission: 'hr.view', match: '/backoffice/hr', group: 'operations' },
   { id: 'operations', labelKey: 'nav:items.operations', href: '/backoffice/mnt/maintenance-dashboard', icon: Wrench, permission: 'operations.view', match: '/backoffice/mnt', group: 'operations', bottomBar: true },
-  { id: 'residents', labelKey: 'nav:items.residents', href: '/backoffice/res/resident-dashboard', icon: Users, permission: 'residents.view', match: '/backoffice/res', group: 'operations' },
+  { id: 'residents', labelKey: 'nav:items.residents', href: '/backoffice/res/resident-dashboard', icon: Users, permission: 'residents.view', match: '/backoffice/res/', group: 'operations' },
+  // Gate D.1: residents' use of the resident app (societies: like Collections, other organisations keep the planned page).
+  { id: 'portal-access', labelKey: 'nav:items.portalAccess', href: '/backoffice/residents/portal-access', icon: Smartphone, permission: 'portal_access.view', module: 'dues', match: '/backoffice/residents', group: 'operations', suspension: 'history_read' },
   { id: 'reports', labelKey: 'nav:items.reports', href: '/backoffice/rpt/report-center', icon: BarChart3, permission: 'reports.view', match: '/backoffice/rpt', group: 'insights' },
   { id: 'administration', labelKey: 'nav:items.administration', href: '/backoffice/adm/administration-home', icon: Settings2, permission: 'admin.view', match: '/backoffice/adm', group: 'insights' },
+  // Gate D.1: staff sessions (administrators) and data exports and privacy requests.
+  { id: 'users', labelKey: 'nav:items.users', href: '/backoffice/adm/user-workspace', icon: MonitorSmartphone, permission: 'admin.view', match: '/backoffice/adm/user-workspace', group: 'insights', suspension: 'history_read' },
+  { id: 'data-privacy', labelKey: 'nav:items.dataPrivacy', href: '/backoffice/adm/data', icon: DatabaseZap, module: 'dues', anyOf: ['data_export.request', 'data_export.approve', 'privacy.requests.manage'], match: '/backoffice/adm/data', group: 'insights', suspension: 'history_read' },
   { id: 'help', labelKey: 'nav:items.help', href: '/backoffice/help/tours', icon: Compass, match: '/backoffice/help', group: 'support', suspension: 'history_read' },
 ];
 

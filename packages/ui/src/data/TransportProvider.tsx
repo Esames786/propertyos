@@ -1,5 +1,6 @@
-import type { ApiRequest, ApiTransport } from '@repo/contracts';
-import { QueryClient, QueryClientProvider, useQuery, type UseQueryOptions } from '@tanstack/react-query';
+import { ApiError, type ApiRequest, type ApiTransport, type DeviceInfo } from '@repo/contracts';
+import { MutationCache, QueryCache, QueryClient, QueryClientProvider, useQuery, type UseQueryOptions } from '@tanstack/react-query';
+import { describeDevice } from '../lib/device';
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useSession } from '../permissions/SessionProvider';
 import { readJson, writeJson } from '../lib/storage';
@@ -10,6 +11,10 @@ export const MOCK_MODE_KEY = 'demo:mock';
 export interface TransportContextInput {
   personaId: string | null;
   projectId: string;
+  /** Gate D.1: this browser's session, the calling app and a coarse description of the device. */
+  sessionId?: string | null;
+  app?: 'backoffice' | 'customer' | 'platform';
+  device?: DeviceInfo;
 }
 
 export type TransportFactory = (
@@ -33,7 +38,21 @@ const TransportContext = createContext<TransportContextValue | null>(null);
 export function TransportProvider({ createTransport, children }: { createTransport: TransportFactory; children: ReactNode }) {
   const session = useSession();
   const ctxRef = useRef<TransportContextInput>({ personaId: null, projectId: 'all' });
-  ctxRef.current = { personaId: session.persona?.id ?? null, projectId: session.projectId };
+  const [device] = useState(() => describeDevice());
+  const app = session.app === 'public' ? undefined : session.app;
+  ctxRef.current = { personaId: session.persona?.id ?? null, projectId: session.projectId, sessionId: session.sessionId, ...(app ? { app } : {}), device };
+  // A session another device or an administrator ended, or portal access the office withdrew: the
+  // server refuses with 401 and this browser signs out, saying why (never silently).
+  const signOutRef = useRef(session.signOut);
+  signOutRef.current = session.signOut;
+  const onAuthError = (error: unknown) => {
+    const code = error instanceof ApiError ? error.problem.code : undefined;
+    if (error instanceof ApiError && error.problem.status === 401 && (code === 'session_ended' || code === 'portal_access_revoked')) {
+      signOutRef.current({ reason: code, at: new Date().toISOString() });
+    }
+  };
+  const onAuthErrorRef = useRef(onAuthError);
+  onAuthErrorRef.current = onAuthError;
 
   const [mockMode, setMode] = useState<MockMode>(() => readJson<{ mode: MockMode }>(MOCK_MODE_KEY, { mode: 'normal' }).mode);
   const modeRef = useRef(mockMode);
@@ -44,6 +63,8 @@ export function TransportProvider({ createTransport, children }: { createTranspo
     () =>
       new QueryClient({
         defaultOptions: { queries: { retry: false, staleTime: 30_000, refetchOnWindowFocus: false } },
+        queryCache: new QueryCache({ onError: (e) => onAuthErrorRef.current(e) }),
+        mutationCache: new MutationCache({ onError: (e) => onAuthErrorRef.current(e) }),
       }),
   );
 
