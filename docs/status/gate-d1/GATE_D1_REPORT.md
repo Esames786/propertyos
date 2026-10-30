@@ -1,6 +1,6 @@
 # Gate D.1: Identity, Personalization & Onboarding
 
-**Status: built. Stopped for GPT and owner review.**
+**Status: accepted with targeted UX corrections ([Issue #5](https://github.com/Esames786/propertyos/issues/5)); the corrections are in [§9](#9-closure-of-the-d1-review-issue-5). Stopped for owner review.**
 - Authorised by the owner's V3.2 approval (D-21, D-23, D-24, D-43, D-49). Other financial, legal, privacy and safety decisions stay conditional.
 - **Gate D.2 and S.1 not started.**
 - **Branch:** `feature/stage-1.5-premium-design`. `main` is untouched. The documentation branch `docs/nizam-v3.2-scope-review` was **not** merged; only the D.1 rows of its screen-register delta were adopted (§5).
@@ -110,7 +110,7 @@ Further detail:
 1. **ADM-022 module**: preset palettes are **core** (every organisation); a custom brand colour needs **white_label** and must pass every contrast pair in light and dark. The register row changed from `white_label` to `core` accordingly. No demo organisation licenses white label, so saving a custom colour shows the lock; checking and previewing one works.
 2. **Rabia Hashmi is the dual-role person**: committee secretary (administrator role) in the office app and A-201 owner in the resident app, one principal. She demonstrates the switch.
 3. **Invited residents** are the Al-Noor register's other people as resident identities, hidden from the demo sign-in list. They get in only through an accepted invitation or phone sign-in, while their access is active.
-4. **Preferences are stored in this browser**, per person and organisation (as in C.2). A real deployment keeps them with the account.
+4. **Preferences are stored in this browser**, per person and organisation (as in C.2). A real deployment keeps them with the account. *Changed by the D.1 review:* the accessibility essentials are now shared between the office app and the resident app (§9.1).
 5. **Compact spacing** applies only with a mouse on screens from 768 px; touch keeps full-size targets.
 6. **App switch** opens the other app in the same tab. The first app stays signed in; each app has its own session and cache. The mock paths are `POST /me/app-switch` and `POST /app-switch/:token` (the delta named `POST /session/switch-app`).
 7. **ADM-024 in the prototype is for society organisations**, whose data sources are wired. It is offered to whoever requests exports, approves them or answers privacy requests (a new *any of these permissions* rule for menus and pages, the same decision the server makes).
@@ -136,3 +136,59 @@ Further detail:
 - Screenshots: **123** in `screenshots/<name>-<width>-<en|ur>.png` (21 D.1 screens at 1440 and 390 in English and Urdu; the reference journeys; personalization variants: dark, high contrast, 200 %, Nastaliq, reading/compact, 320 px). Every one is exactly its viewport's width.
 - Videos: `video/reference-1-personalization-en.webm`, `video/reference-2-invitation-to-home-en.webm`, `video/reference-2-invitation-to-home-ur.webm`, `video/reference-3-devices-switch-data-en.webm`.
 - Tests and accessibility results: [`test-results.md`](test-results.md). In short: unit and API **1,115 / 1,115**; E2E **267 / 267** (Gates B, C.1, C.2 and D.1); **764 axe scans, 0 violations**; Firefox and WebKit smoke **18 / 18**.
+
+## 9. Closure of the D.1 review (Issue #5)
+
+The review of `afd9357` accepted D.1 with targeted UX corrections. The owner chose that a person's accessibility essentials follow them between the office app and the resident app. Nothing else was redesigned. S.1 and D.2 are not started.
+
+### 9.1 Which preferences are shared, and which stay with each app
+
+| Setting | Scope | Why |
+|---|---|---|
+| Text size | **Shared** (person + organisation) | Accessibility: a person who needs 150 % needs it in both apps |
+| Contrast (standard, more, high) | **Shared** | Accessibility |
+| Motion (follow device, reduce, allow) | **Shared** | Accessibility |
+| Reading mode | **Shared** | Readability |
+| English and Urdu fonts | **Shared** | Readability (e.g. Atkinson Hyperlegible, Nastaliq) |
+| Language | **Shared** | Readability |
+| Theme (light, dark, device) | Per app | Appearance; someone may prefer a dark office and a light resident app |
+| Colour palette | Per app | Appearance; the organisation's colours apply per app |
+| Spacing (density) | Per app | Workspace layout; compact suits the office desktop |
+| Sound and vibration | Per app | Work context |
+| Guided tours | Per app | Each app has its own tours |
+
+- **Where:** the essentials are kept with the person's account in the organisation (`GET` / `PATCH /me/preferences`, one record per person and organisation). Each app keeps its own record too, for the first paint and for the per-app settings.
+- **When:** each app reconciles when the person signs in, switches apps, or comes back to the window; a change made in one app is sent at once. The app switch waits for a change still on its way. The resident app waits for the account before its first screen, but never more than 3 s; a later answer still applies.
+- **Who:** only the person themself reads or changes their record. Another person in the same browser keeps their own (tested).
+- **The hub says so:** every section shows *Follows you in every app* or *Only in this app*, and the note under the hub explains the split. Platform HQ, which has no second app, keeps its own wording.
+- **Prototype:** the account record lives in the demo's shared data (the same link the two apps already use); in the product it is part of the user profile.
+
+### 9.2 Migration (no one loses a setting)
+
+- Records saved before the closure are kept as they are and upgraded in place. A C.2 text-size choice, or an essential that differs from the default, counts as a deliberate choice.
+- **The first time an app shares,** setting by setting: a deliberate choice beats a default; when both apps chose differently, the more recent choice wins. A text size chosen in either app stays chosen, so **neither app asks again** (the resident app waits for the account before deciding whether to show the first-run step).
+- **After that,** the more recent change wins as a whole.
+- Unit tests cover each rule; the E2E test follows Rabia (committee secretary and A-201 owner): her C.2 125 % reaches the office; 150 %, high contrast and reduced motion set in the office reach the resident app, while the office's dark theme stays in the office; 175 % and Urdu set in the resident app come back to the office.
+
+### 9.3 Phones
+
+- **Office header (narrow):** the site chip shows the site's short name (*Al-Noor*) in full; when it cannot fit (320–360 px), its initials (*AN*); when even those cannot, the building alone. It is never cut mid-word. The full name is always the accessible name and tooltip, and the organisation's monogram stays at the start of the header. Header labels use the capped chrome size (as the resident header does since C.2), and on phones the demo notice shows its shield (still read as the full notice).
+- **Settings sections on phones:** an *All settings* menu lists every section, and a soft edge shows when the row of sections continues; the anchor jumps are unchanged.
+- **Section addresses (found in the full regression):** a page opened by a full load could take the previous page's scroll position (React Router names every such entry `default`), and the late restore could undo a jump such as *Settings › Onboarding* to *Guided tours*. In all three apps that entry's position is now kept by its own address: a reload still returns to where you were, and another page never inherits it.
+- **Bottom bar (office app, as in the resident app since C.2):** page scroll padding keeps every control reached with the keyboard clear of the header and the bar, and the bar steps aside (and is inert) while a field has focus.
+- **Proved in real viewports** (not full-page captures) by E2E at 320 px (200 %) and 390 px (100 % and 200 %), English and Urdu, on six D.1 pages: every Tab stop is clear of the header and the bar, and the last control of the page can be scrolled clear of the bar; with the keyboard open (390 × 420) the field stays in view and the bar steps aside in both apps. The reflow sweep now includes 320 px at 200 %, which found and fixed five more buttons and one grid that did not wrap.
+
+### 9.4 Prototype guardrails (from the review, unchanged)
+
+- Invitation tokens and one-time codes use `Math.random` and are shown on screen: demo only. The backend gate must use a cryptographically secure source and a real identity provider.
+- The session gate, client-chosen personas and legacy sessions are a simulation, not production login controls.
+- Exports check the requester's access at the site boundary and then export that site's rows. That is enough for Al-Noor's one site; before calling exports multi-site capable, rows must be filtered one by one, with a vector where site A is granted and site B denied and no row of B appears.
+- Privacy deletions must keep the accounting and audit trail the law requires; the fictional flow does not settle the policy.
+- Still outstanding: NVDA, VoiceOver, Android and iPhone devices, forced colours, printing and full runs in other browsers ([`MANUAL_VERIFICATION.md`](MANUAL_VERIFICATION.md)). axe results are not a WCAG certification.
+- The Firefox smoke failure from the first D.1 run recurred once during the closure, in the same test, and this time its artifacts were kept. The resident app waited about 34 s for its first answer through the demo link while the machine (and the test runner) was starved by other work; the cause inside Firefox is still **not established**. The closure's wait for the person's shared essentials is now capped at 3 s, so a slow link can no longer hold the whole resident app. Any further recurrence keeps its artifacts ([`test-results.md`](test-results.md)).
+
+### 9.5 Evidence and results
+
+- Real-viewport screenshots: `v01`–`v05` at 320 and 390 px, 100 % and 200 %, EN and UR (office header and hub top, the *All settings* menu, a focused *Sign out this device*, the resident hub's scope labels, the end of a long page); `v06`–`v07` keyboard open in both apps; `x01`–`x05` Rabia's essentials across apps.
+- Video: `video/closure-shared-essentials-en.webm`.
+- Tests: see [`test-results.md`](test-results.md), *Closure* section.

@@ -13,6 +13,7 @@ import { useDisplayPreferences } from '../preferences/DisplayPreferences';
 import { useReducedMotion } from '../preferences/PreferencesProvider';
 import { LocaleToggle, useLanguageAnnouncement } from './LocaleSwitcher';
 import { isCurrent } from './NavList';
+import { useTyping } from './useTyping';
 import type { NavItem } from './types';
 
 /** A labelled group of the side navigation (tablet/desktop). */
@@ -25,31 +26,6 @@ export interface CustomerNavGroup {
 
 const label = (t: ReturnType<typeof useT>['t'], key: string) => t(key as 'portal:nav.home');
 
-/**
- * True while a text field has focus (on a phone the keyboard is open): the floating bottom bar steps
- * aside so it never covers the field or the keyboard's view of the page, and returns on blur.
- */
-function useTyping() {
-  const [typing, setTyping] = useState(false);
-  useEffect(() => {
-    const isText = (el: EventTarget | null) =>
-      el instanceof HTMLElement &&
-      el.matches('input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="button"]):not([type="submit"]):not([type="reset"]), textarea, select, [contenteditable="true"]');
-    const onIn = (e: FocusEvent) => setTyping(isText(e.target));
-    const onOut = (e: FocusEvent) => {
-      if (!isText(e.relatedTarget)) setTyping(false);
-    };
-    document.addEventListener('focusin', onIn);
-    document.addEventListener('focusout', onOut);
-    return () => {
-      document.removeEventListener('focusin', onIn);
-      document.removeEventListener('focusout', onOut);
-    };
-  }, []);
-  return typing;
-}
-
-/** True once the page has scrolled, so the desktop header gains its hairline only when content passes under it. */
 function useScrolled(threshold = 4) {
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {

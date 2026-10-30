@@ -1,4 +1,4 @@
-import { CustomerShell, DemoSignIn, IconButton, Link, RoleModeChip, useAppSwitch, useOrgAppearanceSync, MenuButton, NavigationProvider, TextSizeWelcome, useDisplayPreferences, useSession, useSignOut, useT } from '@repo/ui';
+import { CustomerShell, DemoSignIn, IconButton, Link, RoleModeChip, useAppSwitch, useOrgAppearanceSync, useSharedPreferences, MenuButton, NavigationProvider, TextSizeWelcome, useDisplayPreferences, useSession, useSignOut, useT } from '@repo/ui';
 import { DUES_TOUR, GuidedTourProvider, PORTAL_TOUR, useGuidedTour } from '@repo/ui/onboarding';
 import { Accessibility, ArrowLeftRight, CircleHelp, Compass, LogOut, Smartphone, Type, UserRound } from 'lucide-react';
 import { useCallback } from 'react';
@@ -22,6 +22,9 @@ export function useIsDuesResident(): boolean {
 
 const TOUR_OF = (personaId: string) => (DUES_TOUR.applicablePersonas.includes(personaId) ? DUES_TOUR.id : PORTAL_TOUR.id);
 
+/** A page opened by a full load keeps its own scroll position, never the previous page's (as in the office app). */
+const scrollKey = (location: { key: string; pathname: string; search: string }) => (location.key === 'default' ? location.pathname + location.search : location.key);
+
 /**
  * Prototype glue for the customer web/PWA. One app, two editions: a developer's buyer (instalments,
  * construction, services) and a society's resident (bills, payment, receipts, statement). On first
@@ -43,7 +46,7 @@ export function RootLayout() {
       >
         <SignedIn />
       </GuidedTourProvider>
-      <ScrollRestoration />
+      <ScrollRestoration getKey={scrollKey} />
     </NavigationProvider>
   );
 }
@@ -114,6 +117,8 @@ function SignedIn() {
   const dues = useIsDuesResident();
   // ADM-022: the organisation's colours (a resident's own palette and high contrast still win).
   useOrgAppearanceSync();
+  // D.1 closure: the accessibility essentials follow the person from the office app (and back).
+  const shared = useSharedPreferences();
   const matches = useMatches();
   const appName = dues ? t('dues:shell.appName') : t('portal:shell.ownerPortal');
   const match = [...matches].reverse().find((m) => (m.handle as CustomerHandle | undefined)?.title);
@@ -130,6 +135,15 @@ function SignedIn() {
           </Link>
         }
       />
+    );
+  // Until the account answers, nobody is asked for a text size they may already have chosen elsewhere.
+  if (!shared.ready)
+    return (
+      <div className="grid min-h-dvh place-items-center bg-bg" data-testid="shared-preferences-loading">
+        <p role="status" className="text-sm text-muted">
+          {t('common:state.loading')}
+        </p>
+      </div>
     );
   // The welcome wizard (PORTAL-030) brings its own text-size step.
   if (matches.some((m) => (m.handle as CustomerHandle | undefined)?.bare)) return <Outlet />;

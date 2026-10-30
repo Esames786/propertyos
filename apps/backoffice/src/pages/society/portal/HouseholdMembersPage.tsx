@@ -91,6 +91,7 @@ export default function HouseholdMembersPage() {
                             size="sm"
                             variant="primary"
                             icon={Check}
+                            className="max-w-full whitespace-normal text-start"
                             isPending={decide.isPending && decide.variables?.path.includes(r.id)}
                             onPress={() =>
                               decide.mutate(
@@ -109,7 +110,7 @@ export default function HouseholdMembersPage() {
                           >
                             {t('identity:household.office.approve')}
                           </Button>
-                          <Button size="sm" variant="secondary" icon={X} onPress={() => setDeclining(r)} data-testid="household-reject">
+                          <Button size="sm" variant="secondary" icon={X} className="max-w-full whitespace-normal text-start" onPress={() => setDeclining(r)} data-testid="household-reject">
                             {t('identity:household.office.reject')}
                           </Button>
                         </div>

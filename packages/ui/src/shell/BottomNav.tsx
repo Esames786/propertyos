@@ -6,7 +6,9 @@ import { useT } from '../lib/useT';
 import { useNavigation } from '../navigation/RouterAdapter';
 import { useSession } from '../permissions/SessionProvider';
 import { useReducedMotion } from '../preferences/PreferencesProvider';
+import { cn } from '../lib/cn';
 import { currentItemId } from './NavList';
+import { useTyping } from './useTyping';
 import { QuickCreateMenu, quickCreateAvailable } from './QuickCreateMenu';
 import { useShell } from './ShellContext';
 
@@ -17,6 +19,7 @@ import { useShell } from './ShellContext';
  * Sits above the home-indicator inset.
  */
 export function BottomNav() {
+  const typing = useTyping();
   const { t } = useT();
   const { navItems, links, slots } = useShell();
   const { allows, can } = useSession();
@@ -71,7 +74,13 @@ export function BottomNav() {
       aria-label={t('nav:bottomBarLabel')}
       data-tour-id="bottom-nav"
       data-testid="bottom-nav"
-      className="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-30 rounded-[1.375rem] border border-border/80 bg-panel/95 shadow-overlay backdrop-blur-md md:hidden"
+      data-typing={typing || undefined}
+      inert={typing}
+      className={cn(
+        'fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-30 rounded-[1.375rem] border border-border/80 bg-panel/95 shadow-overlay backdrop-blur-md transition-transform duration-[var(--motion-regular)] md:hidden',
+        // With the keyboard open the bar steps aside, so it never covers the field being typed in.
+        typing && 'translate-y-[calc(100%+2rem)]',
+      )}
     >
       <ul className="mx-auto flex h-[var(--bottom-nav-height)] max-w-lg items-stretch px-1.5">
         {start.map(cell)}

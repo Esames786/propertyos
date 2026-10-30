@@ -13,6 +13,14 @@ const welcomeTourFor = (personaId: string) => (SOCIETY_TOUR.applicablePersonas.i
 const isEntryRoute = (pathname: string) => pathname.startsWith('/backoffice/get-started') || pathname.startsWith('/backoffice/sign-in');
 
 /**
+ * Scroll positions are kept per history entry. Every page opened by a full load starts as the entry
+ * "default", so without this a page would inherit the position of the previous page loaded in the tab
+ * (and undo a jump to a settings section). That entry is keyed by its own address instead: a reload
+ * still returns to where you were on the same page.
+ */
+const scrollKey = (location: { key: string; pathname: string; search: string }) => (location.key === 'default' ? location.pathname + location.search : location.key);
+
+/**
  * Prototype-only glue between React Router and the router-agnostic UI (ADR-0001 §2.3).
  * At the backend stage this file is replaced by the Inertia app setup; pages stay unchanged.
  */
@@ -25,7 +33,7 @@ export function RootLayout() {
       <GuidedTourProvider tours={TOURS} welcomeTourId={welcomeTourFor} suppressWelcome={isEntryRoute(location.pathname)} links={TOUR_LINKS}>
         <Outlet />
       </GuidedTourProvider>
-      <ScrollRestoration />
+      <ScrollRestoration getKey={scrollKey} />
     </NavigationProvider>
   );
 }

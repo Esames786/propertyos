@@ -47,6 +47,7 @@ export function MyDataPanel() {
             <Button
               variant="secondary"
               icon={Download}
+              className="max-w-full whitespace-normal text-start"
               isPending={exportMine.isPending}
               onPress={() =>
                 exportMine.mutate(
@@ -115,7 +116,7 @@ export function MyDataPanel() {
                 {t(problem as 'identity:privacy.errors.open')}
               </InlineAlert>
             )}
-            <Button type="submit" variant="primary" icon={Send} isPending={send.isPending} data-testid="my-data-submit">
+            <Button type="submit" variant="primary" icon={Send} className="max-w-full whitespace-normal text-start" isPending={send.isPending} data-testid="my-data-submit">
               {t('identity:myData.submit')}
             </Button>
           </form>

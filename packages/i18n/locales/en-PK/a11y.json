@@ -246,6 +246,14 @@
       "link": "See your statement"
     },
     "intro": "Make the app comfortable for you. Every change applies at once and is saved for you in this organisation.",
-    "platformName": "PropertyOS"
+    "platformName": "PropertyOS",
+    "scope": {
+      "shared": "Follows you in every app",
+      "app": "Only in this app"
+    },
+    "savedShared": "Saved for {{name}} at {{org}}. Text size, contrast, motion, reading mode, fonts and language follow you in every app of {{org}} (the office app and the resident app). Theme, colours, spacing, sounds and tours are kept for this app. Prototype: kept in this browser and in the demo’s shared data.",
+    "sections": "All settings",
+    "sectionsHint": "Jump to a setting",
+    "moreSections": "More settings"
   }
 }

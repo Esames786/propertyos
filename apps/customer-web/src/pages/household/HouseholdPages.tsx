@@ -45,7 +45,7 @@ export function MyPropertiesPage() {
   return (
     <div className="@container space-y-6" data-testid="my-properties">
       <Title title={t('nav:pages.myProperties')} intro={t('identity:properties.intro', { org: tenant.name })} />
-      <ul className="grid gap-3 @2xl:grid-cols-2">
+      <ul className="grid grid-cols-[minmax(0,1fr)] gap-3 @2xl:grid-cols-2">
         {q.data.map((p) => (
           <li key={p.flatId}>
             <Link href={PROPERTY(p.flatId)} variant="plain" className="flex h-full flex-col gap-3 rounded-card border border-border/70 bg-panel p-5 shadow-card hover:border-primary/40" data-testid="property-card" data-flat={p.flatCode}>
@@ -68,7 +68,7 @@ export function MyPropertiesPage() {
               <span className="text-xs text-muted">{t('identity:properties.facts', { type: p.typeName, area: fmt.count(p.areaSqft), floor: p.floor })}</span>
               <span className="mt-auto flex flex-wrap items-end justify-between gap-2 border-t border-border pt-3">
                 <span>
-                  <span className="block text-figure-sm font-bold text-text">
+                  <span className="block text-figure-sm font-bold [overflow-wrap:anywhere] text-text">
                     {p.balanceState === 'credit' ? t('identity:properties.inCredit', { amount: fmt.money(p.balance.replace('-', '')) }) : Number(p.balance) > 0 ? t('identity:properties.owes', { amount: fmt.money(p.balance) }) : t('identity:properties.nothingOwed')}
                   </span>
                   <span className="block text-xs text-muted">
@@ -331,7 +331,7 @@ export function HouseholdPage() {
               />
               <PlainTextField label={t('identity:household.phone')} description={t('identity:household.phoneHint')} value={phone} onChange={setPhone} type="tel" inputMode="tel" dir="ltr" optional errorKey={errors.phone} testId="household-phone" />
               {problem && <InlineAlert tone="warning">{t(problem as 'identity:household.errors.notHousehold')}</InlineAlert>}
-              <Button type="submit" variant="primary" icon={UserPlus} isPending={send.isPending} data-testid="household-submit">
+              <Button type="submit" variant="primary" icon={UserPlus} className="max-w-full whitespace-normal text-start" isPending={send.isPending} data-testid="household-submit">
                 {t('identity:household.submit')}
               </Button>
             </form>

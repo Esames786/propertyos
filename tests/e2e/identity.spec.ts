@@ -464,7 +464,7 @@ test.describe('D.1 accessibility and reflow', () => {
     }
   }
 
-  test('320 px and 200 % text: no horizontal scrolling and no squeezed text on the D.1 pages', async ({
+  test('320 px (100 % and 200 %) and 390 px (200 %): no horizontal scrolling and no squeezed text on the D.1 pages', async ({
     browser,
   }) => {
     test.setTimeout(420_000);
@@ -472,6 +472,7 @@ test.describe('D.1 accessibility and reflow', () => {
     for (const [origin, path, ready, options] of PAGES) {
       for (const [vp, scale] of [
         ['reflow', 1],
+        ['reflow', 2],
         ['phone', 2],
       ] as const) {
         const context = await browser.newContext({ viewport: VIEWPORTS[vp] });
@@ -507,5 +508,193 @@ test.describe('D.1 accessibility and reflow', () => {
       }
     }
     expect(failures).toEqual([]);
+  });
+});
+
+/**
+ * D.1 closure: on phones the floating header and bottom bar never hide what the keyboard reaches,
+ * the last control of a page can be scrolled clear of the bar, and with the keyboard open the field
+ * stays in view while the bar steps aside. Real viewports (not full-page captures), 320 and 390 px,
+ * 100 % and 200 % text, English and Urdu.
+ */
+const REACH: Array<[string, string, string, Parameters<typeof seed>[1]]> = [
+  [BO, '/backoffice/global/accessibility-preferences', 'personalization-hub', { persona: 'alnoor_manager' }],
+  [BO, '/backoffice/global/profile--preferences?tab=devices', 'devices-panel', { persona: 'alnoor_admin' }],
+  [BO, '/backoffice/adm/branding', 'branding-palette', { persona: 'alnoor_admin' }],
+  [CU, '/customer/portal/accessibility-preferences', 'personalization-hub', { app: 'customer', persona: 'alnoor_owner_a201' }],
+  [CU, '/customer/portal/profile?tab=data', 'my-data', { app: 'customer', persona: 'alnoor_owner_a201' }],
+  [CU, '/customer/portal/household', 'household', { app: 'customer', persona: 'alnoor_owner_a201' }],
+];
+
+/** Where the focused control is, against the header above and the bar below (null outside main). */
+const focusPlace = (page: Page) =>
+  page.evaluate(() => {
+    const el = document.activeElement as HTMLElement | null;
+    const main = document.querySelector('main');
+    if (!el || !main || !main.contains(el)) return null;
+    const r = el.getBoundingClientRect();
+    const head = document.querySelector('header')?.getBoundingClientRect();
+    const bar = document.querySelector('[data-testid="bottom-nav"], [data-testid="portal-bottom-nav"]') as HTMLElement | null;
+    const barTop = bar && getComputedStyle(bar).display !== 'none' && !bar.hasAttribute('inert') ? bar.getBoundingClientRect().top : window.innerHeight;
+    return { id: el.getAttribute('data-testid') ?? el.tagName.toLowerCase(), top: r.top, bottom: r.bottom, headBottom: head ? head.bottom : 0, barTop: Math.min(barTop, window.innerHeight) };
+  });
+
+test.describe('D.1 closure: phone reachability', () => {
+  for (const [w, scale, locale] of [
+    [320, 2, 'ur-PK'],
+    [390, 1, 'en-PK'],
+    [390, 2, 'ur-PK'],
+  ] as const) {
+    test(`${w} px, ${scale * 100} %, ${locale}: Tab stops clear of the header and the bar; the last control clears the bar`, async ({ browser }) => {
+      test.setTimeout(300_000);
+      const failures: string[] = [];
+      for (const [origin, path, ready, options] of REACH) {
+        const context = await browser.newContext({ viewport: { width: w, height: w === 320 ? 640 : 844 } });
+        const page = await context.newPage();
+        await seed(page, { ...options, locale, ...(options?.app === 'customer' ? { textScale: scale } : {}) });
+        const key = DISPLAY_KEY[options?.persona ?? ''];
+        if (key && options?.app !== 'customer')
+          await page.addInitScript(
+            ({ key, scale }) => localStorage.setItem(key, JSON.stringify({ version: 2, textScale: scale, chosenAt: '2026-10-26T00:00:00Z', updatedAt: '2026-10-26T00:00:00Z' })),
+            { key, scale },
+          );
+        await page.goto(`${origin}${path}`);
+        await page.getByTestId(ready).first().waitFor();
+        await page.locator('main').focus();
+        for (let i = 0; i < 30; i++) {
+          await page.keyboard.press('Tab');
+          const at = await focusPlace(page);
+          if (!at) continue;
+          if (at.top < at.headBottom - 1 || at.bottom > at.barTop + 1)
+            failures.push(`${path} ${at.id}: ${Math.round(at.top)}–${Math.round(at.bottom)} (header ends ${Math.round(at.headBottom)}, bar starts ${Math.round(at.barTop)})`);
+        }
+        // The page's last control can be scrolled clear of the bar.
+        const last = await page.evaluate(() => {
+          window.scrollTo(0, document.documentElement.scrollHeight);
+          const all = [...document.querySelectorAll<HTMLElement>('main a[href], main button, main input, main textarea, main [tabindex="0"]')].filter((el) => el.offsetParent !== null);
+          const el = all[all.length - 1];
+          if (!el) return null;
+          const bar = document.querySelector('[data-testid="bottom-nav"], [data-testid="portal-bottom-nav"]') as HTMLElement | null;
+          const barTop = bar && getComputedStyle(bar).display !== 'none' ? bar.getBoundingClientRect().top : window.innerHeight;
+          return { id: el.getAttribute('data-testid') ?? el.tagName, bottom: el.getBoundingClientRect().bottom, barTop };
+        });
+        if (last && last.bottom > last.barTop + 1) failures.push(`${path}: last control ${last.id} ends ${Math.round(last.bottom)} under the bar at ${Math.round(last.barTop)}`);
+        await context.close();
+      }
+      expect(failures).toEqual([]);
+    });
+  }
+
+  test('keyboard open (390 × 420): the field stays in view and the bar steps aside, in both apps', async ({ browser }) => {
+    for (const [origin, path, ready, field, bar, options] of [
+      [BO, '/backoffice/global/profile--preferences', 'profile-details', 'contact-phone', 'bottom-nav', { persona: 'alnoor_admin' }],
+      [CU, '/customer/portal/household', 'household', 'household-name', 'portal-bottom-nav', { app: 'customer', persona: 'alnoor_owner_a201' }],
+    ] as const) {
+      const context = await browser.newContext({ viewport: { width: 390, height: 420 } });
+      const page = await context.newPage();
+      await seed(page, { ...options, locale: 'ur-PK' });
+      await page.goto(`${origin}${path}`);
+      await page.getByTestId(ready).first().waitFor();
+      const input = page.getByTestId(field);
+      await input.focus();
+      await expect(page.getByTestId(bar)).toHaveAttribute('data-typing', 'true');
+      await expect(page.getByTestId(bar)).toHaveAttribute('inert', '');
+      const box = await input.boundingBox();
+      expect(box!.y, `${path}: field top`).toBeGreaterThanOrEqual(0);
+      expect(box!.y + box!.height, `${path}: field bottom`).toBeLessThanOrEqual(420);
+      await input.blur();
+      await expect(page.getByTestId(bar)).not.toHaveAttribute('data-typing', 'true');
+      await context.close();
+    }
+  });
+});
+
+/**
+ * D.1 closure: Rabia (committee secretary and A-201 owner) has one set of accessibility essentials
+ * in both apps: text size, contrast, motion and language follow her; the office's dark theme stays in
+ * the office. Her C.2 text-size choice from the resident app is kept the first time the apps share.
+ */
+test.describe('D.1 closure: settings section addresses', () => {
+  // Every page opened by a full load is React Router's history entry "default", so a page used to take
+  // the previous page's scroll position (and, arriving late, undo the jump to a settings section).
+  test('a full load never takes the previous page’s scroll; a reload keeps its own; a section address stays at its section', async ({ page }) => {
+    await seed(page, { persona: 'manager' });
+    const scrollY = () => page.evaluate(() => Math.round(window.scrollY));
+    await page.goto(`${BO}/backoffice/global/accessibility-preferences`);
+    await expect(page.getByTestId('personalization-hub')).toBeVisible();
+    await page.evaluate(() => window.scrollTo(0, 1500));
+    await expect.poll(scrollY).toBe(1500);
+
+    await page.goto(`${BO}/backoffice/lab/tokens`);
+    await page.locator('main h1').first().waitFor();
+    // The router restores in a transition, after the page has painted.
+    await page.waitForTimeout(800);
+    expect(await scrollY()).toBe(0);
+
+    await page.evaluate(() => window.scrollTo(0, 1000));
+    await expect.poll(scrollY).toBe(1000);
+    await page.reload();
+    await page.locator('main h1').first().waitFor();
+    await expect.poll(scrollY).toBe(1000);
+
+    await page.goto(`${BO}/backoffice/settings/onboarding`);
+    const tours = page.getByTestId('hub-section-tours');
+    await expect(tours).toBeInViewport();
+    await page.waitForTimeout(800);
+    await expect(tours).toBeInViewport();
+  });
+});
+
+test.describe('D.1 closure: shared accessibility essentials', () => {
+  test('Rabia switches between Management and Resident: essentials follow her, the theme stays per app', async ({ page, consoleErrors }) => {
+    test.setTimeout(150_000);
+    await seedSociety(page, { staff: 'alnoor_admin', resident: 'alnoor_owner_a201', textScale: 1.25 });
+    // The C.2 record (125 %, chosen) reaches the account from the resident app.
+    await page.goto(`${CU}/customer/portal/home`);
+    await expect(page.getByTestId('portal-account')).toBeVisible();
+    await expect(page.getByTestId('text-size-welcome')).toHaveCount(0);
+    expect(await html(page, 'data-text-scale')).toBe('125');
+    // The office adopts it (no question asked), then changes essentials and its own theme.
+    await page.goto(`${BO}/backoffice/global/accessibility-preferences`);
+    await expect(page.getByTestId('personalization-hub')).toBeVisible();
+    await expect.poll(() => html(page, 'data-text-scale')).toBe('125');
+    await expect(page.getByTestId('hub-scope-text-size')).toHaveAttribute('data-scope', 'shared');
+    await expect(page.getByTestId('hub-scope-theme')).toHaveAttribute('data-scope', 'app');
+    await page.getByTestId('text-size-150').click();
+    await page.getByTestId('hub-contrast').getByText('High contrast', { exact: false }).first().click();
+    await page.getByTestId('hub-motion').getByText('Reduce motion', { exact: true }).click();
+    await page.getByTestId('hub-theme').getByText('Dark', { exact: true }).click();
+    // Management → Resident.
+    await page.goto(`${BO}/backoffice/global/profile--preferences`);
+    await page.getByTestId('app-switch').click();
+    await expect(page).toHaveURL(/5174\/customer\/portal\/home/);
+    await expect(page.getByTestId('role-mode')).toHaveAttribute('data-mode', 'customer');
+    await expect.poll(() => html(page, 'data-text-scale')).toBe('150');
+    expect(await html(page, 'data-contrast')).toBe('high');
+    expect(await html(page, 'data-motion')).toBe('reduce');
+    expect(await html(page, 'data-theme')).not.toBe('dark');
+    // Resident: 175 % and Urdu; Resident → Management.
+    await page.goto(`${CU}/customer/portal/accessibility-preferences`);
+    await page.getByTestId('text-size-175').click();
+    await page.getByTestId('locale-toggle').first().click();
+    await expect(page.locator('html')).toHaveAttribute('lang', 'ur-PK');
+    await page.getByTestId('portal-account').click();
+    await page.getByTestId('menu-app-switch').click();
+    await expect(page).toHaveURL(/5173\/backoffice\//);
+    await expect.poll(() => html(page, 'data-text-scale')).toBe('175');
+    await expect(page.locator('html')).toHaveAttribute('lang', 'ur-PK');
+    expect(await html(page, 'data-theme')).toBe('dark');
+    expect(await html(page, 'data-contrast')).toBe('high');
+    expect(consoleErrors).toEqual([]);
+  });
+
+  test('a resident without a staff role keeps their own settings; another person is not affected', async ({ page }) => {
+    await seedSociety(page, { staff: 'alnoor_manager', resident: 'alnoor_resident_a101', textScale: 1.5 });
+    await page.goto(`${CU}/customer/portal/home`);
+    await expect.poll(() => html(page, 'data-text-scale')).toBe('150');
+    // Imran (office) is another person: his office stays at 100 %.
+    await page.goto(`${BO}/backoffice/global/accessibility-preferences`);
+    await expect(page.getByTestId('personalization-hub')).toBeVisible();
+    expect(await html(page, 'data-text-scale')).toBe('100');
   });
 });

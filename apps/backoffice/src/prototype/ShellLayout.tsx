@@ -1,5 +1,5 @@
 import type { AccessDecision, DenyReason, RecordAccess } from '@repo/contracts';
-import { AccessOutcomeView, AppShell, contextualNav, usePrototypeTools, withPrototypeTools, dynamicT, InlineAlert, Link, suspensionOf, useApiQuery, useOrgAppearanceSync, useSession, useT, workspaceRouteTarget, type Destination } from '@repo/ui';
+import { AccessOutcomeView, AppShell, contextualNav, usePrototypeTools, withPrototypeTools, dynamicT, InlineAlert, Link, suspensionOf, useApiQuery, useOrgAppearanceSync, useSession, useSharedPreferences, useT, workspaceRouteTarget, type Destination } from '@repo/ui';
 import { useMemo } from 'react';
 import { Navigate, Outlet, useLocation, useMatches, useSearchParams } from 'react-router';
 import { ACCESS_DATE, COLLECTIONS, LINKS, NAV_ITEMS, SOCIETY } from '../nav.config';
@@ -17,6 +17,9 @@ export function ShellLayout() {
   const { persona, returning, tenant, decide, can, access } = useSession();
   // ADM-022: the organisation's colours apply once someone is signed in (their own palette still wins).
   useOrgAppearanceSync();
+  // D.1 closure: text size, contrast, motion, reading mode, fonts and language follow the person
+  // between the office app and the resident app.
+  useSharedPreferences();
   const location = useLocation();
   const [params] = useSearchParams();
   const matches = useMatches();

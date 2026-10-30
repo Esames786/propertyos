@@ -12,6 +12,7 @@ import type {
   SecurityEventKind,
   SessionEndReason,
   SessionState,
+  SharedAccessibilityRecord,
 } from '@repo/contracts';
 import type { HandlerContext } from '../handler-types';
 import { ALL_PERSONAS, ALNOOR_RESIDENTS } from '../people';
@@ -144,6 +145,8 @@ export interface IdentityState {
   exports: StoredExport[];
   /** Whether the demo's example export request was added (once per organisation). */
   exportsSeeded?: boolean;
+  /** Each person's shared accessibility essentials in this organisation (D.1 closure), by principal. */
+  preferences?: Record<string, SharedAccessibilityRecord>;
   privacy: PrivacyRequest[];
   appearance?: { palette: OrgPaletteKey; brandPrimary?: string; updatedAt: string; updatedByName: string };
 }

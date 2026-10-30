@@ -1,6 +1,8 @@
 import { LOCALE_META, useLocale } from '@repo/i18n';
-import { Accessibility, AudioLines, Contrast as ContrastIcon, Eye, Languages, LayoutPanelTop, MonitorCog, Moon, Palette as PaletteIcon, RotateCcw, Sparkles, Type, Volume2 } from 'lucide-react';
-import { useEffect, useState, type ReactNode } from 'react';
+import { Accessibility, AppWindow, AudioLines, Contrast as ContrastIcon, Eye, Languages, LayoutPanelTop, Link2, ListTree, MonitorCog, Moon, Palette as PaletteIcon, RotateCcw, Sparkles, Type, Volume2 } from 'lucide-react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { Button as AriaButton } from 'react-aria-components';
+import { MenuButton } from '../overlays/Menu';
 import { useAnnounce } from '../a11y/LiveAnnouncer';
 import { InlineAlert } from '../feedback/InlineAlert';
 import { useToast } from '../feedback/Toast';
@@ -44,8 +46,25 @@ const SECTION_ICON: Record<HubSection, typeof Type> = {
   tours: Accessibility,
 };
 
+/** D.1 closure: the essentials follow the person in every app of the organisation; the rest stay per app. */
+const SHARED_SECTIONS: ReadonlySet<HubSection> = new Set<HubSection>(['text-size', 'fonts', 'reading', 'contrast', 'motion', 'language']);
+const ScopeContext = createContext(false);
+
+function ScopeLabel({ id }: { id: HubSection }) {
+  const { t } = useT();
+  const shared = SHARED_SECTIONS.has(id);
+  const Icon = shared ? Link2 : AppWindow;
+  return (
+    <p className="mt-1 inline-flex items-center gap-1.5 text-xs font-medium text-muted" data-testid={`hub-scope-${id}`} data-scope={shared ? 'shared' : 'app'}>
+      <Icon aria-hidden className="size-3.5 shrink-0" />
+      {shared ? t('a11y:hub.scope.shared') : t('a11y:hub.scope.app')}
+    </p>
+  );
+}
+
 function Section({ id, title, intro, children }: { id: HubSection; title: string; intro?: string; children: ReactNode }) {
   const Icon = SECTION_ICON[id];
+  const showScope = useContext(ScopeContext);
   return (
     <section id={id} tabIndex={-1} aria-labelledby={`${id}-title`} className="scroll-mt-24 rounded-card border border-border/70 bg-panel p-4 shadow-card outline-none sm:p-5" data-testid={`hub-section-${id}`}>
       <div className="mb-4 flex items-start gap-3">
@@ -57,6 +76,7 @@ function Section({ id, title, intro, children }: { id: HubSection; title: string
             {title}
           </h2>
           {intro && <p className="text-sm text-muted">{intro}</p>}
+          {showScope && <ScopeLabel id={id} />}
         </div>
       </div>
       {children}
@@ -114,7 +134,21 @@ function Swatch({ colour, soft }: { colour: string; soft?: string }) {
  * in the resident app). One page, every setting visible and reachable by keyboard, each change
  * applied and saved at once, a live preview beside it, and one "Reset to default".
  */
-export function PersonalizationHub({ initialSection, tourExtras, organisationLabel, organisationColours = true }: { initialSection?: HubSection; tourExtras?: ReactNode; organisationLabel?: string; /** Platform HQ has no organisation colours: the option is not offered. */ organisationColours?: boolean }) {
+export function PersonalizationHub({
+  initialSection,
+  tourExtras,
+  organisationLabel,
+  organisationColours = true,
+  sharedAcrossApps = true,
+}: {
+  initialSection?: HubSection;
+  tourExtras?: ReactNode;
+  organisationLabel?: string;
+  /** Platform HQ has no organisation colours: the option is not offered. */
+  organisationColours?: boolean;
+  /** The office and resident apps share the essentials (D.1 closure); Platform HQ has no second app. */
+  sharedAcrossApps?: boolean;
+}) {
   const { t } = useT();
   const { locale } = useLocale();
   const announce = useAnnounce();
@@ -139,6 +173,36 @@ export function PersonalizationHub({ initialSection, tourExtras, organisationLab
     update({ [key]: value } as Partial<typeof prefs>);
     announce(t('a11y:hub.appliedOne', { setting: spoken }));
   };
+
+  // Section index: a jump moves focus to the section; on phones the row of sections scrolls sideways
+  // and shows a soft edge on whichever side has more (logical start and end, so RTL mirrors).
+  const jump = (id: HubSection) => {
+    const el = document.getElementById(id);
+    el?.scrollIntoView({ block: 'start', behavior: resolved.reducedMotion ? 'auto' : 'smooth' });
+    el?.focus({ preventScroll: true });
+    // Keep the router's own history state; only the fragment changes.
+    history.replaceState(history.state, '', `#${id}`);
+  };
+  const rowRef = useRef<HTMLUListElement>(null);
+  const [more, setMore] = useState({ start: false, end: false });
+  const measureRow = useCallback(() => {
+    const el = rowRef.current;
+    if (!el) return;
+    const max = el.scrollWidth - el.clientWidth;
+    const pos = Math.abs(el.scrollLeft);
+    setMore((m) => {
+      const next = { start: max > 1 && pos > 1, end: max > 1 && pos < max - 1 };
+      return m.start === next.start && m.end === next.end ? m : next;
+    });
+  }, []);
+  useEffect(() => {
+    measureRow();
+    const el = rowRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(measureRow);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [measureRow, locale]);
 
   const orgSwatch = organisation?.palette === 'brand' && organisation.brand ? (mode === 'dark' ? organisation.brand.darkPrimary : organisation.brand.primary) : PALETTE_SWATCHES[organisation?.palette && organisation.palette !== 'brand' ? organisation.palette : 'evergreen'][mode];
 
@@ -188,7 +252,28 @@ export function PersonalizationHub({ initialSection, tourExtras, organisationLab
 
       <div className="grid gap-5 lg:grid-cols-[11.5rem_minmax(0,1fr)] xl:grid-cols-[11.5rem_minmax(0,1fr)_20rem]">
         <nav aria-label={t('a11y:hub.index')} className="min-w-0 lg:sticky lg:top-24 lg:self-start" data-testid="hub-index">
-          <ul className="scrollbar-none -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 lg:mx-0 lg:flex-col lg:gap-0.5 lg:overflow-visible lg:px-0">
+          <div className="flex items-start gap-2 lg:block">
+          {/* Phones and tablets: every section in one menu, so none is hidden past the edge of the row. */}
+          <span className="shrink-0 lg:hidden">
+            <MenuButton
+              label={t('a11y:hub.sectionsHint')}
+              placement="bottom start"
+              trigger={
+                <AriaButton
+                  aria-label={t('a11y:hub.sectionsHint')}
+                  data-testid="hub-sections-menu"
+                  className="flex min-h-10 items-center gap-2 rounded-pill bg-primary px-3.5 text-sm font-semibold text-on-primary outline-none data-focus-visible:outline-2 data-focus-visible:outline-offset-2 data-focus-visible:outline-focus pointer-coarse:min-h-11"
+                >
+                  <ListTree aria-hidden className="size-4 shrink-0" />
+                  <span className="whitespace-nowrap">{t('a11y:hub.sections')}</span>
+                </AriaButton>
+              }
+              groups={[{ id: 'hub-sections', items: index.map(([id, label]) => ({ id, label, icon: SECTION_ICON[id], testId: `hub-sections-${id}` })) }]}
+              onAction={(id) => jump(id as HubSection)}
+            />
+          </span>
+          <div className="relative min-w-0 flex-1">
+          <ul ref={rowRef} onScroll={measureRow} className="scrollbar-none -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 lg:mx-0 lg:flex-col lg:gap-0.5 lg:overflow-visible lg:px-0">
             {index.map(([id, label]) => {
               const Icon = SECTION_ICON[id];
               return (
@@ -197,11 +282,7 @@ export function PersonalizationHub({ initialSection, tourExtras, organisationLab
                     href={`#${id}`}
                     onClick={(e) => {
                       e.preventDefault();
-                      const el = document.getElementById(id);
-                      el?.scrollIntoView({ block: 'start', behavior: resolved.reducedMotion ? 'auto' : 'smooth' });
-                      el?.focus({ preventScroll: true });
-                      // Keep the router's own history state; only the fragment changes.
-                      history.replaceState(history.state, '', `#${id}`);
+                      jump(id);
                     }}
                     className="flex min-h-10 items-center gap-2 rounded-pill border border-border bg-panel px-3 text-sm text-text outline-none hover:bg-raised focus-visible:outline-2 focus-visible:outline-focus lg:rounded-control lg:border-transparent lg:bg-transparent"
                     data-variant="plain"
@@ -213,9 +294,15 @@ export function PersonalizationHub({ initialSection, tourExtras, organisationLab
               );
             })}
           </ul>
+          {/* Soft edges show that the row continues (decorative; the menu lists every section). */}
+          {more.start && <span aria-hidden data-testid="hub-index-more-start" className="pointer-events-none absolute inset-y-0 start-0 w-8 bg-linear-to-r from-bg to-transparent rtl:bg-linear-to-l lg:hidden" />}
+          {more.end && <span aria-hidden data-testid="hub-index-more-end" className="pointer-events-none absolute inset-y-0 end-0 w-10 bg-linear-to-l from-bg to-transparent rtl:bg-linear-to-r lg:hidden" />}
+          </div>
+          </div>
         </nav>
 
         <div className="min-w-0 space-y-5">
+          <ScopeContext.Provider value={sharedAcrossApps && signedIn}>
           <div className="xl:hidden">
             <AppearancePreview />
           </div>
@@ -367,7 +454,7 @@ export function PersonalizationHub({ initialSection, tourExtras, organisationLab
                   options={(['quiet', 'normal'] as const).map((id) => ({ id, label: t(`a11y:hub.sound.${id}` as 'a11y:hub.sound.quiet') }))}
                   testId="hub-volume"
                 />
-                <Button size="sm" variant="secondary" icon={AudioLines} isDisabled={!prefs.sound} onPress={() => playTone('success', prefs.volume)} data-testid="hub-sound-test">
+                <Button size="sm" variant="secondary" icon={AudioLines} className="max-w-full whitespace-normal text-start" isDisabled={!prefs.sound} onPress={() => playTone('success', prefs.volume)} data-testid="hub-sound-test">
                   {t('a11y:preferences.soundTest')}
                 </Button>
               </div>
@@ -388,8 +475,9 @@ export function PersonalizationHub({ initialSection, tourExtras, organisationLab
           </Section>
 
           <p className="text-sm text-muted" data-testid="hub-persistence">
-            {signedIn && persona ? t('a11y:hub.saved', { name: persona.displayName, org: orgName }) : t('a11y:hub.savedDevice')}
+            {signedIn && persona ? t(sharedAcrossApps ? 'a11y:hub.savedShared' : 'a11y:hub.saved', { name: persona.displayName, org: orgName }) : t('a11y:hub.savedDevice')}
           </p>
+          </ScopeContext.Provider>
         </div>
 
         <aside className="hidden min-w-0 xl:sticky xl:top-24 xl:block xl:self-start" aria-label={t('a11y:hub.preview.title')}>

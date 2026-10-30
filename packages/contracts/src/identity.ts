@@ -138,6 +138,33 @@ export interface AppSwitchRedeemed {
   personaId: string;
   app: 'backoffice' | 'customer';
   fromApp: 'backoffice' | 'customer';
+  /** The person's shared language (D.1 closure), so the other app greets them in it at once. */
+  locale?: 'en-PK' | 'ur-PK';
+}
+
+// ---------------------------------------------------------------- shared accessibility (D.1 closure)
+
+/**
+ * The accessibility essentials kept with the person in an organisation: the same in the office app
+ * and the resident app (owner, D.1 closure). Theme, colours, spacing, sounds and tours stay with each
+ * app. GET /me/preferences reads them; PATCH /me/preferences keeps the newer change.
+ */
+export interface SharedAccessibility {
+  textScale: number;
+  contrast: 'system' | 'standard' | 'more' | 'high';
+  motion: 'system' | 'reduce' | 'full';
+  reading: boolean;
+  fontLatin: 'geist' | 'system' | 'readable';
+  fontUrdu: 'naskh' | 'nastaliq';
+  locale?: 'en-PK' | 'ur-PK';
+}
+
+export interface SharedAccessibilityRecord {
+  essentials: SharedAccessibility;
+  /** When any of them last changed; the newer change wins across apps. */
+  changedAt: string;
+  /** When the person chose a text size, so neither app asks again. */
+  chosenAt?: string;
 }
 
 // ---------------------------------------------------------------- staff users and their sessions (ADM-003)

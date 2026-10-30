@@ -57,7 +57,8 @@ for (const locale of ['en-PK', 'ur-PK'] as Locale[]) {
       test.use({ viewport: VIEWPORTS[vp] });
 
       test('backoffice routes', async ({ page }, testInfo) => {
-        test.setTimeout(180_000);
+        // 23 axe scans: 100–133 s with four workers after D.1 grew the accessibility hub; one full run under load passed 180 s.
+        test.setTimeout(300_000);
         await seed(page, { persona: 'sales', locale });
         for (const route of BACKOFFICE_ROUTES) {
           await page.goto(`${BO}${route}`);
@@ -68,6 +69,8 @@ for (const locale of ['en-PK', 'ur-PK'] as Locale[]) {
       });
 
       test('customer routes', async ({ page }, testInfo) => {
+        // 10 axe scans, the accessibility hub the largest (about 10 s): 37–66 s with four workers, so the 60 s default had no headroom.
+        test.setTimeout(150_000);
         await seed(page, { persona: 'resident', locale, app: 'customer' });
         for (const route of CUSTOMER_ROUTES) {
           await page.goto(`${CU}${route}`);

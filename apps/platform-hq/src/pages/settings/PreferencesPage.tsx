@@ -9,7 +9,7 @@ export default function PreferencesPage() {
   return (
     <>
       <PageHeader title={t('nav:pages.preferences')} description={t('a11y:hub.intro')} />
-      <PersonalizationHub organisationLabel={t('a11y:hub.platformName')} organisationColours={false} />
+      <PersonalizationHub organisationLabel={t('a11y:hub.platformName')} organisationColours={false} sharedAcrossApps={false} />
     </>
   );
 }

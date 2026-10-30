@@ -1,4 +1,4 @@
-import type { AppSwitchRedeemed, AppSwitchTarget, AppSwitchTicket, ContactConsent, MyProfile, MySecurity, SecurityEvent, SessionRecord, UpdateContactInput } from '@repo/contracts';
+import type { AppSwitchRedeemed, AppSwitchTarget, AppSwitchTicket, ContactConsent, MyProfile, MySecurity, SecurityEvent, SessionRecord, UpdateContactInput, SharedAccessibility, SharedAccessibilityRecord } from '@repo/contracts';
 import { normalizePkPhone } from '@repo/i18n/format';
 import { forbid, invalid, notFound, publicFor, requires, type Handler, type HandlerContext } from '../handler-types';
 import { ALL_PERSONAS } from '../people';
@@ -39,6 +39,13 @@ const me = (ctx: HandlerContext) => {
   return persona;
 };
 
+/**
+ * The register party of the person behind an identity: a staff identity of someone who is also a
+ * resident (Rabia) has the same contact details in both apps (D.1 closure).
+ */
+const partyOfPerson = (persona: { partyId?: string; principalId: string; tenantId: string }) =>
+  persona.partyId ?? ALL_PERSONAS.find((p) => p.tenantId === persona.tenantId && p.principalId === persona.principalId && p.partyId)?.partyId;
+
 /** End one session (it stays in the list as history). */
 export function endSession(s: StoredSession, reason: NonNullable<StoredSession['endReason']>, at: string, byName?: string) {
   if (s.state !== 'active') return;
@@ -69,7 +76,53 @@ const consentsOf = (state: IdentityState, principalId: string): ContactConsent[]
     { channel: 'email', consented: true },
   ];
 
+const SCALES = [1, 1.12, 1.25, 1.5, 1.75, 2];
+const one = <T extends string>(list: readonly T[], v: unknown): v is T => (list as readonly unknown[]).includes(v);
+
+/** A shared-essentials record as sent by an app, or null when any part is not one of the allowed values. */
+function readShared(body: unknown): SharedAccessibilityRecord | null {
+  const r = (body ?? {}) as Partial<SharedAccessibilityRecord>;
+  const e = (r.essentials ?? {}) as Partial<SharedAccessibility>;
+  if (typeof r.changedAt !== 'string' || Number.isNaN(Date.parse(r.changedAt))) return null;
+  if (!SCALES.includes(Number(e.textScale))) return null;
+  if (!one(['system', 'standard', 'more', 'high'] as const, e.contrast) || !one(['system', 'reduce', 'full'] as const, e.motion)) return null;
+  if (typeof e.reading !== 'boolean' || !one(['geist', 'system', 'readable'] as const, e.fontLatin) || !one(['naskh', 'nastaliq'] as const, e.fontUrdu)) return null;
+  if (e.locale !== undefined && !one(['en-PK', 'ur-PK'] as const, e.locale)) return null;
+  return {
+    essentials: { textScale: Number(e.textScale), contrast: e.contrast, motion: e.motion, reading: e.reading, fontLatin: e.fontLatin, fontUrdu: e.fontUrdu, ...(e.locale ? { locale: e.locale } : {}) },
+    changedAt: r.changedAt,
+    ...(typeof r.chosenAt === 'string' ? { chosenAt: r.chosenAt } : {}),
+  };
+}
+
 export const ME_HANDLERS: readonly Handler[] = [
+  // D.1 closure: the person's accessibility essentials, the same in the office app and the resident
+  // app (one record per person and organisation). Only the person themself reads or changes them.
+  {
+    method: 'GET',
+    pattern: /^\/me\/preferences$/,
+    access: requires('core', 'signed_in', 'history_read'),
+    handle: (ctx): { record: SharedAccessibilityRecord | null } => ({ record: identityOf(ctx).preferences?.[me(ctx).principalId] ?? null }),
+  },
+  {
+    method: 'PATCH',
+    pattern: /^\/me\/preferences$/,
+    access: requires('core', 'signed_in', 'history_read'),
+    handle: (ctx): { record: SharedAccessibilityRecord } => {
+      const persona = me(ctx);
+      const incoming = readShared(ctx.req.body);
+      if (!incoming) invalid(ctx, 'essentials', 'forms:errors.selectOne');
+      const state = identityOf(ctx);
+      const current = state.preferences?.[persona.principalId];
+      // The newer change wins; a text size chosen in either app stays chosen.
+      const newer = !current || incoming.changedAt >= current.changedAt ? incoming : current;
+      const chosenAt = [current?.chosenAt, incoming.chosenAt].filter((x): x is string => !!x).sort()[0];
+      const record: SharedAccessibilityRecord = { ...newer, ...(chosenAt ? { chosenAt } : {}) };
+      state.preferences = { ...(state.preferences ?? {}), [persona.principalId]: record };
+      ctx.demo.save();
+      return { record };
+    },
+  },
   {
     method: 'GET',
     pattern: /^\/me\/security$/,
@@ -144,7 +197,8 @@ export const ME_HANDLERS: readonly Handler[] = [
       const persona = me(ctx);
       const state = identityOf(ctx);
       const contact = state.contacts[persona.principalId];
-      const registered = persona.partyId ? alnoorRegisterPeople().find((p) => p.partyId === persona.partyId) : undefined;
+      const party = partyOfPerson(persona);
+      const registered = party ? alnoorRegisterPeople().find((p) => p.partyId === party) : undefined;
       const links = ctx.access?.scopes.find((s) => s.type === 'party');
       const flats = links && links.type === 'party' ? [...new Set(links.links.filter((l) => l.verified && (!l.to || l.to > ctx.at)).map((l) => registered?.flats.find((f) => f.flatId === l.unitId)?.flatCode ?? l.unitId))] : undefined;
       const switchTo = switchTargetOf(ctx, state);
@@ -176,7 +230,8 @@ export const ME_HANDLERS: readonly Handler[] = [
       const state = identityOf(ctx);
       const current = state.contacts[persona.principalId] ?? { consents: consentsOf(state, persona.principalId) };
       // The number on the society register counts until the person changes it (same as GET /me/profile).
-      const registered = persona.partyId ? alnoorRegisterPeople().find((p) => p.partyId === persona.partyId)?.phone : undefined;
+      const party = partyOfPerson(persona);
+      const registered = party ? alnoorRegisterPeople().find((p) => p.partyId === party)?.phone : undefined;
       let phone = current.phone ?? registered;
       if (input.phone !== undefined) {
         const normal = input.phone.trim() ? normalizePkPhone(input.phone) : null;
@@ -236,7 +291,8 @@ export const ME_HANDLERS: readonly Handler[] = [
       ticket.used = true;
       logEvent(state, { principalId: ticket.principalId, kind: 'switched_app', at: nowStamp(ctx), app: ticket.toApp, detail: ticket.fromApp });
       ctx.demo.save();
-      return { personaId: target.id, app: ticket.toApp, fromApp: ticket.fromApp };
+      const locale = state.preferences?.[ticket.principalId]?.essentials.locale;
+      return { personaId: target.id, app: ticket.toApp, fromApp: ticket.fromApp, ...(locale ? { locale } : {}) };
     },
   },
 ];

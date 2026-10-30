@@ -247,3 +247,105 @@ test('Reference 1: one hub, three apps (en)', async ({ browser }) => {
   await shot(page, 'p13-resident-hub-high-contrast-1440-en', false);
   await keepVideo(page, 'reference-1-personalization-en');
 });
+
+// ---------------------------------------------------------------- D.1 closure (Issue #5)
+
+/** Real phone viewports (what a person sees, not a full-page capture): 320 and 390 px, 100 % and 200 %. */
+async function phone(browser: Browser, width: 320 | 390, locale: Locale, persona: SeedOptions, display: { key: string; scale: number }, height = width === 320 ? 640 : 844) {
+  const ctx = await browser.newContext({ viewport: { width, height } });
+  const page = await ctx.newPage();
+  await seed(page, { ...persona, locale, ...(persona.app === 'customer' ? { textScale: display.scale } : {}) });
+  if (persona.app !== 'customer') await withDisplay(page, DISPLAY(display.key, { textScale: display.scale }));
+  return page;
+}
+
+const OFFICE_MANAGER = 'pref:display:v1:backoffice:tnt_alnoor:usr_anr_0001';
+const OFFICE_RABIA = 'pref:display:v1:backoffice:tnt_alnoor:usr_anr_r0003';
+
+test('Closure: phone viewports at 320 and 390 px, 100 % and 200 %', async ({ browser }) => {
+  test.setTimeout(420_000);
+  for (const [w, scale, locale] of [
+    [320, 1, 'en-PK'],
+    [320, 1, 'ur-PK'],
+    [320, 2, 'ur-PK'],
+    [390, 1, 'en-PK'],
+    [390, 2, 'en-PK'],
+    [390, 2, 'ur-PK'],
+  ] as const) {
+    const tag = `${w}-${lang(locale)}`;
+    const pct = scale * 100;
+    // The office header: the site's short name, or its initials, never cut; the section menu and the scroll hint.
+    let page = await phone(browser, w, locale, { persona: 'alnoor_manager' }, { key: OFFICE_MANAGER, scale });
+    await open(page, `${BO}/backoffice/global/accessibility-preferences`, 'hub-index');
+    await shot(page, `v01-office-hub-top-${pct}-${tag}`, false);
+    await page.getByTestId('hub-sections-menu').click();
+    await settle(page, 400);
+    await shot(page, `v02-hub-all-settings-menu-${pct}-${tag}`, false);
+    await page.keyboard.press('Escape');
+    await page.context().close();
+    // Devices: Tab to the first "Sign out this device"; the focused control is clear of the header and the bar.
+    page = await phone(browser, w, locale, { persona: 'alnoor_admin' }, { key: OFFICE_RABIA, scale });
+    await open(page, `${BO}/backoffice/global/profile--preferences?tab=devices`, 'session-row');
+    await page.locator('main').focus();
+    for (let i = 0; i < 40; i++) {
+      await page.keyboard.press('Tab');
+      if (await page.evaluate(() => document.activeElement?.getAttribute('data-testid') === 'session-revoke')) break;
+    }
+    await settle(page, 400);
+    await shot(page, `v03-devices-focus-${pct}-${tag}`, false);
+    await page.context().close();
+    // The resident app's hub with its scope labels, and the end of a long page above the bar.
+    page = await phone(browser, w, locale, { app: 'customer', persona: 'alnoor_owner_a201' }, { key: '', scale });
+    await open(page, `${CU}/customer/portal/accessibility-preferences#contrast`, 'hub-scope-contrast');
+    await shot(page, `v04-resident-hub-scope-${pct}-${tag}`, false);
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await settle(page, 400);
+    await shot(page, `v05-resident-hub-end-${pct}-${tag}`, false);
+    await page.context().close();
+  }
+  // Keyboard open (a short viewport): the field stays in view, the bar steps aside, in both apps.
+  for (const locale of ['en-PK', 'ur-PK'] as Locale[]) {
+    let page = await phone(browser, 390, locale, { persona: 'alnoor_admin' }, { key: OFFICE_RABIA, scale: 1 }, 420);
+    await open(page, `${BO}/backoffice/global/profile--preferences`, 'contact-phone');
+    await page.getByTestId('contact-phone').focus();
+    await settle(page, 600);
+    await shot(page, `v06-office-keyboard-open-390-${lang(locale)}`, false);
+    await page.context().close();
+    page = await phone(browser, 390, locale, { app: 'customer', persona: 'alnoor_owner_a201' }, { key: '', scale: 1 }, 420);
+    await open(page, `${CU}/customer/portal/household`, 'household-name');
+    await page.getByTestId('household-name').focus();
+    await settle(page, 600);
+    await shot(page, `v07-resident-keyboard-open-390-${lang(locale)}`, false);
+    await page.context().close();
+  }
+});
+
+test('Closure: shared essentials when Rabia switches apps (video)', async ({ browser }) => {
+  test.setTimeout(240_000);
+  const page = await context(browser, 'phone', null, { staff: 'alnoor_admin', resident: 'alnoor_owner_a201', textScale: 1.25 }, true);
+  await open(page, `${CU}/customer/portal/home`, 'portal-account', 1200);
+  await shot(page, 'x01-resident-c2-size-125-390-en', false);
+  await open(page, `${BO}/backoffice/global/accessibility-preferences`, 'personalization-hub', 1500);
+  await shot(page, 'x02-office-adopts-125-390-en', false);
+  await page.getByTestId('text-size-150').click();
+  await page.getByTestId('hub-contrast').getByText('High contrast', { exact: false }).first().click();
+  await page.getByTestId('hub-theme').getByText('Dark', { exact: true }).click();
+  await settle(page, 800);
+  await shot(page, 'x03-office-150-high-dark-390-en', false);
+  await open(page, `${BO}/backoffice/global/profile--preferences`, 'app-switch');
+  await page.getByTestId('app-switch').click();
+  await page.waitForURL(/5174\/customer\/portal\/home/);
+  await page.getByTestId('portal-account').waitFor();
+  await settle(page, 1500);
+  await shot(page, 'x04-resident-150-high-own-theme-390-en', false);
+  await open(page, `${CU}/customer/portal/accessibility-preferences`, 'personalization-hub');
+  await page.getByTestId('text-size-175').click();
+  await page.getByTestId('locale-toggle').first().click();
+  await settle(page, 800);
+  await page.getByTestId('portal-account').click();
+  await page.getByTestId('menu-app-switch').click();
+  await page.waitForURL(/5173\/backoffice\//);
+  await settle(page, 2000);
+  await shot(page, 'x05-office-175-urdu-dark-390-ur', false);
+  await keepVideo(page, 'closure-shared-essentials-en');
+});

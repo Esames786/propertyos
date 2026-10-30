@@ -14,6 +14,7 @@ import {
   type OrgAppearanceSettings,
   type PortalAccessList,
   type PrivacyRequest,
+  type SharedAccessibilityRecord,
   type SignInCodeSent,
   type StaffUserRow,
 } from '@repo/contracts';
@@ -197,6 +198,11 @@ describe('Gate D.1 app switch (GLOBAL-015)', () => {
     expect((await problem(s.post('/me/app-switch'))).status).toBe(403);
     expect((await s.as('alnoor_resident_a101', 'customer').get<MyProfile>('/me/profile')).switchTo).toBeUndefined();
     expect((await s.as('alnoor_owner_a201', 'customer').get<MyProfile>('/me/profile')).switchTo?.app).toBe('backoffice');
+    // One person, one set of contact details in both apps.
+    const office = await s.as('alnoor_admin').get<MyProfile>('/me/profile');
+    const home = await s.as('alnoor_owner_a201', 'customer').get<MyProfile>('/me/profile');
+    expect(office.phone).toBeTruthy();
+    expect(office.phone).toBe(home.phone);
   });
 });
 
@@ -287,5 +293,37 @@ describe('Gate D.1 organisation colours (ADM-022)', () => {
     expect((await problem(s.as('alnoor_admin').patch('/org/appearance', { palette: 'brand', brandPrimary: '#1e4d42' }))).code).toBe('feature_not_licensed');
     await s.patch('/org/appearance', { palette: 'ocean' });
     expect((await s.as('alnoor_resident_a101', 'customer').get<OrgAppearanceSettings>('/org/appearance')).palette).toBe('ocean');
+  });
+});
+
+describe('D.1 closure: shared accessibility essentials (/me/preferences)', () => {
+  const rec = (patch: Partial<SharedAccessibilityRecord['essentials']>, changedAt: string, chosenAt?: string): SharedAccessibilityRecord => ({
+    essentials: { textScale: 1, contrast: 'system', motion: 'system', reading: false, fontLatin: 'geist', fontUrdu: 'naskh', ...patch },
+    changedAt,
+    ...(chosenAt ? { chosenAt } : {}),
+  });
+
+  it('one record per person in the organisation: Rabia reads the same record in both apps; nobody else does', async () => {
+    const s = session();
+    expect((await s.as('alnoor_admin', 'backoffice').get<{ record: SharedAccessibilityRecord | null }>('/me/preferences')).record).toBeNull();
+    await s.patch('/me/preferences', rec({ textScale: 1.5, contrast: 'high' }, '2026-10-26T10:00:00Z'));
+    const resident = await s.as('alnoor_owner_a201', 'customer').get<{ record: SharedAccessibilityRecord | null }>('/me/preferences');
+    expect(resident.record?.essentials).toMatchObject({ textScale: 1.5, contrast: 'high' });
+    expect((await s.as('alnoor_resident_a101', 'customer').get<{ record: SharedAccessibilityRecord | null }>('/me/preferences')).record).toBeNull();
+    expect((await s.as('alnoor_manager').get<{ record: SharedAccessibilityRecord | null }>('/me/preferences')).record).toBeNull();
+  });
+
+  it('the newer change wins; a text size chosen in either app stays chosen; nonsense is refused', async () => {
+    const s = session().as('alnoor_owner_a201', 'customer');
+    await s.patch('/me/preferences', rec({ textScale: 1.25 }, '2026-10-26T10:00:00Z', '2026-10-20T08:00:00Z'));
+    const stale = await s.as('alnoor_admin', 'backoffice').patch<{ record: SharedAccessibilityRecord }>('/me/preferences', rec({ textScale: 2 }, '2026-10-25T10:00:00Z'));
+    expect(stale.record.essentials.textScale).toBe(1.25);
+    const newer = await s.patch<{ record: SharedAccessibilityRecord }>('/me/preferences', rec({ textScale: 1.75, locale: 'ur-PK' }, '2026-10-27T10:00:00Z'));
+    expect(newer.record).toMatchObject({ essentials: { textScale: 1.75, locale: 'ur-PK' }, chosenAt: '2026-10-20T08:00:00Z' });
+    expect((await problem(s.patch('/me/preferences', rec({ textScale: 3 }, '2026-10-28T10:00:00Z')))).status).toBe(422);
+    expect((await problem(s.patch('/me/preferences', { essentials: { textScale: 1 }, changedAt: 'yesterday' }))).status).toBe(422);
+    // The switch to the other app carries the shared language for its greeting.
+    const ticket = await s.post<AppSwitchTicket>('/me/app-switch');
+    expect((await s.as(null, 'customer').post<AppSwitchRedeemed>(`/app-switch/${ticket.token}`)).locale).toBe('ur-PK');
   });
 });

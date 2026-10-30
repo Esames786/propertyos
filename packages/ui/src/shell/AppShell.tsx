@@ -71,6 +71,9 @@ export function AppShell({
   return (
     <ShellContext.Provider value={value}>
       <div id="app-shell" className="min-h-dvh bg-bg md:flex">
+        {/* Phones: a control reached with the keyboard or an in-page link is never left under the
+            floating header or the bottom bar (D.1 closure, as in the resident app). */}
+        <style>{`@media (max-width: 47.99rem) { html { scroll-padding-top: 5.5rem; scroll-padding-bottom: calc(var(--bottom-nav-height) + max(0.75rem, env(safe-area-inset-bottom)) + 1.5rem); } }`}</style>
         <SkipLink />
         <Sidebar
           tenantName={tenant.name}

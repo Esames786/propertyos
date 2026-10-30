@@ -37,11 +37,12 @@ export function DemoEnvironmentPill({ className }: { className?: string }) {
       role="note"
       aria-label={t('nav:demoEnvironment')}
       data-testid="demo-environment"
-      className={cn('inline-flex shrink-0 items-center gap-1.5 rounded-pill border border-demo/30 bg-demo-soft px-2.5 py-1 text-xs font-medium text-demo', className)}
+      className={cn('inline-flex shrink-0 items-center gap-1.5 rounded-pill border border-demo/30 bg-demo-soft px-2.5 py-1 text-[length:min(var(--text-xs),0.8125rem)] font-medium text-demo', className)}
     >
       <ShieldCheck aria-hidden className="size-3.5" />
       <span aria-hidden className="hidden 2xl:inline">{t('nav:demoEnvironment')}</span>
-      <span aria-hidden className="2xl:hidden">{t('nav:demoShort')}</span>
+      {/* Phones: the shield alone (still read as the full notice), so the site's short name fits beside it. */}
+      <span aria-hidden className="max-sm:hidden 2xl:hidden">{t('nav:demoShort')}</span>
     </span>
   );
   return (

@@ -1,3 +1,4 @@
+import type { SharedAccessibility, SharedAccessibilityRecord } from '@repo/contracts';
 import type { AppLocale } from '@repo/i18n';
 
 /**
@@ -59,6 +60,10 @@ export interface PersonalPreferences {
   locale?: AppLocale;
   /** When the person chose a text size (first run or settings). Absent: the first-run step is still due. */
   chosenAt?: string;
+  /** When a shared accessibility essential last changed here (D.1 closure); absent: never chosen here. */
+  essentialsAt?: string;
+  /** When this app's record was first reconciled with the person's shared essentials. */
+  sharedSince?: string;
   updatedAt: string;
 }
 
@@ -134,10 +139,10 @@ export function migrate(raw: unknown, device: DevicePreferences = DEVICE_DEFAULT
   const base = defaultsFrom(device, typeof r.updatedAt === 'string' ? r.updatedAt : typeof r.chosenAt === 'string' ? r.chosenAt : new Date(0).toISOString());
   if (r.version === 1) {
     if (!isTextScale(r.textScale)) return null;
-    return { ...base, textScale: r.textScale, ...(typeof r.chosenAt === 'string' ? { chosenAt: r.chosenAt } : {}) };
+    return withLegacyEssentialsAt({ ...base, textScale: r.textScale, ...(typeof r.chosenAt === 'string' ? { chosenAt: r.chosenAt } : {}) }, device);
   }
   if (r.version !== 2) return null;
-  return {
+  return withLegacyEssentialsAt({
     version: 2,
     textScale: isTextScale(r.textScale) ? r.textScale : base.textScale,
     theme: oneOf(THEMES, r.theme, base.theme),
@@ -154,7 +159,111 @@ export function migrate(raw: unknown, device: DevicePreferences = DEVICE_DEFAULT
     textOnlyGuide: typeof r.textOnlyGuide === 'boolean' ? r.textOnlyGuide : base.textOnlyGuide,
     ...(r.locale === 'en-PK' || r.locale === 'ur-PK' ? { locale: r.locale } : {}),
     ...(typeof r.chosenAt === 'string' ? { chosenAt: r.chosenAt } : {}),
+    ...(typeof r.essentialsAt === 'string' ? { essentialsAt: r.essentialsAt } : {}),
+    ...(typeof r.sharedSince === 'string' ? { sharedSince: r.sharedSince } : {}),
     updatedAt: base.updatedAt,
+  }, device);
+}
+
+// ---------------------------------------------------------------- shared accessibility (D.1 closure)
+
+/**
+ * The essentials that follow a person across the office app and the resident app (owner, D.1
+ * closure): text size, contrast, motion, reading mode, fonts and language. Theme, palette, spacing,
+ * sound and tours stay with each app.
+ */
+export const SHARED_FIELDS = ['textScale', 'contrast', 'motion', 'reading', 'fontLatin', 'fontUrdu', 'locale'] as const;
+export type SharedField = (typeof SHARED_FIELDS)[number];
+
+export function essentialsOf(p: PersonalPreferences): SharedAccessibility {
+  return { textScale: p.textScale, contrast: p.contrast, motion: p.motion, reading: p.reading, fontLatin: p.fontLatin, fontUrdu: p.fontUrdu, ...(p.locale ? { locale: p.locale } : {}) };
+}
+
+/** This app's record as the shared record, or null while no essential was ever chosen here. */
+export function sharedRecordOf(p: PersonalPreferences | null): SharedAccessibilityRecord | null {
+  if (!p?.essentialsAt) return null;
+  return { essentials: essentialsOf(p), changedAt: p.essentialsAt, ...(p.chosenAt ? { chosenAt: p.chosenAt } : {}) };
+}
+
+const sameEssentials = (a: SharedAccessibility, b: SharedAccessibility) => SHARED_FIELDS.every((k) => a[k] === b[k]);
+
+/** Whether a change touches an essential (a text-size choice counts too). */
+export const changesEssentials = (prev: PersonalPreferences, next: PersonalPreferences) => !sameEssentials(essentialsOf(prev), essentialsOf(next)) || prev.chosenAt !== next.chosenAt;
+
+/**
+ * Records saved before the closure: an essential that differs from the defaults, or a text size the
+ * person chose (C.2), is a deliberate choice and is kept when the apps first share them.
+ */
+function withLegacyEssentialsAt(p: PersonalPreferences, device: DevicePreferences): PersonalPreferences {
+  if (p.essentialsAt) return p;
+  const chosen = !sameEssentials(essentialsOf(p), essentialsOf(defaultsFrom(device)));
+  const at = chosen ? p.updatedAt : p.chosenAt;
+  return at ? { ...p, essentialsAt: at } : p;
+}
+
+const earliest = (a?: string, b?: string) => (a && b ? (a < b ? a : b) : (a ?? b));
+
+/**
+ * How this app's record and the person's shared record come together:
+ * - the first time an app shares (a record saved before the closure), field by field: a deliberate
+ *   choice beats a default, and when both apps chose differently, the more recent choice wins;
+ * - after that, the more recent change wins as a whole;
+ * - a text-size choice made in either app is kept, so neither app asks again.
+ * "adopt" updates this app; "push" updates the shared record.
+ */
+export function reconcileShared(input: {
+  local: SharedAccessibilityRecord | null;
+  server: SharedAccessibilityRecord | null;
+  firstSync: boolean;
+  defaults: SharedAccessibility;
+  now: string;
+}): { result: SharedAccessibilityRecord | null; adopt: boolean; push: boolean } {
+  const { local, server, firstSync, defaults, now } = input;
+  if (!local && !server) return { result: null, adopt: false, push: false };
+  if (!server) return { result: local, adopt: false, push: true };
+  if (!local) return { result: server, adopt: true, push: false };
+  const chosenAt = earliest(local.chosenAt, server.chosenAt);
+  const withChosen = (r: SharedAccessibilityRecord): SharedAccessibilityRecord => ({ ...r, ...(chosenAt ? { chosenAt } : {}) });
+  if (firstSync) {
+    const localNewer = local.changedAt > server.changedAt;
+    const essentials: Record<string, unknown> = {};
+    for (const k of SHARED_FIELDS) {
+      const lv = local.essentials[k];
+      const sv = server.essentials[k];
+      const dv = defaults[k];
+      const value = lv === sv ? lv : lv !== dv && sv === dv ? lv : sv !== dv && lv === dv ? sv : localNewer ? lv : sv;
+      if (value !== undefined) essentials[k] = value;
+    }
+    const merged = essentials as unknown as SharedAccessibility;
+    const result = withChosen({ essentials: merged, changedAt: now });
+    return {
+      result,
+      adopt: !sameEssentials(merged, local.essentials) || local.chosenAt !== result.chosenAt,
+      push: !sameEssentials(merged, server.essentials) || server.chosenAt !== result.chosenAt,
+    };
+  }
+  if (server.changedAt > local.changedAt) return { result: withChosen(server), adopt: true, push: server.chosenAt !== chosenAt };
+  if (local.changedAt > server.changedAt) return { result: withChosen(local), adopt: local.chosenAt !== chosenAt, push: true };
+  if (!sameEssentials(local.essentials, server.essentials) || local.chosenAt !== server.chosenAt) return { result: withChosen(server), adopt: true, push: server.chosenAt !== chosenAt };
+  return { result: local, adopt: false, push: false };
+}
+
+/** This app's record after taking the shared essentials (theme, palette, spacing and sound untouched). */
+export function adoptShared(p: PersonalPreferences, rec: SharedAccessibilityRecord, now: string): PersonalPreferences {
+  const e = rec.essentials;
+  return {
+    ...p,
+    textScale: isTextScale(e.textScale) ? e.textScale : p.textScale,
+    contrast: oneOf(CONTRASTS, e.contrast, p.contrast),
+    motion: oneOf(MOTIONS, e.motion, p.motion),
+    reading: typeof e.reading === 'boolean' ? e.reading : p.reading,
+    fontLatin: oneOf(LATIN_FONTS, e.fontLatin, p.fontLatin),
+    fontUrdu: oneOf(URDU_FONTS, e.fontUrdu, p.fontUrdu),
+    ...(e.locale ? { locale: e.locale } : {}),
+    ...(rec.chosenAt ? { chosenAt: rec.chosenAt } : {}),
+    essentialsAt: rec.changedAt,
+    sharedSince: p.sharedSince ?? now,
+    updatedAt: now,
   };
 }
 

@@ -3,9 +3,13 @@ import { createContext, useCallback, useContext, useEffect, useLayoutEffect, use
 import { useMediaQuery } from '../lib/useMediaQuery';
 import { readJson, writeJson } from '../lib/storage';
 import { useSession } from '../permissions/SessionProvider';
+import type { SharedAccessibilityRecord } from '@repo/contracts';
 import {
+  adoptShared,
+  changesEssentials,
   DEFAULT_TEXT_SCALE,
   defaultsFrom,
+  sharedRecordOf,
   htmlState,
   migrate,
   readDevice,
@@ -30,6 +34,10 @@ export type DisplayPreferences = PersonalPreferences;
  *
  * The prototype stores the record in this browser under the same key as Gate C.2 (older records are
  * upgraded, never re-asked); the API keeps it with the person's profile, for every signed-in device.
+ *
+ * D.1 closure: the accessibility essentials (text size, contrast, motion, reading mode, fonts,
+ * language) also follow the person between the office app and the resident app through their
+ * account (`useSharedPreferences`); theme, colours, spacing and sounds stay with each app.
  */
 export const displayPreferencesKey = (app: string, tenantId: string, userId: string) => `pref:display:v1:${app}:${tenantId}:${userId}`;
 /** The organisation's colours seen last, so they apply on the first paint after a reload. */
@@ -59,6 +67,12 @@ interface DisplayPreferencesValue {
   organisation: OrgAppearance | null;
   /** The app supplies the organisation's colours once it knows them (ADM-022). */
   setOrganisation: (org: OrgAppearance | null) => void;
+  /** The essentials as this app last saved them (null while none was ever chosen here). */
+  shared: SharedAccessibilityRecord | null;
+  /** Whether this app's record was already reconciled with the person's shared essentials. */
+  sharedSince: string | null;
+  /** Take the person's shared essentials (or, with null, only note that the record is now shared). */
+  applyShared: (rec: SharedAccessibilityRecord | null) => void;
 }
 
 const Ctx = createContext<DisplayPreferencesValue | null>(null);
@@ -113,7 +127,11 @@ export function DisplayPreferencesProvider({ app, children }: { app: string; chi
         return;
       }
       setRecord((prev) => {
-        const next: PersonalPreferences = { ...(prev ?? defaultsFrom(device)), ...patch, version: 2, updatedAt: new Date().toISOString() };
+        const before = prev ?? defaultsFrom(device);
+        const now = new Date().toISOString();
+        const next: PersonalPreferences = { ...before, ...patch, version: 2, updatedAt: now };
+        // An essential changed here: it becomes the newest choice for every app of this person.
+        if (changesEssentials(before, next)) next.essentialsAt = now;
         writeJson(key, next);
         return next;
       });
@@ -141,6 +159,28 @@ export function DisplayPreferencesProvider({ app, children }: { app: string; chi
     update({ locale });
   }, [key, locale, update]);
 
+  // The person's shared essentials arrive (or this record is now shared): theme, colours, spacing
+  // and sounds of this app are untouched; the language follows too.
+  const applyShared = useCallback(
+    (rec: SharedAccessibilityRecord | null) => {
+      if (!key) return;
+      const now = new Date().toISOString();
+      setRecord((prev) => {
+        const base = prev ?? defaultsFrom(device);
+        const next = rec ? adoptShared(base, rec, now) : { ...base, sharedSince: base.sharedSince ?? now };
+        writeJson(key, next);
+        return next;
+      });
+      setPreviewing(null);
+      const wanted = rec?.essentials.locale;
+      if (wanted && wanted !== locale) {
+        appliedLocale.current = { key, locale: wanted };
+        setLocale(wanted);
+      }
+    },
+    [key, device, locale, setLocale],
+  );
+
   const setOrganisation = useCallback(
     (next: OrgAppearance | null) => {
       setOrg(next);
@@ -163,7 +203,9 @@ export function DisplayPreferencesProvider({ app, children }: { app: string; chi
       update,
       resetAll: () => {
         if (!key) return;
-        const next = resetAllOf(prefs, now());
+        const at = now();
+        const next: PersonalPreferences = { ...resetAllOf(prefs, at), ...(record?.sharedSince ? { sharedSince: record.sharedSince } : {}) };
+        if (changesEssentials(prefs, next) || record?.essentialsAt) next.essentialsAt = at;
         writeJson(key, next);
         setRecord(next);
         setPreviewing(null);
@@ -171,8 +213,11 @@ export function DisplayPreferencesProvider({ app, children }: { app: string; chi
       signedIn: !!key,
       organisation: org,
       setOrganisation,
+      shared: sharedRecordOf(record),
+      sharedSince: record?.sharedSince ?? null,
+      applyShared,
     };
-  }, [prefs, resolved, record, update, key, org, setOrganisation]);
+  }, [prefs, resolved, record, update, key, org, setOrganisation, applyShared]);
 
   const legacy = useMemo<PreferencesContextValue>(
     () => ({

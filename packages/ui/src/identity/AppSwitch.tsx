@@ -12,6 +12,7 @@ import { useSession } from '../permissions/SessionProvider';
 import { Button } from '../primitives/Button';
 import { Link } from '../primitives/Link';
 import { LocaleToggle } from '../shell/LocaleSwitcher';
+import { flushSharedPreferences } from '../preferences/SharedPreferences';
 import { useMyProfile } from './Profile';
 
 export type SwitchableApp = 'backoffice' | 'customer';
@@ -29,9 +30,11 @@ export function useAppSwitch(urlFor: (token: string) => string) {
   const profile = useMyProfile();
   const issue = useApiMutation<AppSwitchTicket>();
   const target = profile.data?.switchTo;
-  const start = () => {
+  const start = async () => {
     if (!target) return;
     announce(t('identity:switch.opening', { app: t(`identity:switch.appName.${target.app}`) }));
+    // A setting changed a moment ago reaches the account before the other app opens.
+    await flushSharedPreferences();
     issue.mutate(
       { method: 'POST', path: '/me/app-switch' },
       {
@@ -98,7 +101,7 @@ export function RoleModeChip({ app, compact = false, className }: { app: Switcha
  * this side, start this side's own session, then home. An expired or used ticket explains itself.
  */
 export function AppSwitchLanding({ token, homeHref, signInHref }: { token: string; homeHref: string; signInHref: string }) {
-  const { t } = useT();
+  const { t, i18n } = useT();
   const { transport } = useTransport();
   const { persona, personas, signIn } = useSession();
   const { navigate } = useNavigation();
@@ -118,7 +121,10 @@ export function AppSwitchLanding({ token, homeHref, signInHref }: { token: strin
           signIn(r.personaId as Persona['id']);
         }
         const target = personas.find((p) => p.id === r.personaId);
-        const msg = t('identity:switch.arrived', { app: t(`identity:switch.appName.${r.app}`), role: target ? t(target.roleKey as 'common:persona.manager') : '' });
+        // The greeting is in the person's shared language; the shared settings themselves arrive with the
+        // app's own sync (setting the language here would count as a newer change made in this app).
+        const say = (r.locale ? i18n.getFixedT(r.locale) : t) as typeof t;
+        const msg = say('identity:switch.arrived', { app: say(`identity:switch.appName.${r.app}`), role: target ? say(target.roleKey as 'common:persona.manager') : '' });
         toast.success(msg);
         announce(msg);
         navigate(homeHref, { replace: true });
@@ -126,7 +132,7 @@ export function AppSwitchLanding({ token, homeHref, signInHref }: { token: strin
         setFailed(true);
       }
     })();
-  }, [token, transport, persona, personas, signIn, navigate, homeHref, toast, announce, t]);
+  }, [token, transport, persona, personas, signIn, navigate, homeHref, toast, announce, t, i18n]);
 
   return (
     <div className="grid min-h-dvh place-items-center bg-bg px-4 py-10">

@@ -1,5 +1,6 @@
 import type { Project, SiteSummary } from '@repo/contracts';
 import { Building, Building2, Check, ChevronDown } from 'lucide-react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { Button as AriaButton, Link, ListBox, ListBoxItem, Popover, Select, SelectValue } from 'react-aria-components';
 import { useAnnounce } from '../a11y/LiveAnnouncer';
 import { useApiQuery } from '../data/TransportProvider';
@@ -17,25 +18,69 @@ export function ProjectSwitcher() {
   return <ProjectSelect />;
 }
 
+/** "Al-Noor Residency" → "Al-Noor": the name people use for the place. */
+export const shortSiteName = (name: string) => name.trim().split(/\s+/)[0] ?? name;
+/** "Al-Noor" → "AN"; one word → its first two letters. Shown only when even the short name does not fit. */
+export const siteInitials = (short: string) => {
+  const parts = short.split(/[-\s]+/).filter(Boolean);
+  return (parts.length > 1 ? parts.slice(0, 2).map((p) => p[0]) : [...(parts[0] ?? '').slice(0, 2)]).join('').toUpperCase();
+};
+
 function SiteChip() {
   const { t } = useT();
   const sites = useApiQuery<SiteSummary[]>({ method: 'GET', path: '/sites' });
   const site = sites.data?.[0];
+  const chipRef = useRef<HTMLAnchorElement>(null);
+  const nameRef = useRef<HTMLSpanElement>(null);
+  const initialsRef = useRef<HTMLSpanElement>(null);
+  const [mode, setMode] = useState<'name' | 'initials' | 'icon'>('name');
+  // Phones: the short name in full; when it cannot fit (320 px, large text), its initials; when even
+  // those cannot, the building alone. Never a name cut mid-word; the full name is always the chip's
+  // accessible name and tooltip, and the organisation's monogram stays at the start of the header.
+  useLayoutEffect(() => {
+    const chip = chipRef.current;
+    const holder = chip?.parentElement;
+    if (!chip || !holder || !nameRef.current || !initialsRef.current) return;
+    const check = () => {
+      // Padding, the icon and the gap, plus the text at full width.
+      const style = getComputedStyle(chip);
+      const icon = (chip.firstElementChild as HTMLElement | null)?.offsetWidth ?? 0;
+      const chrome = parseFloat(style.paddingInlineStart) + parseFloat(style.paddingInlineEnd) + icon + parseFloat(style.columnGap || '0');
+      const room = holder.clientWidth + 0.5;
+      setMode(chrome + nameRef.current!.offsetWidth <= room ? 'name' : chrome + initialsRef.current!.offsetWidth <= room ? 'initials' : 'icon');
+    };
+    check();
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(check);
+    observer.observe(holder);
+    return () => observer.disconnect();
+  }, [site?.name]);
   if (!site) return null;
+  const short = shortSiteName(site.name);
   return (
     <Link
+      ref={chipRef}
       href={`/backoffice/sites/${site.id}`}
       data-testid="site-chip"
       data-tour-id="site-chip"
+      data-short={mode}
       aria-label={t('nav:header.siteFor', { site: site.name })}
-      className="flex min-h-10 max-w-[15rem] min-w-0 items-center gap-2 rounded-pill bg-panel ps-2 pe-3 text-sm font-medium text-text shadow-inset outline-none transition-shadow duration-[var(--motion-fast)] data-hovered:shadow-card data-focus-visible:outline-2 data-focus-visible:outline-focus pointer-coarse:min-h-11 max-sm:pe-2.5"
+      className="relative flex min-h-10 max-w-[15rem] min-w-0 items-center gap-2 rounded-pill bg-panel ps-2 pe-3 text-chrome font-medium text-text shadow-inset outline-none transition-shadow duration-[var(--motion-fast)] data-hovered:shadow-card data-focus-visible:outline-2 data-focus-visible:outline-focus pointer-coarse:min-h-11 max-sm:pe-2.5"
     >
       <span aria-hidden className="grid size-7 shrink-0 place-items-center rounded-pill bg-primary-soft text-primary">
         <Building className="size-3.5" />
       </span>
-      {/* Phones show the short name ("Al-Noor"); the full name stays in the accessible label. */}
-      <span aria-hidden className="truncate sm:hidden">
-        <bdi>{site.name.split(/\s+/)[0]}</bdi>
+      {/* Phones show the short name ("Al-Noor") or its initials; the full name stays in the accessible label. */}
+      {mode !== 'icon' && (
+        <span aria-hidden className="whitespace-nowrap sm:hidden" title={site.name} data-testid="site-chip-text">
+          <bdi dir="ltr">{mode === 'initials' ? siteInitials(short) : short}</bdi>
+        </span>
+      )}
+      <span ref={nameRef} aria-hidden className="invisible absolute whitespace-nowrap sm:hidden">
+        <bdi dir="ltr">{short}</bdi>
+      </span>
+      <span ref={initialsRef} aria-hidden className="invisible absolute whitespace-nowrap sm:hidden">
+        <bdi dir="ltr">{siteInitials(short)}</bdi>
       </span>
       <span className="truncate max-sm:hidden">
         <bdi>{site.name}</bdi>
