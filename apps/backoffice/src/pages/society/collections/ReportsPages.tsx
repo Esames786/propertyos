@@ -1,10 +1,11 @@
 import { AGING_BUCKETS, type AgingReport, type BillingAccountRow, type CreditRow } from '@repo/contracts';
-import { Badge, DirectionalIcon, EmptyState, ErrorState, FilterPills, Link, Money, PageHeader, SelectControl, useApiQuery, useQueryParam, useQueryParams, useT } from '@repo/ui';
+import { Badge, DirectionalIcon, EmptyState, ErrorState, FilterPills, Link, Money, PageHeader, SelectControl, useApiQuery, useQueryParam, useQueryParams, useSession, useT } from '@repo/ui';
 import { ChevronRight, PiggyBank } from 'lucide-react';
 import { useState } from 'react';
 import { COLLECTIONS, SOCIETY } from '../../../nav.config';
 import { Loading, ScrollRegion, useSocietyFormat } from '../kit';
 import { StatementView } from '../parts';
+import { PrintPackButton, SendReminderButton } from '../finance/RemindersPage';
 
 /** FIN-011 unapplied credit: who paid more than they owed (or ahead), and whether it can be applied now. */
 export function CreditsPage() {
@@ -34,6 +35,12 @@ export function CreditsPage() {
                 <span className="text-end">
                   <Money value={c.credit} className="text-lg font-bold" />
                   <span className="block text-xs text-muted">{c.openLines ? t('collections:credits.canApply', { count: c.openLines }) : t('collections:credits.nothingOpen')}</span>
+                  {/* Gate S.1 (FIN-011): credit with nothing open is money paid in advance, applied to the next bills oldest first. */}
+                  {!c.openLines && (
+                    <span className="mt-1 inline-block">
+                      <Badge tone="info" icon={PiggyBank}>{t('finance:credits.paidInAdvance')}</Badge>
+                    </span>
+                  )}
                 </span>
               </div>
               <ul className="flex flex-wrap gap-2">
@@ -59,6 +66,7 @@ const BUCKET_FILTERS = ['all', ...AGING_BUCKETS, 'credit'] as const;
 /** COL-005 aging and arrears: open amounts by how long past due, per account; credit is shown apart. */
 export function AgingPage() {
   const { t } = useT();
+  const { allows } = useSession();
   const fmt = useSocietyFormat();
   const [bucket] = useQueryParam('bucket');
   const setParams = useQueryParams();
@@ -66,7 +74,17 @@ export function AgingPage() {
   const q = useApiQuery<AgingReport>({ method: 'GET', path: '/collections/aging', query: { bucket: filter } }, { placeholderData: (prev) => prev });
   return (
     <div className="@container space-y-6" data-testid="aging-page" data-bucket={filter}>
-      <PageHeader title={t('nav:pages.aging')} description={t('collections:agingPage.intro', { date: q.data ? fmt.date(q.data.asOf) : '' })} />
+      <PageHeader
+        title={t('nav:pages.aging')}
+        description={t('collections:agingPage.intro', { date: q.data ? fmt.date(q.data.asOf) : '' })}
+        actions={
+          <div className="flex flex-wrap gap-2">
+            {/* Gate S.1: COL-008 print dues notices (one per liable payer), COL-009 reminders (simulated). */}
+            {allows({ module: 'receivables', permission: 'collections.view' }) && <PrintPackButton path="/collections/dues-notices" label={t('finance:aging.printNotices')} testId="aging-print-notices" />}
+            {allows({ module: 'receivables', feature: 'receivables.reminders', permission: 'reminders.send' }) && <SendReminderButton label={t('finance:aging.sendReminders')} testId="aging-send-reminders" />}
+          </div>
+        }
+      />
       {q.data && (
         <ul className="grid gap-3 @lg:grid-cols-3 @4xl:grid-cols-6" data-testid="aging-buckets">
           {q.data.buckets.map((b) => (

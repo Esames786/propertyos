@@ -47,6 +47,11 @@ export default function PayerChangesPage() {
                     <span className="block text-xs text-muted">
                       {t('sites:payer.requestedBy', { name: c.requestedByName })} · <DateTime value={c.requestedAt} style="dateTime" /> · <bdi>{t('billing:quote', { text: c.reason })}</bdi>
                     </span>
+                    {c.raisedBy && (
+                      <span className="block text-xs text-text" data-testid="payer-change-raised-by">
+                        {t('finance:payerChange.raisedBy', { ref: c.raisedBy.ref })}
+                      </span>
+                    )}
                   </span>
                   <Badge tone={tone} icon={Icon}>{t(`sites:payer.states.${c.state}`)}</Badge>
                   <DirectionalIcon icon={ChevronRight} className="size-4 text-muted" />

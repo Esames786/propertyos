@@ -4,6 +4,8 @@ coverage/
 .vite/
 *.tsbuildinfo
 test-results/
+# Isolated runs beside another checkout (E2E_PORT_OFFSET, --output=test-results-<name>)
+test-results-*/
 playwright-report/
 blob-report/
 .env

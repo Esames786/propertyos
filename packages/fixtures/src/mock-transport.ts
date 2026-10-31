@@ -57,7 +57,8 @@ const NO_RECORDS: TenantDataset = { tenantId: '', projects: [], towers: [], floo
  * permission held. Same layers as `decide`; the first refusal is returned.
  */
 export function decideEndpoint(access: EffectiveAccess, declared: Extract<HandlerAccess, { kind: 'tenant' }>, at: string): AccessDecision {
-  const base = { at, suspension: declared.suspension } as const;
+  // Gate S.1: an endpoint of a licensed feature (cashbook, bulk collection, committee …) also needs the feature.
+  const base = { at, suspension: declared.suspension, ...(declared.feature ? { feature: declared.feature } : {}) } as const;
   if (declared.permission === 'signed_in') return decide(access, { module: declared.module, ...base });
   const options: readonly Permission[] = typeof declared.permission === 'string' ? [declared.permission] : declared.permission;
   let first: AccessDecision | undefined;

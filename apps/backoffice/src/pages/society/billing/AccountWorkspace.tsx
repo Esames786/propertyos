@@ -3,6 +3,7 @@ import { Breadcrumbs, ErrorState, Link, Money, NotFoundState, Panel, SegmentedCo
 import { ACCESS_DATE, SOCIETY } from '../../../nav.config';
 import { FactList, Loading, SettlementBadge, useSocietyFormat } from '../kit';
 import { StatementView } from '../parts';
+import { SendReminderButton } from '../finance/RemindersPage';
 
 /**
  * BILL-002 billing account workspace: the flats the account covers and, per flat, who is liable
@@ -28,7 +29,7 @@ export default function AccountWorkspace({ accountId }: { accountId: string }) {
 function Workspace({ data }: { data: BillingAccountDetail }) {
   const { t } = useT();
   const fmt = useSocietyFormat();
-  const { can } = useSession();
+  const { can, allows } = useSession();
   const [period, setPeriod] = useQueryParam('period');
   const [payer, setPayer] = useQueryParam('payer');
   const payers = [...new Map(data.payers.map((p) => [p.partyId, p])).values()];
@@ -46,6 +47,8 @@ function Workspace({ data }: { data: BillingAccountDetail }) {
           <bdi dir="ltr">{data.accountNo}</bdi>
         </h1>
         <p className="text-sm text-text">{t('billing:account.holder', { name: data.holderName })}</p>
+        {/* Gate S.1 (COL-009): a reminder for this account's liable payers, under the reminder rules (simulated). */}
+        {allows({ module: 'receivables', feature: 'receivables.reminders', permission: 'reminders.send' }) && <SendReminderButton accounts={[data.id]} label={t('finance:account.remind')} testId="account-send-reminder" />}
         <dl className="grid gap-3 @xl:grid-cols-2 @4xl:grid-cols-4">
           <Metric label={t('billing:account.balance')} value={<Money value={data.balance} />} />
           <Metric label={t('billing:account.overdue')} value={<Money value={data.overdue} />} />

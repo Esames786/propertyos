@@ -1,4 +1,5 @@
 import type { ChargeCategoryKey, InvoiceSource } from './billing';
+import type { CashWitnessPolicy, ChequeRule, TransferFeeRate } from './finance';
 import type { Money } from './money';
 
 /**
@@ -279,10 +280,20 @@ export interface BankLine {
   /** Masked, as the statement shows it. */
   counterpartyAccount: string;
   state: 'unmatched' | 'matched' | 'excluded';
+  /**
+   * Gate S.1: money leaving the account (a transfer out, a returned cheque's debit). Absent on the
+   * C.2 statements, whose lines are all credits. Debits never settle a resident's proof.
+   */
+  direction?: 'credit' | 'debit';
   paymentId?: string;
   paymentRef?: string;
+  /** Gate S.1: the settlement leg (deposit, transfer) or cheque reversal this line proves. */
+  settlementId?: string;
+  settlementRef?: string;
   /** Held while an exception for one proof waits for approval (no other proof may use it). */
   heldFor?: { submissionId: string; submissionRef: string };
+  /** Gate S.1: held for an exception on a transfer leg or a cheque (no other subject may use it). */
+  heldBy?: { kind: 'transfer' | 'cheque'; id: string; ref: string };
   /** Why it was set aside (not a resident payment), as entered. */
   excludedReason?: string;
 }
@@ -306,7 +317,7 @@ export interface ReconciliationSummary {
   /** Proofs reviewed and waiting for their bank line (nothing settled yet). */
   awaitingBankLine: { amount: Money; count: number };
   awaitingProofs: Array<{ id: string; ref: string; amount: Money; payerName: string; flats: string[]; transferDate: string; reviewedBy: string }>;
-  lines: Array<BankLine & { suggestion?: { kind: 'submission' | 'account'; id: string; label: string; href: string } }>;
+  lines: Array<BankLine & { suggestion?: { kind: 'submission' | 'account' | 'transfer' | 'cheque'; id: string; label: string; href: string } }>;
   payments: Array<{ id: string; ref: string; amount: Money; method: CollectionMethod; verification: CollectionPayment['verification']; payerName: string; accountNo: string; receivedOn: string; bankLineId?: string }>;
 }
 
@@ -341,12 +352,25 @@ export interface CollectionPayment {
   method: CollectionMethod;
   amount: Money;
   receivedOn: string;
-  source: { kind: 'submission'; submissionId: string; submissionRef: string } | { kind: 'office'; note?: string };
+  source:
+    | { kind: 'submission'; submissionId: string; submissionRef: string }
+    | { kind: 'office'; note?: string }
+    /** Gate S.1: a cheque, paid only when its statement line cleared it. */
+    | { kind: 'cheque'; chequeId: string; chequeRef: string }
+    /** Gate S.1: a cash line of a bulk office collection, confirmed by a second person. */
+    | { kind: 'batch'; batchId: string; batchRef: string; lineId: string };
   /**
    * How the money was confirmed: a fully matching statement line, a partly matching line through an
    * approved exception, or cash at the counter. There is no settlement on a reviewer's word alone.
    */
-  verification: 'bank_matched' | 'exception_approved' | 'counter';
+  verification: 'bank_matched' | 'exception_approved' | 'counter' | 'witnessed';
+  /** Gate S.1: the second person who counted the cash (bulk collection). */
+  witness?: { by: string; byName: string; at: string };
+  /**
+   * Gate S.1: reversed after an approval (a cheque returned after clearing, a cash line corrected).
+   * Never deleted: the allocations stop settling lines, the lines reopen and the receipt is marked reversed.
+   */
+  reversal?: { on: string; at: string; reason: string; approvalId: string; approvalRef: string; requestedByName: string; approvedByName: string; bankLineId?: string };
   /** The approved exception: why the partly matching line was accepted, and by whom. */
   exception?: { missing: MatchReason[]; reason: string; requestedBy: string; requestedByName: string; approvedBy: string; approvedByName: string; approvedAt: string };
   bankLineId?: string;
@@ -380,6 +404,8 @@ export interface Receipt {
   bankReference?: string;
   allocations: PaymentAllocation[];
   unapplied: Money;
+  /** Gate S.1: the payment was reversed (the receipt stays, marked reversed). */
+  reversed?: { on: string; reason: string };
 }
 
 export interface PaymentRow {
@@ -397,6 +423,7 @@ export interface PaymentRow {
   unapplied: Money;
   receiptRef: string;
   reconciled: boolean;
+  reversed?: boolean;
 }
 
 export interface PaymentList {
@@ -485,6 +512,8 @@ export interface MethodRule {
   /** Office cash: the most one receipt may take, and where and when residents can pay. */
   maxAmount?: Money;
   counter?: string;
+  /** Gate S.1 (cheques): payee wording, deposit account and how far ahead a cheque may be dated. */
+  cheque?: ChequeRule;
 }
 
 export interface NumberingScheme {
@@ -498,6 +527,14 @@ export interface NumberingScheme {
   receipt: string;
   submission: string;
   run: string;
+  // Gate S.1 document kinds (configurable like the rest; new documents only).
+  voucher: string;
+  transfer: string;
+  cheque: string;
+  batch: string;
+  clearance: string;
+  approval: string;
+  ownershipTransfer: string;
 }
 
 export type DocumentKind = keyof Omit<NumberingScheme, 'code'>;
@@ -536,6 +573,10 @@ export interface CollectionSettings {
   methods: MethodRule[];
   numbering: NumberingScheme;
   posting: PostingPolicy;
+  /** Gate S.1 (D-46): whether single office cash also needs a second person's count. */
+  cashWitness: CashWitnessPolicy;
+  /** Gate S.1 (D-42): the transfer fee's versioned rates, each with its bylaw reference. */
+  transferFees: TransferFeeRate[];
   actions: {
     proposeBeneficiary: boolean;
     approveBeneficiary: boolean;
@@ -565,6 +606,8 @@ export interface LiabilityChange {
   state: 'pending_approval' | 'approved' | 'rejected' | 'withdrawn' | 'superseded';
   /** The change this one corrects (approving it supersedes that one). */
   corrects?: string;
+  /** Gate S.1: raised by an approved society transfer (never a second liability path). */
+  raisedBy?: { kind: 'ownership_transfer'; id: string; ref: string };
   requestedBy: string;
   requestedByName: string;
   requestedAt: string;
@@ -720,6 +763,8 @@ export interface DuesHome {
   methods: ResidentMethods;
   submissions: ResidentSubmissionSummary[];
   receipts: ResidentReceiptSummary[];
+  /** Gate S.1: cheques waiting to clear (acknowledged, never counted as paid). */
+  cheques?: ResidentCheque[];
 }
 
 export interface DuesBills {
@@ -727,7 +772,23 @@ export interface DuesBills {
   bills: ResidentBill[];
   submissions: ResidentSubmissionSummary[];
   receipts: ResidentReceiptSummary[];
-  payments: Array<{ id: string; ref: string; amount: Money; receivedOn: string; method: CollectionMethod; receiptId: string; receiptRef: string; allocated: Money; unapplied: Money }>;
+  payments: Array<{ id: string; ref: string; amount: Money; receivedOn: string; method: CollectionMethod; receiptId: string; receiptRef: string; allocated: Money; unapplied: Money; reversed?: boolean }>;
+  /** Gate S.1: cheques handed in at the office (acknowledged, not paid until cleared). */
+  cheques?: ResidentCheque[];
+}
+
+/** A resident's cheque as they see it: received is never "paid"; returned and reversed are said plainly. */
+export interface ResidentCheque {
+  id: string;
+  ref: string;
+  chequeNumber: string;
+  drawerBank: string;
+  amount: Money;
+  receivedOn: string;
+  status: 'received' | 'deposited' | 'exception_pending' | 'cleared' | 'returned' | 'cancelled' | 'reversed';
+  receiptId?: string;
+  receiptRef?: string;
+  returnedReason?: string;
 }
 
 export interface DuesBillDetail {

@@ -1,4 +1,4 @@
-import type { ModuleKey, Permission, SuspensionClass } from '@repo/contracts';
+import type { ModuleKey, Permission, SuspensionClass, FeatureKey } from '@repo/contracts';
 import type { LucideIcon } from 'lucide-react';
 
 export interface NavItem {
@@ -12,6 +12,8 @@ export interface NavItem {
   anyOf?: readonly Permission[];
   /** Module that must be licensed (defaults to the permission's module). */
   module?: ModuleKey;
+  /** Gate S.1: a licensed feature of the module the item also needs (cashbook, committee …). */
+  feature?: FeatureKey;
   /** Offered while the organisation is suspended only when 'history_read' (operational by default). */
   suspension?: SuspensionClass;
   /** Path prefix that marks the item as current. */
@@ -22,6 +24,13 @@ export interface NavItem {
   group?: NavGroup;
   /** Offered in the phone bottom bar (first four the persona may use). */
   bottomBar?: boolean;
+  /**
+   * false: an area that owns its addresses (who may open them, which item is current) without its own
+   * menu entry; it is reached from its hub (Gate S.1: the cashbook, accounts and transfers from Society finance).
+   */
+  menu?: false;
+  /** With `menu: false`, the menu item marked current on this area's addresses (its hub). */
+  hub?: string;
 }
 
 export type NavGroup = 'workspace' | 'operations' | 'insights' | 'support' | 'prototype';

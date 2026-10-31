@@ -154,7 +154,7 @@ export function DuesHistoryPage() {
   const q = useApiQuery<DuesBills>({ method: 'GET', path: '/portal/dues/bills' });
   if (q.isError) return <ErrorState error={q.error} onRetry={() => void q.refetch()} />;
   if (!q.data) return <PortalSkeleton title={t('dues:history.title')} />;
-  const { payments, submissions } = q.data;
+  const { payments, submissions, cheques = [] } = q.data;
   return (
     <div className="@container space-y-6" data-testid="dues-history">
       <header className="space-y-1">
@@ -172,7 +172,10 @@ export function DuesHistoryPage() {
                 <Link href={DUES.receipt(p.receiptId)} variant="plain" className="flex flex-wrap items-center gap-3 rounded-tile border border-success/30 bg-success-soft/40 p-4 hover:bg-success-soft" data-testid="history-receipt" data-ref={p.receiptRef}>
                   <CheckCircle2 aria-hidden className="size-5 text-success" />
                   <span className="min-w-0 flex-1">
-                    <span className="block font-semibold text-text">{t('dues:home.receipt', { ref: p.receiptRef })}</span>
+                    <span className="block font-semibold text-text">
+                      {t('dues:home.receipt', { ref: p.receiptRef })}
+                      {p.reversed ? <span className="ms-2 text-sm font-medium text-error" data-testid="history-receipt-reversed">{t('dues:history.reversed')}</span> : null}
+                    </span>
                     <span className="block text-xs text-muted">{t(`dues:method.${p.method}`)} · {fmt.date(p.receivedOn)}{Number(p.unapplied.amount) > 0 && <> · {t('dues:history.credit', { amount: fmt.money(p.unapplied.amount) })}</>}</span>
                   </span>
                   <Amount value={p.amount.amount} className="font-semibold text-success" />
@@ -182,6 +185,23 @@ export function DuesHistoryPage() {
           </ul>
         )}
       </section>
+      {cheques.length > 0 && (
+        <section aria-labelledby="h-cheques" className="space-y-3" data-testid="history-cheques">
+          <h2 id="h-cheques" className="text-lg font-bold text-text">{t('dues:history.cheques')}</h2>
+          <ul className="space-y-2">
+            {cheques.map((c) => (
+              <li key={c.id} className="flex flex-wrap items-center gap-3 rounded-tile border border-border bg-panel p-4" data-testid="history-cheque" data-status={c.status}>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-semibold text-text">{t('dues:history.cheque', { number: c.chequeNumber, bank: c.drawerBank })}</span>
+                  <span className="block text-sm text-text">{t(`dues:history.chequeState.${c.status}`, { reason: c.returnedReason ?? '' })}</span>
+                  <span className="block text-xs text-muted"><bdi dir="ltr" className="ltr-ref">{c.ref}</bdi> · {fmt.date(c.receivedOn)}</span>
+                </span>
+                <Amount value={c.amount.amount} className="font-semibold" />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       <section aria-labelledby="h-proofs" className="space-y-3">
         <h2 id="h-proofs" className="text-lg font-bold text-text">{t('dues:history.proofs')}</h2>
         {submissions.length === 0 ? (

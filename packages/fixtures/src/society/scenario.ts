@@ -7,6 +7,7 @@ import { assess, post } from './billing-run';
 import { createSubmission, proofFile, recordPayment } from './collections';
 import { fingerprint } from './import';
 import { auditEntry, emptySociety, nextRef, readySociety, viewOf, type SocietyState, type StoredRun } from './state';
+import { seedFinance } from './finance/seed';
 
 /**
  * The "collecting" demo (A7 §C.2 fixture): setup as in "ready", the November run prepared by the
@@ -131,6 +132,9 @@ export function statementFrom(state: SocietyState, file: StatementFile, account:
   const lines: BankLine[] = rows.map((r) => {
     const [txn = '', on = '', amount = '0', narration = '', reference = '', name = '', counterparty = ''] = parse(r);
     n += 1;
+    // Gate S.1: a negative amount is money leaving the account (a debit); C.2's statements have none.
+    const raw = amount.trim() || '0';
+    const debit = raw.startsWith('-');
     return {
       id: `bnl_anr_${pad(n, 4)}`,
       statementId: id,
@@ -140,7 +144,8 @@ export function statementFrom(state: SocietyState, file: StatementFile, account:
       source: STATEMENT_SOURCE,
       bankTxnId: txn.trim(),
       valueDate: on.trim(),
-      amount: money(toPaisa(amount.trim() || '0')),
+      amount: money(toPaisa(debit ? raw.slice(1) : raw)),
+      ...(debit ? { direction: 'debit' as const } : {}),
       narration,
       reference,
       counterpartyName: name,
@@ -159,7 +164,7 @@ export function statementFrom(state: SocietyState, file: StatementFile, account:
     from: file.from,
     to: file.to,
     lines: lines.length,
-    credits: money(lines.reduce((s, l) => s + toPaisa(l.amount.amount), 0n)),
+    credits: money(lines.filter((l) => l.direction !== 'debit').reduce((s, l) => s + toPaisa(l.amount.amount), 0n)),
     importedBy: by.principalId,
     importedByName: by.name,
     importedAt: at,
@@ -320,7 +325,8 @@ export function collectingSociety(): SocietyState {
 }
 
 export function initialSociety(mode: SocietyDemoMode): SocietyState {
-  if (mode === 'fresh') return emptySociety('fresh');
-  if (mode === 'collecting') return collectingSociety();
-  return readySociety();
+  const s = mode === 'fresh' ? emptySociety('fresh') : mode === 'collecting' ? collectingSociety() : readySociety();
+  // Gate S.1: handover balances, the committee, approval and reminder policies, October's vouchers.
+  seedFinance(s);
+  return s;
 }

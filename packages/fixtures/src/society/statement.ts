@@ -11,10 +11,13 @@ import { fromPaisa, toPaisa } from '../portal';
 
 const money = (paisa: bigint): Money => ({ amount: fromPaisa(paisa), currency: 'PKR' });
 
-/** Allocated amount per invoice line across every payment (including credit applied later). */
+/**
+ * Allocated amount per invoice line across every payment (including credit applied later). A
+ * reversed payment (Gate S.1) settles nothing any more: its lines reopen, its history stays.
+ */
 export function allocatedByLine(payments: readonly CollectionPayment[]): Map<string, bigint> {
   const out = new Map<string, bigint>();
-  for (const p of payments) for (const a of p.allocations) out.set(a.lineId, (out.get(a.lineId) ?? 0n) + toPaisa(a.amount.amount));
+  for (const p of payments) if (!p.reversal) for (const a of p.allocations) out.set(a.lineId, (out.get(a.lineId) ?? 0n) + toPaisa(a.amount.amount));
   return out;
 }
 
@@ -116,9 +119,23 @@ export function statementOf(input: {
       credit: money(amount),
       delta: -amount,
     });
+    // Gate S.1: a reversal is its own movement on its own date; the payment line above never changes.
+    if (p.reversal) {
+      movements.push({
+        on: p.reversal.on,
+        kind: 'payment_reversal',
+        ref: p.reversal.approvalRef,
+        refId: p.id,
+        flats: [...new Set(p.allocations.filter((a) => !flat || lineIds.has(a.lineId)).map((a) => a.unitCode))],
+        payerName: p.payerName,
+        method: p.method,
+        debit: money(amount),
+        delta: amount,
+      });
+    }
   }
   // Same day: the charge first, then what corrects or settles it.
-  const order: Record<StatementEntry['kind'], number> = { opening_balance: 0, invoice: 1, credit_note: 2, payment: 3 };
+  const order: Record<StatementEntry['kind'], number> = { opening_balance: 0, invoice: 1, credit_note: 2, payment: 3, payment_reversal: 4 };
   movements.sort((a, b) => a.on.localeCompare(b.on) || order[a.kind] - order[b.kind] || a.ref.localeCompare(b.ref));
 
   const previous = movements.filter((m) => m.on < from).reduce((s, m) => s + m.delta, 0n);

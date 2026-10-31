@@ -20,7 +20,12 @@
     "bank": "Bank & reconciliation",
     "portalAccess": "Resident app access",
     "users": "Users and sessions",
-    "dataPrivacy": "Data and privacy"
+    "dataPrivacy": "Data and privacy",
+    "financeOverview": "Society finance",
+    "officeCollections": "Office collections",
+    "approvals": "Approvals",
+    "committee": "Committee",
+    "ownershipTransfers": "Transfers and clearance"
   },
   "header": {
     "search": "Search",
@@ -119,7 +124,21 @@
     "portalSignIn": "Sign in",
     "myProperties": "My properties",
     "propertyDetail": "Flat",
-    "household": "Household"
+    "household": "Household",
+    "financeDashboard": "Society finance",
+    "bankAccounts": "Cash and bank accounts",
+    "bankAccount": "Account",
+    "cashbook": "Cashbook",
+    "transfers": "Deposits and transfers",
+    "officeCollections": "Office collections",
+    "reminders": "Reminders",
+    "committee": "Committee",
+    "myApprovals": "My approvals",
+    "approval": "Approval",
+    "approvalPolicies": "Approval policies",
+    "delegation": "Delegation",
+    "ownershipTransfers": "Transfers and clearance",
+    "ownershipTransfer": "Transfer review"
   },
   "groups": {
     "workspace": "Workspace",

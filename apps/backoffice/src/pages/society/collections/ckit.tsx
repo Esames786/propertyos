@@ -11,6 +11,7 @@ import {
   FileText,
   Fingerprint,
   Hand,
+  UsersRound,
   Hourglass,
   Landmark,
   Link2,
@@ -79,7 +80,7 @@ export function MethodBadge({ method }: { method: CollectionMethod }) {
   );
 }
 
-const VERIFICATION: Record<CollectionPayment['verification'], [StatusTone, LucideIcon]> = { bank_matched: ['success', Link2], exception_approved: ['warning', Hand], counter: ['info', Banknote] };
+const VERIFICATION: Record<CollectionPayment['verification'], [StatusTone, LucideIcon]> = { bank_matched: ['success', Link2], exception_approved: ['warning', Hand], counter: ['info', Banknote], witnessed: ['success', UsersRound] };
 
 export function VerificationBadge({ verification }: { verification: CollectionPayment['verification'] }) {
   const { t } = useT();

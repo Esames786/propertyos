@@ -16,3 +16,4 @@ export * from './sites';
 export * from './billing';
 export * from './collections';
 export * from './identity';
+export * from './finance';

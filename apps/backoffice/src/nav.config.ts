@@ -89,3 +89,27 @@ export const TOUR_LINKS = {
   practice: '/backoffice/help/practice',
   textGuide: (tourId: string) => `/backoffice/help/tours/${tourId}/text`,
 };
+
+/** Society finance and governance (Gate S.1). Addresses follow the screen register; drawers are query parameters. */
+export const FINANCE = {
+  dashboard: (period?: string) => `/backoffice/fin/finance-dashboard${q({ period })}`,
+  accounts: '/backoffice/bank/bank-accounts',
+  account: (id: string, tab?: string) => `/backoffice/bank/bank-account-360-workspace${q({ record: id, tab })}`,
+  cashbook: (params: Record<string, string | undefined> = {}) => `/backoffice/bank/cashbook${q(params)}`,
+  voucher: (id: string) => `/backoffice/bank/cashbook${q({ voucher: id })}`,
+  close: (period: string) => `/backoffice/bank/cashbook${q({ period, drawer: 'close' })}`,
+  transfers: (status?: string) => `/backoffice/bank/transfers${q({ status })}`,
+  transfer: (id: string) => `/backoffice/bank/transfers${q({ record: id })}`,
+  batches: (status?: string) => `/backoffice/fin/office-collections${q({ status })}`,
+  batch: (id: string) => `/backoffice/fin/office-collections${q({ batch: id })}`,
+  cheques: (status?: string) => `/backoffice/fin/office-collections${q({ tab: 'cheques', status })}`,
+  cheque: (id: string) => `/backoffice/fin/office-collections${q({ tab: 'cheques', cheque: id })}`,
+  reminders: (tab?: string) => `/backoffice/col/reminders${q({ tab })}`,
+  committee: (tab?: string) => `/backoffice/committee${q({ tab })}`,
+  approvals: (tab?: string) => `/backoffice/apr/my-approvals${q({ tab })}`,
+  approval: (id: string, drawer?: string) => `/backoffice/apr/approval-360-view${q({ record: id, drawer })}`,
+  policies: (tab?: string) => `/backoffice/apr/approval-settings${q({ tab })}`,
+  delegation: '/backoffice/apr/delegation',
+  ownership: (status?: string) => `/backoffice/own/transfers-list${q({ status })}`,
+  ownershipTransfer: (id: string, drawer?: string) => `/backoffice/own/transfer-review-approval${q({ record: id, drawer })}`,
+} as const;

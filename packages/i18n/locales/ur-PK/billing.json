@@ -232,7 +232,8 @@
     "payer_change": "ادا کنندہ کی تبدیلی",
     "beneficiary": "نیا وصولی اکاؤنٹ",
     "payment_exception": "ادائیگی کا استثنا",
-    "data_export": "ڈیٹا ایکسپورٹ"
+    "data_export": "ڈیٹا ایکسپورٹ",
+    "approval_request": "مالیاتی منظوری"
   },
   "tasks": {
     "import_flats": {
@@ -478,7 +479,8 @@
       "opening_balance": "ابتدائی بقایا (منتقل شدہ واجبات)",
       "credit_note": "کریڈٹ نوٹ",
       "invoice": "{{period}} کی انوائس",
-      "payment": "وصول شدہ ادائیگی"
+      "payment": "وصول شدہ ادائیگی",
+      "payment_reversal": "ادائیگی واپس"
     },
     "sinceGoLive": "آغاز سے اب تک"
   },
@@ -507,7 +509,8 @@
     "sinking_fund": "سنکنگ فنڈ",
     "one_time_assessment": "یک مشت وصولی",
     "repair": "مرمت",
-    "late_fee": "تاخیر کی فیس"
+    "late_fee": "تاخیر کی فیس",
+    "transfer_fee": "منتقلی فیس"
   },
   "scope": {
     "site": "سائٹ کا عمومی",
@@ -521,7 +524,8 @@
     "installment_schedule": "قسط",
     "manual": "دستی انوائس",
     "service": "سروس",
-    "penalty": "جرمانہ"
+    "penalty": "جرمانہ",
+    "transfer_fee": "منتقلی فیس"
   },
   "audit": {
     "title": "سرگرمی",

@@ -1,3 +1,4 @@
+import type { AccessTarget } from '@repo/contracts';
 import { AL_NOOR, CEDAR_HILLS, CRESCENT_BAY, LEADS, SHALIMAR } from '@repo/fixtures';
 import { AppSwitchLanding, DemoSignIn, Link, useSession, useT } from '@repo/ui';
 import { lazy, Suspense, type ComponentType, type LazyExoticComponent } from 'react';
@@ -94,6 +95,66 @@ function SocietyPermitted({ page: Page, permission }: { page: LazyExoticComponen
   return allows({ module: 'dues' }) && can(permission) ? (
     <Suspense fallback={null}>
       <Page />
+    </Suspense>
+  ) : (
+    <RegisterResolver />
+  );
+}
+
+/**
+ * Gate S.1: society finance and governance screens. Each needs its licensed feature (cashbook, bulk
+ * collection, reminders, committee, transfer clearance) and the person's permission; anyone else gets
+ * the register's planned page at the same address (nothing unfinished looks finished).
+ */
+const FinanceDashboard = lazy(() => import('../pages/society/finance/FinanceDashboard'));
+const CashbookPage = lazy(() => import('../pages/society/finance/CashbookPage'));
+const BankAccountsPage = lazy(() => import('../pages/society/finance/AccountsPages').then((m) => ({ default: m.BankAccountsPage })));
+const AccountById = lazy(() => import('../pages/society/finance/AccountsPages').then((m) => ({ default: ({ id }: { id: string }) => <m.AccountWorkspace accountId={id} /> })));
+const TransfersPage = lazy(() => import('../pages/society/finance/TransfersPage'));
+const OfficeCollectionsPage = lazy(() => import('../pages/society/finance/OfficeCollectionsPage'));
+const ApprovalsInboxPage = lazy(() => import('../pages/society/finance/ApprovalPages').then((m) => ({ default: m.ApprovalsInboxPage })));
+const ApprovalById = lazy(() => import('../pages/society/finance/ApprovalPages').then((m) => ({ default: ({ id }: { id: string }) => <m.ApprovalWorkspace approvalId={id} /> })));
+const PoliciesPage = lazy(() => import('../pages/society/finance/ApprovalPages').then((m) => ({ default: m.PoliciesPage })));
+const DelegationPage = lazy(() => import('../pages/society/finance/ApprovalPages').then((m) => ({ default: m.DelegationPage })));
+const CommitteePage = lazy(() => import('../pages/society/finance/CommitteePage'));
+const RemindersPage = lazy(() => import('../pages/society/finance/RemindersPage'));
+const OwnershipTransfersPage = lazy(() => import('../pages/society/finance/OwnershipPages').then((m) => ({ default: m.OwnershipTransfersPage })));
+const OwnershipById = lazy(() => import('../pages/society/finance/OwnershipPages').then((m) => ({ default: ({ id }: { id: string }) => <m.OwnershipWorkspace transferId={id} /> })));
+
+function S1Screen({ page: Page, target }: { page: LazyExoticComponent<ComponentType>; target: AccessTarget }) {
+  const { allows } = useSession();
+  return allows(target) ? (
+    <Suspense fallback={null}>
+      <Page />
+    </Suspense>
+  ) : (
+    <RegisterResolver />
+  );
+}
+
+const CASHBOOK: AccessTarget = { module: 'banking', feature: 'banking.cashbook', permission: 'cashbook.view', suspension: 'history_read' };
+const COLLECT: AccessTarget = { module: 'receivables', feature: 'receivables.bulk_office_collection', anyOf: ['payment.receive', 'payment.batch.confirm'], suspension: 'history_read' };
+const APPROVALS: AccessTarget = { module: 'dues', anyOf: ['approval.view', 'approval.decide', 'approval_policy.manage'], suspension: 'history_read' };
+const COMMITTEE: AccessTarget = { module: 'residents', feature: 'residents.committee', permission: 'committee.view', suspension: 'history_read' };
+const REMINDERS: AccessTarget = { module: 'receivables', feature: 'receivables.reminders', anyOf: ['reminders.manage', 'reminders.send', 'collections.view'], suspension: 'history_read' };
+const CLEARANCE: AccessTarget = { module: 'residents', feature: 'residents.transfer_clearance', anyOf: ['transfer.review', 'transfer.approve', 'clearance.issue'], suspension: 'history_read' };
+const BANKING: AccessTarget = { module: 'banking', feature: 'banking.cashbook', anyOf: ['cashbook.view', 'bank.view'], suspension: 'history_read' };
+
+/** APR-003's register address: the decision drawer of Approval 360 (or the inbox without a record). */
+function DecideRedirect() {
+  const [params] = useSearchParams();
+  const record = params.get('record');
+  return <Navigate to={record ? `/backoffice/apr/approval-360-view?record=${record}&drawer=decide` : '/backoffice/apr/my-approvals'} replace />;
+}
+
+/** An S.1 record screen addressed by `?record=` (Account 360, Approval 360, transfer review). */
+function S1Record({ page: Page, target }: { page: LazyExoticComponent<ComponentType<{ id: string }>>; target: AccessTarget }) {
+  const { allows } = useSession();
+  const [params] = useSearchParams();
+  const record = params.get('record');
+  return allows(target) && record ? (
+    <Suspense fallback={null}>
+      <Page id={record} />
     </Suspense>
   ) : (
     <RegisterResolver />
@@ -288,6 +349,22 @@ const shellChildren: RouteObject[] = [
   { path: 'bank/bank-transaction-feed', loader: registerLoader, element: <SocietyScreen page={BankFeedPage} />, handle: h({ title: (t) => t('nav:pages.bankFeed') }) },
   { path: 'bank/reconciliation-workspace', loader: registerLoader, element: <SocietyScreen page={ReconciliationPage} />, handle: h({ title: (t) => t('nav:pages.reconciliation') }) },
   // Gate D.1: resident app access (RES-007).
+  // Gate S.1: society finance and governance.
+  { path: 'fin/finance-dashboard', loader: registerLoader, element: <S1Screen page={FinanceDashboard} target={CASHBOOK} />, handle: h({ title: (t) => t('nav:pages.financeDashboard') }) },
+  { path: 'bank/cashbook', loader: registerLoader, element: <S1Screen page={CashbookPage} target={CASHBOOK} />, handle: h({ title: (t) => t('nav:pages.cashbook') }) },
+  { path: 'bank/bank-accounts', loader: registerLoader, element: <S1Screen page={BankAccountsPage} target={BANKING} />, handle: h({ title: (t) => t('nav:pages.bankAccounts') }) },
+  { path: 'bank/bank-account-360-workspace', loader: registerLoader, element: <S1Record page={AccountById} target={BANKING} />, handle: h({ title: (t) => t('nav:pages.bankAccount') }) },
+  { path: 'fin/office-collections', loader: registerLoader, element: <S1Screen page={OfficeCollectionsPage} target={COLLECT} />, handle: h({ title: (t) => t('nav:pages.officeCollections') }) },
+  { path: 'apr/my-approvals', loader: registerLoader, element: <S1Screen page={ApprovalsInboxPage} target={APPROVALS} />, handle: h({ title: (t) => t('nav:pages.myApprovals') }) },
+  { path: 'apr/approval-360-view', loader: registerLoader, element: <S1Record page={ApprovalById} target={APPROVALS} />, handle: h({ title: (t) => t('nav:pages.approval') }) },
+  { path: 'apr/approve-reject-drawer', loader: registerLoader, element: <DecideRedirect /> },
+  { path: 'apr/approval-settings', loader: registerLoader, element: <S1Screen page={PoliciesPage} target={APPROVALS} />, handle: h({ title: (t) => t('nav:pages.approvalPolicies') }) },
+  { path: 'apr/delegation', loader: registerLoader, element: <S1Screen page={DelegationPage} target={APPROVALS} />, handle: h({ title: (t) => t('nav:pages.delegation') }) },
+  { path: 'committee', loader: registerLoader, element: <S1Screen page={CommitteePage} target={COMMITTEE} />, handle: h({ title: (t) => t('nav:pages.committee') }) },
+  { path: 'col/reminders', loader: registerLoader, element: <S1Screen page={RemindersPage} target={REMINDERS} />, handle: h({ title: (t) => t('nav:pages.reminders') }) },
+  { path: 'own/transfers-list', loader: registerLoader, element: <S1Screen page={OwnershipTransfersPage} target={CLEARANCE} />, handle: h({ title: (t) => t('nav:pages.ownershipTransfers') }) },
+  { path: 'own/transfer-review-approval', loader: registerLoader, element: <S1Record page={OwnershipById} target={CLEARANCE} />, handle: h({ title: (t) => t('nav:pages.ownershipTransfer') }) },
+  { path: 'bank/transfers', loader: registerLoader, element: <S1Screen page={TransfersPage} target={BANKING} />, handle: h({ title: (t) => t('nav:pages.transfers') }) },
   { path: 'residents/portal-access', loader: registerLoader, element: <SocietyPermitted page={PortalAccessPage} permission="portal_access.view" />, handle: h({ title: (t) => t('nav:pages.portalAccess') }) },
   { path: 'res/household-members', loader: registerLoader, element: <SocietyPermitted page={HouseholdMembersPage} permission="residents.view" />, handle: h({ title: (t) => t('nav:pages.householdMembers') }) },
   { path: 'adm/data', loader: registerLoader, element: <DataPrivacyRoute />, handle: h({ title: (t) => t('nav:pages.dataPrivacy') }) },

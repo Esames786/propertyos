@@ -1,6 +1,6 @@
 import { decideTarget, MODULE_KEYS, type AccessDecision, type AccessTarget, type EffectiveAccess, type ModuleKey, type SuspensionClass } from '@repo/contracts';
 import { findScreenByRegisterRoute } from '@repo/contracts/screens';
-import { Banknote, BarChart3, Briefcase, Building, Building2, Compass, Contact, DatabaseZap, FlaskConical, HandCoins, Home, Landmark, MonitorSmartphone, ReceiptText, Settings2, ShoppingCart, Smartphone, Users, UsersRound, Wrench } from 'lucide-react';
+import { ArrowRightLeft, Banknote, BarChart3, Briefcase, Building, Building2, ClipboardCheck, Compass, Contact, DatabaseZap, FlaskConical, HandCoins, Coins, Home, Landmark, MonitorSmartphone, ReceiptText, Settings2, ShoppingCart, Smartphone, Users, UsersRound, Wallet, Wrench } from 'lucide-react';
 import { LIVE, PLANNED } from '../shell/QuickCreateMenu';
 import type { NavItem } from '../shell/types';
 
@@ -21,6 +21,15 @@ export const TENANT_NAV: NavItem[] = [
   // their menus do not offer them.
   { id: 'collections', labelKey: 'nav:items.collections', href: '/backoffice/col/collections-dashboard', icon: HandCoins, permission: 'collections.view', module: 'dues', match: '/backoffice/col', group: 'workspace', bottomBar: true, suspension: 'history_read' },
   { id: 'bank', labelKey: 'nav:items.bank', href: '/backoffice/bank/reconciliation-workspace', icon: Banknote, permission: 'bank.view', module: 'dues', match: '/backoffice/bank', group: 'workspace', suspension: 'history_read' },
+  // Gate S.1: society finance and governance (licensed features of banking, receivables and residents).
+  { id: 'finance-overview', labelKey: 'nav:items.financeOverview', href: '/backoffice/fin/finance-dashboard', icon: Wallet, permission: 'cashbook.view', module: 'banking', feature: 'banking.cashbook', match: '/backoffice/fin/finance-dashboard', group: 'workspace', suspension: 'history_read' },
+  // Areas without a menu entry: they open from Society finance and need cashbook.view (or bank.view), not
+  // the bank feed's bank.view alone, so the building manager who takes cash to the bank can reach them.
+  { id: 'cashbook', labelKey: 'nav:pages.cashbook', href: '/backoffice/bank/cashbook', icon: Wallet, anyOf: ['cashbook.view'], module: 'banking', feature: 'banking.cashbook', match: '/backoffice/bank/cashbook', group: 'workspace', suspension: 'history_read', menu: false, hub: 'finance-overview' },
+  { id: 'bank-accounts', labelKey: 'nav:pages.bankAccounts', href: '/backoffice/bank/bank-accounts', icon: Wallet, anyOf: ['cashbook.view', 'bank.view'], module: 'banking', feature: 'banking.cashbook', match: '/backoffice/bank/bank-account', group: 'workspace', suspension: 'history_read', menu: false, hub: 'finance-overview' },
+  { id: 'deposits-transfers', labelKey: 'nav:pages.transfers', href: '/backoffice/bank/transfers', icon: ArrowRightLeft, anyOf: ['cashbook.view', 'bank.view'], module: 'banking', feature: 'banking.cashbook', match: '/backoffice/bank/transfers', group: 'workspace', suspension: 'history_read', menu: false, hub: 'finance-overview' },
+  { id: 'office-collections', labelKey: 'nav:items.officeCollections', href: '/backoffice/fin/office-collections', icon: Coins, anyOf: ['payment.receive', 'payment.batch.confirm'], module: 'receivables', feature: 'receivables.bulk_office_collection', match: '/backoffice/fin/office-collections', group: 'workspace', suspension: 'history_read' },
+  { id: 'approvals', labelKey: 'nav:items.approvals', href: '/backoffice/apr/my-approvals', icon: ClipboardCheck, anyOf: ['approval.view', 'approval.decide'], module: 'dues', match: '/backoffice/apr', group: 'workspace', suspension: 'history_read' },
   { id: 'sales', labelKey: 'nav:items.sales', href: '/backoffice/crm/sales-home', icon: Briefcase, permission: 'lead.view', match: '/backoffice/crm', group: 'workspace', bottomBar: true },
   { id: 'projects', labelKey: 'nav:items.projects', href: '/backoffice/prj/projects-list', icon: Building2, permission: 'unit.view', module: 'projects', match: '/backoffice/prj', group: 'workspace', bottomBar: true },
   { id: 'customers', labelKey: 'nav:items.customers', href: '/backoffice/cus/customers-list', icon: Contact, permission: 'customer.view', match: '/backoffice/cus', group: 'workspace', bottomBar: true },
@@ -30,6 +39,8 @@ export const TENANT_NAV: NavItem[] = [
   { id: 'operations', labelKey: 'nav:items.operations', href: '/backoffice/mnt/maintenance-dashboard', icon: Wrench, permission: 'operations.view', match: '/backoffice/mnt', group: 'operations', bottomBar: true },
   { id: 'residents', labelKey: 'nav:items.residents', href: '/backoffice/res/resident-dashboard', icon: Users, permission: 'residents.view', match: '/backoffice/res/', group: 'operations' },
   // Gate D.1: residents' use of the resident app (societies: like Collections, other organisations keep the planned page).
+  { id: 'committee', labelKey: 'nav:items.committee', href: '/backoffice/committee', icon: UsersRound, permission: 'committee.view', module: 'residents', feature: 'residents.committee', match: '/backoffice/committee', group: 'operations', suspension: 'history_read' },
+  { id: 'ownership-transfers', labelKey: 'nav:items.ownershipTransfers', href: '/backoffice/own/transfers-list', icon: ArrowRightLeft, anyOf: ['transfer.review', 'transfer.approve', 'clearance.issue'], module: 'residents', feature: 'residents.transfer_clearance', match: '/backoffice/own/transfer', group: 'operations', suspension: 'history_read' },
   { id: 'portal-access', labelKey: 'nav:items.portalAccess', href: '/backoffice/residents/portal-access', icon: Smartphone, permission: 'portal_access.view', module: 'dues', match: '/backoffice/residents', group: 'operations', suspension: 'history_read' },
   { id: 'reports', labelKey: 'nav:items.reports', href: '/backoffice/rpt/report-center', icon: BarChart3, permission: 'reports.view', match: '/backoffice/rpt', group: 'insights' },
   { id: 'administration', labelKey: 'nav:items.administration', href: '/backoffice/adm/administration-home', icon: Settings2, permission: 'admin.view', match: '/backoffice/adm', group: 'insights' },
@@ -132,5 +143,12 @@ export function workspaceRouteTarget(pathname: string): AccessTarget {
   const screen = findScreenByRegisterRoute(pathname);
   const area = navItemFor(pathname);
   const module = isModuleKey(screen?.module) ? screen.module : area?.module;
-  return { ...(module ? { module } : {}), ...(area?.permission ? { permission: area.permission } : {}), suspension: suspensionOf(pathname) };
+  return {
+    ...(module ? { module } : {}),
+    ...(area?.permission ? { permission: area.permission } : {}),
+    // Gate S.1: an area open to several jobs (anyOf) or licensed by a feature carries both to the route gate.
+    ...(area?.anyOf ? { anyOf: area.anyOf } : {}),
+    ...(area?.feature ? { feature: area.feature } : {}),
+    suspension: suspensionOf(pathname),
+  };
 }

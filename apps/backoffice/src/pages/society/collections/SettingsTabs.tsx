@@ -3,7 +3,10 @@ import { formatIban } from '@repo/i18n';
 import {
   Badge,
   Button,
+  Link,
   PlainCheckbox,
+  SegmentedControl,
+  SelectControl,
   ConfirmDialog,
   DateTime,
   dynamicT,
@@ -89,7 +92,7 @@ export function CollectionAccountTab({ siteId }: { siteId: string }) {
             <Row label={t('sites:collection.allocation')} value={t('sites:collection.oldestFirst')} />
             <Row label={t('collections:settings.coolingOff')} value={t('collections:settings.days', { count: s.coolingOffDays })} />
             <Row label={t('sites:collection.lateFees')} value={<LaterBadge gate="G" />} />
-            <Row label={t('sites:collection.reminders')} value={<LaterBadge gate="D" />} />
+            <Row label={t('sites:collection.reminders')} value={<Link href="/backoffice/col/reminders">{t('finance:settings.reminderRules')}</Link>} />
           </dl>
         </Panel>
       </div>
@@ -295,6 +298,8 @@ export function PaymentMethodsTab({ siteId }: { siteId: string }) {
               ) : (
                 <p className="text-xs text-muted">{t('collections:settings.cashRules', { max: m.maxAmount ? fmt.money(m.maxAmount) : '—', counter: m.counter ?? '—' })}</p>
               ))}
+            {m.method === 'office_cash' && <CashWitness siteId={siteId} settings={s} canManage={s.actions.manageMethods} />}
+            {m.method === 'cheque' && <ChequeRules siteId={siteId} rule={m} settings={s} canManage={s.actions.manageMethods} />}
           </li>
         ))}
       </ul>
@@ -324,9 +329,137 @@ function CashRules({ rule, pending, onSave }: { rule: MethodRule; pending: boole
   );
 }
 
-const KINDS: DocumentKind[] = ['invoice', 'opening', 'creditNote', 'payment', 'receipt', 'submission', 'run'];
+// Gate S.1 adds its documents (vouchers, instructions, cheque acknowledgements, batches, certificates …).
+const KINDS: DocumentKind[] = ['invoice', 'opening', 'creditNote', 'payment', 'receipt', 'submission', 'run', 'voucher', 'transfer', 'cheque', 'batch', 'clearance', 'approval', 'ownershipTransfer'];
 
 /** Document numbering per issuing entity and site, the posting policy and invoice grouping. */
+/**
+ * D-46 (Gate S.1): whether single office cash also needs a second person's count. Bulk office
+ * collections always do. The default keeps C.2's receipt at once (the owner's decision is open).
+ */
+function CashWitness({ siteId, settings, canManage }: { siteId: string; settings: CollectionSettings; canManage: boolean }) {
+  const { t } = useT();
+  const toast = useToast();
+  const mutation = useApiMutation<unknown>();
+  const q = useSettings(siteId);
+  const [error, setError] = useState<unknown>(null);
+  return (
+    <div className="space-y-2 rounded-tile bg-sunken/40 p-3" data-testid="cash-witness" data-policy={settings.cashWitness}>
+      {canManage ? (
+        <SegmentedControl
+          label={t('finance:settings.witnessLabel')}
+          value={settings.cashWitness}
+          onChange={async (v) => {
+            setError(null);
+            try {
+              await mutation.mutateAsync({ method: 'PATCH', path: `/sites/${siteId}/cash-witness`, body: { policy: v } });
+              toast.success(t('finance:settings.witnessSaved'));
+              void q.refetch();
+            } catch (e) {
+              setError(e);
+            }
+          }}
+          options={[
+            { id: 'single_counter', label: t('finance:settings.witnessSingle') },
+            { id: 'second_person', label: t('finance:settings.witnessSecond') },
+          ]}
+          testId="cash-witness-choice"
+        />
+      ) : (
+        <p className="text-sm text-text">{t(settings.cashWitness === 'second_person' ? 'finance:settings.witnessSecond' : 'finance:settings.witnessSingle')}</p>
+      )}
+      <p className="text-xs text-muted">{t('finance:settings.witnessHint')}</p>
+      {error ? <ProblemAlert error={error} /> : null}
+    </div>
+  );
+}
+
+/** BILL-012 cheque rules (Gate S.1): payee wording, the verified account cheques go into, post-dating. */
+function ChequeRules({ siteId, rule, settings, canManage }: { siteId: string; rule: MethodRule; settings: CollectionSettings; canManage: boolean }) {
+  const { t } = useT();
+  const toast = useToast();
+  const mutation = useApiMutation<unknown>();
+  const q = useSettings(siteId);
+  const [payableTo, setPayableTo] = useState(rule.cheque?.payableTo ?? settings.legalEntityName);
+  const [account, setAccount] = useState<string | null>(rule.cheque?.depositAccountId ?? settings.payee?.id ?? null);
+  const [days, setDays] = useState(String(rule.cheque?.maxPostDatedDays ?? 0));
+  const [error, setError] = useState<unknown>(null);
+  if (!canManage) return <p className="text-xs text-muted">{t('finance:settings.chequeRules', { payee: rule.cheque?.payableTo ?? '—', days: rule.cheque?.maxPostDatedDays ?? 0 })}</p>;
+  return (
+    <div className="grid gap-3 @2xl:grid-cols-3 @2xl:items-end" data-testid="cheque-rules">
+      <PlainTextField label={t('finance:settings.payableTo')} value={payableTo} onChange={setPayableTo} testId="cheque-payable" />
+      <SelectControl label={t('finance:settings.depositAccount')} value={account} onChange={setAccount} options={settings.payee ? [{ id: settings.payee.id, label: `${settings.payee.bankName} · ${settings.payee.iban}` }] : []} testId="cheque-account" />
+      <PlainTextField label={t('finance:settings.postDated')} value={days} onChange={setDays} inputMode="numeric" dir="ltr" testId="cheque-days" />
+      <Button
+        variant="secondary"
+        isPending={mutation.isPending}
+        onPress={async () => {
+          setError(null);
+          try {
+            await mutation.mutateAsync({ method: 'PATCH', path: `/sites/${siteId}/cheque-rules`, body: { enabled: rule.enabled, payableTo, depositAccountId: account, maxPostDatedDays: Number(days) } });
+            toast.success(t('finance:settings.chequeSaved'));
+            void q.refetch();
+          } catch (e) {
+            setError(e);
+          }
+        }}
+        data-testid="cheque-rules-save"
+      >
+        {t('collections:settings.methodsSave')}
+      </Button>
+      {error ? <ProblemAlert error={error} /> : null}
+    </div>
+  );
+}
+
+/** D-42 (Gate S.1): the transfer fee as versioned rates, each with its bylaw; a change starts on a future date. */
+function TransferFees({ siteId, settings }: { siteId: string; settings: CollectionSettings }) {
+  const { t } = useT();
+  const fmt = useSocietyFormat();
+  const toast = useToast();
+  const mutation = useApiMutation<unknown>();
+  const q = useSettings(siteId);
+  const [amount, setAmount] = useState('');
+  const [from, setFrom] = useState('2026-12-01');
+  const [bylaw, setBylaw] = useState('');
+  const [error, setError] = useState<unknown>(null);
+  return (
+    <Panel title={t('finance:settings.feesTitle')} description={t('finance:settings.feesHint')}>
+      <ul className="space-y-2 text-sm" data-testid="transfer-fees">
+        {settings.transferFees.map((r) => (
+          <li key={r.version} className="rounded-tile border border-border px-3 py-2">
+            {t('finance:settings.feeLine', { version: r.version, amount: fmt.money(r.amount), from: fmt.date(r.from), to: r.to ? fmt.date(r.to) : '—' })} · <bdi>{r.bylawRef}</bdi>
+          </li>
+        ))}
+      </ul>
+      {settings.actions.manageNumbering && (
+        <div className="mt-4 grid gap-3 @2xl:grid-cols-3 @2xl:items-end">
+          <AmountInput label={t('finance:settings.feeAmount')} value={amount} onChange={setAmount} />
+          <PlainTextField label={t('finance:settings.feeFrom')} value={from} onChange={setFrom} dir="ltr" />
+          <PlainTextField label={t('finance:settings.feeBylaw')} value={bylaw} onChange={setBylaw} />
+          <Button
+            variant="secondary"
+            isDisabled={!amount.trim() || bylaw.trim().length < 5}
+            onPress={async () => {
+              setError(null);
+              try {
+                await mutation.mutateAsync({ method: 'POST', path: `/sites/${siteId}/transfer-fees`, body: { amount, from, bylawRef: bylaw } });
+                toast.success(t('finance:settings.feeSaved'));
+                void q.refetch();
+              } catch (e) {
+                setError(e);
+              }
+            }}
+          >
+            {t('finance:settings.feeAdd')}
+          </Button>
+        </div>
+      )}
+      {error ? <ProblemAlert error={error} className="mt-3" /> : null}
+    </Panel>
+  );
+}
+
 export function BillingControlsTab({ siteId }: { siteId: string }) {
   const { t } = useT();
   const dt = dynamicT(t);
@@ -393,6 +526,7 @@ export function BillingControlsTab({ siteId }: { siteId: string }) {
           </Button>
         )}
       </Panel>
+      <TransferFees siteId={siteId} settings={s} />
       <Panel title={t('collections:settings.groupingTitle')}>
         <p className="text-sm text-text">{t(`collections:settings.grouping.${s.invoiceGrouping}`)}</p>
         <p className="mt-2 text-xs text-muted">{t('collections:settings.groupingHint')}</p>

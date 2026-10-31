@@ -15,7 +15,7 @@ const routerSeam = {
 
 export default defineConfig(
   {
-    ignores: ['**/dist/**', '**/node_modules/**', 'docs/**', '**/*.generated.ts', 'test-results/**', 'playwright-report/**', 'tests/.*'],
+    ignores: ['**/dist/**', '**/node_modules/**', 'docs/**', '**/*.generated.ts', 'test-results/**', 'test-results-*/**', 'playwright-report/**', 'tests/.*'],
   },
   js.configs.recommended,
   tseslint.configs.recommended,

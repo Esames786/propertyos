@@ -163,8 +163,10 @@ function EntryLabel({ kind, refText, refId, period, payer }: { kind: string; ref
         ? t('billing:statement.kinds.credit_note')
         : kind === 'payment'
           ? t('billing:statement.kinds.payment')
-          : t('billing:statement.kinds.invoice', { period: period ?? '' });
-  const href = kind === 'credit_note' ? undefined : kind === 'payment' ? COLLECTIONS.payment(refId) : SOCIETY.invoice(refId);
+          : kind === 'payment_reversal'
+            ? t('billing:statement.kinds.payment_reversal')
+            : t('billing:statement.kinds.invoice', { period: period ?? '' });
+  const href = kind === 'credit_note' ? undefined : kind === 'payment' || kind === 'payment_reversal' ? COLLECTIONS.payment(refId) : SOCIETY.invoice(refId);
   return (
     <span className="min-w-0">
       <span className="block font-medium text-text">{label}</span>

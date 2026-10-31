@@ -111,6 +111,12 @@ function BillHero({ position: p, fmt, pendingId }: { position: ResidentPosition;
               <dd className="font-semibold text-success" data-testid="dues-credit">− <Amount value={p.credit.amount} /></dd>
             </div>
           )}
+          {/* Gate S.1 (PORTAL-004): credit with nothing left to pay is money paid in advance (no wallet). */}
+          {Number(p.credit.amount) > 0 && Number(p.totalPayable.amount) <= 0 && (
+            <p className="text-sm text-success" data-testid="dues-paid-in-advance">
+              {t('dues:home.paidInAdvance')}
+            </p>
+          )}
           <div className="mt-1 flex flex-wrap items-baseline justify-between gap-3 border-t border-border pt-3" data-tour-id="dues-total">
             <dt className="text-base font-semibold text-text">{t('dues:home.total')}</dt>
             <dd className="text-figure-sm leading-none font-bold tracking-tight text-text sm:text-figure" data-testid="dues-total"><Amount value={p.totalPayable.amount} /></dd>

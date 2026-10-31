@@ -33,6 +33,7 @@ import { destinationOf, newLines, usable } from './matching';
 import { DOCUMENT_KINDS, patternProblem } from './numbering';
 import { declaredAccount, sampleBankStatements, statementFrom } from './scenario';
 import { beneficiaryOn } from './state';
+import { assertOpen } from './finance/common';
 
 /**
  * Collections endpoints for staff (Gate C.2, A6 §5.4). Same fail-closed declarations as C.1. The
@@ -164,6 +165,9 @@ function settlementLine(ctx: HandlerContext, s: Society, sub: PaymentSubmission,
   if (line.heldFor && line.heldFor.submissionId !== sub.id) {
     problem(ctx, 409, 'bank_line_held', 'collections:problems.bankLineHeld', { bankLineId: [{ code: 'collections:problems.bankLineHeld', params: { ref: line.heldFor.submissionRef } }] });
   }
+  // Gate S.1: a line held for a transfer leg or cheque exception, or money leaving the account, never proves a proof.
+  if (line.heldBy) problem(ctx, 409, 'bank_line_held', 'collections:problems.bankLineHeld', { bankLineId: [{ code: 'collections:problems.bankLineHeld', params: { ref: line.heldBy.ref } }] });
+  if (line.direction === 'debit') problem(ctx, 409, 'bank_line_debit', 'collections:problems.bankLineDebit');
   const destination = destinationOf(line, scopeOf(s.state, sub.legalEntityId));
   if (destination === 'wrong_entity') problem(ctx, 403, 'cross_entity_forbidden', 'collections:problems.cross_entity_forbidden');
   if (destination === 'wrong_account') {
@@ -196,7 +200,7 @@ function paymentDetail(s: Society, paymentId: string, ctx: HandlerContext): Paym
 
 function viewBalance(s: Society, accountId: string): bigint {
   const open = allLines(s).filter((l) => l.billingAccountId === accountId).reduce((n, l) => n + l.open, 0n);
-  const credit = s.state.payments.filter((p) => p.billingAccountId === accountId).reduce((n, p) => n + toPaisa(p.unapplied.amount), 0n);
+  const credit = s.state.payments.filter((p) => p.billingAccountId === accountId && !p.reversal).reduce((n, p) => n + toPaisa(p.unapplied.amount), 0n);
   return open - credit;
 }
 
@@ -216,6 +220,8 @@ function settle(
   verification: 'bank_matched' | 'exception_approved',
   exception?: NonNullable<PaymentDetail['payment']['exception']>,
 ) {
+  // Gate S.1 (I-27): money is never recorded in a closed month.
+  assertOpen(ctx, s, line.valueDate, 'payment');
   const { by, byName } = actor(ctx);
   const { payment, receipt } = recordPayment(s.state, {
     at: stamp(ctx),
@@ -277,6 +283,8 @@ function settings(ctx: HandlerContext, s: Society): CollectionSettings {
     methods: s.state.methods,
     numbering: s.state.numbering,
     posting: { ...s.state.posting, eligibleRoles: eligible },
+    cashWitness: s.state.cashWitness,
+    transferFees: s.state.transferFees,
     actions: {
       proposeBeneficiary: can(ctx, 'beneficiary.manage'),
       approveBeneficiary: can(ctx, 'beneficiary.approve'),
@@ -619,6 +627,9 @@ export const COLLECTIONS_HANDLERS: readonly Handler[] = [
       const s = siteOf(ctx, 'receivables');
       const rule = s.state.methods.find((m) => m.method === 'office_cash');
       if (!rule?.enabled) problem(ctx, 409, 'method_not_allowed', 'collections:problems.methodNotAllowed');
+      // Gate S.1 (D-46): when the site wants every cash payment counted by two people, it goes through a batch.
+      if (s.state.cashWitness === 'second_person') problem(ctx, 409, 'second_person_required', 'collections:problems.secondPersonRequired');
+      assertOpen(ctx, s, ctx.at, 'payment');
       const input = body<{ accountId: string; payerPartyId: string; amount: string; allocations: unknown; overrideReason: string; note: string }>(ctx);
       const account = s.view.model.accounts.find((a) => a.id === input.accountId);
       if (!account) invalidField(ctx, 'accountId', 'collections:problems.account');
@@ -724,7 +735,7 @@ export const COLLECTIONS_HANDLERS: readonly Handler[] = [
       const built = statementFrom(s.state, file, account!, stamp(ctx), { principalId: by, name: byName });
       if (built.lines.some((l) => !l.bankTxnId || !DATE.test(l.valueDate) || toPaisa(l.amount.amount) <= 0n)) invalidField(ctx, 'file', 'collections:problems.fileRows');
       const fresh = newLines(s.state.bank.lines, built.lines);
-      const statement = { ...built.statement, lines: fresh.length, credits: money(fresh.reduce((n, l) => n + toPaisa(l.amount.amount), 0n)) };
+      const statement = { ...built.statement, lines: fresh.length, credits: money(fresh.filter((l) => l.direction !== 'debit').reduce((n, l) => n + toPaisa(l.amount.amount), 0n)) };
       s.state.bank.statements.push(statement);
       s.state.bank.lines.push(...fresh);
       log(ctx, s, 'bankStatementImported', { kind: 'bank', id: statement.id, label: statement.fileName }, { values: { account: statement.iban, lines: String(fresh.length), credits: statement.credits.amount, skipped: String(built.lines.length - fresh.length) } });

@@ -48,14 +48,18 @@ export function destinationOf(line: BankLine, scope?: DestinationScope): MatchCa
   return scope.accountOn(line.valueDate) === line.beneficiaryId ? 'ok' : 'wrong_account';
 }
 
-/** Scored candidates for a claimed transfer, best first. Excluded lines are never proposed. */
-export function candidatesFor(claim: Claim, lines: readonly BankLine[], scope?: DestinationScope): MatchCandidate[] {
+/**
+ * Scored candidates for a claimed transfer, best first. Excluded lines are never proposed. Gate S.1
+ * compares a transfer leg or a cheque reversal against money leaving the account (`direction: 'debit'`).
+ */
+export function candidatesFor(claim: Claim, lines: readonly BankLine[], scope?: DestinationScope, direction: 'credit' | 'debit' = 'credit'): MatchCandidate[] {
   const amount = toPaisa(claim.amount);
   const ref = normRef(claim.bankReference);
   const who = nameTokens(claim.payerName);
   const out: MatchCandidate[] = [];
   for (const line of lines) {
-    if (line.state === 'excluded') continue;
+    // Money leaving the account (Gate S.1 debits) never proves a resident's payment.
+    if (line.state === 'excluded' || (line.direction ?? 'credit') !== direction) continue;
     const reasons: MatchReason[] = [];
     let score = 0;
     if (toPaisa(line.amount.amount) === amount) {
@@ -93,8 +97,10 @@ export function candidatesFor(claim: Claim, lines: readonly BankLine[], scope?: 
       missing,
       strength: missing.length ? 'partial' : 'full',
       destination,
-      ...(line.heldFor ? { heldFor: line.heldFor } : {}),
+      ...(line.heldFor ? { heldFor: line.heldFor } : line.heldBy ? { heldFor: { submissionId: line.heldBy.id, submissionRef: line.heldBy.ref } } : {}),
       ...(line.state === 'matched' && line.paymentId ? { alreadyMatched: { paymentId: line.paymentId, paymentRef: line.paymentRef ?? '' } } : {}),
+      // Gate S.1: a line that settled a deposit, transfer leg or cheque reversal is taken as well.
+      ...(line.state === 'matched' && !line.paymentId && line.settlementId ? { alreadyMatched: { paymentId: line.settlementId, paymentRef: line.settlementRef ?? '' } } : {}),
       ...(sharing.length ? { sharesReferenceWith: sharing } : {}),
     });
   }
