@@ -1,4 +1,4 @@
-import type { EditionKey, EffectiveAccess, LicensedSite, ModuleGrant, ModuleKey, ModuleSelection, Persona, TenantStatus, TenantType } from '@repo/contracts';
+import type { EditionKey, EffectiveAccess, LicensedSite, ModuleGrant, ModuleKey, ModuleSelection, Persona, TenantStatus, TenantType, FeatureKey } from '@repo/contracts';
 import { datasetFor } from './datasets';
 import { presetFor } from './platform/catalog';
 import { FIXTURE_NOW } from './seed';
@@ -23,6 +23,8 @@ export interface DirectoryTenant {
   licensedFrom: string;
   /** D-20: may residents still settle issued invoices while the tenant is suspended? */
   allowSettlement: boolean;
+  /** Licensed features (catalogue keys) on top of the modules; none unless a contract grants them. */
+  features?: readonly FeatureKey[];
 }
 
 const all = (modules: readonly ModuleKey[]): ModuleSelection[] => modules.map((module) => ({ module, sites: 'all' }));
@@ -165,6 +167,10 @@ export const TENANT_DIRECTORY: readonly DirectoryTenant[] = [
     modules: all(presetFor('community').modules),
     licensedFrom: '2026-10-01',
     allowSettlement: true,
+    // Gate S.1 amendment (fictional, V3.2 matrix §7): cashbook, bulk collection and the committee, plus the
+    // features S.1 builds on (office collections, reminders, transfer clearance) and the metered
+    // SMS/WhatsApp channels D.1 already simulates. Every message stays simulated.
+    features: ['banking.cashbook', 'receivables.bulk_office_collection', 'receivables.office_collections', 'receivables.reminders', 'residents.committee', 'residents.transfer_clearance', 'communications.sms', 'communications.whatsapp'],
   },
 ];
 
@@ -193,7 +199,7 @@ export function effectiveAccessFor(persona: Persona, tenant = directoryTenant(pe
   return {
     tenant: { id: tenant.id, type: tenant.type, status: tenant.status, suspensionPolicy: { allowSettlement: tenant.allowSettlement } },
     grants: grantsOf(tenant.modules, tenant.licensedFrom),
-    features: [],
+    features: tenant.features ?? [],
     permissions: persona.permissions,
     scopes: partyId ? [{ type: 'party', partyId, links }] : persona.projectScope === 'all' ? [{ type: 'all' }] : [{ type: 'project', ids: persona.projectScope }],
     userId: persona.principalId,

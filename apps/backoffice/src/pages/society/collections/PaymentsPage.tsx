@@ -1,4 +1,4 @@
-import type { AllocationPreview, BillingAccountDetail, BillingAccountRow, CollectionSettings, PaymentDetail, PaymentList } from '@repo/contracts';
+import type { AllocationPreview, BillingAccountDetail, BillingAccountRow, ChequeDetail, CollectionSettings, PaymentDetail, PaymentList } from '@repo/contracts';
 import {
   Badge,
   Button,
@@ -11,6 +11,7 @@ import {
   Link,
   Money,
   PageHeader,
+  SegmentedControl,
   SelectControl,
   PlainTextField,
   useApiMutation,
@@ -24,7 +25,8 @@ import {
 import { Banknote, ChevronRight, Link2, Link2Off, PiggyBank, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Input, Label, SearchField } from 'react-aria-components';
-import { COLLECTIONS } from '../../../nav.config';
+import { COLLECTIONS, FINANCE } from '../../../nav.config';
+import { ChequeBadge, ChequeNotice } from '../finance/fkit';
 import { AmountInput, Loading, ProblemAlert, useSocietyFormat } from '../kit';
 import { AllocationTable, MethodBadge, VerificationBadge } from './ckit';
 import { useSocietySiteId } from './site';
@@ -142,6 +144,11 @@ function OfficePaymentDrawer({ isOpen, onClose, accountId }: { isOpen: boolean; 
   const [note, setNote] = useState('');
   const [error, setError] = useState<unknown>(null);
   const [done, setDone] = useState<PaymentDetail | null>(null);
+  // Gate S.1: a cheque at the office (acknowledged only) and the site's cash-witnessing setting (D-46).
+  const [method, setMethod] = useState<'cash' | 'cheque'>('cash');
+  const [cheque, setCheque] = useState({ drawerBank: '', number: '', date: '2026-10-26' });
+  const [ack, setAck] = useState<ChequeDetail | null>(null);
+  const record2 = useApiMutation<ChequeDetail>();
   const detail = useApiQuery<BillingAccountDetail>({ method: 'GET', path: `/billing-accounts/${account}` }, { enabled: isOpen && !!account });
   const record = useApiMutation<PaymentDetail>();
   useEffect(() => {
@@ -153,7 +160,11 @@ function OfficePaymentDrawer({ isOpen, onClose, accountId }: { isOpen: boolean; 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [detail.data]);
   const cash = settings.data?.methods.find((m) => m.method === 'office_cash');
+  const chequeRule = settings.data?.methods.find((m) => m.method === 'cheque');
+  const witnessed = settings.data?.cashWitness === 'second_person';
   const close = () => {
+    setAck(null);
+    setMethod('cash');
     setDone(null);
     setError(null);
     setAmount('');
@@ -162,6 +173,16 @@ function OfficePaymentDrawer({ isOpen, onClose, accountId }: { isOpen: boolean; 
   };
   const submit = async () => {
     setError(null);
+    if (method === 'cheque') {
+      try {
+        const r = await record2.mutateAsync({ method: 'POST', path: '/cheques', body: { accountId: account, payerPartyId: payer, amount, ...cheque } });
+        setAck(r);
+        toast.success(t('finance:office.chequeAcknowledged', { ref: r.cheque.ref }));
+      } catch (e) {
+        setError(e);
+      }
+      return;
+    }
     try {
       const result = await record.mutateAsync({ method: 'POST', path: '/payments/office', body: { accountId: account, payerPartyId: payer, amount, note } });
       setDone(result);
@@ -187,19 +208,27 @@ function OfficePaymentDrawer({ isOpen, onClose, accountId }: { isOpen: boolean; 
         ) : undefined
       }
       footer={
-        done ? (
+        done || ack ? (
           <Button variant="primary" onPress={close}>{t('common:actions.done')}</Button>
         ) : (
           <>
             <Button variant="quiet" onPress={close}>{t('common:actions.cancel')}</Button>
-            <Button variant="primary" icon={Banknote} isPending={record.isPending} isDisabled={!account || !payer || !amount.trim()} onPress={() => void submit()} data-testid="office-submit">
+            <Button variant="primary" icon={Banknote} isPending={record.isPending || record2.isPending} isDisabled={!account || !payer || !amount.trim() || (method === 'cash' && witnessed)} onPress={() => void submit()} data-testid="office-submit">
               {t('collections:office.submit')}
             </Button>
           </>
         )
       }
     >
-      {done ? (
+      {ack ? (
+        <div className="space-y-4" data-testid="office-cheque-done" role="status">
+          <p className="flex flex-wrap items-center gap-2 text-base font-semibold text-text">
+            {t('finance:office.chequeAck', { ref: ack.cheque.ref, amount: fmt.money(ack.cheque.amount) })} <ChequeBadge state={ack.cheque.status} />
+          </p>
+          <ChequeNotice testId="office-cheque-notice" />
+          <Link href={FINANCE.cheque(ack.cheque.id)}>{t('finance:office.openCheque')}</Link>
+        </div>
+      ) : done ? (
         <div className="space-y-4" data-testid="office-done" role="status">
           <p className="text-base font-semibold text-success">{t('collections:office.receiptIssued', { receipt: done.receipt.ref, amount: fmt.money(done.payment.amount) })}</p>
           <AllocationTable lines={done.payment.allocations} unapplied={done.payment.unapplied} label={t('collections:office.settled')} />
@@ -214,6 +243,24 @@ function OfficePaymentDrawer({ isOpen, onClose, accountId }: { isOpen: boolean; 
             options={(accounts.data ?? []).map((a) => ({ id: a.id, label: `${a.accountNo} · ${a.holderName} · ${a.flats.map((f) => f.code).join(', ')}` }))}
             testId="office-account"
           />
+          {chequeRule?.enabled && (
+            <SegmentedControl
+              label={t('finance:office.method')}
+              value={method}
+              onChange={(v) => setMethod(v as 'cash' | 'cheque')}
+              options={[
+                { id: 'cash', label: t('finance:office.cash') },
+                { id: 'cheque', label: t('finance:office.cheque') },
+              ]}
+              testId="office-method"
+            />
+          )}
+          {method === 'cash' && witnessed && (
+            <InlineAlert tone="info" title={t('finance:office.witnessTitle')} data-testid="office-witness-required">
+              <p>{t('finance:office.witnessBody')}</p>
+              <Link href={FINANCE.batches()}>{t('finance:office.openBatches')}</Link>
+            </InlineAlert>
+          )}
           {payers.length > 0 && (
             <SelectControl
               label={t('collections:office.payer')}
@@ -225,8 +272,17 @@ function OfficePaymentDrawer({ isOpen, onClose, accountId }: { isOpen: boolean; 
           )}
           {detail.data && <p className="text-sm text-muted">{t('collections:office.owes', { amount: fmt.money(detail.data.balance) })}</p>}
           <AmountInput label={t('collections:office.amount')} value={amount} onChange={setAmount} testId="office-amount" />
-          <PlainTextField label={t('collections:office.note')} value={note} onChange={setNote} />
-          {account && payer && amount.trim() && <OfficePreview accountId={account} payerPartyId={payer} amount={amount} />}
+          {method === 'cheque' ? (
+            <>
+              <PlainTextField label={t('finance:batch.drawerBank')} value={cheque.drawerBank} onChange={(v) => setCheque({ ...cheque, drawerBank: v })} testId="office-cheque-bank" />
+              <PlainTextField label={t('finance:batch.chequeNumber')} value={cheque.number} onChange={(v) => setCheque({ ...cheque, number: v })} inputMode="numeric" dir="ltr" testId="office-cheque-number" />
+              <PlainTextField label={t('finance:batch.chequeDate')} value={cheque.date} onChange={(v) => setCheque({ ...cheque, date: v })} dir="ltr" testId="office-cheque-date" />
+              <ChequeNotice testId="office-cheque-rule" />
+            </>
+          ) : (
+            <PlainTextField label={t('collections:office.note')} value={note} onChange={setNote} />
+          )}
+          {method === 'cash' && account && payer && amount.trim() && <OfficePreview accountId={account} payerPartyId={payer} amount={amount} />}
           {error ? <ProblemAlert error={error} /> : null}
         </div>
       )}

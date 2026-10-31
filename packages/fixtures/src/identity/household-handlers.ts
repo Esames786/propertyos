@@ -63,7 +63,7 @@ function propertyOf(ctx: HandlerContext, s: Society, link: PartyLink): MyPropert
   const mine = linesOf(s.view.invoices).filter((l) => l.unitId === flat.id && l.payerPartyId === partyId);
   const open = mine.reduce((sum, l) => sum + l.open, 0n);
   const overdue = mine.some((l) => l.open > 0n && l.dueOn < ctx.at);
-  const credit = s.state.payments.filter((p) => p.payerPartyId === partyId && p.billingAccountId === flat.billingAccountId).reduce((sum, p) => sum + BigInt(Math.round(Number(p.unapplied.amount) * 100)), 0n);
+  const credit = s.state.payments.filter((p) => p.payerPartyId === partyId && p.billingAccountId === flat.billingAccountId && !p.reversal).reduce((sum, p) => sum + BigInt(Math.round(Number(p.unapplied.amount) * 100)), 0n);
   return {
     flatId: flat.id,
     flatCode: flat.code,

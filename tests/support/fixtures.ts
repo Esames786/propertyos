@@ -1,8 +1,10 @@
 import { test as base, expect, type Page } from '@playwright/test';
 
-export const BO = 'http://localhost:5173';
-export const CU = 'http://localhost:5174';
-export const HQ = 'http://localhost:5175';
+/** E2E_PORT_OFFSET (see playwright.config.ts) moves all three origins together for an isolated run. */
+const OFFSET = Number(process.env.E2E_PORT_OFFSET ?? 0);
+export const BO = `http://localhost:${5173 + OFFSET}`;
+export const CU = `http://localhost:${5174 + OFFSET}`;
+export const HQ = `http://localhost:${5175 + OFFSET}`;
 
 export type PersonaId =
   | 'manager'

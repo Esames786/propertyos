@@ -41,6 +41,8 @@ const STARTER_PERMISSIONS: Record<StarterRoleKey, readonly Permission[]> = {
     'collections.view', 'bank.view', 'beneficiary.manage', 'payment_methods.manage', 'billing_policy.manage',
     // Gate D.1: portal access, data requests, staff sessions and the organisation's colours.
     'portal_access.view', 'portal_access.invite', 'data_export.request', 'privacy.requests.manage', 'sessions.manage', 'admin.branding',
+    // Gate S.1 (V3.2 matrix §5.2): the committee, approval policies, reminders, the cashbook (read) and transfers.
+    'committee.view', 'committee.manage', 'approval.view', 'approval_policy.manage', 'reminders.manage', 'reminders.send', 'cashbook.view', 'transfer.review',
   ],
   manager: [
     'quickcreate.use', 'customer.view', 'residents.view', 'operations.view', 'workorder.update', 'visitors.manage', 'invoice.view', 'reports.view',
@@ -48,6 +50,8 @@ const STARTER_PERMISSIONS: Record<StarterRoleKey, readonly Permission[]> = {
     'collections.view', 'beneficiary.manage',
     // Gate D.1: invites residents to the portal and sees who uses it.
     'portal_access.view', 'portal_access.invite',
+    // Gate S.1: sees the committee and the cashbook; prepares society transfers.
+    'committee.view', 'approval.view', 'cashbook.view', 'transfer.review',
   ],
   treasurer: [
     'quickcreate.use', 'customer.view', 'invoice.view', 'payment.receive', 'finance.evidence.review', 'residents.view', 'reports.view',
@@ -55,6 +59,9 @@ const STARTER_PERMISSIONS: Record<StarterRoleKey, readonly Permission[]> = {
     'collections.view', 'bank.view', 'beneficiary.approve', 'payment_methods.manage', 'billing_policy.manage', 'liability.approve', 'payment_exception.approve',
     // Gate D.1: sees portal adoption; approves data exports someone else requested.
     'portal_access.view', 'data_export.approve',
+    // Gate S.1: the checker of every money pair (vouchers, transfers, exceptions on outgoing legs,
+    // office collection batches, month close, transfers and clearance), within the approval policy.
+    'committee.view', 'approval.view', 'approval.decide', 'cashbook.view', 'cash_voucher.approve', 'funds_transfer.approve', 'settlement_exception.approve', 'payment.batch.confirm', 'period.close', 'transfer.approve', 'clearance.issue',
   ],
   maintenance: ['quickcreate.use', 'operations.view', 'workorder.update', 'residents.view'],
   technician: ['operations.view', 'workorder.update'],
@@ -105,8 +112,21 @@ const ALNOOR_ACCOUNTS_OFFICER: TenantRoleTemplate = {
   permissions: [
     'quickcreate.use', 'customer.view', 'residents.view', 'invoice.view', 'payment.receive', 'finance.evidence.review', 'reports.view',
     'site.view', 'billing_run.view', 'billing_run.post', 'collections.view', 'bank.view', 'bank.reconcile', 'beneficiary.manage',
+    // Gate S.1: the maker of vouchers, cheques and reminders; matches statement lines to legs and cheques.
+    'approval.view', 'cashbook.view', 'cash_voucher.prepare', 'cheque.manage', 'funds_transfer.create', 'reminders.manage', 'reminders.send', 'transfer.review',
   ],
   holders: ['alnoor_accounts'],
+};
+
+/**
+ * Al-Noor's own changes to two society starters (Gate S.1, documented in the S.1 report): the committee
+ * secretary is the second signatory for large vouchers, transfers and waivers (resolution R-8/2026);
+ * the building manager takes office cash to the bank, so he prepares deposits (the accounts officer,
+ * who matches the bank line, never confirms an instruction she prepared).
+ */
+const ALNOOR_EXTRA: Readonly<Record<string, readonly Permission[]>> = {
+  administrator: ['approval.decide', 'cash_voucher.approve', 'funds_transfer.approve'],
+  manager: ['funds_transfer.create'],
 };
 
 const ALNOOR_ROLE_NAMES: Readonly<Record<string, string>> = {
@@ -124,7 +144,7 @@ const TENANT_ROLES: Readonly<Record<string, readonly TenantRoleTemplate[]>> = {
   // Al-Noor Residency kept the society starters and named three of them after its committee posts.
   tnt_alnoor: [
     ...starterRoles('tnt_alnoor', 'association', { administrator: ['alnoor_admin'], manager: ['alnoor_manager'], treasurer: ['alnoor_treasurer'], security: ['alnoor_guard'] }).map((r) =>
-      ALNOOR_ROLE_NAMES[r.id] ? { ...r, labelKey: ALNOOR_ROLE_NAMES[r.id]! } : r,
+      ({ ...r, ...(ALNOOR_ROLE_NAMES[r.id] ? { labelKey: ALNOOR_ROLE_NAMES[r.id]! } : {}), ...(ALNOOR_EXTRA[r.id] ? { permissions: [...r.permissions, ...ALNOOR_EXTRA[r.id]!] } : {}) }),
     ),
     ALNOOR_ACCOUNTS_OFFICER,
   ],

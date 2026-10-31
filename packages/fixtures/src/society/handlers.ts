@@ -48,6 +48,7 @@ import { collectionsSummary } from './collections-read';
 import { resolveCharges } from './charges';
 import { buildSocietyDashboard } from './dashboard';
 import { identityDashboardExtras } from '../identity/dashboard-extras';
+import { approvalItems } from './finance/approvals';
 import { committable, FLAT_COLUMNS, fingerprint, OPENING_COLUMNS, rowsOf, validateFlats, validateOpening } from './import';
 import { factOn, payerOn } from './model';
 import { formatRef } from './numbering';
@@ -500,6 +501,38 @@ export function societyRecordAccess(ctx: HandlerContext, id: string): RecordAcce
 const SITE_READERS: readonly Permission[] = ['site.view'];
 const CHARGE_READERS: readonly Permission[] = ['billing_run.view', 'charges.manage'];
 
+/** HOME-001 for a society; also the source of the approvals the S.1 inbox lists (APR-001). */
+export function societyDashboardOf(ctx: HandlerContext): SocietyDashboard {
+  const s = siteOf(ctx);
+  const period = currentPeriod(s.state);
+  const stored = [...s.state.runs].filter((r) => r.period === period && isOpen(r.state)).at(-1) ?? null;
+  return buildSocietyDashboard({
+    view: s.view,
+    checklist: checklistOf(s),
+    period,
+    run: stored ? { ...stored, stale: isStale(s, stored) } : null,
+    principalId: ctx.persona!.principalId,
+    can: {
+      manageSite: can(ctx, 'site.manage'),
+      createRun: can(ctx, 'billing_run.create'),
+      approveRun: can(ctx, 'billing_run.approve'),
+      postRun: can(ctx, 'billing_run.post'),
+      approveOpening: can(ctx, 'opening_balance.approve'),
+      approveExemption: can(ctx, 'billing_run.approve'),
+      seeInvoices: can(ctx, 'invoice.view'),
+      reviewProofs: can(ctx, 'finance.evidence.review'),
+      reconcile: can(ctx, 'bank.reconcile'),
+      approveBeneficiary: can(ctx, 'beneficiary.approve'),
+      approvePaymentException: can(ctx, 'payment_exception.approve'),
+      approveLiability: can(ctx, 'liability.approve'),
+    },
+    collections: can(ctx, 'collections.view', 'history_read') ? collectionsSummary(s, ctx.at, { bank: can(ctx, 'bank.view', 'history_read') }) : null,
+    today: ctx.at,
+    // Gate S.1: finance approvals (APR-001) join the card beside the C.1/C.2/D.1 ones.
+    extra: (({ approvals, tasks }) => ({ approvals: [...approvals, ...approvalItems(s.state, ctx.tenantId!, { principalId: ctx.persona!.principalId, permissions: ctx.persona!.permissions }, ctx.at)], tasks }))(identityDashboardExtras(ctx)),
+  });
+}
+
 export const SOCIETY_HANDLERS: readonly Handler[] = [
   {
     // Prototype: how the society demo starts (Get started → society demo). Resets only this tenant's partition.
@@ -521,35 +554,7 @@ export const SOCIETY_HANDLERS: readonly Handler[] = [
     method: 'GET',
     pattern: /^\/society\/dashboard$/,
     access: requires('core', ['site.view', 'billing_run.view'], 'operational'),
-    handle: (ctx): SocietyDashboard => {
-      const s = siteOf(ctx);
-      const period = currentPeriod(s.state);
-      const stored = [...s.state.runs].filter((r) => r.period === period && isOpen(r.state)).at(-1) ?? null;
-      return buildSocietyDashboard({
-        view: s.view,
-        checklist: checklistOf(s),
-        period,
-        run: stored ? { ...stored, stale: isStale(s, stored) } : null,
-        principalId: ctx.persona!.principalId,
-        can: {
-          manageSite: can(ctx, 'site.manage'),
-          createRun: can(ctx, 'billing_run.create'),
-          approveRun: can(ctx, 'billing_run.approve'),
-          postRun: can(ctx, 'billing_run.post'),
-          approveOpening: can(ctx, 'opening_balance.approve'),
-          approveExemption: can(ctx, 'billing_run.approve'),
-          seeInvoices: can(ctx, 'invoice.view'),
-          reviewProofs: can(ctx, 'finance.evidence.review'),
-          reconcile: can(ctx, 'bank.reconcile'),
-          approveBeneficiary: can(ctx, 'beneficiary.approve'),
-          approvePaymentException: can(ctx, 'payment_exception.approve'),
-          approveLiability: can(ctx, 'liability.approve'),
-        },
-        collections: can(ctx, 'collections.view', 'history_read') ? collectionsSummary(s, ctx.at, { bank: can(ctx, 'bank.view', 'history_read') }) : null,
-        today: ctx.at,
-        extra: identityDashboardExtras(ctx),
-      });
-    },
+    handle: (ctx): SocietyDashboard => societyDashboardOf(ctx),
   },
   {
     method: 'GET',

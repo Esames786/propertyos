@@ -18,7 +18,7 @@ import type {
   Statement,
   SubmitProofDuesInput,
 } from '@repo/contracts';
-import { ApiError } from '@repo/contracts';
+import { ApiError, type ChequeInstrument, type ResidentCheque } from '@repo/contracts';
 import { forbid, notFound, permits, requires, type Handler, type HandlerContext } from '../handler-types';
 import { fromPaisa, liabilityRecord, toPaisa } from '../portal';
 import { ALNOOR_SITE, OPENING_AS_OF } from './alnoor';
@@ -54,6 +54,7 @@ interface Resident {
   lines: OpenLine[];
   payments: CollectionPayment[];
   submissions: PaymentSubmission[];
+  cheques: ChequeInstrument[];
 }
 
 function resident(ctx: HandlerContext): Resident {
@@ -81,8 +82,16 @@ function resident(ctx: HandlerContext): Resident {
     lines,
     payments: s.state.payments.filter((p) => p.payerPartyId === partyId && accounts.has(p.billingAccountId)),
     submissions: s.state.submissions.filter((x) => x.payerPartyId === partyId && accounts.has(x.billingAccountId)),
+    // Gate S.1: this payer's own cheques on their own accounts (another payer's never show).
+    cheques: s.state.finance.cheques.filter((c) => c.payerPartyId === partyId && accounts.has(c.billingAccountId)),
   };
 }
+
+/** A resident's cheques as they see them: received is never "paid"; returned and reversed are said plainly. */
+const residentCheques = (r: Resident): ResidentCheque[] =>
+  [...r.cheques]
+    .sort((a, b) => b.receivedOn.localeCompare(a.receivedOn))
+    .map((c) => ({ id: c.id, ref: c.ref, chequeNumber: c.chequeNumber, drawerBank: c.drawerBank, amount: c.amount, receivedOn: c.receivedOn, status: c.status, ...(c.receiptId ? { receiptId: c.receiptId, receiptRef: c.receiptRef! } : {}), ...(c.returned ? { returnedReason: c.returned.reason } : {}) }));
 
 const lineOf = (s: Society, l: OpenLine) => s.view.invoices.find((i) => i.id === l.invoiceId)!.lines.find((x) => x.id === l.lineId)!;
 
@@ -258,6 +267,7 @@ export const DUES_PORTAL_HANDLERS: readonly Handler[] = [
         methods: methods(r),
         submissions: [...r.submissions].sort((a, b) => b.current.submittedAt.localeCompare(a.current.submittedAt)).slice(0, 5).map(submissionSummary),
         receipts: receiptSummaries(r).slice(0, 5),
+        cheques: residentCheques(r),
       };
     },
   },
@@ -274,7 +284,8 @@ export const DUES_PORTAL_HANDLERS: readonly Handler[] = [
         receipts: receiptSummaries(r),
         payments: [...r.payments]
           .sort((a, b) => b.receivedOn.localeCompare(a.receivedOn))
-          .map((p) => ({ id: p.id, ref: p.ref, amount: p.amount, receivedOn: p.receivedOn, method: p.method, receiptId: p.receiptId, receiptRef: p.receiptRef, allocated: money(sum(p.allocations.map((a) => toPaisa(a.amount.amount)))), unapplied: p.unapplied })),
+          .map((p) => ({ id: p.id, ref: p.ref, amount: p.amount, receivedOn: p.receivedOn, method: p.method, receiptId: p.receiptId, receiptRef: p.receiptRef, allocated: money(sum(p.allocations.map((a) => toPaisa(a.amount.amount)))), unapplied: p.unapplied, ...(p.reversal ? { reversed: true } : {}) })),
+        cheques: residentCheques(r),
       };
     },
   },

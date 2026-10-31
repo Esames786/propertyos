@@ -46,8 +46,11 @@ export function NavList({
   const { location } = useNavigation();
   const reduced = useReducedMotion();
   const markerId = useId();
-  const visible = items.filter(allows);
-  const currentId = currentItemId(location.pathname, visible);
+  const allowed = items.filter((i) => allows(i));
+  const visible = allowed.filter((i) => i.menu !== false);
+  // An area without a menu entry marks its hub as current (the cashbook → Society finance).
+  const matched = allowed.find((i) => i.id === currentItemId(location.pathname, allowed));
+  const currentId = matched?.menu === false ? matched.hub : matched?.id;
   const groups = GROUP_ORDER.map((g) => ({ group: g, items: visible.filter((i) => i.group === g) })).filter((g) => g.items.length);
 
   return (

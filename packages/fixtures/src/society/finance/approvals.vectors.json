@@ -1,0 +1,31 @@
+{
+  "_doc": "Gate S.1 approval vectors (V3.2 §4 approvals.vectors.json): version by date, amount bands, no self-approval, drafts never govern themselves, delegation. Principal ids, never names. Run by finance.test.ts against the seeded Al-Noor committee (Ayesha usr_anr_0002 treasurer, Rabia usr_anr_r0003 general secretary, Saba usr_anr_0004 accounts officer, Imran usr_anr_0001 manager).",
+  "rules": [
+    { "subject": "cash_voucher", "amount": "9999.99", "rule": "rul_v1_voucher_small" },
+    { "subject": "cash_voucher", "amount": "10000.00", "rule": "rul_v1_voucher_large" },
+    { "subject": "funds_transfer", "amount": "99999.99", "rule": "rul_v1_transfer_small" },
+    { "subject": "funds_transfer", "amount": "285400.00", "rule": "rul_v1_transfer_large" },
+    { "subject": "period_reopen", "rule": "rul_v1_reopen" },
+    { "subject": "approval_policy", "rule": "rul_v1_policy" }
+  ],
+  "versionByDate": [
+    { "date": "2026-09-30", "version": null },
+    { "date": "2026-10-01", "version": 1 },
+    { "date": "2026-10-31", "version": 1, "withV2From": "2026-11-01" },
+    { "date": "2026-11-01", "version": 2, "withV2From": "2026-11-01" }
+  ],
+  "evaluate": [
+    { "name": "the treasurer decides a small voucher", "subject": "cash_voucher", "amount": "3000.00", "requester": "usr_anr_0004", "me": "usr_anr_0002", "canDecide": true, "eligible": ["usr_anr_0002"] },
+    { "name": "the requester never decides", "subject": "cash_voucher", "amount": "3000.00", "requester": "usr_anr_0002", "me": "usr_anr_0002", "canDecide": false, "reason": "own_request" },
+    { "name": "the secretary is not an approver of a small voucher", "subject": "cash_voucher", "amount": "3000.00", "requester": "usr_anr_0004", "me": "usr_anr_r0003", "canDecide": false, "reason": "not_an_approver" },
+    { "name": "a large voucher: treasurer and secretary both eligible", "subject": "cash_voucher", "amount": "12000.00", "requester": "usr_anr_0004", "me": "usr_anr_r0003", "canDecide": true, "eligible": ["usr_anr_0002", "usr_anr_r0003"] },
+    { "name": "a person named in the request (paid by it) never decides", "subject": "cash_voucher", "amount": "12000.00", "requester": "usr_anr_0004", "conflicted": ["usr_anr_r0003"], "me": "usr_anr_r0003", "canDecide": false, "reason": "conflict_of_interest" },
+    { "name": "one approval per person", "subject": "cash_voucher", "amount": "12000.00", "requester": "usr_anr_0004", "decided": ["usr_anr_0002"], "me": "usr_anr_0002", "canDecide": false, "reason": "already_decided" },
+    { "name": "without a decision right (the accounts officer)", "subject": "cash_voucher", "amount": "3000.00", "requester": "usr_anr_0001", "me": "usr_anr_0004", "canDecide": false, "reason": "permission_missing" },
+    { "name": "a delegate decides within the delegation", "subject": "cash_voucher", "amount": "3000.00", "requester": "usr_anr_0004", "delegations": [{ "from": "usr_anr_0002", "to": "usr_anr_r0003", "subjects": ["cash_voucher"], "fromDate": "2026-10-26", "toDate": "2026-11-02" }], "me": "usr_anr_r0003", "canDecide": true, "as": "delegate" },
+    { "name": "a delegation for another subject gives nothing", "subject": "cash_voucher", "amount": "3000.00", "requester": "usr_anr_0004", "delegations": [{ "from": "usr_anr_0002", "to": "usr_anr_r0003", "subjects": ["funds_transfer"], "fromDate": "2026-10-26", "toDate": "2026-11-02" }], "me": "usr_anr_r0003", "canDecide": false, "reason": "not_an_approver" },
+    { "name": "an expired delegation gives nothing", "subject": "cash_voucher", "amount": "3000.00", "requester": "usr_anr_0004", "delegations": [{ "from": "usr_anr_0002", "to": "usr_anr_r0003", "subjects": ["cash_voucher"], "fromDate": "2026-10-01", "toDate": "2026-10-20" }], "me": "usr_anr_r0003", "canDecide": false, "reason": "not_an_approver" },
+    { "name": "a delegate never acts for the requester", "subject": "cash_voucher", "amount": "3000.00", "requester": "usr_anr_0002", "delegations": [{ "from": "usr_anr_0002", "to": "usr_anr_r0003", "subjects": ["cash_voucher"], "fromDate": "2026-10-26", "toDate": "2026-11-02" }], "me": "usr_anr_r0003", "canDecide": false, "reason": "delegate_own_request" },
+    { "name": "reopening a month: the secretary decides, not the treasurer who asked", "subject": "period_reopen", "requester": "usr_anr_0002", "me": "usr_anr_r0003", "canDecide": true, "eligible": ["usr_anr_r0003"] }
+  ]
+}

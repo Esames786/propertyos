@@ -227,14 +227,14 @@ test.describe('Devices, app switch and data (GLOBAL-008/015/016, PORTAL-024/041,
     await page.goto(`${BO}/backoffice/global/profile--preferences`);
     await expect(page.getByTestId('role-mode')).toHaveAttribute('data-mode', 'backoffice');
     await page.getByTestId('app-switch').click();
-    await expect(page).toHaveURL(/5174\/customer\/portal\/home/);
+    await expect(page).toHaveURL(new RegExp(`^${CU}/customer/portal/home`));
     await expect(page.getByTestId('role-mode')).toHaveAttribute('data-mode', 'customer');
     // Nothing of the office app in the resident app.
     await expect(page.getByRole('link', { name: 'Users and sessions' })).toHaveCount(0);
     await expect(page.getByRole('link', { name: 'Resident app access' })).toHaveCount(0);
     await page.getByTestId('portal-account').click();
     await page.getByTestId('menu-app-switch').click();
-    await expect(page).toHaveURL(/5173\/backoffice\//);
+    await expect(page).toHaveURL(new RegExp(`^${BO}/backoffice/`));
     await expect(page.getByTestId('role-mode').first()).toHaveAttribute('data-mode', 'backoffice');
     expect(consoleErrors).toEqual([]);
   });

@@ -5,6 +5,7 @@ import type {
   BeneficiaryChange,
   BillingRun,
   BillingRunItem,
+  CashWitnessPolicy,
   ChargeRule,
   CollectionPayment,
   CreditNote,
@@ -22,6 +23,7 @@ import type {
   Receipt,
   SocietyAuditEntry,
   SocietyDemoMode,
+  TransferFeeRate,
 } from '@repo/contracts';
 import { fromPaisa, toPaisa } from '../portal';
 import { pad } from '../seed';
@@ -50,6 +52,7 @@ import { fingerprint } from './import';
 import { accountIdOf, buildSociety, factOn, flatIdOf, payerOn, type SocietyModel } from './model';
 import { defaultNumbering, formatRef, sequenceScope } from './numbering';
 import { allocatedByLine, readInvoice } from './statement';
+import { emptyFinance, type FinanceState } from './finance/model';
 
 /**
  * The society's session state (the demo partition's `society` section, shared by the office and the
@@ -60,7 +63,8 @@ import { allocatedByLine, readInvoice } from './statement';
  */
 export type { SocietyAuditEntry };
 
-export const SOCIETY_STATE_VERSION = 2;
+/** 3 = Gate S.1 (finance and governance); a session saved by an earlier version starts again. */
+export const SOCIETY_STATE_VERSION = 3;
 
 export interface StoredImport {
   id: string;
@@ -109,6 +113,12 @@ export interface SocietyState {
   methods: MethodRule[];
   numbering: NumberingScheme;
   posting: PostingPolicyState;
+  /** Gate S.1 (D-46): whether single office cash needs a second person's count too. */
+  cashWitness: CashWitnessPolicy;
+  /** Gate S.1 (D-42): versioned transfer-fee rates with their bylaw reference. */
+  transferFees: TransferFeeRate[];
+  /** Gate S.1: cashbook sources, approvals, committee, reminders, transfers and clearance. */
+  finance: FinanceState;
   /** Document sequences per numbering scope (see numbering.ts). */
   counters: Record<string, number>;
   audit: SocietyAuditEntry[];
@@ -164,6 +174,10 @@ export function emptySociety(mode: SocietyDemoMode): SocietyState {
     methods: structuredClone(ALNOOR_METHODS),
     numbering: defaultNumbering(ALNOOR_CODE),
     posting: { roles: [...DEFAULT_POSTING_ROLES] },
+    // C.2's single office cash keeps its receipt at once (accepted for C.2); D-46 is still the owner's.
+    cashWitness: 'single_counter',
+    transferFees: [{ version: 1, amount: { amount: '5000.00', currency: 'PKR' }, from: '2026-04-01', bylawRef: 'Bylaw 14(2), Al-Noor Residency Owners’ Association (Demo): illustrative fee' }],
+    finance: emptyFinance(),
     counters: {},
     audit: [],
     seq: 0,
@@ -375,6 +389,7 @@ export function viewOf(state: SocietyState, today: string): SocietyView {
 export function creditByAccount(state: SocietyState): Map<string, bigint> {
   const out = new Map<string, bigint>();
   for (const p of state.payments) {
+    if (p.reversal) continue;
     const left = toPaisa(p.unapplied.amount);
     if (left > 0n) out.set(p.billingAccountId, (out.get(p.billingAccountId) ?? 0n) + left);
   }

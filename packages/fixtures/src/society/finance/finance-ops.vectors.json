@@ -1,0 +1,39 @@
+{
+  "_doc": "Gate S.1 golden vectors (V3.2 FRONTEND_ONLY_EXECUTION_PLAN §4, finance-ops). Fictional data; policy amounts are illustrative. Run by finance.test.ts. C.2's collections.vectors.json keeps passing unchanged.",
+  "cashbook": [
+    { "name": "October, all accounts: handover opening, vouchers and verified payments only", "account": null, "period": "2026-10", "opening": "302900.00", "receipts": "15100.00", "payments": "4350.00", "closing": "313650.00" },
+    { "name": "Petty cash: two posted payment vouchers", "account": "cac_anr_petty", "period": "2026-10", "opening": "5000.00", "receipts": "0.00", "payments": "4350.00", "closing": "650.00" },
+    { "name": "Office cash box: the hall booking receipt; the lift voucher awaiting approval is not in it", "account": "cac_anr_office", "period": "2026-10", "opening": "12500.00", "receipts": "2500.00", "payments": "0.00", "closing": "15000.00" },
+    { "name": "Association account: three proofs verified on their statement lines", "account": "ben_anr_main", "period": "2026-10", "opening": "0.00", "receipts": "12600.00", "payments": "0.00", "closing": "12600.00" },
+    { "name": "Committee account: the handover balance (A-101's mistaken transfer is an unreconciled line, not cash)", "account": "ben_anr_committee", "period": "2026-10", "opening": "285400.00", "receipts": "0.00", "payments": "0.00", "closing": "285400.00" },
+    { "name": "September (closed): handover balances are the opening, no movement", "account": null, "period": "2026-09", "opening": "302900.00", "receipts": "0.00", "payments": "0.00", "closing": "302900.00" }
+  ],
+  "reminders": {
+    "policy": { "status": "active", "steps": [{ "offsetDays": -3, "channels": ["in_app"] }, { "offsetDays": 0, "channels": ["in_app", "sms"] }, { "offsetDays": 7, "channels": ["in_app", "sms", "whatsapp"] }], "quietHours": { "from": "21:00", "to": "09:00" }, "monthlyCap": 3 },
+    "today": "2026-10-26",
+    "base": { "billingAccountId": "ba_anr_a101", "accountNo": "ANR-A101", "partyId": "pty_x", "payerName": "Payer", "flats": ["A-101"], "open": "5200.00", "overdue": "1000.00", "oldestDue": "2026-10-20", "proof": "none", "chequePending": false, "consents": { "sms": true, "whatsapp": true }, "sentThisMonth": 0, "alreadySent": [] },
+    "cases": [
+      { "name": "paid: nothing to remind", "target": { "open": "0.00" }, "expect": { "in_app": "skip:paid" } },
+      { "name": "a proof in any pending C.2 state: no dues reminder", "target": { "proof": "pending" }, "expect": { "in_app": "skip:proof_pending" } },
+      { "name": "a proof that needs information gets that request instead", "target": { "proof": "needs_information" }, "expect": { "in_app": "skip:needs_information" } },
+      { "name": "a cheque waiting to clear: no reminder", "target": { "chequePending": true }, "expect": { "in_app": "skip:cheque_pending" } },
+      { "name": "6 days late: the on-due step (in-app and SMS)", "target": {}, "expect": { "in_app": "send", "sms": "send" } },
+      { "name": "not due yet (due in 15 days, first step 3 days before)", "target": { "oldestDue": "2026-11-10" }, "expect": { "in_app": "skip:not_due_yet" } },
+      { "name": "a manual reminder before the due date uses the first step", "target": { "oldestDue": "2026-11-10" }, "manual": true, "expect": { "in_app": "send" } },
+      { "name": "8 days late: the third step adds WhatsApp", "target": { "oldestDue": "2026-10-18" }, "expect": { "in_app": "send", "sms": "send", "whatsapp": "send" } },
+      { "name": "quiet hours: SMS waits, in-app goes", "target": {}, "clock": "22:30", "expect": { "in_app": "send", "sms": "defer:quiet_hours" } },
+      { "name": "quiet hours end at nine", "target": {}, "clock": "09:00", "expect": { "sms": "send" } },
+      { "name": "no recorded consent: no SMS", "target": { "consents": { "sms": false, "whatsapp": false } }, "expect": { "in_app": "send", "sms": "skip:no_consent" } },
+      { "name": "SMS not licensed (metered feature): skipped", "target": {}, "licensed": { "sms": false, "whatsapp": false }, "expect": { "in_app": "send", "sms": "skip:channel_not_licensed" } },
+      { "name": "three reminders this month already: capped", "target": { "sentThisMonth": 3 }, "expect": { "in_app": "skip:monthly_cap", "sms": "skip:monthly_cap" } },
+      { "name": "the same step already sent: never twice", "target": { "alreadySent": ["0|in_app", "0|sms"] }, "expect": { "in_app": "skip:already_sent", "sms": "skip:already_sent" } }
+    ]
+  },
+  "quietHours": [
+    { "clock": "20:59", "inside": false },
+    { "clock": "21:00", "inside": true },
+    { "clock": "02:00", "inside": true },
+    { "clock": "08:59", "inside": true },
+    { "clock": "09:00", "inside": false }
+  ]
+}

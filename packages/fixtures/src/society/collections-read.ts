@@ -19,6 +19,7 @@ import { agingByAccount, bucketOf, emptyBuckets } from './aging';
 import { isPosted } from './billing-run';
 import { candidatesFor, matchSignal, normRef, usable, type DestinationScope } from './matching';
 import { beneficiaryOn, creditByAccount, type SocietyState, type SocietyView } from './state';
+import { s1SuggestionFor } from './finance/settle';
 
 /**
  * Collections read model (COL-001/005, FIN-005/008/011, BANK-004). Every figure is derived from the
@@ -152,7 +153,7 @@ export function agingReport(view: SocietyView, today: string): AgingReport {
 export function creditRows(view: SocietyView): CreditRow[] {
   const lines = linesOf(view.invoices);
   const byKey = new Map<string, CollectionPayment[]>();
-  for (const p of view.state.payments.filter((x) => toPaisa(x.unapplied.amount) > 0n)) {
+  for (const p of view.state.payments.filter((x) => toPaisa(x.unapplied.amount) > 0n && !x.reversal)) {
     const k = `${p.billingAccountId}|${p.payerPartyId}`;
     byKey.set(k, [...(byKey.get(k) ?? []), p]);
   }
@@ -194,7 +195,8 @@ function suggestionFor(view: SocietyView, line: BankLine): ReconciliationSummary
 export function reconciliation(view: SocietyView): ReconciliationSummary {
   const { state } = view;
   const lines = state.bank.lines.map((l) => {
-    const suggestion = suggestionFor(view, l);
+    // Gate S.1 first (a leg or cheque the line proves); money leaving the account is never a resident's payment.
+    const suggestion = s1SuggestionFor(state, l) ?? (l.direction === 'debit' ? undefined : suggestionFor(view, l));
     return suggestion ? { ...l, suggestion } : l;
   });
   const total = (ls: readonly BankLine[]) => ({ amount: money(sum(ls.map((l) => toPaisa(l.amount.amount)))), count: ls.length });
@@ -224,9 +226,11 @@ export function collectionsSummary(s: { view: SocietyView }, today: string, opts
   const periodLineIds = new Set(periodLines.map((l) => l.lineId));
   const billedOf = (ls: readonly OpenLine[]) => sum(ls.map((l) => toPaisa(view.invoices.find((i) => i.id === l.invoiceId)!.lines.find((x) => x.id === l.lineId)!.amount.amount)));
   const billed = billedOf(periodLines);
-  const allocations = state.payments.flatMap((p) => p.allocations);
+  // A reversed payment (Gate S.1) collected nothing.
+  const live = state.payments.filter((p) => !p.reversal);
+  const allocations = live.flatMap((p) => p.allocations);
   const collectedForPeriod = sum(allocations.filter((a) => periodLineIds.has(a.lineId)).map((a) => toPaisa(a.amount.amount)));
-  const received = sum(state.payments.map((p) => toPaisa(p.amount.amount)));
+  const received = sum(live.map((p) => toPaisa(p.amount.amount)));
 
   const openByAccount = new Map<string, bigint>();
   const overdueByAccount = new Map<string, bigint>();

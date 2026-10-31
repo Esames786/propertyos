@@ -33,6 +33,7 @@ import { Input, Label, SearchField } from 'react-aria-components';
 import { SOCIETY } from '../../../nav.config';
 import { Loading, OccupancyBadge, ProblemAlert, RunProgress, RunStateBadge, ScrollRegion, useSocietyFormat } from '../kit';
 import { AuditList, ChargesTable } from '../parts';
+import { PrintPackButton } from '../finance/RemindersPage';
 
 const CATEGORY_ORDER: ChargeCategoryKey[] = ['maintenance', 'security', 'lift', 'water'];
 const ITEM_FILTERS = ['all', 'billed', 'exempt', 'override', 'no_payer'] as const;
@@ -675,10 +676,14 @@ function PostingTab({ data }: { data: BillingRunDetail }) {
         <Panel
           title={t('billing:run.posting.invoices', { count: invoices.length })}
           actions={
-            <Link href={SOCIETY.invoices({ run: run.id })} variant="plain" className="inline-flex min-h-10 items-center gap-1.5 text-sm font-medium text-primary">
-              {t('billing:run.openInvoices')}
-              <DirectionalIcon icon={ArrowRight} className="size-4" />
-            </Link>
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Gate S.1 (BILL-018): the posted invoices of this run, printed or downloaded as one pack. */}
+              <PrintPackButton path={`/billing-runs/${run.id}/print-pack`} label={t('finance:run.printPack')} testId="run-print-pack" />
+              <Link href={SOCIETY.invoices({ run: run.id })} variant="plain" className="inline-flex min-h-10 items-center gap-1.5 text-sm font-medium text-primary">
+                {t('billing:run.openInvoices')}
+                <DirectionalIcon icon={ArrowRight} className="size-4" />
+              </Link>
+            </div>
           }
         >
           <ul className="grid gap-2 @2xl:grid-cols-2 @5xl:grid-cols-3" data-testid="posted-invoices">

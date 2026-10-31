@@ -193,7 +193,7 @@ test('Reference 3: devices, app switch, data requests (en)', async ({ browser })
   await settle(page, 400);
   await shot(page, 's03-account-menu-switch-1440-en', false);
   await page.getByTestId('user-menu-app-switch').click();
-  await page.waitForURL(/5174\/customer\/portal\/home/);
+  await page.waitForURL(new RegExp(`^${CU}/customer/portal/home`));
   await page.getByTestId('role-mode').waitFor();
   await settle(page, 1200);
   await shot(page, 's04-resident-after-switch-1440-en', false);
@@ -205,7 +205,7 @@ test('Reference 3: devices, app switch, data requests (en)', async ({ browser })
   await shot(page, 's05-resident-request-sent-1440-en');
   await page.getByTestId('portal-account').click();
   await page.getByTestId('menu-app-switch').click();
-  await page.waitForURL(/5173\/backoffice\//);
+  await page.waitForURL(new RegExp(`^${BO}/backoffice/`));
   await settle(page, 1200);
   await open(page, `${BO}/backoffice/adm/data`, 'export-list');
   await page.getByTestId('export-new-button').click();

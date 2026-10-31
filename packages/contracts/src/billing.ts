@@ -20,6 +20,8 @@ export const CHARGE_CATEGORIES = [
   'one_time_assessment',
   'repair',
   'late_fee',
+  // Gate S.1: a society transfer's fee (versioned rate with a bylaw reference; one invoice per transfer).
+  'transfer_fee',
 ] as const;
 export type ChargeCategoryKey = (typeof CHARGE_CATEGORIES)[number];
 
@@ -198,7 +200,7 @@ export interface PostResult {
 // Invoices, credit notes and statements (shared receivables engine, A2 §5)
 // ---------------------------------------------------------------------------------------------
 
-export type InvoiceSource = 'billing_run' | 'opening_balance' | 'installment_schedule' | 'manual' | 'service' | 'penalty';
+export type InvoiceSource = 'billing_run' | 'opening_balance' | 'installment_schedule' | 'manual' | 'service' | 'penalty' | 'transfer_fee';
 
 export interface InvoiceLine {
   id: string;
@@ -303,7 +305,8 @@ export interface InvoiceDetail {
 
 export interface StatementEntry {
   on: string;
-  kind: 'opening_balance' | 'invoice' | 'credit_note' | 'payment';
+  /** Gate S.1: 'payment_reversal' re-charges a reversed payment (a cheque returned after clearing). */
+  kind: 'opening_balance' | 'invoice' | 'credit_note' | 'payment' | 'payment_reversal';
   ref: string;
   refId: string;
   period?: string;
@@ -389,7 +392,7 @@ export interface SocietyDashboard {
   arrears: { amount: Money; accounts: number; href: string };
   /** Collections (C.2): every figure opens its filtered records. Null when the person may not see money. */
   collections: CollectionsSummary | null;
-  approvals: { count: number; yours: number; href: string; items: Array<{ kind: 'billing_run' | 'exemption' | 'opening_balances' | 'payer_change' | 'beneficiary' | 'payment_exception' | 'data_export'; id: string; label: string; href: string; yours: boolean }> };
+  approvals: { count: number; yours: number; href: string; items: Array<{ kind: 'billing_run' | 'exemption' | 'opening_balances' | 'payer_change' | 'beneficiary' | 'payment_exception' | 'data_export' | 'approval_request'; id: string; label: string; href: string; yours: boolean }> };
   occupancy: { registered: number; occupied: number; ownerOccupied: number; tenantOccupied: number; vacant: number; association: number; declared: number; href: string };
   buildings: Array<{ id: string; code: string; name: string; flats: number; occupied: number; vacant: number; ownerOccupied: number; tenantOccupied: number; association: number; outstanding: Money; arrearsAccounts: number; href: string }>;
   tasks: SocietyTask[];
@@ -407,7 +410,7 @@ export interface SocietyAuditEntry {
   byName: string;
   /** Translation key under `billing:audit.actions`. */
   action: string;
-  target: { kind: 'site' | 'flat' | 'account' | 'run' | 'invoice' | 'rule' | 'exemption' | 'import' | 'opening_balances' | 'submission' | 'payment' | 'bank' | 'beneficiary' | 'settings' | 'payer_change'; id: string; label: string };
+  target: { kind: 'site' | 'flat' | 'account' | 'run' | 'invoice' | 'rule' | 'exemption' | 'import' | 'opening_balances' | 'submission' | 'payment' | 'bank' | 'beneficiary' | 'settings' | 'payer_change' | 'voucher' | 'transfer' | 'cheque' | 'batch' | 'period' | 'cash_count' | 'approval' | 'policy' | 'delegation' | 'committee' | 'reminder' | 'ownership_transfer' | 'certificate'; id: string; label: string };
   flats?: string[];
   /** Values for the message (as entered or formatted by the server). */
   values?: Record<string, string>;

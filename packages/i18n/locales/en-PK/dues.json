@@ -105,7 +105,8 @@
       "textSize": "Text size"
     },
     "cashNote": "You can also pay cash at the office: {{counter}}.",
-    "onlineLater": "Online payment is not available yet (planned for stage {{gate}})."
+    "onlineLater": "Online payment is not available yet (planned for stage {{gate}}).",
+    "paidInAdvance": "You have paid in advance. The credit settles your next bills, oldest first."
   },
   "bills": {
     "title": "Your bills",
@@ -142,7 +143,19 @@
     "noReceipts": "No receipts yet. A receipt is issued when the office verifies your payment.",
     "credit": "{{amount}} kept as credit",
     "proofs": "Proofs you sent",
-    "noProofs": "You have not sent any proof."
+    "noProofs": "You have not sent any proof.",
+    "reversed": "Reversed",
+    "cheques": "Cheques you handed in",
+    "cheque": "Cheque {{number}}, {{bank}}",
+    "chequeState": {
+      "received": "Received at the office. Not a receipt of payment: nothing is paid until it clears.",
+      "deposited": "Deposited at the bank. Not paid until it clears.",
+      "exception_pending": "Being checked at the bank. Not paid until it clears.",
+      "cleared": "Cleared. Your receipt was issued.",
+      "returned": "Returned by the bank ({{reason}}). Nothing was paid; please pay again.",
+      "cancelled": "Handed back to you.",
+      "reversed": "Returned after clearing: the payment was reversed and the bill is open again."
+    }
   },
   "pay": {
     "title": "Pay your dues",
@@ -267,7 +280,8 @@
       "opening_balance": "Balance carried over",
       "invoice": "{{period}} bill",
       "credit_note": "Credit note",
-      "payment": "Payment received"
+      "payment": "Payment received",
+      "payment_reversal": "Payment reversed (cheque returned)"
     }
   },
   "tour": {

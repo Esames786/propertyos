@@ -23,7 +23,8 @@
   "verification": {
     "bank_matched": "Matched to the bank",
     "counter": "Received at the counter",
-    "exception_approved": "Approved exception"
+    "exception_approved": "Approved exception",
+    "witnessed": "Counted by two people"
   },
   "bankState": {
     "unmatched": "Not matched",
@@ -347,7 +348,13 @@
     "openReconciliation": "Open reconciliation",
     "cashNoLine": "Cash at the counter: it appears on the bank statement only once deposited.",
     "exceptionTitle": "Settled through an approved exception",
-    "exceptionBody": "Requested by {{requested}}, approved by {{approved}}. Did not match: {{list}}."
+    "exceptionBody": "Requested by {{requested}}, approved by {{approved}}. Did not match: {{list}}.",
+    "fromCheque": "Cheque {{ref}}: paid only when its bank line cleared it",
+    "fromBatch": "Office collection {{ref}}: counted by {{collector}}, confirmed by {{witness}}",
+    "reversedTitle": "This payment was reversed",
+    "reversedBody": "Reversed on {{date}} ({{ref}}), approved by {{approver}}. The lines it settled are open again; the receipt stays, marked reversed.",
+    "reversedBadge": "Reversed",
+    "requestReversal": "Request a reversal"
   },
   "office": {
     "open": "Record office payment",
@@ -419,7 +426,9 @@
     },
     "suggestion": {
       "submission": "Probably proof {{label}}",
-      "account": "Probably {{label}}"
+      "account": "Probably {{label}}",
+      "transfer": "Proves instruction {{label}}",
+      "cheque": "Clears cheque {{label}}"
     },
     "exclude": "Set aside",
     "excludeTitle": "Set this line aside?",
@@ -555,7 +564,14 @@
       "payment": "Payments",
       "receipt": "Receipts",
       "submission": "Payment proofs",
-      "run": "Billing runs"
+      "run": "Billing runs",
+      "voucher": "Cash vouchers",
+      "transfer": "Deposits and transfers",
+      "cheque": "Cheque acknowledgements",
+      "batch": "Office collection batches",
+      "clearance": "Clearance certificates",
+      "approval": "Approval requests",
+      "ownershipTransfer": "Society transfers"
     },
     "tokens": "Use {code}, {yyyy}, {yyyymm} and {seq:N} (N = 3–6 digits). Every document but a run needs {seq:N}.",
     "numberingSaved": "Numbering saved for new documents",
@@ -631,6 +647,8 @@
     "wrongDestination": "Transfer {{txn}} reached account {{iban}}, not the association's account in force that day. It cannot settle this proof.",
     "bankLineHeld": "This transfer is held for an exception on {{ref}}.",
     "statementAccount": "Choose the association account this statement belongs to.",
-    "statementAccountMismatch": "This statement is for account {{file}}, not {{chosen}}. Choose the right account."
+    "statementAccountMismatch": "This statement is for account {{file}}, not {{chosen}}. Choose the right account.",
+    "bankLineDebit": "Money leaving the account never proves a resident's payment.",
+    "secondPersonRequired": "This site counts every office cash payment with a second person: record it as an office collection."
   }
 }

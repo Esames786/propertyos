@@ -114,8 +114,22 @@ function Overview({ data }: { data: PaymentDetail }) {
             {t('collections:payment.fromProof')}{' '}
             <Link href={COLLECTIONS.review(p.source.submissionId)}><bdi dir="ltr" className="ltr-ref">{p.source.submissionRef}</bdi></Link>
           </p>
+        ) : p.source.kind === 'cheque' ? (
+          <p className="text-sm text-text">
+            <Link href={`/backoffice/fin/office-collections?tab=cheques&cheque=${p.source.chequeId}`}>{t('collections:payment.fromCheque', { ref: p.source.chequeRef })}</Link>
+          </p>
+        ) : p.source.kind === 'batch' ? (
+          <p className="text-sm text-text">
+            <Link href={`/backoffice/fin/office-collections?batch=${p.source.batchId}`}>{t('collections:payment.fromBatch', { ref: p.source.batchRef, collector: p.verifiedByName, witness: p.witness?.byName ?? '' })}</Link>
+          </p>
         ) : (
           <p className="text-sm text-text">{t('collections:payment.fromCounter')}{p.source.note ? <> · <bdi>{t('billing:quote', { text: p.source.note })}</bdi></> : null}</p>
+        )}
+        {p.reversal && (
+          <InlineAlert tone="warning" title={t('collections:payment.reversedTitle')} data-testid="payment-reversed">
+            <p>{t('collections:payment.reversedBody', { date: fmt.date(p.reversal.on), ref: p.reversal.approvalRef, approver: p.reversal.approvedByName })}</p>
+            <p><bdi>{t('billing:quote', { text: p.reversal.reason })}</bdi></p>
+          </InlineAlert>
         )}
         {p.exception && (
           <InlineAlert tone="warning" title={t('collections:payment.exceptionTitle')} data-testid="payment-exception">

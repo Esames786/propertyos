@@ -20,7 +20,12 @@
     "bank": "بینک اور مطابقت",
     "portalAccess": "ریذیڈنٹ ایپ تک رسائی",
     "users": "صارفین اور سیشن",
-    "dataPrivacy": "ڈیٹا اور رازداری"
+    "dataPrivacy": "ڈیٹا اور رازداری",
+    "financeOverview": "سوسائٹی کے مالیات",
+    "officeCollections": "دفتری وصولیاں",
+    "approvals": "منظوریاں",
+    "committee": "کمیٹی",
+    "ownershipTransfers": "منتقلیاں اور کلیئرنس"
   },
   "header": {
     "search": "تلاش",
@@ -119,7 +124,21 @@
     "portalSignIn": "سائن اِن",
     "myProperties": "میری جائیدادیں",
     "propertyDetail": "فلیٹ",
-    "household": "گھرانہ"
+    "household": "گھرانہ",
+    "financeDashboard": "سوسائٹی کے مالیات",
+    "bankAccounts": "نقد اور بینک کھاتے",
+    "bankAccount": "کھاتہ",
+    "cashbook": "کیش بک",
+    "transfers": "جمع اور منتقلیاں",
+    "officeCollections": "دفتری وصولیاں",
+    "reminders": "یاد دہانیاں",
+    "committee": "کمیٹی",
+    "myApprovals": "میری منظوریاں",
+    "approval": "منظوری",
+    "approvalPolicies": "منظوری کی پالیسیاں",
+    "delegation": "اختیارات کی تفویض",
+    "ownershipTransfers": "منتقلیاں اور کلیئرنس",
+    "ownershipTransfer": "منتقلی کا جائزہ"
   },
   "groups": {
     "workspace": "کاروبار",

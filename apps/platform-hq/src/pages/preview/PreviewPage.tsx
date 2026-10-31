@@ -52,7 +52,7 @@ const statusOf = (d: AccessDecision): Status =>
 const TONE: Record<Status, StatusTone> = { available: 'success', notInPlan: 'neutral', role: 'warning', site: 'neutral', suspended: 'error', inactive: 'neutral' };
 
 /** Areas a client works in (the start page and prototype tools are not part of the licence). */
-const AREAS = TENANT_NAV.filter((i) => !['home', 'lab', 'help'].includes(i.id));
+const AREAS = TENANT_NAV.filter((i) => !['home', 'lab', 'help'].includes(i.id) && i.menu !== false);
 
 /** Addresses an operator commonly checks (shown left-to-right isolated, so they read correctly in Urdu). */
 const SAMPLE_ADDRESSES = [
@@ -183,7 +183,7 @@ function MenuPreview({ session }: { session: PreviewSession }) {
   const tr = dynamicT(t);
   const decide = useDecide(session);
   // The client's own words for its areas (e.g. a society's “Owners & Residents”).
-  const items = contextualNav(TENANT_NAV, session.access, session.at).filter((i) => i.id !== 'lab' && decide(i).allowed);
+  const items = contextualNav(TENANT_NAV, session.access, session.at).filter((i) => i.id !== 'lab' && i.menu !== false && decide(i).allowed);
   const bar = items.filter((i) => i.bottomBar).slice(0, 3);
   const create = TENANT_QUICK_CREATE.some((q) => decide({ permission: q.permission }).allowed) && decide({ permission: 'quickcreate.use' }).allowed;
   return (

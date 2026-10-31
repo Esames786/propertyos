@@ -232,7 +232,8 @@
     "payer_change": "Payer change",
     "beneficiary": "New collection account",
     "payment_exception": "Payment exception",
-    "data_export": "Data export"
+    "data_export": "Data export",
+    "approval_request": "Finance approval"
   },
   "tasks": {
     "import_flats": {
@@ -478,7 +479,8 @@
       "opening_balance": "Opening balance (arrears carried over)",
       "credit_note": "Credit note",
       "invoice": "Invoice for {{period}}",
-      "payment": "Payment received"
+      "payment": "Payment received",
+      "payment_reversal": "Payment reversed"
     },
     "sinceGoLive": "Since go-live"
   },
@@ -507,7 +509,8 @@
     "sinking_fund": "Sinking fund",
     "one_time_assessment": "One-time assessment",
     "repair": "Repairs",
-    "late_fee": "Late fee"
+    "late_fee": "Late fee",
+    "transfer_fee": "Transfer fee"
   },
   "scope": {
     "site": "Site default",
@@ -521,7 +524,8 @@
     "installment_schedule": "Instalment",
     "manual": "Manual invoice",
     "service": "Service",
-    "penalty": "Penalty"
+    "penalty": "Penalty",
+    "transfer_fee": "Transfer fee"
   },
   "audit": {
     "title": "Activity",

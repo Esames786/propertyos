@@ -30,11 +30,13 @@ test.describe('Screen register coverage (V3.1)', () => {
     // Gate C.2 adds BILL-016 (billing controls) and BILL-017 (payer changes).
     // Gate D.1 adopts its V3.2 rows only (D-43): RES-007, AUTH-007 and ADM-024, and the states
     // RES-009, SITE-009, GLOBAL-015, GLOBAL-016 and PORTAL-041.
-    expect(SCREENS.length).toBe(404);
+    // Gate S.1 adopts its V3.2 rows only: BANK-007, FIN-013, COL-007 and RES-008, and the states
+    // BANK-008, BANK-009, FIN-014, BILL-018, COL-008, COL-009 and OWN-006.
+    expect(SCREENS.length).toBe(415);
     for (const prefix of ['GLOBAL', 'AUTH', 'SAAS', 'CRM', 'PORTAL', 'WEB', 'HQ', 'SITE', 'BILL', 'ENTRY']) {
       expect([...ids].some((id) => id.startsWith(`${prefix}-`)), prefix).toBe(true);
     }
-    expect(SCREENS.filter((s) => s.canonicalId === s.id)).toHaveLength(340);
+    expect(SCREENS.filter((s) => s.canonicalId === s.id)).toHaveLength(344);
   });
 
   for (const [i, group] of chunks(OPENABLE, 25).entries()) {

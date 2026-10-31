@@ -228,6 +228,7 @@ export const COOLING_OFF_DAYS = 3;
 export const ALNOOR_METHODS: MethodRule[] = [
   { method: 'bank_transfer', enabled: true },
   { method: 'office_cash', enabled: false, maxAmount: { amount: '50000.00', currency: 'PKR' }, counter: 'Society office, Block A ground floor · Mon–Sat 10:00–17:00' },
-  { method: 'cheque', enabled: false, gate: 'E' },
+  // Gate S.1: society cheques (received → deposited → cleared on a statement line); off until the committee turns them on.
+  { method: 'cheque', enabled: false, cheque: { payableTo: ALNOOR_ENTITY.name, depositAccountId: 'ben_anr_main', maxPostDatedDays: 0 } },
   { method: 'online', enabled: false, gate: 'D' },
 ];

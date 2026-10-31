@@ -18,6 +18,8 @@ import enBilling from '../locales/en-PK/billing.json';
 import enCollections from '../locales/en-PK/collections.json';
 import enDues from '../locales/en-PK/dues.json';
 import enIdentity from '../locales/en-PK/identity.json';
+import enFinance from '../locales/en-PK/finance.json';
+import enGovernance from '../locales/en-PK/governance.json';
 import urA11y from '../locales/ur-PK/a11y.json';
 import urCommon from '../locales/ur-PK/common.json';
 import urDashboard from '../locales/ur-PK/dashboard.json';
@@ -38,6 +40,8 @@ import urBilling from '../locales/ur-PK/billing.json';
 import urCollections from '../locales/ur-PK/collections.json';
 import urDues from '../locales/ur-PK/dues.json';
 import urIdentity from '../locales/ur-PK/identity.json';
+import urFinance from '../locales/ur-PK/finance.json';
+import urGovernance from '../locales/ur-PK/governance.json';
 
 export const NAMESPACES = [
   'common',
@@ -60,6 +64,9 @@ export const NAMESPACES = [
   'collections',
   'dues',
   'identity',
+  // Gate S.1: society finance (cashbook, accounts, transfers, collections) and governance (approvals, committee, reminders, transfers of ownership).
+  'finance',
+  'governance',
 ] as const;
 
 export type Namespace = (typeof NAMESPACES)[number];
@@ -85,6 +92,8 @@ const en = {
   collections: enCollections,
   dues: enDues,
   identity: enIdentity,
+  finance: enFinance,
+  governance: enGovernance,
 };
 
 const ur: typeof en = {
@@ -108,6 +117,8 @@ const ur: typeof en = {
   collections: urCollections,
   dues: urDues,
   identity: urIdentity,
+  finance: urFinance,
+  governance: urGovernance,
 };
 
 export const resources = { 'en-PK': en, 'ur-PK': ur };

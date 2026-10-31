@@ -10,7 +10,7 @@ import { BankLineBadge } from './ckit';
 /** An account number inside a translated sentence: kept left to right in Urdu (an LTR isolate). */
 const ltr = (v: string) => `\u2066${v}\u2069`;
 
-type FeedLine = BankLine & { suggestion?: { kind: 'submission' | 'account'; id: string; label: string; href: string } };
+type FeedLine = BankLine & { suggestion?: { kind: 'submission' | 'account' | 'transfer' | 'cheque'; id: string; label: string; href: string } };
 const STATES = ['all', 'unmatched', 'unidentified', 'matched', 'excluded'] as const;
 
 /**
@@ -117,6 +117,18 @@ function BankLineCard({ line, canReconcile }: { line: FeedLine; canReconcile: bo
       </span>
       <span className="flex flex-wrap items-center gap-1.5 text-xs">
         <BankLineBadge state={line.state} unidentified={unidentified} />
+        {line.direction === 'debit' && (
+          <span className="rounded-pill border border-border px-2 py-0.5 font-medium text-text" data-testid="bank-line-debit">
+            {t('finance:bank.debit')}
+          </span>
+        )}
+        {line.state === 'matched' && !line.paymentId && line.settlementRef && (
+          <span className="inline-flex items-center gap-1 text-text" data-testid="bank-line-settles">
+            <Link2 aria-hidden className="size-3.5" />
+            {t('finance:bank.settles', { ref: line.settlementRef })}
+          </span>
+        )}
+        {line.heldBy && <span className="text-warning">{t('finance:bank.heldBy', { ref: line.heldBy.ref })}</span>}
         {line.state === 'matched' && line.paymentId && (
           <Link href={COLLECTIONS.payment(line.paymentId)} className="inline-flex items-center gap-1"><Link2 aria-hidden className="size-3.5" /><bdi dir="ltr" className="ltr-ref">{line.paymentRef}</bdi></Link>
         )}

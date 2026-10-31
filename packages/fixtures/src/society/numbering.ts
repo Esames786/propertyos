@@ -17,9 +17,16 @@ export const defaultNumbering = (code: string): NumberingScheme => ({
   receipt: '{code}-RCT-{yyyy}-{seq:5}',
   submission: '{code}-PRF-{seq:4}',
   run: '{code}-RUN-{yyyymm}',
+  voucher: '{code}-CV-{yyyy}-{seq:4}',
+  transfer: '{code}-TRF-{yyyy}-{seq:4}',
+  cheque: '{code}-CHQ-{yyyy}-{seq:4}',
+  batch: '{code}-OCB-{yyyymm}-{seq:3}',
+  clearance: '{code}-CLR-{yyyy}-{seq:4}',
+  approval: '{code}-APR-{yyyy}-{seq:4}',
+  ownershipTransfer: '{code}-OWT-{yyyy}-{seq:4}',
 });
 
-export const DOCUMENT_KINDS: readonly DocumentKind[] = ['invoice', 'opening', 'creditNote', 'payment', 'receipt', 'submission', 'run'];
+export const DOCUMENT_KINDS: readonly DocumentKind[] = ['invoice', 'opening', 'creditNote', 'payment', 'receipt', 'submission', 'run', 'voucher', 'transfer', 'cheque', 'batch', 'clearance', 'approval', 'ownershipTransfer'];
 
 const TOKEN = /\{(code|yyyy|yyyymm|seq:(\d))\}/g;
 
