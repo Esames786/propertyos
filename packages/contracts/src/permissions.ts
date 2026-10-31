@@ -82,6 +82,19 @@ export const PERMISSIONS = [
   'transfer.review',
   'transfer.approve',
   'clearance.issue',
+  // Gate D.2: resident operations. Triage and assignment are separate from a technician's own work
+  // orders; publishing official notices is separate from reading the residents register.
+  'maintenance.manage',
+  'issues.view',
+  'issues.manage',
+  'issues.moderate',
+  'visitors.view',
+  'parking.view',
+  'vehicles.approve',
+  'amenities.manage',
+  'notices.publish',
+  'messages.send',
+  'merchant.manage',
   // Platform HQ (central plane, V3.1). Operators are a separate principal type from tenant staff.
   'platform.dashboard.view',
   'platform.tenants.view',

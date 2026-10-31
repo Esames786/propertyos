@@ -557,6 +557,8 @@ export const SOCIETY_HANDLERS: readonly Handler[] = [
       const fresh = initialSociety(mode);
       const state = ctx.demo.section<SocietyState>(SOCIETY_SECTION, () => fresh);
       Object.assign(state, fresh);
+      // Gate D.2: the building's operations (requests, the gate, vehicles, notices) start again with it.
+      ctx.demo.resetSection('operations');
       save(ctx);
       return { mode };
     },

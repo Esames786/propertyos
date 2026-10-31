@@ -241,4 +241,9 @@ export class DemoPartition {
     if (!(name in this.overlay.sections)) this.overlay.sections[name] = init();
     return this.overlay.sections[name] as T;
   }
+
+  /** Forget a feature's state (it starts again from its seed on the next read); call `save()` after. */
+  resetSection(name: string): void {
+    delete this.overlay.sections[name];
+  }
 }

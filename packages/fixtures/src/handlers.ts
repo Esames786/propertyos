@@ -20,6 +20,7 @@ import { DATA_HANDLERS } from './identity/data-handlers';
 import { HOUSEHOLD_HANDLERS } from './identity/household-handlers';
 import { ME_HANDLERS } from './identity/me-handlers';
 import { PORTAL_ACCESS_HANDLERS } from './identity/portal-access-handlers';
+import { OPERATIONS_HANDLERS, operationsRecordAccess, operationsSearch } from './operations';
 
 export type { Handler, HandlerAccess, HandlerContext } from './handler-types';
 
@@ -63,6 +64,9 @@ const OUT_OF_SCOPE: AccessDecision = { allowed: false, reason: 'out_of_scope' };
 function recordAccess(ctx: HandlerContext, id: string): RecordAccess {
   const society = societyRecordAccess(ctx, id);
   if (society) return society;
+  // Gate D.2: requests, passes and visits, vehicles, notices.
+  const operations = operationsRecordAccess(ctx, id);
+  if (operations) return operations;
   const d = ctx.data;
   const check = (module: ModuleKey, decision: AccessDecision): RecordAccess => ({ record: true, module, decision });
   const inventory = (projectId: string | undefined) => check('inventory', projectId ? decideRecord({ ...ctx, suspension: 'operational' }, 'inventory', projectRecord(ctx, projectId), 'unit.view') : OUT_OF_SCOPE);
@@ -194,6 +198,7 @@ const CORE_HANDLERS: readonly Handler[] = [
         }
       }
       records.push(...societySearch(ctx, q));
+      records.push(...operationsSearch(ctx, q));
       return { query: q, records };
     },
   },
@@ -293,4 +298,6 @@ const CORE_HANDLERS: readonly Handler[] = [
 /** Core endpoints first; feature modules own their routes. First match wins. */
 export const HANDLERS: readonly Handler[] = [...CORE_HANDLERS, ...CRM_HANDLERS, ...FINANCE_HANDLERS, ...PORTAL_HANDLERS, ...PLAN_HANDLERS, ...MY_ACCESS_HANDLERS, ...WORKSPACE_HANDLERS, ...SOCIETY_HANDLERS, ...COLLECTIONS_HANDLERS, ...FINANCE_BOOK_HANDLERS, ...FINANCE_COLLECT_HANDLERS, ...FINANCE_GOVERNANCE_HANDLERS, ...FINANCE_DUES_HANDLERS, ...DUES_PORTAL_HANDLERS,
   // Gate D.1: identity, devices, portal access, households, data and privacy, organisation colours.
-  ...ME_HANDLERS, ...ADMIN_IDENTITY_HANDLERS, ...PORTAL_ACCESS_HANDLERS, ...HOUSEHOLD_HANDLERS, ...DATA_HANDLERS, ...APPEARANCE_HANDLERS];
+  ...ME_HANDLERS, ...ADMIN_IDENTITY_HANDLERS, ...PORTAL_ACCESS_HANDLERS, ...HOUSEHOLD_HANDLERS, ...DATA_HANDLERS, ...APPEARANCE_HANDLERS,
+  // Gate D.2: resident operations (maintenance and community issues, the gate, vehicles, notices).
+  ...OPERATIONS_HANDLERS];

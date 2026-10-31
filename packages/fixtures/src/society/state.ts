@@ -16,6 +16,7 @@ import type {
   ImportRow,
   LiabilityChange,
   MethodRule,
+  MoveRecord,
   Money,
   NumberingScheme,
   OpeningBalanceBatch,
@@ -121,6 +122,12 @@ export interface SocietyState {
   finance: FinanceState;
   /** Document sequences per numbering scope (see numbering.ts). */
   counters: Record<string, number>;
+  /**
+   * Gate D.2: occupants who moved out, effective-dated. Applied to the register's occupancy facts on
+   * every read; liability (payer facts) and portal invitations never follow a move. Optional so a
+   * session saved before D.2 reads as "no moves".
+   */
+  occupancy?: MoveRecord[];
   audit: SocietyAuditEntry[];
   seq: number;
 }
@@ -179,6 +186,7 @@ export function emptySociety(mode: SocietyDemoMode): SocietyState {
     transferFees: [{ version: 1, amount: { amount: '5000.00', currency: 'PKR' }, from: '2026-04-01', bylawRef: 'Bylaw 14(2), Al-Noor Residency Owners’ Association (Demo): illustrative fee' }],
     finance: emptyFinance(),
     counters: {},
+    occupancy: [],
     audit: [],
     seq: 0,
   };
@@ -377,8 +385,31 @@ export function withPayerChanges(facts: readonly FlatFact[], changes: readonly L
   return out.map((f) => (f.to === undefined ? (({ to: _to, ...rest }) => rest)(f) : f));
 }
 
+/**
+ * Gate D.2: moves applied to the register. An occupant's period ends on the move's effective date (a
+ * later date ends it later; history is kept). Ownership and liability are untouched: a tenant who
+ * leaves still owes what they owed until a payer change (BILL-017) says otherwise. A flat with no
+ * occupant left on the reading date reads as vacant.
+ */
+export function withMoves(model: SocietyModel, moves: readonly MoveRecord[], today: string): SocietyModel {
+  if (!moves.length) return model;
+  const facts = model.facts.map((f) => ({ ...f }));
+  for (const m of [...moves].sort((a, b) => a.effectiveOn.localeCompare(b.effectiveOn))) {
+    for (const f of facts) {
+      if (f.role !== 'occupant' || f.flatId !== m.flatId || f.partyId !== m.partyId) continue;
+      if (f.from < m.effectiveOn && (f.to === undefined || f.to > m.effectiveOn)) f.to = m.effectiveOn;
+    }
+  }
+  const flats = model.flats.map((flat) => {
+    if (flat.occupancy === 'association_use' || flat.occupancy === 'vacant') return flat;
+    const lives = facts.some((f) => f.role === 'occupant' && f.flatId === flat.id && factOn(f, today));
+    return lives ? flat : { ...flat, occupancy: 'vacant' as const };
+  });
+  return { ...model, facts, flats };
+}
+
 export function viewOf(state: SocietyState, today: string): SocietyView {
-  const model = buildSociety(state.register?.rows ?? []);
+  const model = withMoves(buildSociety(state.register?.rows ?? []), state.occupancy ?? [], today);
   const facts = withPayerChanges(model.facts, state.payerChanges, model.people);
   const allocated = allocatedByLine(state.payments);
   const invoices = state.invoices.map((i) => readInvoice(i, state.creditNotes, today, allocated));

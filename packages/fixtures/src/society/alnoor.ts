@@ -24,6 +24,9 @@ export const ALNOOR_STAFF = {
   treasurer: { principalId: 'usr_anr_0002', name: 'Ayesha Malik' },
   guard: { principalId: 'usr_anr_0003', name: 'Shahid Hussain' },
   accounts: { principalId: 'usr_anr_0004', name: 'Saba Javed' },
+  // Gate D.2: maintenance supervisor and the staff electrician.
+  maintenance: { principalId: 'usr_anr_0005', name: 'Naveed Anjum' },
+  technician: { principalId: 'usr_anr_0006', name: 'Waqas Ali' },
 } as const;
 
 export const BLOCKS = ['A', 'B'] as const;

@@ -43,6 +43,9 @@ const STARTER_PERMISSIONS: Record<StarterRoleKey, readonly Permission[]> = {
     'portal_access.view', 'portal_access.invite', 'data_export.request', 'privacy.requests.manage', 'sessions.manage', 'admin.branding',
     // Gate S.1 (V3.2 matrix §5.2): the committee, approval policies, reminders, the cashbook (read) and transfers.
     'committee.view', 'committee.manage', 'approval.view', 'approval_policy.manage', 'reminders.manage', 'reminders.send', 'cashbook.view', 'transfer.review',
+    // Gate D.2 (V3.2 matrix §5.2): maintenance triage, community issues and their moderation, visitors and
+    // vehicles, amenity bookings, official notices and quick broadcasts, and the sandbox gateway.
+    'maintenance.manage', 'issues.view', 'issues.manage', 'issues.moderate', 'visitors.view', 'parking.view', 'vehicles.approve', 'amenities.manage', 'notices.publish', 'messages.send', 'merchant.manage',
   ],
   manager: [
     'quickcreate.use', 'customer.view', 'residents.view', 'operations.view', 'workorder.update', 'visitors.manage', 'invoice.view', 'reports.view',
@@ -52,6 +55,8 @@ const STARTER_PERMISSIONS: Record<StarterRoleKey, readonly Permission[]> = {
     'portal_access.view', 'portal_access.invite',
     // Gate S.1: sees the committee and the cashbook; prepares society transfers.
     'committee.view', 'approval.view', 'cashbook.view', 'transfer.review',
+    // Gate D.2: runs the building day to day: requests, issues, the gate, vehicles, bookings and notices.
+    'maintenance.manage', 'issues.view', 'issues.manage', 'issues.moderate', 'visitors.view', 'parking.view', 'vehicles.approve', 'amenities.manage', 'notices.publish', 'messages.send',
   ],
   treasurer: [
     'quickcreate.use', 'customer.view', 'invoice.view', 'payment.receive', 'finance.evidence.review', 'residents.view', 'reports.view',
@@ -62,10 +67,14 @@ const STARTER_PERMISSIONS: Record<StarterRoleKey, readonly Permission[]> = {
     // Gate S.1: the checker of every money pair (vouchers, transfers, exceptions on outgoing legs,
     // office collection batches, month close, transfers and clearance), within the approval policy.
     'committee.view', 'approval.view', 'approval.decide', 'cashbook.view', 'cash_voucher.approve', 'funds_transfer.approve', 'settlement_exception.approve', 'payment.batch.confirm', 'period.close', 'transfer.approve', 'clearance.issue',
+    // Gate D.2: the online gateway's sandbox settings (BILL-011) sit with payment methods.
+    'merchant.manage',
   ],
-  maintenance: ['quickcreate.use', 'operations.view', 'workorder.update', 'residents.view'],
+  // Gate D.2: the maintenance supervisor triages, assigns and closes; technicians move only their own
+  // work orders (the server filters them); security runs the gate and checks vehicles at it.
+  maintenance: ['quickcreate.use', 'operations.view', 'workorder.update', 'residents.view', 'maintenance.manage', 'issues.view', 'issues.manage'],
   technician: ['operations.view', 'workorder.update'],
-  security: ['visitors.manage', 'residents.view'],
+  security: ['visitors.manage', 'residents.view', 'visitors.view', 'parking.view', 'vehicles.approve'],
 };
 
 /** Which starter set a kind of organisation begins with. */
@@ -95,7 +104,7 @@ const SHALIMAR_FACILITY_MANAGER: TenantRoleTemplate = {
   tenantId: 'tnt_shalimar',
   starter: null,
   labelKey: 'common:persona.facility_manager',
-  permissions: ['quickcreate.use', 'operations.view', 'residents.view', 'reports.view', 'lead.view', 'lead.create', 'booking.view', 'unit.view'],
+  permissions: ['quickcreate.use', 'operations.view', 'residents.view', 'reports.view', 'lead.view', 'lead.create', 'booking.view', 'unit.view', 'maintenance.manage', 'workorder.update', 'issues.view', 'issues.manage', 'visitors.view', 'visitors.manage'],
   holders: ['facility_manager'],
 };
 
@@ -143,7 +152,7 @@ const TENANT_ROLES: Readonly<Record<string, readonly TenantRoleTemplate[]>> = {
   tnt_cedar: starterRoles('tnt_cedar', 'custom', { treasurer: ['cedar_treasurer'] }),
   // Al-Noor Residency kept the society starters and named three of them after its committee posts.
   tnt_alnoor: [
-    ...starterRoles('tnt_alnoor', 'association', { administrator: ['alnoor_admin'], manager: ['alnoor_manager'], treasurer: ['alnoor_treasurer'], security: ['alnoor_guard'] }).map((r) =>
+    ...starterRoles('tnt_alnoor', 'association', { administrator: ['alnoor_admin'], manager: ['alnoor_manager'], treasurer: ['alnoor_treasurer'], security: ['alnoor_guard'], maintenance: ['alnoor_maintenance'], technician: ['alnoor_technician'] }).map((r) =>
       ({ ...r, ...(ALNOOR_ROLE_NAMES[r.id] ? { labelKey: ALNOOR_ROLE_NAMES[r.id]! } : {}), ...(ALNOOR_EXTRA[r.id] ? { permissions: [...r.permissions, ...ALNOOR_EXTRA[r.id]!] } : {}) }),
     ),
     ALNOOR_ACCOUNTS_OFFICER,

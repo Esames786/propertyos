@@ -1,6 +1,6 @@
 import { decideTarget, MODULE_KEYS, type AccessDecision, type AccessTarget, type EffectiveAccess, type ModuleKey, type SuspensionClass } from '@repo/contracts';
 import { findScreenByRegisterRoute } from '@repo/contracts/screens';
-import { ArrowRightLeft, Banknote, BarChart3, Briefcase, Building, Building2, ClipboardCheck, Compass, Contact, DatabaseZap, FlaskConical, HandCoins, Coins, Home, Landmark, MonitorSmartphone, ReceiptText, Settings2, ShoppingCart, Smartphone, Users, UsersRound, Wallet, Wrench } from 'lucide-react';
+import { ArrowRightLeft, Banknote, BarChart3, Briefcase, Building, Building2, Car, ClipboardCheck, Compass, Contact, DatabaseZap, DoorOpen, FlaskConical, HandCoins, Coins, Home, Landmark, Megaphone, MonitorSmartphone, ReceiptText, Settings2, ShoppingCart, Smartphone, Users, UsersRound, Wallet, Wrench } from 'lucide-react';
 import { LIVE, PLANNED } from '../shell/QuickCreateMenu';
 import type { NavItem } from '../shell/types';
 
@@ -36,8 +36,13 @@ export const TENANT_NAV: NavItem[] = [
   { id: 'finance', labelKey: 'nav:items.finance', href: '/backoffice/fin/invoices-list', icon: Landmark, permission: 'invoice.view', match: '/backoffice/fin', group: 'workspace', bottomBar: true, suspension: 'history_read' },
   { id: 'procurement', labelKey: 'nav:items.procurement', href: '/backoffice/proc/procurement-overview', icon: ShoppingCart, permission: 'procurement.view', match: '/backoffice/proc', group: 'operations' },
   { id: 'hr', labelKey: 'nav:items.hr', href: '/backoffice/hr/hr-dashboard', icon: UsersRound, permission: 'hr.view', match: '/backoffice/hr', group: 'operations' },
-  { id: 'operations', labelKey: 'nav:items.operations', href: '/backoffice/mnt/maintenance-dashboard', icon: Wrench, permission: 'operations.view', match: '/backoffice/mnt', group: 'operations', bottomBar: true },
-  { id: 'residents', labelKey: 'nav:items.residents', href: '/backoffice/res/resident-dashboard', icon: Users, permission: 'residents.view', match: '/backoffice/res/', group: 'operations' },
+  { id: 'operations', labelKey: 'nav:items.operations', href: '/backoffice/mnt/maintenance-dashboard', icon: Wrench, permission: 'operations.view', match: '/backoffice/mnt', group: 'operations', bottomBar: true, suspension: 'history_read' },
+  { id: 'residents', labelKey: 'nav:items.residents', href: '/backoffice/res/resident-dashboard', icon: Users, permission: 'residents.view', match: '/backoffice/res/', group: 'operations', suspension: 'history_read' },
+  // Gate D.2: the gate and visitors, vehicles, and official notices (with the quick broadcast under them).
+  { id: 'visitors', labelKey: 'nav:items.visitors', href: '/backoffice/vis/visitor-dashboard', icon: DoorOpen, anyOf: ['visitors.view', 'visitors.manage'], module: 'visitors', match: '/backoffice/vis', group: 'operations', suspension: 'history_read' },
+  { id: 'vehicles', labelKey: 'nav:items.vehicles', href: '/backoffice/park/vehicle-registry', icon: Car, anyOf: ['parking.view', 'vehicles.approve'], module: 'parking', match: '/backoffice/park', group: 'operations', suspension: 'history_read' },
+  { id: 'notices', labelKey: 'nav:items.notices', href: '/backoffice/res/community-announcements', icon: Megaphone, permission: 'residents.view', module: 'residents', match: '/backoffice/res/community-announcements', group: 'operations', suspension: 'history_read' },
+  { id: 'send-message', labelKey: 'nav:pages.sendMessage', href: '/backoffice/not/send-message', icon: Megaphone, anyOf: ['messages.send'], module: 'communications', match: '/backoffice/not', group: 'operations', menu: false, hub: 'notices', suspension: 'history_read' },
   // Gate D.1: residents' use of the resident app (societies: like Collections, other organisations keep the planned page).
   { id: 'committee', labelKey: 'nav:items.committee', href: '/backoffice/committee', icon: UsersRound, permission: 'committee.view', module: 'residents', feature: 'residents.committee', match: '/backoffice/committee', group: 'operations', suspension: 'history_read' },
   { id: 'ownership-transfers', labelKey: 'nav:items.ownershipTransfers', href: '/backoffice/own/transfers-list', icon: ArrowRightLeft, anyOf: ['transfer.review', 'transfer.approve', 'clearance.issue'], module: 'residents', feature: 'residents.transfer_clearance', match: '/backoffice/own/transfer', group: 'operations', suspension: 'history_read' },

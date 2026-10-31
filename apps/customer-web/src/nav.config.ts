@@ -1,5 +1,5 @@
 import type { NavItem } from '@repo/ui';
-import { Accessibility, Building2, FileText, HardHat, History, House, LifeBuoy, ReceiptText, ScrollText, UserRound, UsersRound, Wallet } from 'lucide-react';
+import { Accessibility, Building2, FileText, HardHat, History, House, LifeBuoy, Megaphone, ReceiptText, ScrollText, UserRound, UsersRound, Wallet, Wrench } from 'lucide-react';
 
 /** Customer portal routes (register URLs, blueprint 06). */
 export const PORTAL = {
@@ -69,12 +69,40 @@ const D_SETTINGS = item('settings', DUES.settings, Accessibility, 'dues:nav.sett
 const D_PROPERTIES = item('properties', '/customer/portal/my-properties', Building2, 'nav:pages.myProperties');
 const D_HOUSEHOLD = item('household', '/customer/portal/household', UsersRound, 'nav:pages.household');
 
+/**
+ * Gate D.2: resident operations. Requests (repairs, community issues, visitors, vehicles, parking,
+ * amenities) and official notices; addresses follow the screen register.
+ */
+export const OPS = {
+  services: '/customer/portal/services-home',
+  visitors: '/customer/portal/services-home?tab=visitors',
+  invite: '/customer/portal/services-home?tab=visitors&new=1',
+  repairs: '/customer/portal/maintenance-workspace',
+  repair: (id: string) => `/customer/portal/maintenance-workspace?record=${id}`,
+  newRepair: '/customer/portal/maintenance-workspace?new=1',
+  issues: '/customer/portal/issues',
+  issue: (id: string) => `/customer/portal/issues?record=${id}`,
+  raiseIssue: '/customer/portal/issues?new=1',
+  notices: '/customer/portal/community-notices',
+  notice: (id: string) => `/customer/portal/community-notices/${id}`,
+  vehicles: '/customer/portal/vehicles',
+  parking: '/customer/portal/parking',
+  amenities: '/customer/portal/amenities',
+} as const;
+
+const D_REQUESTS = item('requests', OPS.services, Wrench, 'operations:nav.requests');
+const D_NOTICES = item('notices', OPS.notices, Megaphone, 'operations:nav.notices');
+
 export const DUES_CENTRE_ACTION: NavItem = item('pay', DUES.pay, Wallet, 'dues:nav.pay');
-/** Phone bottom bar: Home · Bills · (Pay) · Receipts · Statement. */
-export const DUES_BOTTOM_NAV: NavItem[] = [D_HOME, D_BILLS, D_HISTORY, D_STATEMENT];
+/**
+ * Phone bottom bar: Home · Bills · (Pay) · Requests · Notices (Gate D.2: purpose first). Receipts and
+ * the statement stay one tap away from Bills and Home, and in the rail on larger screens.
+ */
+export const DUES_BOTTOM_NAV: NavItem[] = [D_HOME, D_BILLS, D_REQUESTS, D_NOTICES];
 export const DUES_NAV_GROUPS = [
   { id: 'top', items: [D_HOME] },
   { id: 'money', labelKey: 'dues:nav.groups.money', items: [D_BILLS, D_HISTORY, D_STATEMENT] },
+  { id: 'services', labelKey: 'operations:nav.group', items: [D_REQUESTS, D_NOTICES] },
   { id: 'flats', labelKey: 'portal:nav.groups.property', items: [D_PROPERTIES, D_HOUSEHOLD] },
   { id: 'account', labelKey: 'portal:nav.groups.account', items: [PROFILE, D_SETTINGS] },
 ];
@@ -84,6 +112,11 @@ export const DUES_NAV_ALIASES: Record<string, string> = {
   '/customer/portal/submissions': 'history',
   '/customer/portal/bank-transfer-details': 'pay',
   '/customer/portal/property-360-workspace': 'properties',
+  '/customer/portal/maintenance-workspace': 'requests',
+  '/customer/portal/issues': 'requests',
+  '/customer/portal/vehicles': 'requests',
+  '/customer/portal/parking': 'requests',
+  '/customer/portal/amenities': 'requests',
 };
 
 export const START = PORTAL.home;

@@ -17,3 +17,4 @@ export * from './billing';
 export * from './collections';
 export * from './identity';
 export * from './finance';
+export * from './operations';

@@ -17,6 +17,8 @@ export interface Persona {
     | 'alnoor_treasurer'
     | 'alnoor_guard'
     | 'alnoor_accounts'
+    | 'alnoor_maintenance'
+    | 'alnoor_technician'
     | 'alnoor_resident_a101'
     | 'alnoor_tenant_a102'
     | 'alnoor_owner_a201'

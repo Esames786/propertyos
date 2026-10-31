@@ -127,7 +127,11 @@
     "invoice": "Invoice",
     "project": "Project",
     "tenant": "Tenant",
-    "request": "Workspace request"
+    "request": "Workspace request",
+    "maintenance": "Maintenance request",
+    "pass": "Visitor pass",
+    "vehicle": "Vehicle",
+    "notice": "Notice"
   },
   "time": {
     "today": "Today",

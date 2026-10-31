@@ -122,6 +122,7 @@ export const TENANT_DIRECTORY: readonly DirectoryTenant[] = [
     modules: all(['core', 'receivables', 'dues', 'residents', 'resident_portal', 'maintenance', 'communications', 'reports']),
     licensedFrom: '2026-02-01',
     allowSettlement: true,
+    features: ['maintenance.community_issues'],
   },
   {
     id: 'tnt_kestrel',
@@ -153,6 +154,9 @@ export const TENANT_DIRECTORY: readonly DirectoryTenant[] = [
     modules: [...all(['core', 'maintenance']), { module: 'residents', sites: 'all', from: '2026-11-01' }, { module: 'visitors', sites: 'all', from: '2026-11-01' }],
     licensedFrom: '2026-08-01',
     allowSettlement: true,
+    // Gate D.2 (V3.2 matrix §7): community issues come with maintenance; the gate's live queue with
+    // visitors (in force from 1 November with that grant).
+    features: ['maintenance.community_issues', 'visitors.live_queue'],
   },
   {
     // The Gate C society (A7 §C.2): one site, two blocks, 80 flats, community edition. It is created
@@ -167,13 +171,15 @@ export const TENANT_DIRECTORY: readonly DirectoryTenant[] = [
     city: 'Lahore',
     contactName: 'Imran Qureshi',
     sites: [{ id: 'site_alnoor', name: 'Al-Noor Residency', city: 'Lahore', kind: 'residential', buildings: 2, declaredUnits: 80 }],
-    modules: all(presetFor('community').modules),
+    modules: [...all(presetFor('community').modules), { module: 'online_payments', sites: ['site_alnoor'], from: '2026-10-20' }],
     licensedFrom: '2026-10-01',
     allowSettlement: true,
     // Gate S.1 amendment (fictional, V3.2 matrix §7): cashbook, bulk collection and the committee, plus the
     // features S.1 builds on (office collections, reminders, transfer clearance) and the metered
     // SMS/WhatsApp channels D.1 already simulates. Every message stays simulated.
-    features: ['banking.cashbook', 'receivables.bulk_office_collection', 'receivables.office_collections', 'receivables.reminders', 'residents.committee', 'residents.transfer_clearance', 'communications.sms', 'communications.whatsapp'],
+    // Gate D.2 (V3.2 matrix §7, fictional): the included resident-operations features, and the online
+    // payments add-on on Al-Noor's site in sandbox mode only (BILL-011; nothing is ever paid through it).
+    features: ['banking.cashbook', 'receivables.bulk_office_collection', 'receivables.office_collections', 'receivables.reminders', 'residents.committee', 'residents.transfer_clearance', 'communications.sms', 'communications.whatsapp', 'maintenance.community_issues', 'visitors.live_queue', 'parking.vehicle_approvals'],
     timeZone: 'Asia/Karachi',
   },
 ];

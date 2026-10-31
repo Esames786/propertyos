@@ -230,6 +230,28 @@ export const PERSONAS: readonly Persona[] = [
     ...holds(AL_NOOR.id, 'accounts_officer'),
     projectScope: 'all',
   },
+  // Gate D.2: the maintenance supervisor triages and assigns repairs; the electrician sees and moves
+  // only the work orders assigned to him (the server filters them, whatever the address asks).
+  {
+    id: 'alnoor_maintenance',
+    tenantId: AL_NOOR.id,
+    principalId: 'usr_anr_0005',
+    app: 'backoffice',
+    displayName: 'Naveed Anjum',
+    email: 'naveed.anjum@example.com',
+    ...holds(AL_NOOR.id, 'maintenance'),
+    projectScope: 'all',
+  },
+  {
+    id: 'alnoor_technician',
+    tenantId: AL_NOOR.id,
+    principalId: 'usr_anr_0006',
+    app: 'backoffice',
+    displayName: 'Waqas Ali',
+    email: 'waqas.ali@example.com',
+    ...holds(AL_NOOR.id, 'technician'),
+    projectScope: 'all',
+  },
   // Al-Noor residents (customer app). Each sees only what their verified links reach and, within a
   // shared account, only the flats they are liable for (per-unit liability, A2 §4.5).
   ...ALNOOR_RESIDENTS.map(

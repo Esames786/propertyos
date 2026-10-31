@@ -320,6 +320,17 @@ export const PERMISSION_MODULE: Partial<Record<Permission, ModuleKey>> = {
   'transfer.review': 'residents',
   'transfer.approve': 'residents',
   'clearance.issue': 'residents',
+  'maintenance.manage': 'maintenance',
+  'issues.view': 'maintenance',
+  'issues.manage': 'maintenance',
+  'issues.moderate': 'maintenance',
+  'visitors.view': 'visitors',
+  'parking.view': 'parking',
+  'vehicles.approve': 'parking',
+  'amenities.manage': 'amenities',
+  'notices.publish': 'communications',
+  'messages.send': 'communications',
+  'merchant.manage': 'online_payments',
 };
 
 /** Something the UI offers (a menu item, action, tour step, link): its module and permission. */

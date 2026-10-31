@@ -113,3 +113,33 @@ export const FINANCE = {
   ownership: (status?: string) => `/backoffice/own/transfers-list${q({ status })}`,
   ownershipTransfer: (id: string, drawer?: string) => `/backoffice/own/transfer-review-approval${q({ record: id, drawer })}`,
 } as const;
+
+/**
+ * Gate D.2: resident operations. Addresses follow the screen register; records and drawers are query
+ * parameters (`record`, `drawer`), so every link and notification opens the exact place.
+ */
+export const OPS = {
+  maintenance: '/backoffice/mnt/maintenance-dashboard',
+  requests: (params: Record<string, string | undefined> = {}) => `/backoffice/mnt/maintenance-list${q(params)}`,
+  request: (id: string, drawer?: string) => `/backoffice/mnt/maintenance-360-workspace${q({ record: id, drawer })}`,
+  newRequest: (params: Record<string, string | undefined> = {}) => `/backoffice/mnt/new-request${q(params)}`,
+  assign: (id: string) => `/backoffice/mnt/assign-work-order${q({ record: id })}`,
+  technicians: '/backoffice/mnt/technician-board',
+  sla: (params: Record<string, string | undefined> = {}) => `/backoffice/mnt/sla-dashboard${q(params)}`,
+  confirmation: (tab?: string) => `/backoffice/mnt/resident-confirmation${q({ tab })}`,
+  issues: (params: Record<string, string | undefined> = {}) => `/backoffice/mnt/issues${q(params)}`,
+  visitors: '/backoffice/vis/visitor-dashboard',
+  passes: (params: Record<string, string | undefined> = {}) => `/backoffice/vis/visitor-passes${q(params)}`,
+  pass: (id: string) => `/backoffice/vis/pass-detail${q({ record: id })}`,
+  gate: (tab?: string) => `/backoffice/vis/gate-check-in${q({ tab })}`,
+  visits: (params: Record<string, string | undefined> = {}) => `/backoffice/vis/visitor-history${q(params)}`,
+  scan: '/backoffice/vis/scan-qr',
+  residents: '/backoffice/res/resident-dashboard',
+  notices: (params: Record<string, string | undefined> = {}) => `/backoffice/res/community-announcements${q(params)}`,
+  notice: (id: string) => `/backoffice/res/community-announcements${q({ record: id })}`,
+  compose: '/backoffice/res/community-announcements?drawer=compose',
+  message: '/backoffice/not/send-message',
+  vehicles: (params: Record<string, string | undefined> = {}) => `/backoffice/park/vehicle-registry${q(params)}`,
+  vehicle: (id: string) => `/backoffice/park/vehicle-registry${q({ record: id })}`,
+  gateway: (siteId: string) => `/backoffice/sites/${siteId}${q({ tab: 'online-payments' })}`,
+} as const;

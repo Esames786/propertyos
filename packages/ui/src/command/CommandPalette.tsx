@@ -2,6 +2,7 @@ import type { SearchRecord, SearchResponse } from '@repo/contracts';
 import { formatPkPhone, LOCALE_META, SUPPORTED_LOCALES, useLocale } from '@repo/i18n';
 import {
   Building2,
+  Car,
   Compass,
   FileText,
   GraduationCap,
@@ -10,9 +11,12 @@ import {
   Landmark,
   Languages,
   LifeBuoy,
+  Megaphone,
   Search,
   Settings,
+  Ticket,
   UserRound,
+  Wrench,
   type LucideIcon,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -48,6 +52,10 @@ const RECORD_ICON: Record<SearchRecord['type'], LucideIcon> = {
   project: Building2,
   tenant: Landmark,
   request: Inbox,
+  maintenance: Wrench,
+  pass: Ticket,
+  vehicle: Car,
+  notice: Megaphone,
 };
 
 const norm = (s: string) => s.toLocaleLowerCase().normalize('NFKD');
