@@ -9,16 +9,21 @@
     <!--
       Prototype only. Lets the customer app of this browser read and write the society demo kept in
       the office app's local storage, so a proof sent by a resident reaches the accounts officer and
-      the receipt comes back. Answers only pages on the same host name; holds fictional data only.
+      the receipt comes back. Answers only pages on the same host name, or on a subdomain of it (or its
+      parent domain) when the apps are deployed on sibling hosts (office example.com, residents
+      portal.example.com); holds fictional data only.
     -->
     <script>
       (function () {
         var PREFIX = 'demo:shared:';
         var parentOrigin = null;
+        function related(a, b) {
+          return a === b || a.slice(-(b.length + 1)) === '.' + b || b.slice(-(a.length + 1)) === '.' + a;
+        }
         function allowed(origin) {
           try {
             var u = new URL(origin);
-            return u.hostname === location.hostname && (u.protocol === 'http:' || u.protocol === 'https:');
+            return related(u.hostname, location.hostname) && (u.protocol === 'http:' || u.protocol === 'https:');
           } catch (e) {
             return false;
           }
