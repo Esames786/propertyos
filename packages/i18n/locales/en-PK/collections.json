@@ -359,7 +359,7 @@
   "office": {
     "open": "Record office payment",
     "title": "Record an office payment",
-    "subtitle": "Cash handed over at the society office. A receipt is issued straight away.",
+    "subtitle": "Money handed over at the society office. Cash is settled and receipted only after a second person has counted it.",
     "disabledTitle": "Cash is not accepted at this site",
     "disabledBody": "The committee has not turned on office cash. It can be turned on under the site's payment methods.",
     "rules": "Counter: {{counter}} · up to {{max}} per receipt",
@@ -368,8 +368,8 @@
     "owes": "This account owes {{amount}}",
     "amount": "Amount received",
     "note": "Note (optional)",
-    "preview": "This will settle",
-    "submit": "Record and issue receipt",
+    "preview": "Once counted and confirmed, this would settle",
+    "submit": "Record cash for a second count",
     "done": "Receipt {{receipt}} issued",
     "receiptIssued": "Receipt {{receipt}} issued for {{amount}}",
     "settled": "What it settled"

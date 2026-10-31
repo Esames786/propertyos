@@ -652,7 +652,7 @@
       "batch_empty": "Add at least one line.",
       "payer_not_liable": "This person is not liable on {{account}}.",
       "cash_not_allowed": "Office cash is not turned on for this site.",
-      "over_cash_limit": "Above the site's office-cash limit (Rs {{limit}}).",
+      "over_cash_limit": "Above the site's office-cash limit ({{limit}}).",
       "cheque_not_allowed": "Cheques are not turned on for this site.",
       "cheque_details": "Give the drawer's bank, a 6–10 digit number and the date.",
       "cheque_post_dated": "Dated later than the site allows (post-dated).",
@@ -661,7 +661,7 @@
       "cheque_duplicate_in_batch": "The same cheque is on another line."
     },
     "warning": {
-      "more_than_owed": "More than owed now (Rs {{open}}); the rest stays as credit.",
+      "more_than_owed": "More than owed now ({{open}}); the rest stays as credit.",
       "proof_pending": "a transfer proof is already waiting for this payer",
       "same_payer_twice": "The same payer appears twice with the same method."
     },
@@ -755,6 +755,7 @@
     "awaitingTitle": "Cash recorded: waiting for a second count",
     "awaitingBody": "{{amount}} for {{account}} ({{payer}}) is in office collection {{ref}}. No receipt yet: the bill stays unpaid until the cash is counted and confirmed.",
     "wouldSettle": "If confirmed now, it would settle",
+    "submitCheque": "Record the cheque",
     "openCollection": "Open office collection {{ref}}",
     "replayed": "This cash was already recorded (the same request again): nothing was added."
   },

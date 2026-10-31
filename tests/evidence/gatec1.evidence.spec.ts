@@ -379,6 +379,7 @@ test('video: Flat 360, connected records and a payer change (desktop, English)',
   await page.getByTestId('change-payer-reason').fill('New tenancy agreement from 1 November.');
   await pause(600);
   await page.getByTestId('change-payer-save').click();
+  await page.getByTestId('change-payer-drawer').waitFor({ state: 'hidden' });
   await pause(1500);
   await page.getByRole('tab', { name: 'Invoices and statement' }).click();
   await pause(1500);

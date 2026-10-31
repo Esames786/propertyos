@@ -262,6 +262,8 @@ describe('office cash, the bank feed and reconciliation (AC-13, AC-14)', () => {
     const confirmed = await s.post<BatchDetail>(`/office-collections/${recorded.batch.id}/confirm`, { countedCash: '5200' });
     const outcome = confirmed.batch.lines[0]!.outcome;
     if (outcome?.kind !== 'payment') throw new Error('expected a payment');
+    // A settled line carries no review warning: what is owed now already includes its own payment.
+    expect(confirmed.warnings).toEqual([]);
     const paid = await s.get<PaymentDetail>(`/payments/${outcome.paymentId}`);
     expect(paid.payment).toMatchObject({ method: 'office_cash', verification: 'witnessed', amount: { amount: '5200.00' } });
     expect(paid.receipt.ref).toBe(outcome.receiptRef);

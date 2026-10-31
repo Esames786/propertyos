@@ -203,11 +203,13 @@ function OfficePaymentDrawer({ isOpen, onClose, accountId }: { isOpen: boolean; 
       testId="office-drawer"
       banner={
         cash && !cash.enabled ? (
-          <InlineAlert tone="warning" title={t('collections:office.disabledTitle')} data-testid="office-disabled">
-            <p>{t('collections:office.disabledBody')}</p>
-          </InlineAlert>
+          <div className="border-b border-border px-5 py-3">
+            <InlineAlert tone="warning" title={t('collections:office.disabledTitle')} data-testid="office-disabled">
+              <p>{t('collections:office.disabledBody')}</p>
+            </InlineAlert>
+          </div>
         ) : cash?.counter ? (
-          <p className="text-sm text-muted">{t('collections:office.rules', { counter: cash.counter, max: cash.maxAmount ? fmt.money(cash.maxAmount) : '—' })}</p>
+          <p className="border-b border-border px-5 py-3 text-sm text-muted">{t('collections:office.rules', { counter: cash.counter, max: cash.maxAmount ? fmt.money(cash.maxAmount) : '—' })}</p>
         ) : undefined
       }
       footer={
@@ -217,7 +219,7 @@ function OfficePaymentDrawer({ isOpen, onClose, accountId }: { isOpen: boolean; 
           <>
             <Button variant="quiet" onPress={close}>{t('common:actions.cancel')}</Button>
             <Button variant="primary" icon={Banknote} isPending={record.isPending || record2.isPending} isDisabled={!account || !payer || !amount.trim()} onPress={() => void submit()} data-testid="office-submit">
-              {t('collections:office.submit')}
+              {method === 'cheque' ? t('finance:office.submitCheque') : t('collections:office.submit')}
             </Button>
           </>
         )

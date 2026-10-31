@@ -130,6 +130,9 @@ function review(ctx: HandlerContext, s: Society, b: OfficeCollectionBatch) {
         if (b.lines.some((o, j) => j < i && o.cheque && sameCheque(c, o.cheque))) problems.push({ lineId: l.id, code: 'cheque_duplicate_in_batch' });
       }
     }
+    // Warnings are for the review before confirmation; once a line has settled, what is owed already
+    // reflects its own payment (comparing again would call every confirmed line "more than owed").
+    if (l.outcome) return;
     if (payer && paisa(l.amount) > paisa(payer.open)) warnings.push({ lineId: l.id, code: 'more_than_owed', values: { open: payer.open.amount } });
     if (s.state.submissions.some((x) => x.billingAccountId === l.billingAccountId && x.payerPartyId === l.payerPartyId && PENDING_STATES.includes(x.state))) warnings.push({ lineId: l.id, code: 'proof_pending' });
     if (b.lines.some((o, j) => j < i && o.billingAccountId === l.billingAccountId && o.payerPartyId === l.payerPartyId && o.method === l.method)) warnings.push({ lineId: l.id, code: 'same_payer_twice' });

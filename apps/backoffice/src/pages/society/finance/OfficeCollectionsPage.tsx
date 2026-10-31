@@ -29,13 +29,19 @@ import {
 import { Banknote, Ban, CheckCircle2, ChevronRight, Coins, FileSpreadsheet, Landmark, Link2, Plus, ReceiptText, Search, Send, Trash2, TriangleAlert, Undo2, UsersRound } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { COLLECTIONS, FINANCE } from '../../../nav.config';
-import { AmountInput, Loading, ProblemAlert, useSocietyFormat } from '../kit';
+import { AmountInput, Loading, ProblemAlert, useSocietyFormat, type SocietyFormat } from '../kit';
 import { MethodBadge } from '../collections/ckit';
 import { BatchBadge, ChequeBadge, ChequeNotice, Fact, FactGrid, HistoryList, WRAP } from './fkit';
 import { CandidateRow, DemoStatementDrawer } from './TransfersPage';
 
 const BATCH_STATUSES = ['all', 'draft', 'submitted', 'confirmed', 'returned'] as const;
 const CHEQUE_STATUSES = ['pending', 'all', 'received', 'deposited', 'cleared', 'returned', 'reversed'] as const;
+/** Values the server sends as plain amounts: a line's limit or what is owed, and the counts in the history. */
+const MONEY_VALUES = new Set(['limit', 'open']);
+const COUNT_EVENTS = new Set(['submitted', 'resubmitted', 'confirmed']);
+const asMoney = (fmt: SocietyFormat, amount: string) => fmt.money({ amount, currency: 'PKR' });
+const moneyValues = (fmt: SocietyFormat, values: Record<string, string> = {}) =>
+  Object.fromEntries(Object.entries(values).map(([k, v]) => [k, MONEY_VALUES.has(k) ? asMoney(fmt, v) : v]));
 
 /**
  * FIN-013 bulk office collection and FIN-014 batch review (reference experience 2, Gate S.1).
@@ -326,13 +332,13 @@ function BatchDrawer({ batchId, onClose }: { batchId: string | null; onClose: ()
                       {problems.map((p, k) => (
                         <p key={k} className="flex items-center gap-1.5 text-sm text-error" data-testid="line-problem" data-code={p.code}>
                           <Ban aria-hidden className="size-4" />
-                          {dynamicT(t)(`finance:batch.problem.${p.code}`, p.values ?? {})}
+                          {dynamicT(t)(`finance:batch.problem.${p.code}`, moneyValues(fmt, p.values))}
                         </p>
                       ))}
                       {warnings.map((w, k) => (
                         <p key={k} className="flex items-center gap-1.5 text-sm text-warning" data-testid="line-warning" data-code={w.code}>
                           <TriangleAlert aria-hidden className="size-4" />
-                          {dynamicT(t)(`finance:batch.warning.${w.code}`, w.values ?? {})}
+                          {dynamicT(t)(`finance:batch.warning.${w.code}`, moneyValues(fmt, w.values))}
                         </p>
                       ))}
                     </li>
@@ -368,7 +374,7 @@ function BatchDrawer({ batchId, onClose }: { batchId: string | null; onClose: ()
           {d.batch.status === 'confirmed' && d.totals.chequeLines > 0 && <ChequeNotice testId="batch-confirmed-cheques" />}
           <section className="space-y-2">
             <h3 className="text-sm font-semibold text-text">{t('finance:batch.history')}</h3>
-            <HistoryList label={t('finance:batch.history')} items={d.batch.history.map((h) => ({ at: h.at, byName: h.byName, label: t(`finance:batch.events.${h.action}`), ...(h.note ? { note: h.note } : {}) }))} />
+            <HistoryList label={t('finance:batch.history')} items={d.batch.history.map((h) => ({ at: h.at, byName: h.byName, label: t(`finance:batch.events.${h.action}`), ...(h.note ? { note: COUNT_EVENTS.has(h.action) && /^\d+(\.\d+)?$/.test(h.note) ? asMoney(fmt, h.note) : h.note } : {}) }))} />
           </section>
           {error ? <ProblemAlert error={error} /> : null}
           <ConfirmDialog

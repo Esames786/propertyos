@@ -315,6 +315,9 @@ test.describe('Gate C.2: Al-Noor resident collections, proof to receipt', () => 
     await drawer.getByTestId('office-amount').fill('3000');
     await expect(drawer.getByTestId('office-preview')).toBeVisible();
     await expect(drawer.getByTestId('office-count-rule')).toBeVisible();
+    // Nothing on the form promises a receipt at the counter.
+    await expect(drawer).not.toContainText(/receipt is issued straight away|issue receipt/i);
+    await expect(drawer.getByTestId('office-submit')).toHaveText('Record cash for a second count');
     await drawer.getByTestId('office-submit').click();
     // Owner decision D-46 (D.1/S.1 integration): recorded, not paid. What it would settle is shown.
     const done = drawer.getByTestId('office-done');
@@ -338,6 +341,8 @@ test.describe('Gate C.2: Al-Noor resident collections, proof to receipt', () => 
     await page.getByTestId('batch-confirm').click();
     await expect(page.getByTestId('batch-state')).toHaveAttribute('data-state', 'confirmed');
     await expect(page.getByTestId('line-receipt')).toHaveCount(1);
+    // Settled: no "more than owed" (what is owed now already includes this payment).
+    await expect(page.getByTestId('line-warning')).toHaveCount(0);
 
     // Oldest first: October's 1,000, then 2,000 of November; 2,200 remains.
     await portal(page, HOME, 'dues-home');
