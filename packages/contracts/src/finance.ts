@@ -1,6 +1,6 @@
 import type { FeatureKey } from './access';
 import type { ChargeCategoryKey, SocietyDashboard } from './billing';
-import type { BankLine, CollectionMethod, MatchReason } from './collections';
+import type { AllocationLine, BankLine, CollectionMethod, MatchReason } from './collections';
 import type { Money } from './money';
 
 /**
@@ -132,7 +132,7 @@ export interface CashbookLine {
 
 /** Something on its way: shown apart, never in a settled balance. */
 export interface PendingItem {
-  kind: 'cash_in_transit' | 'approved_instruction' | 'awaiting_approval' | 'cheque_received' | 'cheque_deposited' | 'proof_pending' | 'voucher_approved';
+  kind: 'cash_in_transit' | 'approved_instruction' | 'awaiting_approval' | 'cheque_received' | 'cheque_deposited' | 'proof_pending' | 'voucher_approved' | 'cash_awaiting_count';
   id: string;
   ref: string;
   amount: Money;
@@ -514,6 +514,38 @@ export interface OfficeCollectionBatch {
   confirmedCash?: Money;
   returnedReason?: string;
   history: BatchEvent[];
+  /**
+   * 'single': one office cash payment recorded at the counter (FIN-007). Owner decision D-46 (D.1/S.1
+   * integration): it waits for a second person's count like any batch; no payment or receipt before.
+   */
+  origin?: 'single';
+  /** The collector's note on a single payment (shown with the batch). */
+  note?: string;
+}
+
+/** POST /payments/office: the cash is recorded and waits for a second person's count (D-46). */
+export interface OfficeCashRecorded {
+  status: 'awaiting_count';
+  batch: { id: string; ref: string };
+  amount: Money;
+  accountNo: string;
+  payerName: string;
+  flats: string[];
+  recordedByName: string;
+  recordedAt: string;
+  /** What the cash would settle if confirmed now (oldest first; computed again at confirmation). */
+  settles: { lines: AllocationLine[]; unapplied: Money };
+  replayed: boolean;
+}
+
+/** Office cash handed in for an account and still waiting for its second count (staff and resident views). */
+export interface CashAwaitingCount {
+  batchId: string;
+  batchRef: string;
+  amount: Money;
+  payerName: string;
+  recordedOn: string;
+  recordedByName: string;
 }
 
 export interface BatchTotals {
@@ -1129,6 +1161,8 @@ export interface FinanceOverview {
   outstanding: FinanceFigure & { accounts: number };
   pendingVerification: FinanceFigure;
   cashInTransit: FinanceFigure;
+  /** D-46: office collections (single payments included) waiting for a second person's count. */
+  cashAwaitingCount: FinanceFigure;
   chequesPending: FinanceFigure;
   transfersAwaiting: FinanceFigure;
   netMovement: FinanceFigure;

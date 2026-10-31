@@ -5,7 +5,6 @@ import {
   Button,
   Link,
   PlainCheckbox,
-  SegmentedControl,
   SelectControl,
   ConfirmDialog,
   DateTime,
@@ -337,39 +336,13 @@ const KINDS: DocumentKind[] = ['invoice', 'opening', 'creditNote', 'payment', 'r
  * D-46 (Gate S.1): whether single office cash also needs a second person's count. Bulk office
  * collections always do. The default keeps C.2's receipt at once (the owner's decision is open).
  */
-function CashWitness({ siteId, settings, canManage }: { siteId: string; settings: CollectionSettings; canManage: boolean }) {
+function CashWitness({ settings }: { siteId: string; settings: CollectionSettings; canManage: boolean }) {
   const { t } = useT();
-  const toast = useToast();
-  const mutation = useApiMutation<unknown>();
-  const q = useSettings(siteId);
-  const [error, setError] = useState<unknown>(null);
+  // D-46 (owner decision at the D.1/S.1 integration): every office cash payment is counted by a second
+  // person before its receipt; the site keeps its own cash limit (above), not a choice of witnessing.
   return (
     <div className="space-y-2 rounded-tile bg-sunken/40 p-3" data-testid="cash-witness" data-policy={settings.cashWitness}>
-      {canManage ? (
-        <SegmentedControl
-          label={t('finance:settings.witnessLabel')}
-          value={settings.cashWitness}
-          onChange={async (v) => {
-            setError(null);
-            try {
-              await mutation.mutateAsync({ method: 'PATCH', path: `/sites/${siteId}/cash-witness`, body: { policy: v } });
-              toast.success(t('finance:settings.witnessSaved'));
-              void q.refetch();
-            } catch (e) {
-              setError(e);
-            }
-          }}
-          options={[
-            { id: 'single_counter', label: t('finance:settings.witnessSingle') },
-            { id: 'second_person', label: t('finance:settings.witnessSecond') },
-          ]}
-          testId="cash-witness-choice"
-        />
-      ) : (
-        <p className="text-sm text-text">{t(settings.cashWitness === 'second_person' ? 'finance:settings.witnessSecond' : 'finance:settings.witnessSingle')}</p>
-      )}
-      <p className="text-xs text-muted">{t('finance:settings.witnessHint')}</p>
-      {error ? <ProblemAlert error={error} /> : null}
+      <p className="text-sm text-text">{t('finance:settings.witnessFixed')}</p>
     </div>
   );
 }

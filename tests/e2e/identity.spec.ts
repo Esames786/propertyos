@@ -667,7 +667,7 @@ test.describe('D.1 closure: shared accessibility essentials', () => {
     // Management → Resident.
     await page.goto(`${BO}/backoffice/global/profile--preferences`);
     await page.getByTestId('app-switch').click();
-    await expect(page).toHaveURL(/5174\/customer\/portal\/home/);
+    await expect(page).toHaveURL(new RegExp(`^${CU}/customer/portal/home`));
     await expect(page.getByTestId('role-mode')).toHaveAttribute('data-mode', 'customer');
     await expect.poll(() => html(page, 'data-text-scale')).toBe('150');
     expect(await html(page, 'data-contrast')).toBe('high');
@@ -680,7 +680,7 @@ test.describe('D.1 closure: shared accessibility essentials', () => {
     await expect(page.locator('html')).toHaveAttribute('lang', 'ur-PK');
     await page.getByTestId('portal-account').click();
     await page.getByTestId('menu-app-switch').click();
-    await expect(page).toHaveURL(/5173\/backoffice\//);
+    await expect(page).toHaveURL(new RegExp(`^${BO}/backoffice/`));
     await expect.poll(() => html(page, 'data-text-scale')).toBe('175');
     await expect(page.locator('html')).toHaveAttribute('lang', 'ur-PK');
     expect(await html(page, 'data-theme')).toBe('dark');

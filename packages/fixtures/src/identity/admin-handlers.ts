@@ -22,7 +22,7 @@ function row(ctx: HandlerContext, p: Persona): StaffUserRow {
   const state = identityOf(ctx);
   const sessions = state.sessions.filter((s) => s.principalId === p.principalId && s.app === 'backoffice');
   const active = sessions.filter((s) => s.state === 'active');
-  const last = [...sessions].sort((a, b) => b.lastActiveAt.localeCompare(a.lastActiveAt))[0];
+  const last = [...sessions].sort((a, b) => Date.parse(b.lastActiveAt) - Date.parse(a.lastActiveAt))[0];
   return {
     principalId: p.principalId,
     personaId: p.id,
@@ -53,12 +53,12 @@ export const ADMIN_IDENTITY_HANDLERS: readonly Handler[] = [
       const state = identityOf(ctx);
       const sessions = state.sessions
         .filter((s) => s.principalId === p.principalId && s.app === 'backoffice')
-        .sort((a, b) => (a.state === 'active' ? 0 : 1) - (b.state === 'active' ? 0 : 1) || b.lastActiveAt.localeCompare(a.lastActiveAt));
+        .sort((a, b) => (a.state === 'active' ? 0 : 1) - (b.state === 'active' ? 0 : 1) || Date.parse(b.lastActiveAt) - Date.parse(a.lastActiveAt));
       return {
         ...row(ctx, p),
         permissions: p.permissions.length,
         sessions: sessions.slice(0, 12).map((s) => toSessionRecord(s, p.tenantId, ctx.sessionId)),
-        events: state.events.filter((e) => e.principalId === p.principalId && e.app === 'backoffice').sort((a, b) => b.at.localeCompare(a.at)).slice(0, 20).map(toEvent),
+        events: state.events.filter((e) => e.principalId === p.principalId && e.app === 'backoffice').sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, 20).map(toEvent),
         canManageSessions: canManage(ctx),
         isYou: p.principalId === ctx.persona?.principalId,
       };

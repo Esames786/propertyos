@@ -322,10 +322,10 @@ export const FINANCE_BOOK_HANDLERS: readonly Handler[] = [
               ...s.state.finance.openings.filter((o) => o.accountId === row!.id).map((o) => ({ at: o.at, byName: o.approvedByName, action: 'opening_approved', note: o.document })),
               ...s.state.finance.cashCounts.filter((c) => c.accountId === row!.id).map((c) => ({ at: c.countedAt, byName: c.countedByName, action: c.status === 'witnessed' ? 'count_witnessed' : 'count_recorded', note: c.counted.amount })),
             ];
-      const lastCount = [...s.state.finance.cashCounts].filter((c) => c.accountId === row!.id).sort((a, b) => b.countedAt.localeCompare(a.countedAt))[0];
+      const lastCount = [...s.state.finance.cashCounts].filter((c) => c.accountId === row!.id).sort((a, b) => Date.parse(b.countedAt) - Date.parse(a.countedAt))[0];
       return {
         account: row!,
-        history: history.sort((a, b) => b.at.localeCompare(a.at)),
+        history: history.sort((a, b) => Date.parse(b.at) - Date.parse(a.at)),
         statements: s.state.bank.statements.filter((st) => st.beneficiaryId === row!.id).map((st) => ({ id: st.id, fileName: st.fileName, from: st.from, to: st.to, lines: st.lines, importedAt: st.importedAt, importedByName: st.importedByName })).reverse(),
         lines: s.state.bank.lines.filter((l) => l.beneficiaryId === row!.id).sort((a, b) => b.valueDate.localeCompare(a.valueDate)),
         ...(lastCount ? { lastCount } : {}),
@@ -969,7 +969,7 @@ export function closeChecklist(ctx: HandlerContext, s: Society, period: string):
   return {
     period: stored,
     checks,
-    counts: f.cashCounts.filter((c) => c.onDate >= lastDayOf(period)).sort((a, b) => b.countedAt.localeCompare(a.countedAt)),
+    counts: f.cashCounts.filter((c) => c.onDate >= lastDayOf(period)).sort((a, b) => Date.parse(b.countedAt) - Date.parse(a.countedAt)),
     cashAccounts,
     canClose,
     actions: {

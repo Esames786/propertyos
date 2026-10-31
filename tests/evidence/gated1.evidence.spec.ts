@@ -334,7 +334,7 @@ test('Closure: shared essentials when Rabia switches apps (video)', async ({ bro
   await shot(page, 'x03-office-150-high-dark-390-en', false);
   await open(page, `${BO}/backoffice/global/profile--preferences`, 'app-switch');
   await page.getByTestId('app-switch').click();
-  await page.waitForURL(/5174\/customer\/portal\/home/);
+  await page.waitForURL(new RegExp(`^${CU}/customer/portal/home`));
   await page.getByTestId('portal-account').waitFor();
   await settle(page, 1500);
   await shot(page, 'x04-resident-150-high-own-theme-390-en', false);
@@ -344,7 +344,7 @@ test('Closure: shared essentials when Rabia switches apps (video)', async ({ bro
   await settle(page, 800);
   await page.getByTestId('portal-account').click();
   await page.getByTestId('menu-app-switch').click();
-  await page.waitForURL(/5173\/backoffice\//);
+  await page.waitForURL(new RegExp(`^${BO}/backoffice/`));
   await settle(page, 2000);
   await shot(page, 'x05-office-175-urdu-dark-390-ur', false);
   await keepVideo(page, 'closure-shared-essentials-en');

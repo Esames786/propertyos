@@ -20,6 +20,7 @@ import {
   BadgeCheck,
   Building,
   CalendarClock,
+  Coins,
   ChevronRight,
   ClipboardCheck,
   FilePlus2,
@@ -71,6 +72,7 @@ const TASK_ICON: Record<SocietyTask['key'], LucideIcon> = {
   approve_data_exports: DatabaseZap,
   portal_invitations_expired: MailWarning,
   household_requests: UsersRound,
+  count_office_cash: Coins,
 };
 
 /** Occupancy keeps its colour whatever is shown (ordinal evergreen ramp, validated with the dashboard). */

@@ -106,7 +106,8 @@
     },
     "cashNote": "You can also pay cash at the office: {{counter}}.",
     "onlineLater": "Online payment is not available yet (planned for stage {{gate}}).",
-    "paidInAdvance": "You have paid in advance. The credit settles your next bills, oldest first."
+    "paidInAdvance": "You have paid in advance. The credit settles your next bills, oldest first.",
+    "cashAwaiting": "You handed in {{amount}} at the office on {{date}}. It counts once a second person at the office has confirmed it; until then your bill is not paid."
   },
   "bills": {
     "title": "Your bills",

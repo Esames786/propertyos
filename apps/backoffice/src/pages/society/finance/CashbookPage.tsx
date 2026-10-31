@@ -15,6 +15,7 @@ import {
   Button,
   ConfirmDialog,
   DateTime,
+  cn,
   Drawer,
   dynamicT,
   EmptyState,
@@ -123,6 +124,17 @@ export default function CashbookPage() {
         {d.lines.length === 0 ? (
           <EmptyState title={t('finance:cashbook.emptyTitle')} body={t('finance:cashbook.emptyBody')} />
         ) : (
+          <>
+            {/*
+              Issue #6: below 64em of the page (phones, tablets, and any width at large text sizes, since em
+              follows the text size) each line is a card with every fact in full; the table where it fits.
+            */}
+            <ol className="space-y-3 @min-[64em]:hidden" aria-label={t('finance:cashbook.cardsLabel', { period: p })} data-testid="cashbook-cards">
+              {d.lines.map((l) => (
+                <LineCard key={l.key} line={l} showAccount={!d.accountId} accountName={d.accounts.find((a) => a.id === l.accountId)?.name ?? ''} />
+              ))}
+            </ol>
+            <div className="hidden @min-[64em]:block">
           <ScrollRegion label={t('finance:cashbook.lines', { period: p })}>
             <table className="w-full min-w-[56rem] text-sm" data-testid="cashbook-lines">
               <thead className="text-start text-xs text-muted">
@@ -142,6 +154,8 @@ export default function CashbookPage() {
               </tbody>
             </table>
           </ScrollRegion>
+            </div>
+          </>
         )}
       </section>
 
@@ -223,15 +237,74 @@ export default function CashbookPage() {
   );
 }
 
-function Line({ line, showAccount, accountName }: { line: CashbookLine; showAccount: boolean; accountName: string }) {
+/** What a cashbook line says it is (the same words in the table and on the card). */
+function useDescription(line: CashbookLine) {
   const { t } = useT();
-  const fmt = useSocietyFormat();
   const tr = dynamicT(t);
-  const describe = tr(`finance:cashbook.describe.${line.describe.key}`, {
+  return tr(`finance:cashbook.describe.${line.describe.key}`, {
     ...(line.describe.values ?? {}),
     ...(line.describe.values?.category ? { category: tr(`finance:voucherCategory.${line.describe.values.category}`) } : {}),
     ...(line.describe.values?.kind ? { kind: tr(`finance:transferKind.${line.describe.values.kind}`) } : {}),
   });
+}
+
+/**
+ * One cashbook line as a card (phones and large text, Issue #6): nothing is cut or hidden: the full
+ * reference, payer or payee, flats, account, category, evidence, amount (money in or out, said in
+ * words) and the running balance, with the line's record one tap away.
+ */
+function LineCard({ line, showAccount, accountName }: { line: CashbookLine; showAccount: boolean; accountName: string }) {
+  const { t } = useT();
+  const fmt = useSocietyFormat();
+  const describe = useDescription(line);
+  const incoming = line.direction === 'in';
+  return (
+    <li className="space-y-3 rounded-tile border border-border/70 p-4" data-testid="cashbook-card" data-source={line.source} data-category={line.category} data-ref={line.sourceRef}>
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+        <Link href={line.href} className="min-w-0 font-medium [overflow-wrap:anywhere]" data-testid="cashbook-card-link">
+          {describe}
+        </Link>
+        <p className="text-end" data-testid="cashbook-card-amount" data-direction={line.direction}>
+          <span className="block text-xs text-muted">{t(incoming ? 'finance:cashbook.moneyIn' : 'finance:cashbook.moneyOut')}</span>
+          <WrapMoney value={line.amount} className={cn('text-base font-semibold', incoming ? 'text-success' : 'text-text')} />
+        </p>
+      </div>
+      <FactGrid>
+        <Fact label={t('finance:cashbook.date')}>{fmt.date(line.date)}</Fact>
+        <Fact label={t('finance:cashbook.reference')}>
+          <bdi dir="ltr" className="ltr-ref">{line.sourceRef}</bdi>
+        </Fact>
+        {line.counterparty ? (
+          <Fact label={t('finance:cashbook.counterparty')}>
+            <bdi>{line.counterparty}</bdi>
+          </Fact>
+        ) : null}
+        {line.flats?.length ? (
+          <Fact label={t('finance:cashbook.flats')}>
+            <bdi dir="ltr" className="ltr-ref">{line.flats.join(', ')}</bdi>
+          </Fact>
+        ) : null}
+        {showAccount ? (
+          <Fact label={t('finance:cashbook.accountLabel')}>
+            <bdi>{accountName}</bdi>
+          </Fact>
+        ) : null}
+        <Fact label={t('finance:cashbook.categoryLabel')}>{t(`finance:category.${line.category}`)}</Fact>
+        <Fact label={t('finance:cashbook.evidence')}>
+          <EvidenceText evidence={line.evidence} />
+        </Fact>
+        <Fact label={t('finance:cashbook.balance')}>
+          <WrapMoney value={line.balance} />
+        </Fact>
+      </FactGrid>
+    </li>
+  );
+}
+
+function Line({ line, showAccount, accountName }: { line: CashbookLine; showAccount: boolean; accountName: string }) {
+  const { t } = useT();
+  const fmt = useSocietyFormat();
+  const describe = useDescription(line);
   return (
     <tr className="border-b border-border/60 align-top" data-testid="cashbook-line" data-source={line.source} data-category={line.category}>
       <td className="py-2.5 pe-3 whitespace-nowrap text-muted">{fmt.date(line.date)}</td>

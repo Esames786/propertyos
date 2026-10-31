@@ -217,6 +217,18 @@ function BatchDrawer({ batchId, onClose }: { batchId: string | null; onClose: ()
         q.isError ? <ErrorState error={q.error} /> : <Loading lines={6} />
       ) : (
         <div className="space-y-5" data-testid="batch-detail">
+          {/* D-46: a single payment recorded at the counter waits here for its second count like any batch. */}
+          {d.batch.origin === 'single' && (
+            <p className="text-sm text-muted" data-testid="batch-single-origin">
+              {t('finance:batch.singleOrigin')}
+              {d.batch.note ? (
+                <>
+                  {' · '}
+                  <bdi>{d.batch.note}</bdi>
+                </>
+              ) : null}
+            </p>
+          )}
           {d.batch.status === 'returned' && (
             <InlineAlert tone="warning" title={t('finance:batch.returnedTitle')} data-testid="batch-returned">
               <p>

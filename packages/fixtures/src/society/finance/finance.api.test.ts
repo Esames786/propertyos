@@ -13,7 +13,9 @@ import {
   type DemoStatementOptions,
   type FinanceOverview,
   type ModuleSelection,
+  type OfficeCashRecorded,
   type OwnershipTransferDetail,
+  type PortalAccessList,
   type PaymentDetail,
   type PolicyOverview,
   type ReminderPreview,
@@ -21,7 +23,7 @@ import {
   type TransferDetail,
   type VoucherDetail,
 } from '@repo/contracts';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { DemoStore } from '../../demo-store';
 import { MockTransport } from '../../mock-transport';
 import { directoryTenant } from '../../tenant-directory';
@@ -379,6 +381,10 @@ describe('Society transfer and clearance (OWN-003/004/006)', () => {
   it('dues refusal → fee invoice → payment → approval → certificate → payer change in BILL-017', async () => {
     const s = session();
     await enableOfficeMethods(s);
+    // Resident app access of B-403 before the transfer (D.1 RES-007).
+    const accessOf = async () => (await s.as('alnoor_manager').get<PortalAccessList>('/portal-access')).rows.filter((r) => r.flats.some((x) => x.flatCode === 'B-403') || r.name === 'Nadia Farooq').map((r) => ({ name: r.name, status: r.status, flats: r.flats }));
+    const accessBefore = await accessOf();
+    expect(accessBefore.length).toBeGreaterThan(0);
     const t = await s.as('alnoor_manager').post<OwnershipTransferDetail>('/ownership-transfers', { flatId: 'unt_anr_b403', toName: 'Nadia Farooq', toPhone: '+92 399 555 0142', effectiveOn: '2026-12-01', reason: 'Sale deed registered on 20 October 2026' });
     const blocked = await s.post<OwnershipTransferDetail>(`/ownership-transfers/${t.transfer.id}/dues-check`);
     expect([blocked.transfer.status, blocked.transfer.dues!.outstanding.amount]).toEqual(['dues_blocked', '5700.00']);
@@ -388,7 +394,11 @@ describe('Society transfer and clearance (OWN-003/004/006)', () => {
     expect(fee.transfer.fee!.bylawRef).toContain('Bylaw 14(2)');
     const p = await payerOf(s, 'B-403');
     expect(p.open).toBe('10700.00');
-    await s.as('alnoor_accounts').post('/payments/office', { accountId: p.accountId, payerPartyId: p.partyId, amount: '10700' });
+    const cash = await s.as('alnoor_accounts').post<OfficeCashRecorded>('/payments/office', { accountId: p.accountId, payerPartyId: p.partyId, amount: '10700' });
+    // D-46: cash not yet counted by a second person clears nothing.
+    const stillOwed = await s.as('alnoor_manager').post<OwnershipTransferDetail>(`/ownership-transfers/${t.transfer.id}/dues-check`);
+    expect([stillOwed.transfer.status, stillOwed.transfer.dues!.outstanding.amount]).toEqual(['fee_invoiced', '10700.00']);
+    await s.as('alnoor_treasurer').post(`/office-collections/${cash.batch.id}/confirm`, { countedCash: '10700' });
     await s.as('alnoor_manager').post(`/ownership-transfers/${t.transfer.id}/dues-check`);
     // The person who requested the transfer never approves it.
     expect((await problem(s.post(`/ownership-transfers/${t.transfer.id}/approve`))).status).toBe(403);
@@ -400,6 +410,10 @@ describe('Society transfer and clearance (OWN-003/004/006)', () => {
     const raised = changes.find((c) => c.raisedBy?.ref === done.transfer.ref)!;
     expect(raised).toMatchObject({ state: 'pending_approval', flatCode: 'B-403', from: '2026-12-01', requestedBy: 'usr_anr_0001' });
     await s.as('alnoor_treasurer').post(`/payer-changes/${raised.id}/approve`, { note: 'Transfer cleared.' });
+    // Issue #6 item 7: the resident links stay as they were; no account or invitation is created for the
+    // buyer and nobody's access moves automatically (the owner/payer link lifecycle is pending D.2).
+    expect(await accessOf()).toEqual(accessBefore);
+    expect(accessBefore.some((r) => r.name === 'Nadia Farooq')).toBe(false);
   });
 });
 
@@ -466,3 +480,26 @@ describe('Authorization (module, feature, permission, maker-checker)', () => {
 });
 
 const paisaOf = (m: { amount: string }) => BigInt(Math.round(Number(m.amount) * 100));
+
+describe('Issue #6: actions near midnight in Karachi keep the demo date and the posting period', () => {
+  it('a voucher prepared at 23:59:59 and posted at 00:00:30 (Karachi) stays dated 26 October; October holds it', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      vi.setSystemTime(new Date('2026-10-31T18:59:59.000Z')); // 23:59:59 in Karachi
+      const s = session().as('alnoor_accounts');
+      const created = await s.post<{ voucher: CashVoucher }>('/finance/vouchers', { accountId: OFFICE, direction: 'receipt', category: 'hall_booking', amount: '1500', onDate: '2026-10-26', purpose: 'Community hall booking, late evening', counterparty: 'Hina Rana (B-204)', evidence: { name: 'hall-booking.pdf', kind: 'receipt', size: 1000 }, submit: true });
+      expect(created.voucher.preparedAt).toMatch(/^2026-10-26T23:59:59\.\d{3}\+05:00$/);
+      vi.setSystemTime(new Date('2026-10-31T19:00:30.000Z')); // 00:00:30 in Karachi, the next calendar day
+      await approve(s, 'alnoor_treasurer', created.voucher.approvalId!);
+      const posted = await s.as('alnoor_accounts').post<VoucherDetail>(`/finance/vouchers/${created.voucher.id}/post`);
+      expect(posted.voucher.postedAt).toMatch(/^2026-10-26T00:00:30\.\d{3}\+05:00$/);
+      const october = await s.get<CashbookView>('/finance/cashbook', { account: OFFICE, period: '2026-10' });
+      expect(october.lines.find((l) => l.sourceRef === created.voucher.ref)?.date).toBe('2026-10-26');
+      const november = await s.get<CashbookView>('/finance/cashbook', { account: OFFICE, period: '2026-11' }).catch(() => null);
+      expect(november?.lines.some((l) => l.sourceRef === created.voucher.ref) ?? false).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+

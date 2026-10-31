@@ -1,4 +1,5 @@
 import type { LiabilityChange } from './collections';
+import type { CashAwaitingCount } from './finance';
 import type { Money } from './money';
 
 /**
@@ -277,6 +278,8 @@ export interface BillingAccountDetail extends BillingAccountRow {
   legalEntityName: string;
   /** Per flat: who is liable and since when (history kept, never rewritten). */
   liabilities: Array<{ flatId: string; flatCode: string; facts: FlatFact[] }>;
+  /** D-46: office cash handed in for this account, still waiting for a second person's count (not paid). */
+  cashAwaitingCount?: CashAwaitingCount[];
 }
 
 export interface OccupancyRow {

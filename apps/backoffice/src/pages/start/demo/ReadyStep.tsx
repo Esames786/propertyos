@@ -35,7 +35,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useEffect, useId, useRef } from 'react';
-import { COLLECTIONS, LINKS, SOCIETY } from '../../../nav.config';
+import { COLLECTIONS, customerOrigin, LINKS, SOCIETY } from '../../../nav.config';
 import { demoOf, focusHeading, type DemoRole } from '../entry';
 
 type CountId = keyof DemoOverview['counts'];
@@ -333,7 +333,8 @@ function Overview() {
  */
 function ResidentAppCard() {
   const { t } = useT();
-  const href = `${window.location.protocol}//${window.location.hostname}:5174/customer/portal`;
+  // The resident app of this deployment (VITE_CUSTOMER_ORIGIN when the apps are not on sibling ports).
+  const href = `${customerOrigin()}/customer/portal`;
   return (
     <a href={href} target="_blank" rel="noreferrer" className="mt-4 flex items-start gap-3 rounded-tile border border-border bg-raised p-4 text-start hover:bg-panel focus-visible:outline-2 focus-visible:outline-focus" data-testid="demo-resident-app">
       <Smartphone aria-hidden className="mt-0.5 size-5 shrink-0 text-primary" />

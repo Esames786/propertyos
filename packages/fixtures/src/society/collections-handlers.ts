@@ -278,12 +278,13 @@ function settings(ctx: HandlerContext, s: Society): CollectionSettings {
     reminders: 'later',
     payee,
     history: s.state.beneficiaries.filter((b) => b.id !== payee?.id).sort((a, b) => (b.activeFrom ?? '').localeCompare(a.activeFrom ?? '')),
-    changes: [...s.state.beneficiaryChanges].sort((a, b) => b.proposedAt.localeCompare(a.proposedAt)),
+    changes: [...s.state.beneficiaryChanges].sort((a, b) => Date.parse(b.proposedAt) - Date.parse(a.proposedAt)),
     coolingOffDays: s.state.coolingOffDays,
     methods: s.state.methods,
     numbering: s.state.numbering,
     posting: { ...s.state.posting, eligibleRoles: eligible },
-    cashWitness: s.state.cashWitness,
+    // D-46 (owner decision at the D.1/S.1 integration): every office cash payment is counted by a second person.
+    cashWitness: 'second_person',
     transferFees: s.state.transferFees,
     actions: {
       proposeBeneficiary: can(ctx, 'beneficiary.manage'),
@@ -349,7 +350,7 @@ export const COLLECTIONS_HANDLERS: readonly Handler[] = [
         .filter((x) => !account || x.billingAccountId === account)
         .filter((x) => !q || !q.trim() || matches(q.trim(), x.ref, x.accountNo, x.payerName, x.current.bankReference, ...x.flats))
         // Oldest first: the queue is worked in the order residents sent their proofs.
-        .sort((a, b) => a.current.submittedAt.localeCompare(b.current.submittedAt))
+        .sort((a, b) => Date.parse(a.current.submittedAt) - Date.parse(b.current.submittedAt))
         .map((x) => submissionRow(s.state, x));
       const pending = s.state.submissions.filter((x) => PENDING_STATES.includes(x.state)).reduce((n, x) => n + toPaisa(x.current.amount.amount), 0n);
       return { items, counts, pending: money(pending) };
@@ -617,51 +618,8 @@ export const COLLECTIONS_HANDLERS: readonly Handler[] = [
       return previewOf([], value, rule.allocations, rule.unapplied, false);
     },
   },
-  {
-    // FIN-007: money handed over at the society office. The site's method rules and the staff
-    // permission decide; the counter confirms the cash, so the receipt is issued at once.
-    method: 'POST',
-    pattern: /^\/payments\/office$/,
-    access: requires('receivables', 'payment.receive', 'operational'),
-    handle: (ctx): PaymentDetail => {
-      const s = siteOf(ctx, 'receivables');
-      const rule = s.state.methods.find((m) => m.method === 'office_cash');
-      if (!rule?.enabled) problem(ctx, 409, 'method_not_allowed', 'collections:problems.methodNotAllowed');
-      // Gate S.1 (D-46): when the site wants every cash payment counted by two people, it goes through a batch.
-      if (s.state.cashWitness === 'second_person') problem(ctx, 409, 'second_person_required', 'collections:problems.secondPersonRequired');
-      assertOpen(ctx, s, ctx.at, 'payment');
-      const input = body<{ accountId: string; payerPartyId: string; amount: string; allocations: unknown; overrideReason: string; note: string }>(ctx);
-      const account = s.view.model.accounts.find((a) => a.id === input.accountId);
-      if (!account) invalidField(ctx, 'accountId', 'collections:problems.account');
-      const payers = new Set([...s.view.facts.filter((f) => f.role === 'payer' && f.billingAccountId === account!.id).map((f) => f.partyId)]);
-      if (!input.payerPartyId || !payers.has(input.payerPartyId)) invalidField(ctx, 'payerPartyId', 'collections:problems.payer');
-      const amount = amountIn(ctx, 'amount', input.amount);
-      if (rule!.maxAmount && amount > toPaisa(rule!.maxAmount.amount)) invalidField(ctx, 'amount', 'collections:problems.overCashLimit', { limit: rule!.maxAmount.amount });
-      const payer = { partyId: input.payerPartyId!, legalEntityId: s.legalEntityId, billingAccountId: account!.id };
-      const a = allocationFor(ctx, s, payer, amount, input.allocations, input.overrideReason);
-      const person = s.view.model.people.find((p) => p.id === input.payerPartyId)!;
-      const { by, byName } = actor(ctx);
-      const note = text(input.note, 200);
-      const { payment } = recordPayment(s.state, {
-        at: stamp(ctx),
-        receivedOn: ctx.at,
-        by: { principalId: by, name: byName },
-        account: { id: account!.id, accountNo: account!.accountNo },
-        payer: { partyId: person.id, name: person.displayName },
-        flats: s.view.model.flats.filter((f) => f.billingAccountId === account!.id).map((f) => f.code),
-        method: 'office_cash',
-        amount,
-        allocations: a.allocations,
-        unapplied: a.unapplied,
-        source: { kind: 'office', ...(note ? { note } : {}) },
-        verification: 'counter',
-        ...(a.overrideReason ? { overrideReason: a.overrideReason } : {}),
-      });
-      log(ctx, s, 'officeCashReceived', { kind: 'payment', id: payment.id, label: payment.ref }, { flats: [...new Set(payment.allocations.map((x) => x.unitCode))], values: { amount: payment.amount.amount, receipt: payment.receiptRef, account: account!.accountNo, unapplied: payment.unapplied.amount } });
-      save(ctx);
-      return paymentDetail(society(ctx), payment.id, ctx);
-    },
-  },
+  // FIN-007 POST /payments/office moved to finance/handlers-collect.ts at the D.1/S.1 integration:
+  // under owner decision D-46 the cash waits for a second person's count before any receipt.
   {
     // Unapplied credit settles the same payer's open lines (oldest first, or as chosen with a reason).
     method: 'POST',

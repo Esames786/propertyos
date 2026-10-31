@@ -133,10 +133,10 @@ export const ME_HANDLERS: readonly Handler[] = [
       const sessions = state.sessions.filter((s) => s.principalId === persona.principalId);
       // The current session first, then active ones by last use, then the ended history.
       const order = (s: StoredSession) => (s.id === ctx.sessionId ? 0 : s.state === 'active' ? 1 : 2);
-      sessions.sort((a, b) => order(a) - order(b) || b.lastActiveAt.localeCompare(a.lastActiveAt));
+      sessions.sort((a, b) => order(a) - order(b) || Date.parse(b.lastActiveAt) - Date.parse(a.lastActiveAt));
       return {
         sessions: sessions.slice(0, 12).map((s) => toSessionRecord(s, persona.tenantId, ctx.sessionId)),
-        events: state.events.filter((e) => e.principalId === persona.principalId).sort((a, b) => b.at.localeCompare(a.at)).slice(0, 25).map(toEvent),
+        events: state.events.filter((e) => e.principalId === persona.principalId).sort((a, b) => Date.parse(b.at) - Date.parse(a.at)).slice(0, 25).map(toEvent),
       };
     },
   },

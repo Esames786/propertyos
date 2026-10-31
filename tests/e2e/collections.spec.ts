@@ -254,7 +254,7 @@ test.describe('Gate C.2: Al-Noor resident collections, proof to receipt', () => 
     expect(consoleErrors).toEqual([]);
   });
 
-  test('office cash is refused until the treasurer allows it, within the limit the society sets; 3,000 at the counter leaves A-101 owing 2,200 with a receipt', async ({
+  test('office cash is refused until the treasurer allows it, within the limit the society sets; 3,000 at the counter waits for a second count (D-46), then leaves A-101 owing 2,200 with a receipt', async ({
     page,
     consoleErrors,
   }) => {
@@ -314,10 +314,30 @@ test.describe('Gate C.2: Al-Noor resident collections, proof to receipt', () => 
     );
     await drawer.getByTestId('office-amount').fill('3000');
     await expect(drawer.getByTestId('office-preview')).toBeVisible();
+    await expect(drawer.getByTestId('office-count-rule')).toBeVisible();
     await drawer.getByTestId('office-submit').click();
+    // Owner decision D-46 (D.1/S.1 integration): recorded, not paid. What it would settle is shown.
     const done = drawer.getByTestId('office-done');
-    await expect(done).toBeVisible();
+    await expect(done).toHaveAttribute('data-status', 'awaiting_count');
     await expect(done.getByTestId('allocation-line')).toHaveCount(2);
+    const collection = await done.getByTestId('office-open-collection').getAttribute('href');
+
+    // The resident sees the cash handed in, and the bill not paid: no receipt yet.
+    await portal(page, HOME, 'dues-home');
+    await expect(page.getByTestId('dues-cash-awaiting')).toContainText('3,000');
+    await expect(page.getByTestId('dues-total')).toContainText('5,200');
+    await expect(page.getByTestId('dues-receipt')).toHaveCount(0);
+
+    // A second person (the treasurer) finds it in their approvals, counts the cash and confirms.
+    await become(page, 'backoffice', 'alnoor_treasurer');
+    await office(page, '/backoffice/apr/my-approvals?tab=fixed', 'approvals-fixed');
+    await expect(page.getByTestId('approval-fixed').filter({ hasText: 'Office cash to count' })).toHaveCount(1);
+    await office(page, collection!, 'batch-drawer');
+    await expect(page.getByTestId('batch-single-origin')).toBeVisible();
+    await page.getByTestId('batch-counted').fill('3000');
+    await page.getByTestId('batch-confirm').click();
+    await expect(page.getByTestId('batch-state')).toHaveAttribute('data-state', 'confirmed');
+    await expect(page.getByTestId('line-receipt')).toHaveCount(1);
 
     // Oldest first: October's 1,000, then 2,000 of November; 2,200 remains.
     await portal(page, HOME, 'dues-home');

@@ -1,8 +1,10 @@
-import type { ApprovalDecision, ApprovalEvaluation, ApprovalPolicyVersion, ApprovalRequest, ApprovalRule, ApprovalSubject, ApproverRef, Delegation, Money, Permission } from '@repo/contracts';
+import type { ApprovalDecision, ApprovalEvaluation, ApprovalPolicyVersion, ApprovalRequest, ApprovalRule, ApprovalSubject, ApproverRef, Delegation, Money, Permission, SocietyTask } from '@repo/contracts';
 import { ALL_PERSONAS } from '../../people';
 import { pad } from '../../seed';
 import { nextRef, type SocietyState } from '../state';
 import { money, paisa } from './model';
+import { batchesToCount } from './pending-cash';
+import { FIN_ROUTES } from './routes';
 
 /**
  * Approval policies (APR-001…005, D-29, P1-9). Rules are versioned data, chosen by date; no amount
@@ -202,4 +204,22 @@ export function approvalItems(state: SocietyState, tenantId: string, me: { princ
     .map((a) => ({ a, yours: evaluate(state, tenantId, a, me, on).you.canDecide }))
     .filter(({ a, yours }) => yours || a.requestedBy === me.principalId)
     .map(({ a, yours }) => ({ kind: 'approval_request' as const, id: a.id, label: a.ref, href: `/backoffice/apr/approval-360-view?record=${a.id}`, yours }));
+}
+
+/**
+ * D-46: office collections (single office payments included) waiting for a second person's count.
+ * Offered to whoever may confirm and did not collect them; the collector sees them as waiting.
+ */
+export function cashCountItems(state: SocietyState, me: { principalId: string; permissions: readonly Permission[] }) {
+  const confirmer = me.permissions.includes('payment.batch.confirm');
+  return batchesToCount(state)
+    .map((b) => ({ b, yours: confirmer && b.collectedBy !== me.principalId }))
+    .filter(({ b, yours }) => yours || b.collectedBy === me.principalId)
+    .map(({ b, yours }) => ({ kind: 'cash_count' as const, id: b.id, label: b.ref, href: FIN_ROUTES.batch(b.id), yours }));
+}
+
+/** The dashboard task for those items (one line, counted). */
+export function cashCountTasks(items: ReturnType<typeof cashCountItems>): SocietyTask[] {
+  if (!items.length) return [];
+  return [{ key: 'count_office_cash', urgency: 'urgent', count: items.length, yours: items.some((i) => i.yours), href: items.length === 1 ? items[0]!.href : FIN_ROUTES.batches('submitted') }];
 }

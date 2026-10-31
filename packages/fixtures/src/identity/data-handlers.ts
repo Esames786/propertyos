@@ -312,7 +312,7 @@ export const DATA_HANDLERS: readonly Handler[] = [
       const state = privacyOf(ctx);
       ctx.demo.save();
       const order = { submitted: 0, in_review: 1, completed: 2, rejected: 3 } as const;
-      return [...state.privacy].sort((a, b) => order[a.state] - order[b.state] || b.submittedAt.localeCompare(a.submittedAt));
+      return [...state.privacy].sort((a, b) => order[a.state] - order[b.state] || Date.parse(b.submittedAt) - Date.parse(a.submittedAt));
     },
   },
   {

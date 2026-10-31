@@ -368,7 +368,9 @@ export interface SocietyTask {
     // Gate D.1: exports waiting for a second person, invitations that ran out, household requests.
     | 'approve_data_exports'
     | 'portal_invitations_expired'
-    | 'household_requests';
+    | 'household_requests'
+    // D.1/S.1 integration (D-46): office cash waiting for a second person's count.
+    | 'count_office_cash';
   urgency: 'urgent' | 'normal';
   count?: number;
   /** Who acts: the signed-in person can act, or waits for another person. */
@@ -392,7 +394,7 @@ export interface SocietyDashboard {
   arrears: { amount: Money; accounts: number; href: string };
   /** Collections (C.2): every figure opens its filtered records. Null when the person may not see money. */
   collections: CollectionsSummary | null;
-  approvals: { count: number; yours: number; href: string; items: Array<{ kind: 'billing_run' | 'exemption' | 'opening_balances' | 'payer_change' | 'beneficiary' | 'payment_exception' | 'data_export' | 'approval_request'; id: string; label: string; href: string; yours: boolean }> };
+  approvals: { count: number; yours: number; href: string; items: Array<{ kind: 'billing_run' | 'exemption' | 'opening_balances' | 'payer_change' | 'beneficiary' | 'payment_exception' | 'data_export' | 'approval_request' | 'cash_count'; id: string; label: string; href: string; yours: boolean }> };
   occupancy: { registered: number; occupied: number; ownerOccupied: number; tenantOccupied: number; vacant: number; association: number; declared: number; href: string };
   buildings: Array<{ id: string; code: string; name: string; flats: number; occupied: number; vacant: number; ownerOccupied: number; tenantOccupied: number; association: number; outstanding: Money; arrearsAccounts: number; href: string }>;
   tasks: SocietyTask[];

@@ -1,6 +1,6 @@
 import { ApiError, type BillingAccountDetail, type InvoiceList } from '@repo/contracts';
-import { Breadcrumbs, ErrorState, Link, Money, NotFoundState, Panel, SegmentedControl, UrlTabs, useApiQuery, useQueryParam, useSession, useT } from '@repo/ui';
-import { ACCESS_DATE, SOCIETY } from '../../../nav.config';
+import { Breadcrumbs, ErrorState, InlineAlert, Link, Money, NotFoundState, Panel, SegmentedControl, UrlTabs, useApiQuery, useQueryParam, useSession, useT } from '@repo/ui';
+import { ACCESS_DATE, FINANCE, SOCIETY } from '../../../nav.config';
 import { FactList, Loading, SettlementBadge, useSocietyFormat } from '../kit';
 import { StatementView } from '../parts';
 import { SendReminderButton } from '../finance/RemindersPage';
@@ -55,6 +55,13 @@ function Workspace({ data }: { data: BillingAccountDetail }) {
           <Metric label={t('billing:account.openInvoices')} value={fmt.count(data.openInvoices)} />
           <Metric label={t('billing:account.flats')} value={data.flats.map((f) => f.code).join(', ')} />
         </dl>
+        {/* D-46: cash handed in for this account that a second person has not counted yet (not a payment). */}
+        {(data.cashAwaitingCount ?? []).map((c) => (
+          <InlineAlert key={c.batchId} tone="info" title={t('finance:cashAwaiting.title', { amount: fmt.money(c.amount) })} data-testid="account-cash-awaiting">
+            <p>{t('finance:cashAwaiting.body', { name: c.recordedByName, date: fmt.date(c.recordedOn), ref: c.batchRef })}</p>
+            <Link href={FINANCE.batch(c.batchId)}>{t('finance:cashAwaiting.open', { ref: c.batchRef })}</Link>
+          </InlineAlert>
+        ))}
       </header>
       <UrlTabs label={t('billing:account.tabsLabel')} items={tabs}>
         {(tab) =>

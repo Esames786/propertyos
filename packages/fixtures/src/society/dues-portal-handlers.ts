@@ -29,6 +29,7 @@ import { invalidField, log, problem, save, society, stamp, type Society } from '
 import { factOn } from './model';
 import { beneficiaryOn } from './state';
 import { statementOf } from './statement';
+import { cashAwaitingCount } from './finance/pending-cash';
 
 /**
  * Resident portal, dues edition (Gate C.2; PORTAL-001/004/005/007/008/010/028/029). A resident sees
@@ -265,9 +266,11 @@ export const DUES_PORTAL_HANDLERS: readonly Handler[] = [
         position: pos,
         payee: payeeFor(r, pos.totalPayable),
         methods: methods(r),
-        submissions: [...r.submissions].sort((a, b) => b.current.submittedAt.localeCompare(a.current.submittedAt)).slice(0, 5).map(submissionSummary),
+        submissions: [...r.submissions].sort((a, b) => Date.parse(b.current.submittedAt) - Date.parse(a.current.submittedAt)).slice(0, 5).map(submissionSummary),
         receipts: receiptSummaries(r).slice(0, 5),
         cheques: residentCheques(r),
+        // D-46: cash handed in at the office that a second person has not counted yet (the bill stays unpaid).
+        cashAwaitingCount: cashAwaitingCount(r.s.state, { partyId: r.partyId }).map((c) => ({ amount: c.amount, recordedOn: c.recordedOn })),
       };
     },
   },
@@ -280,7 +283,7 @@ export const DUES_PORTAL_HANDLERS: readonly Handler[] = [
       return {
         position: position(r),
         bills: bills(r),
-        submissions: [...r.submissions].sort((a, b) => b.current.submittedAt.localeCompare(a.current.submittedAt)).map(submissionSummary),
+        submissions: [...r.submissions].sort((a, b) => Date.parse(b.current.submittedAt) - Date.parse(a.current.submittedAt)).map(submissionSummary),
         receipts: receiptSummaries(r),
         payments: [...r.payments]
           .sort((a, b) => b.receivedOn.localeCompare(a.receivedOn))

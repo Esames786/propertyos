@@ -293,6 +293,6 @@ export function collectionsSummary(s: { view: SocietyView }, today: string, opts
         href: href(ROUTES.accounts, { building: b.id, status: 'owing' }),
       };
     }),
-    recent: [...state.payments].sort((a, b) => b.verifiedAt.localeCompare(a.verifiedAt)).slice(0, 5).map((p) => paymentRow(p, state.bank.lines)),
+    recent: [...state.payments].sort((a, b) => Date.parse(b.verifiedAt) - Date.parse(a.verifiedAt)).slice(0, 5).map((p) => paymentRow(p, state.bank.lines)),
   };
 }

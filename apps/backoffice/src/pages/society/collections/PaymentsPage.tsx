@@ -1,4 +1,4 @@
-import type { AllocationPreview, BillingAccountDetail, BillingAccountRow, ChequeDetail, CollectionSettings, PaymentDetail, PaymentList } from '@repo/contracts';
+import type { AllocationPreview, BillingAccountDetail, BillingAccountRow, ChequeDetail, CollectionSettings, OfficeCashRecorded, PaymentList } from '@repo/contracts';
 import {
   Badge,
   Button,
@@ -128,8 +128,9 @@ export default function PaymentsPage() {
 
 /**
  * FIN-007 office payment: cash handed over at the society office. The site's method rules decide
- * whether cash is taken at all (and up to what amount); the counter confirms the money, so the
- * receipt is issued at once. What it settles is previewed first (the payer's own lines, oldest first).
+ * whether cash is taken at all (and up to what amount). Owner decision D-46 (D.1/S.1 integration): the
+ * cash is recorded here and settles only after a second person has counted it (FIN-014); no receipt
+ * at the counter. What it would settle is previewed (the payer's own lines, oldest first).
  */
 function OfficePaymentDrawer({ isOpen, onClose, accountId }: { isOpen: boolean; onClose: () => void; accountId: string | null }) {
   const { t } = useT();
@@ -143,14 +144,16 @@ function OfficePaymentDrawer({ isOpen, onClose, accountId }: { isOpen: boolean; 
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
   const [error, setError] = useState<unknown>(null);
-  const [done, setDone] = useState<PaymentDetail | null>(null);
+  const [done, setDone] = useState<OfficeCashRecorded | null>(null);
+  // One key per drawer opening: pressing Record twice records the cash once.
+  const [key, setKey] = useState(() => `office-${Date.now()}`);
   // Gate S.1: a cheque at the office (acknowledged only) and the site's cash-witnessing setting (D-46).
   const [method, setMethod] = useState<'cash' | 'cheque'>('cash');
   const [cheque, setCheque] = useState({ drawerBank: '', number: '', date: '2026-10-26' });
   const [ack, setAck] = useState<ChequeDetail | null>(null);
   const record2 = useApiMutation<ChequeDetail>();
   const detail = useApiQuery<BillingAccountDetail>({ method: 'GET', path: `/billing-accounts/${account}` }, { enabled: isOpen && !!account });
-  const record = useApiMutation<PaymentDetail>();
+  const record = useApiMutation<OfficeCashRecorded>();
   useEffect(() => {
     if (accountId) setAccount(accountId);
   }, [accountId]);
@@ -161,7 +164,6 @@ function OfficePaymentDrawer({ isOpen, onClose, accountId }: { isOpen: boolean; 
   }, [detail.data]);
   const cash = settings.data?.methods.find((m) => m.method === 'office_cash');
   const chequeRule = settings.data?.methods.find((m) => m.method === 'cheque');
-  const witnessed = settings.data?.cashWitness === 'second_person';
   const close = () => {
     setAck(null);
     setMethod('cash');
@@ -169,6 +171,7 @@ function OfficePaymentDrawer({ isOpen, onClose, accountId }: { isOpen: boolean; 
     setError(null);
     setAmount('');
     setNote('');
+    setKey(`office-${Date.now()}`);
     onClose();
   };
   const submit = async () => {
@@ -184,9 +187,9 @@ function OfficePaymentDrawer({ isOpen, onClose, accountId }: { isOpen: boolean; 
       return;
     }
     try {
-      const result = await record.mutateAsync({ method: 'POST', path: '/payments/office', body: { accountId: account, payerPartyId: payer, amount, note } });
+      const result = await record.mutateAsync({ method: 'POST', path: '/payments/office', body: { accountId: account, payerPartyId: payer, amount, note, idempotencyKey: key } });
       setDone(result);
-      toast.success(t('collections:office.done', { receipt: result.receipt.ref }));
+      toast.success(t('finance:office.awaitingTitle'));
     } catch (e) {
       setError(e);
     }
@@ -213,7 +216,7 @@ function OfficePaymentDrawer({ isOpen, onClose, accountId }: { isOpen: boolean; 
         ) : (
           <>
             <Button variant="quiet" onPress={close}>{t('common:actions.cancel')}</Button>
-            <Button variant="primary" icon={Banknote} isPending={record.isPending || record2.isPending} isDisabled={!account || !payer || !amount.trim() || (method === 'cash' && witnessed)} onPress={() => void submit()} data-testid="office-submit">
+            <Button variant="primary" icon={Banknote} isPending={record.isPending || record2.isPending} isDisabled={!account || !payer || !amount.trim()} onPress={() => void submit()} data-testid="office-submit">
               {t('collections:office.submit')}
             </Button>
           </>
@@ -229,10 +232,15 @@ function OfficePaymentDrawer({ isOpen, onClose, accountId }: { isOpen: boolean; 
           <Link href={FINANCE.cheque(ack.cheque.id)}>{t('finance:office.openCheque')}</Link>
         </div>
       ) : done ? (
-        <div className="space-y-4" data-testid="office-done" role="status">
-          <p className="text-base font-semibold text-success">{t('collections:office.receiptIssued', { receipt: done.receipt.ref, amount: fmt.money(done.payment.amount) })}</p>
-          <AllocationTable lines={done.payment.allocations} unapplied={done.payment.unapplied} label={t('collections:office.settled')} />
-          <Link href={COLLECTIONS.payment(done.payment.id)}>{t('collections:review.openPayment', { ref: done.payment.ref })}</Link>
+        <div className="space-y-4" data-testid="office-done" data-status={done.status} role="status">
+          <InlineAlert tone="info" title={t('finance:office.awaitingTitle')} data-testid="office-awaiting-count">
+            <p>{t('finance:office.awaitingBody', { amount: fmt.money(done.amount), account: done.accountNo, payer: done.payerName, ref: done.batch.ref })}</p>
+            {done.replayed ? <p>{t('finance:office.replayed')}</p> : null}
+          </InlineAlert>
+          <AllocationTable lines={done.settles.lines} unapplied={done.settles.unapplied} label={t('finance:office.wouldSettle')} />
+          <Link href={FINANCE.batch(done.batch.id)} data-testid="office-open-collection">
+            {t('finance:office.openCollection', { ref: done.batch.ref })}
+          </Link>
         </div>
       ) : (
         <div className="space-y-4">
@@ -255,10 +263,9 @@ function OfficePaymentDrawer({ isOpen, onClose, accountId }: { isOpen: boolean; 
               testId="office-method"
             />
           )}
-          {method === 'cash' && witnessed && (
-            <InlineAlert tone="info" title={t('finance:office.witnessTitle')} data-testid="office-witness-required">
-              <p>{t('finance:office.witnessBody')}</p>
-              <Link href={FINANCE.batches()}>{t('finance:office.openBatches')}</Link>
+          {method === 'cash' && (
+            <InlineAlert tone="info" title={t('finance:office.countRuleTitle')} data-testid="office-count-rule">
+              <p>{t('finance:office.countRuleBody')}</p>
             </InlineAlert>
           )}
           {payers.length > 0 && (

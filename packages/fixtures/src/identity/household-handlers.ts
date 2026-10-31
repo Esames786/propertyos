@@ -133,7 +133,7 @@ export const HOUSEHOLD_HANDLERS: readonly Handler[] = [
       const flatIds = [...new Set(links.map((l) => l.unitId))].filter((id) => s.view.model.flats.some((f) => f.id === id));
       return {
         flats: flatIds.map((id) => householdOf(s, state, id, ctx.at, partyId)),
-        requests: state.household.requests.filter((r) => r.requestedByPartyId === partyId).sort((a, b) => b.requestedAt.localeCompare(a.requestedAt)),
+        requests: state.household.requests.filter((r) => r.requestedByPartyId === partyId).sort((a, b) => Date.parse(b.requestedAt) - Date.parse(a.requestedAt)),
       };
     },
   },
@@ -209,7 +209,7 @@ export const HOUSEHOLD_HANDLERS: readonly Handler[] = [
       const order = { pending: 0, approved: 1, rejected: 2, withdrawn: 3 } as const;
       return {
         flats,
-        requests: [...state.household.requests].sort((a, b) => order[a.state] - order[b.state] || b.requestedAt.localeCompare(a.requestedAt)),
+        requests: [...state.household.requests].sort((a, b) => order[a.state] - order[b.state] || Date.parse(b.requestedAt) - Date.parse(a.requestedAt)),
         buildings: s.view.model.buildings.map((b) => ({ id: b.id, name: b.name })),
       };
     },

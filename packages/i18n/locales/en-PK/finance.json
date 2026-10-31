@@ -147,7 +147,15 @@
       "voucher_reversal": "Reversal of {{original}}: {{purpose}}",
       "leg_out": "{{kind}} to {{other}}",
       "leg_in": "{{kind}} from {{other}}"
-    }
+    },
+    "cardsLabel": "Cashbook lines, {{period}}",
+    "reference": "Reference",
+    "counterparty": "Paid to / from",
+    "flats": "Flats",
+    "accountLabel": "Account",
+    "categoryLabel": "Category",
+    "moneyIn": "Money in",
+    "moneyOut": "Money out"
   },
   "dashboard": {
     "loading": "Loading the society's finance",
@@ -223,7 +231,10 @@
     "proofs_one": "{{count}} proof",
     "deposits_one": "{{count}} deposit",
     "cheque_one": "{{count}} cheque",
-    "instructions_one": "{{count}} instruction"
+    "instructions_one": "{{count}} instruction",
+    "cashAwaitingCount": "Office cash waiting for a count",
+    "collections_one": "{{count}} office collection",
+    "collections_other": "{{count}} office collections"
   },
   "pending": {
     "kind": {
@@ -233,7 +244,8 @@
       "cheque_received": "Cheque received",
       "cheque_deposited": "Cheque deposited",
       "proof_pending": "Proof pending",
-      "voucher_approved": "Approved voucher, not posted"
+      "voucher_approved": "Approved voucher, not posted",
+      "cash_awaiting_count": "Office cash awaiting count"
     },
     "describe": {
       "transfer_awaiting": "{{from}} → {{to}}: waiting for approval",
@@ -243,7 +255,8 @@
       "cheque_deposited": "Cheque {{number}} from {{payer}}, waiting to clear",
       "voucher_approved": "{{purpose}}: approved, waiting to be posted",
       "voucher_awaiting": "{{purpose}}: waiting for approval",
-      "proof_pending": "Transfer proof from {{payer}}"
+      "proof_pending": "Transfer proof from {{payer}}",
+      "cash_awaiting_count": "Cash recorded by {{name}} for {{payers}}, waiting for a second count"
     }
   },
   "voucherCategory": {
@@ -652,7 +665,8 @@
       "proof_pending": "a transfer proof is already waiting for this payer",
       "same_payer_twice": "The same payer appears twice with the same method."
     },
-    "rowLine_one": "{{name}} · {{date}} · cash {{cash}} · cheques {{cheques}} · {{count}} line"
+    "rowLine_one": "{{name}} · {{date}} · cash {{cash}} · cheques {{cheques}} · {{count}} line",
+    "singleOrigin": "A single office payment recorded at the counter"
   },
   "cheque": {
     "status": "Status",
@@ -735,7 +749,14 @@
     "openCheque": "Open the cheque",
     "witnessTitle": "Cash here is counted by two people",
     "witnessBody": "This site records every office cash payment through an office collection: you count it, a second person counts it again and confirms.",
-    "openBatches": "Open office collections"
+    "openBatches": "Open office collections",
+    "countRuleTitle": "Counted by a second person before any receipt",
+    "countRuleBody": "You record the cash; a second person at the office counts it and confirms. Only then is the payment settled and a receipt issued. Until then the bill is not paid.",
+    "awaitingTitle": "Cash recorded: waiting for a second count",
+    "awaitingBody": "{{amount}} for {{account}} ({{payer}}) is in office collection {{ref}}. No receipt yet: the bill stays unpaid until the cash is counted and confirmed.",
+    "wouldSettle": "If confirmed now, it would settle",
+    "openCollection": "Open office collection {{ref}}",
+    "replayed": "This cash was already recorded (the same request again): nothing was added."
   },
   "credits": {
     "paidInAdvance": "Paid in advance: settles the next bills, oldest first"
@@ -763,7 +784,8 @@
     "feeFrom": "From (YYYY-MM-DD, a future date)",
     "feeBylaw": "Bylaw reference",
     "feeSaved": "New fee version saved",
-    "feeAdd": "Add a new rate"
+    "feeAdd": "Add a new rate",
+    "witnessFixed": "Every office cash payment, single or in a collection, is counted and confirmed by a second person before its receipt (owner decision D-46). The cash limit is still the society’s own setting."
   },
   "problems": {
     "amount": "Enter an amount above zero (up to two decimals).",
@@ -863,6 +885,13 @@
     "cheque_details": "Give the drawer's bank, a 6–10 digit number and the date.",
     "cheque_not_allowed": "Cheques are not turned on for this site.",
     "cheque_post_dated": "Dated later than the site allows.",
-    "cheque_stale": "Older than six months (stale)."
+    "cheque_stale": "Older than six months (stale).",
+    "allocationAtCount": "Office cash is allocated when a second person has counted it (oldest bills first); an allocation cannot be chosen at the counter.",
+    "witness_required": "Every office cash payment is counted by a second person (owner decision D-46); a single counter cannot be chosen."
+  },
+  "cashAwaiting": {
+    "title": "{{amount}} in office cash waiting for a second count",
+    "body": "Recorded by {{name}} on {{date}} in {{ref}}. It is not a payment yet: no receipt, and the bill stays unpaid until it is counted and confirmed.",
+    "open": "Open {{ref}}"
   }
 }

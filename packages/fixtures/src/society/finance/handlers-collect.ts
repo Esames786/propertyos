@@ -11,15 +11,16 @@ import {
   type ChequeStatus,
   type CollectionCandidate,
   type CollectionPayment,
+  type OfficeCashRecorded,
   type OfficeCollectionBatch,
   type SettlementExceptionRequest,
 } from '@repo/contracts';
 import { can, matches, notFound, requires, type Handler, type HandlerContext } from '../../handler-types';
 import { pad } from '../../seed';
-import { allocateOldestFirst, linesOf, openLinesFor } from '../allocate';
+import { allocateOldestFirst, linesOf, openLinesFor, toAllocationLines } from '../allocate';
 import { recordPayment } from '../collections';
 import { PENDING_STATES } from '../collections-read';
-import { log, save, siteOf, stamp, type Society } from '../handlers';
+import { invalidField, log, problem, save, siteOf, stamp, type Society } from '../handlers';
 import { factOn } from '../model';
 import { nextRef, viewOf } from '../state';
 import { raiseApproval } from './approvals';
@@ -186,6 +187,25 @@ function lineOf(ctx: HandlerContext, s: Society, raw: Record<string, unknown>, i
   };
 }
 
+/** What a single office payment would settle if it were confirmed now (oldest first). */
+function recordedOf(s: Society, b: OfficeCollectionBatch, replayed: boolean): OfficeCashRecorded {
+  const line = b.lines[0]!;
+  const view = viewOf(s.state, b.collectedOn);
+  const rule = allocateOldestFirst(paisa(line.amount), openLinesFor(linesOf(view.invoices), { partyId: line.payerPartyId, legalEntityId: b.legalEntityId, billingAccountId: line.billingAccountId }));
+  return {
+    status: 'awaiting_count',
+    batch: { id: b.id, ref: b.ref },
+    amount: line.amount,
+    accountNo: line.accountNo,
+    payerName: line.payerName,
+    flats: line.flats,
+    recordedByName: b.collectedByName,
+    recordedAt: b.submittedAt ?? b.history[0]!.at,
+    settles: { lines: toAllocationLines(rule.allocations), unapplied: money(rule.unapplied) },
+    replayed,
+  };
+}
+
 // ---------------------------------------------------------------------------------------------
 // Cheques
 // ---------------------------------------------------------------------------------------------
@@ -333,6 +353,61 @@ function requestReversal(ctx: HandlerContext, s: Society, payment: CollectionPay
 // ---------------------------------------------------------------------------------------------
 
 export const FINANCE_COLLECT_HANDLERS: readonly Handler[] = [
+  {
+    // FIN-007 under owner decision D-46 (D.1/S.1 integration): cash handed over at the office is
+    // recorded by one person and settles only after a second person has counted it. It is kept as an
+    // office collection of one line, confirmed in FIN-014: no payment, allocation, receipt or Paid
+    // status before that. The site's method rule (allowed, maximum) still decides what may be taken.
+    method: 'POST',
+    pattern: /^\/payments\/office$/,
+    access: requires('receivables', 'payment.receive', 'operational'),
+    handle: (ctx): OfficeCashRecorded => {
+      const s = site(ctx);
+      const rule = s.state.methods.find((m) => m.method === 'office_cash');
+      if (!rule?.enabled) problem(ctx, 409, 'method_not_allowed', 'collections:problems.methodNotAllowed');
+      assertOpen(ctx, s, ctx.at, 'payment');
+      const input = body<{ accountId: string; payerPartyId: string; amount: string; note: string; allocations: unknown; idempotencyKey: string }>(ctx);
+      const key = text(input.idempotencyKey, 80) || undefined;
+      const seen = replay(s, key);
+      if (seen) return recordedOf(s, s.state.finance.batches.find((b) => b.id === seen)!, true);
+      // The allocation is decided when the cash is counted (oldest first), not at the counter.
+      if (input.allocations !== undefined) invalidField(ctx, 'allocations', 'finance:problems.allocationAtCount');
+      const account = s.view.model.accounts.find((a) => a.id === input.accountId);
+      if (!account) invalidField(ctx, 'accountId', 'collections:problems.account');
+      if (!payersOf(s, account!.id, ctx.at).some((p) => p.partyId === input.payerPartyId)) invalidField(ctx, 'payerPartyId', 'collections:problems.payer');
+      const amount = amountField(ctx, 'amount', input.amount);
+      if (rule!.maxAmount && amount > paisa(rule!.maxAmount)) invalidField(ctx, 'amount', 'collections:problems.overCashLimit', { limit: rule!.maxAmount.amount });
+      const line = lineOf(ctx, s, { billingAccountId: account!.id, payerPartyId: input.payerPartyId, method: 'office_cash', amount: input.amount }, 0);
+      const who = me(ctx);
+      const at = stamp(ctx);
+      const note = text(input.note, 200);
+      const f = s.state.finance;
+      const b: OfficeCollectionBatch = {
+        id: `ocb_anr_${pad(f.batches.length + 1, 4)}`,
+        ref: nextRef(s.state, 'batch', ctx.at),
+        siteId: s.siteId,
+        legalEntityId: s.legalEntityId,
+        collectedBy: who.principalId,
+        collectedByName: who.name,
+        collectedOn: ctx.at,
+        status: 'submitted',
+        lines: [line],
+        declaredCash: line.amount,
+        submittedAt: at,
+        origin: 'single',
+        ...(note ? { note } : {}),
+        history: [
+          { at, by: who.principalId, byName: who.name, action: 'created' },
+          { at, by: who.principalId, byName: who.name, action: 'submitted', note: line.amount.amount },
+        ],
+      };
+      f.batches.push(b);
+      remember(s, key, b.id);
+      log(ctx, s, 'officeCashRecorded', { kind: 'batch', id: b.id, label: b.ref }, { flats: line.flats, values: { amount: line.amount.amount, account: line.accountNo, payer: line.payerName } });
+      save(ctx);
+      return recordedOf(s, b, false);
+    },
+  },
   {
     method: 'GET',
     pattern: /^\/office-collections\/candidates$/,

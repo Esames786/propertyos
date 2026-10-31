@@ -175,7 +175,7 @@ export function emptySociety(mode: SocietyDemoMode): SocietyState {
     numbering: defaultNumbering(ALNOOR_CODE),
     posting: { roles: [...DEFAULT_POSTING_ROLES] },
     // C.2's single office cash keeps its receipt at once (accepted for C.2); D-46 is still the owner's.
-    cashWitness: 'single_counter',
+    cashWitness: 'second_person',
     transferFees: [{ version: 1, amount: { amount: '5000.00', currency: 'PKR' }, from: '2026-04-01', bylawRef: 'Bylaw 14(2), Al-Noor Residency Owners’ Association (Demo): illustrative fee' }],
     finance: emptyFinance(),
     counters: {},

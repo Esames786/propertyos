@@ -15,6 +15,7 @@ import { PENDING_STATES } from '../collections-read';
 import { beneficiaryOn, type SocietyState } from '../state';
 import { money, OFFICE_CASH, paisa, periodOf, sum } from './model';
 import { FIN_ROUTES } from './routes';
+import { cashOfBatch } from './pending-cash';
 
 /**
  * The cashbook (BANK-007, D-34): a view over settled source events, never a second ledger. Settled
@@ -242,7 +243,7 @@ export function cashEvents(state: SocietyState): CashEvent[] {
       href: FIN_ROUTES.transfer(t.id),
     });
   }
-  return [...out.values()].sort((a, b) => a.date.localeCompare(b.date) || a.at.localeCompare(b.at) || a.key.localeCompare(b.key));
+  return [...out.values()].sort((a, b) => a.date.localeCompare(b.date) || Date.parse(a.at) - Date.parse(b.at) || a.key.localeCompare(b.key));
 }
 
 const signed = (e: CashEvent) => (e.direction === 'in' ? e.amount : -e.amount);
@@ -302,6 +303,13 @@ export function pendingItems(state: SocietyState, accountId: string | null): Pen
   }
   for (const v of f.vouchers.filter((x) => (x.status === 'approved' || x.status === 'submitted') && (accountId === null || x.accountId === accountId))) {
     out.push({ kind: v.status === 'approved' ? 'voucher_approved' : 'awaiting_approval', id: v.id, ref: v.ref, amount: v.amount, accountId: v.accountId, since: v.preparedAt.slice(0, 10), describe: { key: v.status === 'approved' ? 'voucher_approved' : 'voucher_awaiting', values: { purpose: v.purpose } }, href: FIN_ROUTES.voucher(v.id) });
+  }
+  // D-46: office cash recorded but not yet counted by a second person (it will enter the office cash box).
+  if (accountId === null || accountId === OFFICE_CASH) {
+    for (const b of f.batches.filter((x) => (x.status === 'submitted' || x.status === 'returned') && paisa(cashOfBatch(x)) > 0n)) {
+      const payers = [...new Set(b.lines.filter((l) => l.method === 'office_cash').map((l) => l.payerName))].join(', ');
+      out.push({ kind: 'cash_awaiting_count', id: b.id, ref: b.ref, amount: cashOfBatch(b), accountId: OFFICE_CASH, since: b.collectedOn, describe: { key: 'cash_awaiting_count', values: { name: b.collectedByName, payers } }, href: FIN_ROUTES.batch(b.id) });
+    }
   }
   if (accountId === null || state.beneficiaries.some((b) => b.id === accountId)) {
     for (const s of state.submissions.filter((x) => PENDING_STATES.includes(x.state) && (accountId === null || x.paidTo?.beneficiaryId === accountId))) {

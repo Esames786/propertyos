@@ -1,3 +1,4 @@
+import { DISPLAY_TIME_ZONE } from '@repo/i18n/format';
 import type { EditionKey, EffectiveAccess, LicensedSite, ModuleGrant, ModuleKey, ModuleSelection, Persona, TenantStatus, TenantType, FeatureKey } from '@repo/contracts';
 import { datasetFor } from './datasets';
 import { presetFor } from './platform/catalog';
@@ -25,6 +26,8 @@ export interface DirectoryTenant {
   allowSettlement: boolean;
   /** Licensed features (catalogue keys) on top of the modules; none unless a contract grants them. */
   features?: readonly FeatureKey[];
+  /** IANA time zone of the organisation's books: actions are stamped in it (default Asia/Karachi). */
+  timeZone?: string;
 }
 
 const all = (modules: readonly ModuleKey[]): ModuleSelection[] => modules.map((module) => ({ module, sites: 'all' }));
@@ -171,6 +174,7 @@ export const TENANT_DIRECTORY: readonly DirectoryTenant[] = [
     // features S.1 builds on (office collections, reminders, transfer clearance) and the metered
     // SMS/WhatsApp channels D.1 already simulates. Every message stays simulated.
     features: ['banking.cashbook', 'receivables.bulk_office_collection', 'receivables.office_collections', 'receivables.reminders', 'residents.committee', 'residents.transfer_clearance', 'communications.sms', 'communications.whatsapp'],
+    timeZone: 'Asia/Karachi',
   },
 ];
 
@@ -178,6 +182,9 @@ export const TENANT_DIRECTORY: readonly DirectoryTenant[] = [
 export const CREATED_IN_HQ_STORYLINE: readonly string[] = ['tnt_alnoor'];
 
 export const directoryTenant = (id: string) => TENANT_DIRECTORY.find((t) => t.id === id);
+
+/** The organisation's configured time zone (Pakistan's for every demo organisation unless set). */
+export const timeZoneOf = (tenantId: string | null | undefined) => (tenantId ? directoryTenant(tenantId)?.timeZone : undefined) ?? DISPLAY_TIME_ZONE;
 
 /** Today in the demo (fixtures are frozen in time). */
 export const ACCESS_TODAY = FIXTURE_NOW.toISOString().slice(0, 10);

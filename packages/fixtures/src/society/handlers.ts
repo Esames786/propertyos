@@ -42,13 +42,16 @@ import {
 import { authorize, can, decideRecord, matches, notFound, requires, type Handler, type HandlerContext } from '../handler-types';
 import { fromPaisa, toPaisa } from '../portal';
 import { pad } from '../seed';
+import { zonedStamp } from '../clock';
+import { timeZoneOf } from '../tenant-directory';
 import { ALNOOR_ENTITY, ALNOOR_SITE, DUE_DAY, FIRST_PERIOD, ISSUE_DAY, OPENING_AS_OF, sampleFlatFile, sampleOpeningFile } from './alnoor';
 import { assess, canStart, isOpen, isPosted, post, STATE_AFTER } from './billing-run';
 import { collectionsSummary } from './collections-read';
 import { resolveCharges } from './charges';
 import { buildSocietyDashboard } from './dashboard';
 import { identityDashboardExtras } from '../identity/dashboard-extras';
-import { approvalItems } from './finance/approvals';
+import { approvalItems, cashCountItems, cashCountTasks } from './finance/approvals';
+import { cashAwaitingCount } from './finance/pending-cash';
 import { committable, FLAT_COLUMNS, fingerprint, OPENING_COLUMNS, rowsOf, validateFlats, validateOpening } from './import';
 import { factOn, payerOn } from './model';
 import { formatRef } from './numbering';
@@ -118,8 +121,11 @@ export const invalidField = (ctx: HandlerContext, field: string, code: string, p
   problem(ctx, 422, 'validation_failed', 'errors:validation.summary', { [field]: [{ code, ...(params ? { params } : {}) }] });
 
 export const actor = (ctx: HandlerContext) => ({ by: ctx.persona!.principalId, byName: ctx.persona!.displayName });
-/** The demo's frozen date with the real time of day, so session events keep their order. */
-export const stamp = (ctx: HandlerContext) => `${ctx.at}T${new Date().toISOString().slice(11)}`;
+/**
+ * An action's time: the demo's business date at the wall-clock time of the organisation's time zone,
+ * with its offset (Issue #6: evening actions in Pakistan no longer show on the next day).
+ */
+export const stamp = (ctx: HandlerContext) => zonedStamp(ctx.at, timeZoneOf(ctx.tenantId));
 
 export function log(ctx: HandlerContext, s: Society, action: string, target: SocietyAuditEntry['target'], extra: Partial<SocietyAuditEntry> = {}) {
   s.state.seq += 1;
@@ -529,7 +535,12 @@ export function societyDashboardOf(ctx: HandlerContext): SocietyDashboard {
     collections: can(ctx, 'collections.view', 'history_read') ? collectionsSummary(s, ctx.at, { bank: can(ctx, 'bank.view', 'history_read') }) : null,
     today: ctx.at,
     // Gate S.1: finance approvals (APR-001) join the card beside the C.1/C.2/D.1 ones.
-    extra: (({ approvals, tasks }) => ({ approvals: [...approvals, ...approvalItems(s.state, ctx.tenantId!, { principalId: ctx.persona!.principalId, permissions: ctx.persona!.permissions }, ctx.at)], tasks }))(identityDashboardExtras(ctx)),
+    // D.1/S.1 integration (D-46): office cash waiting for a second person's count, with its task.
+    extra: (({ approvals, tasks }) => {
+      const me = { principalId: ctx.persona!.principalId, permissions: ctx.persona!.permissions };
+      const counts = cashCountItems(s.state, me);
+      return { approvals: [...approvals, ...approvalItems(s.state, ctx.tenantId!, me, ctx.at), ...counts], tasks: [...tasks, ...cashCountTasks(counts)] };
+    })(identityDashboardExtras(ctx)),
   });
 }
 
@@ -567,7 +578,7 @@ export const SOCIETY_HANDLERS: readonly Handler[] = [
       const accountFlats = account ? s.view.model.flats.filter((f) => f.billingAccountId === account).map((f) => f.code) : [];
       return [...s.state.audit]
         .filter((e) => (!flat || e.flats?.includes(flatCode ?? '')) && (!run || e.target.id === run) && (!invoice || e.target.id === invoice) && (!account || e.target.id === account || (e.flats ?? []).some((c) => accountFlats.includes(c))))
-        .sort((a, b) => b.at.localeCompare(a.at))
+        .sort((a, b) => Date.parse(b.at) - Date.parse(a.at))
         .slice(0, 100);
     },
   },
@@ -669,7 +680,7 @@ export const SOCIETY_HANDLERS: readonly Handler[] = [
         balance: money(flatBalances(s.view).get(flat.id) ?? 0n),
         exempt: isExemptNow(s, flat.id),
         floorFlats: m.flats.filter((f) => f.floorId === floor.id).map((f) => ({ id: f.id, code: f.code })),
-        changes: s.state.payerChanges.filter((c) => c.flatId === flat.id).sort((a, b) => b.requestedAt.localeCompare(a.requestedAt)),
+        changes: s.state.payerChanges.filter((c) => c.flatId === flat.id).sort((a, b) => Date.parse(b.requestedAt) - Date.parse(a.requestedAt)),
         firstOpenPeriod: openPeriod(s.state),
       };
     },
@@ -736,7 +747,7 @@ export const SOCIETY_HANDLERS: readonly Handler[] = [
       const { state, flat } = (ctx.req.query ?? {}) as Record<string, string | undefined>;
       return [...s.state.payerChanges]
         .filter((c) => (!state || state === 'all' || c.state === state) && (!flat || c.flatId === flat))
-        .sort((a, b) => b.requestedAt.localeCompare(a.requestedAt));
+        .sort((a, b) => Date.parse(b.requestedAt) - Date.parse(a.requestedAt));
     },
   },
   {
@@ -1043,6 +1054,8 @@ export const SOCIETY_HANDLERS: readonly Handler[] = [
         siteId: s.siteId,
         legalEntityName: ALNOOR_ENTITY.name,
         liabilities: row.flats.map((f) => ({ flatId: f.id, flatCode: f.code, facts: s.view.facts.filter((x) => x.role === 'payer' && x.flatId === f.id).sort((a, b) => b.from.localeCompare(a.from)) })),
+        // D-46: cash handed in for this account and not yet counted by a second person (not paid).
+        cashAwaitingCount: cashAwaitingCount(s.state, { accountId: ctx.params.accountId! }),
       };
     },
   },

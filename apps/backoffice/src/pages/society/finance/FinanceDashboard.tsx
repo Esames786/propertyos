@@ -120,6 +120,7 @@ export default function FinanceDashboard() {
           {tile('outstanding', ReceiptText, 'gold', t('finance:kpi.outstanding'), d.outstanding, t('finance:kpi.accounts', { count: d.outstanding.accounts }))}
           {tile('pending', Hourglass, 'sky', t('finance:kpi.pendingVerification'), d.pendingVerification, t('finance:kpi.proofs', { count: d.pendingVerification.count ?? 0 }))}
           {tile('in-transit', Truck, 'violet', t('finance:kpi.inTransit'), d.cashInTransit, t('finance:kpi.deposits', { count: d.cashInTransit.count ?? 0 }))}
+          {tile('cash-awaiting-count', Coins, 'gold', t('finance:kpi.cashAwaitingCount'), d.cashAwaitingCount, t('finance:kpi.collections', { count: d.cashAwaitingCount.count ?? 0 }))}
           {tile('cheques', Coins, 'teal', t('finance:kpi.cheques'), d.chequesPending, t('finance:kpi.cheque', { count: d.chequesPending.count ?? 0 }))}
           {tile('transfers', ArrowRightLeft, 'sky', t('finance:kpi.transfers'), d.transfersAwaiting, t('finance:kpi.instructions', { count: d.transfersAwaiting.count ?? 0 }))}
           {tile('unreconciled', FileWarning, 'gold', t('finance:kpi.unreconciled'), d.unreconciled, t('finance:kpi.lines', { count: d.unreconciled.count ?? 0 }))}

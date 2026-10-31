@@ -4,6 +4,7 @@ import { isPosted } from '../billing-run';
 import { balances, type SocietyView } from '../state';
 import { balanceOn, cashbookView, cashEvents, financeAccounts, inTransitOf, knownPeriods, periodState, type CashEvent } from './cashbook';
 import { lastDayOf, money, paisa, periodOf, sum } from './model';
+import { batchesToCount, cashOfBatch } from './pending-cash';
 import { FIN_ROUTES } from './routes';
 
 /** FIN-001, BANK-001 and BANK-008: figures derived from the same events as the cashbook. */
@@ -61,7 +62,7 @@ export function closeChecks(view: SocietyView, period: string, today: string): {
   const cashAccounts = financeAccounts(state, today)
     .filter((a) => a.kind !== 'bank')
     .map((a) => {
-      const counted = [...f.cashCounts].filter((c) => c.accountId === a.id && c.status === 'witnessed' && c.onDate >= end).sort((x, y) => y.countedAt.localeCompare(x.countedAt))[0];
+      const counted = [...f.cashCounts].filter((c) => c.accountId === a.id && c.status === 'witnessed' && c.onDate >= end).sort((x, y) => Date.parse(y.countedAt) - Date.parse(x.countedAt))[0];
       return { id: a.id, name: a.name, expected: money(balanceOn(events, a.id, counted?.onDate ?? end)), ...(counted ? { counted } : {}) };
     });
   const uncounted = cashAccounts.filter((c) => !c.counted || paisa(c.counted.counted) !== paisa(c.expected));
@@ -118,6 +119,8 @@ export function financeOverview(view: SocietyView, today: string, period: string
     outstanding: { amount: money(sum(outstandingByAccount)), accounts: outstandingByAccount.length, href: FIN_ROUTES.aging() },
     pendingVerification: { amount: money(sum(pendingProofs.map((x) => paisa(x.current.amount)))), count: pendingProofs.length, href: FIN_ROUTES.inbox('pending') },
     cashInTransit: { amount: money(inTransitOf(state)), count: f.transfers.filter((t) => t.status === 'in_transit').length, href: FIN_ROUTES.transfers('in_transit') },
+    // D-46: office collections waiting for a second person's count (single office payments included).
+    cashAwaitingCount: { amount: money(sum(batchesToCount(state).map((b) => paisa(cashOfBatch(b))))), count: batchesToCount(state).length, href: FIN_ROUTES.batches('submitted') },
     chequesPending: { amount: money(sum(cheques.map((c) => paisa(c.amount)))), count: cheques.length, href: FIN_ROUTES.cheques('pending') },
     transfersAwaiting: { amount: money(sum(awaiting.map((t) => paisa(t.amount)))), count: awaiting.length, href: FIN_ROUTES.transfers('approved_instruction') },
     netMovement: { amount: book.totals.net, count: book.lines.length, href: FIN_ROUTES.cashbook({ period }) },

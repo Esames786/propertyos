@@ -1,6 +1,9 @@
 import {
   ApiError,
   type BankFeed,
+  type BatchDetail,
+  type BillingAccountDetail,
+  type OfficeCashRecorded,
   type BillingRunDetail,
   type CollectionSettings,
   type CollectionsSummary,
@@ -227,7 +230,7 @@ describe('Gate C.2 storyline: resident → finance → receipt', () => {
 });
 
 describe('office cash, the bank feed and reconciliation (AC-13, AC-14)', () => {
-  it('office cash is refused until the method rule allows it; then the counter issues a receipt', async () => {
+  it('office cash is refused until the method rule allows it; then it waits for a second count (D-46) and only then has a receipt', async () => {
     const s = session();
     const payer = (await s.get<FlatDetail>(`${SITE}/units/unt_anr_a101`)).currentPayer!;
     const cash = { accountId: 'ba_anr_a101', payerPartyId: payer.partyId, amount: '5200' };
@@ -247,9 +250,23 @@ describe('office cash, the bank feed and reconciliation (AC-13, AC-14)', () => {
     await s.patch<CollectionSettings>(`${SITE}/payment-methods`, { method: 'office_cash', maxAmount: '50000' });
     s.as('alnoor_accounts');
     expect(await problem(s.post('/payments/office', { ...cash, amount: '60000' }))).toMatchObject({ status: 422 });
-    const paid = await s.post<PaymentDetail>('/payments/office', cash);
-    expect(paid.payment).toMatchObject({ method: 'office_cash', verification: 'counter', amount: { amount: '5200.00' } });
-    expect(paid.receipt.ref).toBeTruthy();
+    // Owner decision D-46 (D.1/S.1 integration): the counter records the cash; nothing is paid yet.
+    const recorded = await s.post<OfficeCashRecorded>('/payments/office', cash);
+    expect(recorded).toMatchObject({ status: 'awaiting_count', amount: { amount: '5200.00' }, replayed: false });
+    const before = await s.get<BillingAccountDetail>('/billing-accounts/ba_anr_a101');
+    expect(before.cashAwaitingCount).toEqual([expect.objectContaining({ batchId: recorded.batch.id, amount: { amount: '5200.00', currency: 'PKR' } })]);
+    // The collector never confirms their own cash; a second person counts it, and only then is there a receipt.
+    expect(await problem(s.post(`/office-collections/${recorded.batch.id}/confirm`, { countedCash: '5200' }))).toMatchObject({ status: 403 });
+    s.as('alnoor_treasurer');
+    expect(await problem(s.post(`/office-collections/${recorded.batch.id}/confirm`, { countedCash: '5000' }))).toMatchObject({ code: 'count_mismatch' });
+    const confirmed = await s.post<BatchDetail>(`/office-collections/${recorded.batch.id}/confirm`, { countedCash: '5200' });
+    const outcome = confirmed.batch.lines[0]!.outcome;
+    if (outcome?.kind !== 'payment') throw new Error('expected a payment');
+    const paid = await s.get<PaymentDetail>(`/payments/${outcome.paymentId}`);
+    expect(paid.payment).toMatchObject({ method: 'office_cash', verification: 'witnessed', amount: { amount: '5200.00' } });
+    expect(paid.receipt.ref).toBe(outcome.receiptRef);
+    expect((await s.get<BillingAccountDetail>('/billing-accounts/ba_anr_a101')).cashAwaitingCount).toEqual([]);
+    s.as('alnoor_accounts');
     // A guard holds no payment permission at all.
     s.as('alnoor_guard');
     expect(await problem(s.post('/payments/office', cash))).toMatchObject({ status: 403 });

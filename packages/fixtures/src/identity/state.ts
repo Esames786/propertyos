@@ -1,3 +1,5 @@
+import { zonedStamp } from '../clock';
+import { timeZoneOf } from '../tenant-directory';
 import type {
   ContactConsent,
   DeviceInfo,
@@ -158,8 +160,8 @@ export const dayOffset = (days: number, from = REGISTER_TODAY) => {
   return d.toISOString().slice(0, 10);
 };
 const at = (days: number, time = '09:30:00') => `${dayOffset(days)}T${time}Z`;
-/** The demo's date with the real time of day (the same convention as the society screens). */
-export const nowStamp = (ctx: Pick<HandlerContext, 'at'>) => `${ctx.at}T${new Date().toISOString().slice(11)}`;
+/** The demo's date at the organisation's wall-clock time (the same convention as the society screens). */
+export const nowStamp = (ctx: Pick<HandlerContext, 'at' | 'tenantId'>) => zonedStamp(ctx.at, timeZoneOf(ctx.tenantId));
 
 const DEVICES: Record<string, DeviceInfo> = {
   officePc: { kind: 'desktop', platform: 'windows', browser: 'Edge' },

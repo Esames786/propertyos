@@ -364,9 +364,13 @@ test.describe('S.1 transfers, reminders and printing', () => {
     await expect(page.getByTestId('ownership-fee-invoice')).toContainText('5,000.00');
     await switchTo(page, 'alnoor_treasurer');
     await api(page, '/sites/site_alnoor/payment-methods', 'PATCH', { method: 'office_cash', enabled: true });
+    // D-46: the accounts officer records the cash; the treasurer counts it and confirms.
+    await switchTo(page, 'alnoor_accounts');
     const people = await api<Array<{ payers: Array<{ partyId: string }>; billingAccountId: string }>>(page, '/office-collections/candidates', 'GET', {}, { q: 'B-403' });
     const p = people.ok ? people.res[0]! : null;
-    await api(page, '/payments/office', 'POST', { accountId: p!.billingAccountId, payerPartyId: p!.payers[0]!.partyId, amount: '10700' });
+    const cash = await api<{ batch: { id: string } }>(page, '/payments/office', 'POST', { accountId: p!.billingAccountId, payerPartyId: p!.payers[0]!.partyId, amount: '10700' });
+    await switchTo(page, 'alnoor_treasurer');
+    expect(cash.ok && (await api(page, `/office-collections/${cash.res.batch.id}/confirm`, 'POST', { countedCash: '10700' })).ok).toBe(true);
     await as(page, 'alnoor_manager', `/backoffice/own/transfer-review-approval?record=${id}`, 'ownership-workspace');
     await page.getByTestId('ownership-check').click();
     await expect(page.getByTestId('ownership-outstanding')).toHaveAttribute('data-amount', '0.00');

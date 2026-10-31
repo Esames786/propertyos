@@ -13,6 +13,7 @@ import type {
   SignInCodeSent,
 } from '@repo/contracts';
 import { normalizePkPhone } from '@repo/i18n/format';
+import { isAfter } from '../clock';
 import { authorize, invalid, notFound, publicFor, requires, type Handler, type HandlerContext } from '../handler-types';
 import { ALNOOR_RESIDENTS } from '../people';
 import { ALNOOR_SITE } from '../society/alnoor';
@@ -50,7 +51,7 @@ function livePeople(ctx: HandlerContext): RegisterPerson[] {
 }
 
 const latestInvitation = (state: IdentityState, partyId: string) =>
-  state.invitations.filter((i) => i.partyId === partyId).sort((a, b) => b.sentAt.localeCompare(a.sentAt))[0];
+  state.invitations.filter((i) => i.partyId === partyId).sort((a, b) => Date.parse(b.sentAt) - Date.parse(a.sentAt))[0];
 
 export function statusOf(person: RegisterPerson, state: IdentityState, today: string): PortalStatus {
   if (!person.verified) return 'unverified';
@@ -62,7 +63,7 @@ export function statusOf(person: RegisterPerson, state: IdentityState, today: st
     const last = account.lastSignInAt?.slice(0, 10);
     return last && last >= dayOffset(-ACTIVE_DAYS, today) ? 'active' : 'inactive';
   }
-  if (account?.status === 'revoked') return (invite && invite.sentAt > (account.revokedAt ?? '') && inviteStatus(invite)) || 'revoked';
+  if (account?.status === 'revoked') return (invite && isAfter(invite.sentAt, account.revokedAt) && inviteStatus(invite)) || 'revoked';
   return inviteStatus(invite) ?? 'not_invited';
 }
 

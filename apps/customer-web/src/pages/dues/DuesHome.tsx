@@ -54,6 +54,14 @@ function HomeView({ data }: { data: Home }) {
 
       <BillHero position={p} fmt={fmt} pendingId={pending[0]?.id} />
 
+      {/* D-46: cash handed in at the office counts only once a second person has confirmed it. */}
+      {(data.cashAwaitingCount ?? []).map((c, i) => (
+        <p key={i} className="flex items-start gap-3 rounded-card border border-border bg-panel p-4 text-sm text-text" data-testid="dues-cash-awaiting" role="status">
+          <Wallet aria-hidden className="mt-0.5 size-5 shrink-0 text-muted" />
+          <span className="min-w-0">{t('dues:home.cashAwaiting', { amount: fmt.money(c.amount.amount), date: fmt.date(c.recordedOn) })}</span>
+        </p>
+      ))}
+
       {needsAction && (
         <Link href={DUES.submission(needsAction.id)} variant="plain" className="flex items-start gap-3 rounded-card border-2 border-warning/50 bg-warning-soft/60 p-4 hover:bg-warning-soft" data-testid="dues-needs-info">
           <FileQuestion aria-hidden className="mt-0.5 size-5 shrink-0 text-warning" />

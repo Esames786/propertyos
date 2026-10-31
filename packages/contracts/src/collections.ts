@@ -765,6 +765,8 @@ export interface DuesHome {
   receipts: ResidentReceiptSummary[];
   /** Gate S.1: cheques waiting to clear (acknowledged, never counted as paid). */
   cheques?: ResidentCheque[];
+  /** D-46: cash the resident handed in at the office, not counted by a second person yet (not paid). */
+  cashAwaitingCount?: Array<{ amount: Money; recordedOn: string }>;
 }
 
 export interface DuesBills {

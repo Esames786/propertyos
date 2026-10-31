@@ -375,6 +375,9 @@ test('video: Flat 360, connected records and a payer change (desktop, English)',
   await pause(1200);
   await page.getByTestId('change-payer-drawer').locator('[data-testid^="change-payer-party-"]', { hasText: 'Hina Rana' }).click();
   await pause(800);
+  // The drawer requires a reason (validation kept); the script types one, as a person would.
+  await page.getByTestId('change-payer-reason').fill('New tenancy agreement from 1 November.');
+  await pause(600);
   await page.getByTestId('change-payer-save').click();
   await pause(1500);
   await page.getByRole('tab', { name: 'Invoices and statement' }).click();

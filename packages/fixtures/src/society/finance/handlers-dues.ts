@@ -765,7 +765,9 @@ export const FINANCE_DUES_HANDLERS: readonly Handler[] = [
       const s = site(ctx);
       const policy = body<{ policy: string }>(ctx).policy;
       if (policy !== 'single_counter' && policy !== 'second_person') refuse(ctx, 422, 'witness_policy', 'policy');
-      s.state.cashWitness = policy as 'single_counter' | 'second_person';
+      // D-46 (owner decision at the D.1/S.1 integration): a single counter no longer settles cash.
+      if (policy === 'single_counter') refuse(ctx, 409, 'witness_required', 'policy');
+      s.state.cashWitness = 'second_person';
       log(ctx, s, 'cashWitnessSaved', { kind: 'settings', id: 'cash_witness', label: policy! });
       save(ctx);
       return { cashWitness: s.state.cashWitness };
