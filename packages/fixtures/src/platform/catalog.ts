@@ -1,7 +1,7 @@
 import type { EditionKey, EditionPreset, ModuleCatalog, ModuleCatalogEntry, ModuleKey } from '@repo/contracts';
 
 /**
- * The module catalogue (Gate A, A1 §5): 27 modules, their scope, hard requirements ("requires") and
+ * The staged module catalogue (Gate D.3): 29 modules (27 baseline + two opt-in engagement add-ons), their scope, hard requirements ("requires") and
  * soft links ("integrates"), and which edition presets include them. An edition only pre-fills
  * grants; access is decided by grants alone (D-2).
  */
@@ -49,6 +49,12 @@ export const MODULES: readonly ModuleCatalogEntry[] = [
   m('public_website', 'channels', 'tenant', ['projects', 'inventory'], ['crm'], [], DEV),
   m('white_label', 'channels', 'tenant', ['core'], [], [], BOTH),
   m('api_access', 'channels', 'tenant', ['core'], [], [], BOTH),
+  // HR, chat and payables are integrations, not mandatory for independent society engagement.
+  // Resident operations always enter through resident_portal first (Rule R) before checking an add-on.
+  m('community_chat', 'community', 'site', ['resident_portal', 'communications', 'residents'], ['hr', 'community_hub'], [], BOTH),
+  m('community_hub', 'community', 'site', ['resident_portal', 'communications', 'residents'], ['community_chat', 'payables'], [], BOTH, [
+    'community_hub.services_directory', 'community_hub.polls', 'community_hub.resources', 'community_hub.marketplace',
+  ]),
 ];
 
 const preset = (key: EditionKey, components: string[]): EditionPreset => ({

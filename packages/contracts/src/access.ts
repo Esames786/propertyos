@@ -35,6 +35,9 @@ export const MODULE_KEYS = [
   'public_website',
   'white_label',
   'api_access',
+  // V3.2 Gate D.3: site-licensed opt-in community engagement.
+  'community_chat',
+  'community_hub',
 ] as const;
 export type ModuleKey = (typeof MODULE_KEYS)[number];
 
@@ -54,6 +57,8 @@ export const SITE_SCOPED_MODULES: ReadonlySet<ModuleKey> = new Set<ModuleKey>([
   'visitors',
   'parking',
   'amenities',
+  'community_chat',
+  'community_hub',
 ]);
 export type FeatureKey = `${ModuleKey}.${string}`;
 
@@ -331,6 +336,12 @@ export const PERMISSION_MODULE: Partial<Record<Permission, ModuleKey>> = {
   'notices.publish': 'communications',
   'messages.send': 'communications',
   'merchant.manage': 'online_payments',
+  'chat.use': 'community_chat',
+  'chat.groups.manage': 'community_chat',
+  'chat.moderate': 'community_chat',
+  'directory.manage': 'community_hub',
+  'polls.manage': 'community_hub',
+  'marketplace.moderate': 'community_hub',
 };
 
 /** Something the UI offers (a menu item, action, tour step, link): its module and permission. */

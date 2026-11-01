@@ -95,6 +95,13 @@ export const PERMISSIONS = [
   'notices.publish',
   'messages.send',
   'merchant.manage',
+  // V3.2 Gate D.3: the two optional, site-licensed community modules.
+  'chat.use',
+  'chat.groups.manage',
+  'chat.moderate',
+  'directory.manage',
+  'polls.manage',
+  'marketplace.moderate',
   // Platform HQ (central plane, V3.1). Operators are a separate principal type from tenant staff.
   'platform.dashboard.view',
   'platform.tenants.view',

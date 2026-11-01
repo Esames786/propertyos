@@ -9,10 +9,25 @@ import { directoryTenant } from '../tenant-directory';
 const sel = (module: ModuleSelection['module'], sites: ModuleSelection['sites'] = 'all'): ModuleSelection => ({ module, sites });
 
 describe('module catalogue', () => {
-  it('has the 27 approved modules with valid references', () => {
-    expect(MODULES).toHaveLength(27);
+  it('has the 27 baseline modules plus two optional D.3 add-ons with valid references', () => {
+    expect(MODULES).toHaveLength(29);
     const keys = new Set(MODULES.map((m) => m.key));
     for (const m of MODULES) for (const r of [...m.requires, ...m.integrates]) expect(keys.has(r), `${m.key} → ${r}`).toBe(true);
+  });
+
+  it('new chat and hub are opt-in; neither requires HR, payables or the other add-on', () => {
+    const chat = MODULES.find(m => m.key === 'community_chat')!;
+    const hub = MODULES.find(m => m.key === 'community_hub')!;
+    for (const m of [chat, hub]) {
+      expect(m.scope).toBe('site');
+      expect(m.includedIn).toEqual([]);
+      expect(m.requires).toContain('resident_portal');
+      expect(m.requires).toContain('communications');
+      expect(m.requires).not.toContain('hr');
+      expect(m.requires).not.toContain('payables');
+    }
+    expect(checkDependencies([sel('community_chat', ['site_a']), sel('resident_portal', ['site_a']), sel('residents', ['site_a']), sel('communications')]).ok).toBe(true);
+    expect(checkDependencies([sel('community_hub', ['site_a']), sel('resident_portal', ['site_b']), sel('residents', ['site_a']), sel('communications')]).issues.some(i => i.kind === 'site_gap')).toBe(true);
   });
 
   it('every edition preset passes its own dependency check', () => {
