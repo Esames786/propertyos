@@ -12,6 +12,7 @@ import {
   type OpsFile,
   type OpsFlatPeople,
   type RequestActions,
+  type RequestCommentVisibility,
   type RequestDetail,
   type RequestList,
   type RequestPriority,
@@ -105,6 +106,7 @@ function actionsOf(ctx: HandlerContext, staff: Staff, r: StoredRequest): Request
     cancel: manage && ['submitted', 'triaged', 'assigned'].includes(r.state) && !issue,
     comment: open && (manage || ownOrder || (issue && operational('issues.manage'))),
     commentInternal: open && (manage || ownOrder || (issue && operational('issues.manage'))),
+    commentAssignee: open && !!order && (manage || (issue && operational('issues.manage'))),
     merge: issue && open && operational('issues.manage'),
     moderate: issue && r.state !== 'hidden' && operational('issues.moderate'),
     resolve: issue && open && operational('issues.manage'),
@@ -121,13 +123,18 @@ function detailOf(ctx: HandlerContext, staff: Staff, r: StoredRequest): RequestD
   if (r.mergedInto) related.push({ kind: 'issue', id: r.mergedInto.id, label: r.mergedInto.ref });
   if (r.flat) for (const o of staff.ops.requests.filter((x) => x.flat?.id === r.flat!.id && x.id !== r.id).slice(-4)) related.push({ kind: 'request', id: o.id, label: `${o.ref} · ${o.title}` });
   const { comments, history, affirmations: _a, followers: _f, published: _p, ...request } = r;
+  // Owner ruling (Issue #8), least privilege: a technician or contractor on their own job sees only the
+  // comments shared with the assignee and their own, never the office's internal discussion or who
+  // else is affected.
+  const office = can(ctx, 'maintenance.manage', 'operational') || (r.kind === 'community_issue' && can(ctx, 'issues.manage', 'operational'));
+  const assignee = !office && !!technicianOf(ctx, staff);
   return {
     request: { ...request, sla: rowSla(staff, r, at) },
     workOrders: staff.ops.workOrders.filter((w) => w.requestId === r.id),
-    comments,
+    comments: assignee ? comments.filter((c) => c.visibility === 'assignee' || (c.byKind === 'technician' && c.byName === who(ctx))) : comments,
     history,
     actions: actionsOf(ctx, staff, r),
-    ...(r.kind === 'community_issue' ? { affected: issueAffected(staff, r, at) } : {}),
+    ...(r.kind === 'community_issue' && !assignee ? { affected: issueAffected(staff, r, at) } : {}),
     related,
     ...(can(ctx, 'maintenance.manage', 'operational') ? { technicians: technicians(staff) } : {}),
   };
@@ -704,10 +711,11 @@ export const OPS_REQUEST_HANDLERS: readonly Handler[] = [
       const staff = staffOps(ctx, 'maintenance');
       const r = findRequest(ctx, staff);
       const actions = actionsOf(ctx, staff, r);
-      const input = body<{ text?: string; visibility?: 'public' | 'internal' }>(ctx);
+      const input = body<{ text?: string; visibility?: RequestCommentVisibility }>(ctx);
       if (!actions.comment) problem(ctx, 403, 'permission_missing', 'errors:access.permission_missing');
       const text = requireText(ctx, 'text', input.text, 2, 1000);
-      const visibility = input.visibility === 'internal' ? 'internal' : 'public';
+      const visibility: RequestCommentVisibility = input.visibility === 'internal' || input.visibility === 'assignee' ? input.visibility : 'public';
+      if (visibility === 'assignee' && !activeOrder(staff, r)) invalid(ctx, 'visibility', 'operations:errors.noAssignee');
       const tech = technicianOf(ctx, staff);
       const byKind = tech && activeOrder(staff, r)?.technicianId === tech.id ? 'technician' : 'staff';
       r.comments.push({ id: `cmt_${r.id}_${r.comments.length + 1}`, at: now(ctx), byName: who(ctx), byKind, visibility, text });

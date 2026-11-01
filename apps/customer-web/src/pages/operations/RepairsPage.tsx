@@ -105,8 +105,8 @@ function RepairCard({ request: r, highlight, onOpen }: { request: ResidentReques
       data-state={r.state}
     >
       <span className="flex flex-wrap items-start justify-between gap-2">
-        <span className="min-w-0 flex-1">
-          <span className="block font-semibold text-text [overflow-wrap:anywhere]"><bdi>{r.title}</bdi></span>
+        <span className="min-w-0 flex-[1_1_10em]">
+          <span className="block font-semibold text-text break-words"><bdi>{r.title}</bdi></span>
           <span className="block text-xs text-muted">
             <bdi dir="ltr" className="ltr-ref">{r.ref}</bdi> · <bdi dir="ltr" className="ltr-ref">{r.flatCode}</bdi>
             {r.room ? ` · ${w.room(r.room)}` : ''} · {w.category(r.category)}
@@ -213,7 +213,7 @@ function NewRepairSheet({ isOpen, data, onClose, onCreated }: { isOpen: boolean;
         <SelectControl label={t('operations:repairs.where')} value={room} onChange={(v) => setRoom(v ?? 'kitchen')} options={FLAT_ROOMS.map((r) => ({ id: r, label: w.room(r) }))} testId="repair-room" />
         <PlainTextField label={t('operations:repairs.titleField')} description={t('operations:repairs.titleHint')} value={title} onChange={setTitle} testId="repair-title" />
         <PlainTextArea label={t('operations:repairs.describe')} description={t('operations:repairs.describeHint')} value={description} onChange={setDescription} testId="repair-description" />
-        <SegmentedControl label={t('operations:repairs.urgency')} value={urgency} onChange={setUrgency} options={REQUEST_URGENCIES.map((u) => ({ id: u, label: w.urgency(u) }))} testId="repair-urgency" />
+        <SegmentedControl label={t('operations:repairs.urgency')} value={urgency} onChange={setUrgency} options={REQUEST_URGENCIES.map((u) => ({ id: u, label: w.urgency(u) }))} testId="repair-urgency" wrap />
         {urgency === 'emergency' && (
           <InlineAlert tone="warning" title={t('operations:repairs.emergencyTitle')}>
             <p>{t('operations:repairs.emergencyBody')}</p>

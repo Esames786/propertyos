@@ -43,7 +43,7 @@ export default function IssuesPage() {
           <Link href={OPS.repairs}>{t('operations:residentIssue.reportRepair')}</Link>
         </p>
       </header>
-      <SegmentedControl label={t('operations:residentIssue.show')} value={current} onChange={(v) => setParams({ tab: v === 'near' ? null : v })} options={[{ id: 'near', label: t('operations:residentIssue.near') }, { id: 'mine', label: t('operations:residentIssue.mine') }, { id: 'resolved', label: t('operations:residentIssue.resolved') }]} testId="issue-tabs" />
+      <SegmentedControl label={t('operations:residentIssue.show')} value={current} onChange={(v) => setParams({ tab: v === 'near' ? null : v })} options={[{ id: 'near', label: t('operations:residentIssue.near') }, { id: 'mine', label: t('operations:residentIssue.mine') }, { id: 'resolved', label: t('operations:residentIssue.resolved') }]} testId="issue-tabs" wrap />
       <p className="flex items-start gap-2 text-xs text-muted" data-testid="issue-privacy">
         <ShieldCheck aria-hidden className="mt-0.5 size-4 shrink-0" />
         {t('operations:residentIssue.privacy')} {d.snapshotAt ? t('operations:residentIssue.refreshedAt', { time: fmt.instantTime(d.snapshotAt) }) : ''}
@@ -98,8 +98,8 @@ function IssueCard({ issue: i, onOpen, onChanged }: { issue: ResidentIssue; onOp
     <div className="space-y-3 rounded-card border border-border bg-panel p-4 shadow-card" data-testid="issue-card" data-ref={i.ref} data-state={i.state}>
       <button type="button" onClick={onOpen} className="block w-full space-y-2 text-start outline-none focus-visible:outline-2 focus-visible:outline-focus">
         <span className="flex flex-wrap items-start justify-between gap-2">
-          <span className="min-w-0 flex-1">
-            <span className="block font-semibold text-text [overflow-wrap:anywhere]"><bdi>{i.title}</bdi></span>
+          <span className="min-w-0 flex-[1_1_10em]">
+            <span className="block font-semibold text-text break-words"><bdi>{i.title}</bdi></span>
             <span className="block text-xs text-muted">
               {i.area ? w.area(i.area) : ''} · {w.category(i.category)}
               {i.nearMe ? ` · ${t('operations:residentIssue.nearYou')}` : ''}

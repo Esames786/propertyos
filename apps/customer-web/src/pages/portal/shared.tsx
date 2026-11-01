@@ -46,6 +46,7 @@ export function usePortalFormat(asOf: string) {
       date: (calendarDate: string) => formatCalendarDate(calendarDate, locale),
       instant: (iso: string) => formatInstant(iso, locale, 'date'),
       instantTime: (iso: string) => formatInstant(iso, locale, 'dateTime'),
+      time: (iso: string) => formatInstant(iso, locale, 'time'),
       monthYear: (calendarDate: string) => monthYear.format(new Date(`${calendarDate}T00:00:00Z`)),
       percent: (ratio: number, digits = 0) => formatPercent(ratio, locale, digits),
       count: (n: number) => formatNumber(n, locale),
@@ -58,12 +59,23 @@ export function usePortalFormat(asOf: string) {
 
 export type PortalFormat = ReturnType<typeof usePortalFormat>;
 
-/** Latin money inside any language: bidi-isolated and left-to-right. */
-export function Amount({ value, className }: { value: string; className?: string }) {
+/**
+ * Latin money inside any language: bidi-isolated and left-to-right. `wrap` lets a large figure put the
+ * currency on its own line when the whole amount does not fit (the digits themselves never break).
+ */
+export function Amount({ value, className, wrap = false }: { value: string; className?: string; wrap?: boolean }) {
   const { locale } = useLocale();
+  const text = formatMoney({ amount: value, currency: 'PKR' }, locale);
+  const gap = wrap ? text.indexOf(' ') : -1;
   return (
-    <bdi dir="ltr" className={cn('ltr-ref whitespace-nowrap tabular', className)} data-amount={value}>
-      {formatMoney({ amount: value, currency: 'PKR' }, locale)}
+    <bdi dir="ltr" className={cn('ltr-ref tabular', gap > 0 ? 'whitespace-normal' : 'whitespace-nowrap', className)} data-amount={value}>
+      {gap > 0 ? (
+        <>
+          <span className="whitespace-nowrap">{text.slice(0, gap)}</span> <span className="whitespace-nowrap">{text.slice(gap + 1)}</span>
+        </>
+      ) : (
+        text
+      )}
     </bdi>
   );
 }

@@ -1,7 +1,7 @@
 # Gate D.2: Society Maintenance & Resident Operations (Al-Noor Residency)
 
-**Status: built, frontend only, and stopped for review.**
-- **Branch:** `feature/gate-d2-resident-ops`, from `integration/d1-s1` at `5b93544` (Gates D.1 and S.1 together).
+**Status: built, frontend only; review closure (Issue #8) done; stopped for review.**
+- **Branch:** `feature/gate-d2-resident-ops`, from `integration/d1-s1` at `5b93544` (Gates D.1 and S.1 together). Reviewed at `93889a3` (Issue #8: functionality accepted, targeted UX closure required); the closure is described in [§11](#11-review-closure-issue-8).
 - **Authorisation and sources:** the owner's Gate D.2 authorisation (Issue #7); V3.2 at `0e57604` (`docs/blueprint/v3.2/*`): execution plan §D.2, the module and licensing matrix §5.2 and §7, owner decisions D-28 and D-47, and the D.2 register delta (17 rows).
 - **Not done, as instructed:**
   - no Laravel or production migrations;
@@ -44,7 +44,7 @@ Further detail:
 - **Visitors:** passes (window, plate, single or multiple entry, code), gate check-in and check-out, walk-in requests answered by an occupant of the flat (5 minutes, then expired), the live queue (refreshes every 15 s, simulated), refusals (wrong code, outside the window, already used, cancelled).
 - **Vehicles and parking:** a resident registers a vehicle; approval needs the plate to be unique among approved vehicles, the owner still linked to the flat and a free slot within the flat's allowance; reject with a reason; retire.
 - **Notices:** versions, an audience resolved from the live facts on every read, recipients fixed at publication, per-recipient delivery, read and acknowledgement, withdrawal as a tombstone, scheduled publication (the simulated scheduler publishes a due notice on the next read); quick broadcasts with simulated SMS and WhatsApp copies.
-- **Amenities:** instant or office-approved bookings; taken slots shown without names.
+- **Amenities:** instant or office-approved bookings; taken slots shown without names. Who may book is per amenity (owner ruling, Issue #8): the people who live in the flat by default; an owner who lives elsewhere only where the amenity allows owners (in the demo: the community hall).
 - **Moves:** an effective-dated move-out of an occupant; liability and app invitations never follow it.
 - **Online payments (BILL-011):** sandbox settings and signed test events: accepted (waiting for the bank), refused (bad signature, duplicate, gateway off). Nothing is ever marked paid from here (C.2 ruling: settlement needs a matched statement line).
 - **Rule R on every resident endpoint:** resident portal licensed, a verified link in force at the site, the person still holding a role on the flat today, and the service module (and feature) licensed for that site.
@@ -110,8 +110,8 @@ Also: PORTAL-015 (services home) gains the society's Visitors tab and PORTAL-040
 
 ## 6. Decisions made in D.2 (please confirm or correct)
 
-1. **Suspended organisations: D.2 is paused, not readable.** V3.2 says "history read-only" for Cedar Hills; Gate B's tested rule says only financial history stays readable. D.2 follows Gate B (maintenance, visitors, vehicles, notices and the residents dashboard all say *This workspace is suspended*). If maintenance history should stay readable, it is a one-word change per area.
-2. **A technician without a sign-in** (Bilal Khan, plumber) is recorded by the office; Waqas Ali (electrician) has his own sign-in and sees only his jobs.
+1. **Suspended organisations: D.2 is paused, not readable.** Confirmed by the owner ruling in Issue #8 (keep the Gate B rule; a versioned per-module suspension policy may come later). Maintenance, visitors, vehicles, notices and the residents dashboard all say *This workspace is suspended*; authorised financial history stays readable.
+2. **A technician without a sign-in** (Bilal Khan, plumber) is recorded by the office; Waqas Ali (electrician) has his own sign-in and sees only his jobs. Accepted in Issue #8. The history names the office colleague who recorded each step (as office), never the technician (API test).
 3. **The gate and maintenance staff see only what their work needs.** The guard's walk-in picker lists flat codes from the gate's own endpoint; the maintenance supervisor's new-request form lists flats with the names of the people who live in or own each (to raise a request on someone's behalf), from `/ops/flats`. Neither reads the site's records, payers or balances (neither role has `site.view`).
 4. **Online payments** is a tab of Site 360 for whoever manages the merchant account (the committee secretary in the demo); the building manager does not see it.
 5. **Scheduled notices** publish themselves on the next read after their time (the demo has no background jobs). A saved draft is published now; to schedule, start a new notice with a time.
@@ -121,18 +121,18 @@ Also: PORTAL-015 (services home) gains the society's Visitors tab and PORTAL-040
 9. **Phones show two tabs plus More** on Request 360, Site 360 and Flat 360 (their labels are long); other screens keep three (`UrlTabs` gained an optional `phoneLimit`).
 10. **After a repair is marked fixed** the resident no longer sees "Bilal is coming on …"; the completion card replaces it.
 
-## 7. Product decisions still open
+## 7. Product decisions (ruled in Issue #8)
 
-- Attachments on notices (an agenda, a circular) and links from a notice to a record (PORTAL-043).
-- Whether residents may book amenities for a flat they own but do not live in.
-- Who may see a community issue's internal comments when an outside contractor is assigned.
-- Whether a moved-out tenant who still owes dues keeps read access to past notices for that flat.
+- **Attachments on notices and links to records (PORTAL-043):** stays **PARTIAL**; scheduled for a later bounded UI gate (G). Not claimed complete.
+- **Amenities for a flat the resident owns but does not live in:** by default only the people who live in the flat book; owners only where the amenity's policy allows it. Applied (§11).
+- **Outside contractors and internal comments:** least privilege. Applied: a technician or contractor sees only comments the office shares with the assignee, and their own (§11).
+- **A moved-out tenant who still owes:** keeps their own past bills and payment evidence through the payer entitlement (Gate C), not the notices of a flat they no longer live in. Already so: notices and requests stop at once on move-out, bills stay (`operations.api.test.ts`, *a moved-out occupant loses occupants' notices …, but still sees bills*).
+- **Accepted as built:** gate staff see flat codes only; the maintenance supervisor sees occupant names for assignment, never balances or payers; vehicles and move-out are separate from a payer change and from invitations; the sandbox gateway never marks anything paid; scheduled notices publish on the next read, now labelled as a simulation where they are scheduled.
 
 ## 8. Limitations and what is not in D.2
 
 - **PORTAL-043 PARTIAL:** notices are text only (no attachments or linked records).
-- **Right-to-left typing (shared, all gates):** while typing English into a field in the Urdu app, a trailing full stop shows at the start of the line; saved text displays correctly everywhere. Tested fixes and why they were not applied: `test-results.md` §Findings.
-- **Toasts over drawers (shared):** a stack of confirmations can cover a drawer's bottom buttons until the toasts dismiss themselves.
+- **Right-to-left typing (shared, all gates):** while typing English into a field in the Urdu app, a trailing full stop shows at the start of the line; saved text displays correctly everywhere. Kept as a documented known issue (Issue #8: no global `dir=auto` or `unicode-bidi: plaintext`; a per-input, content-aware approach is to be planned with its own measured tests). Tested fixes and why they were not applied: `test-results.md` §Findings.
 - **Not exercised in the browser:** a read-only vehicles view (every Al-Noor role that sees vehicles may approve them) and the suspended organisation's D.2 pages (covered by the unit tests of the shared access rule).
 - **Simulated:** SMS, WhatsApp, QR scanning, the gateway, live refresh and scheduled publication; the demo clock keeps 26 October 2026 with the real time of day.
 - No SOS, chat, community hub, payroll or rentals (later gates).
@@ -147,10 +147,42 @@ Also: PORTAL-015 (services home) gains the society's Visitors tab and PORTAL-040
 - `packages/fixtures/src/shared-demo.ts` (the demo link between the two apps, D.1/C.2): a copy fetched from the office's bridge no longer replaces a save this app made while the copy was on its way. Overlapping requests on the resident's home page had lost a write (a resident's text size never reached her account).
 - `packages/ui/src/workspace/tenantWorkspace.ts`: the D.2 menu entries. *Vehicles* and *Send message* own only their own addresses, so the other parking and notification screens (PARK-001, NOT-001 …) still answer as planned.
 - `apps/backoffice/src/pages/home/PlanHome.tsx` (a maintenance-only client such as Shalimar Court): requests, new request and the technician board are now working quick actions; only preventive maintenance (MNT-010, Gate G) is still listed as planned.
+- **Review closure (Issue #8), shared pieces:**
+  - `packages/ui/src/feedback/Toast.tsx`: toasts never cover a drawer's or dialog's buttons: while a drawer or dialog is open, toasts from before it opened (about the page behind it, already announced) wait until it closes if still current; toasts from inside it show (one on a phone, two elsewhere) and rise above its action bar when it has one (`useToastClearance` and `useToastOverlay`, used by `Drawer` and `Dialog`); at most three otherwise; they sit in React Aria's top layer; `packages/ui/src/a11y/LiveAnnouncer.tsx`: the live regions sit there too, so announcements are not hidden while a drawer is open.
+  - `packages/ui/src/layout/SegmentedControl.tsx`: optional `wrap` (default unchanged: the row scrolls sideways). Used on the D.2 resident pages only.
+  - `apps/customer-web/src/pages/portal/shared.tsx`: `Amount` gains `wrap` (the currency may wrap before the digits; the digits never break) and `usePortalFormat` a `time` format.
+  - `apps/customer-web/src/pages/dues/DuesHome.tsx` (C.2 bill card): the total fits the card (§11), the Pay, proof and bill buttons may wrap, the flat code and account number never break.
 - Tests updated to the D.2 reality: `register.spec` counts (424 / 346); `platform.test` (HQ's Al-Noor includes the online-payments add-on); `access.spec` (Shalimar's maintenance addresses open the working screens instead of the planned page); test personas `alnoor_maintenance` and `alnoor_technician`.
 
 ## 10. Evidence
 
 - Screenshots: `docs/status/gate-d2/screenshots/` — the three references on desktop in English and on a phone in Urdu, the other D.2 screens in both, and resident pages at 320 px with 200 % text.
 - Videos: `docs/status/gate-d2/video/` — the three references, desktop, English.
-- Specs: `tests/e2e/d2.spec.ts` (journeys, axe and reflow), `tests/evidence/gated2.evidence.spec.ts`, `packages/fixtures/src/operations/operations.api.test.ts`.
+- Specs: `tests/e2e/d2.spec.ts` (journeys, axe and reflow), `tests/e2e/d2-closure.spec.ts` (Issue #8: element-level layout, keyboard against the header and bar, soft keyboard, toasts over drawers), `tests/smoke/d2.smoke.spec.ts` (Firefox and WebKit), `tests/evidence/gated2.evidence.spec.ts`, `packages/fixtures/src/operations/operations.api.test.ts`, `packages/ui/src/feedback/Toast.test.tsx`.
+- Issue #8 captures: `c01`–`c03` (320 × 700 viewport, not full page, at 100, 150 and 200 % text, both languages), `c04`–`c08` (element captures: bill card, notice cards, visitor passes, recent visits, a seven-figure amount probe), `c09`–`c10` (toasts while a drawer is open, phone and desktop). The full-page `z01`–`z04` captures remain; in them the fixed bottom bar is drawn mid-page by the capture itself, which is why the viewport captures and the keyboard tests are the evidence for obstruction.
+
+## 11. Review closure (Issue #8)
+
+| Required | What changed | Proof |
+|---|---|---|
+| 1. Notices at 320 px / 200 % Urdu: an English title one character per line | The title keeps at least ~10 characters' width (in `em`, so it grows with the text); when the badge does not fit beside it, the badge moves to its own line. Words break only when one is wider than the card (`break-words`, not `overflow-wrap: anywhere`, which had let the title column shrink to one character). Same fix on the repair, community-issue and *Needs your attention* cards. The notice tabs wrap instead of pushing *Archive* off screen | `c05-notice-cards-320-200pct-*`, `c02-*`; `d2-closure.spec`: no word broken over lines, titles ≥ half the card, lines ≤ words |
+| 2. Home bill: Rs 5,200.00 and Pay clipped | The total's size fits the card: the display size when there is room, never smaller than the person's chosen text size (at 200 %: at least 32 px), and the currency wraps before any digit would. Pay, *See proof* and *See bill* wrap; in Pay the wallet icon steps aside when the card is too narrow for the amount beside it (a container query in em, so it follows the text size). The due date and the days left are isolated from each other, so in Urdu "2026 · 15" no longer reads as one number run. The text-size setting itself is untouched | `c04-bill-card-*`, `c08-bill-card-long-amount-probe-*` (Rs 1,234,567.00); `d2-closure.spec`: figure inside the card, font ≥ the chosen size, body text exactly 16 px × the chosen scale |
+| 3. Visitor cards: long dates, times, references, mixed Urdu/English | Labelled lines (*Starts*, *Ends*, *Visits*; *Arrived*, *Left*; *Asked*); each date and each time is isolated and stays whole (a narrow line wraps between them); flat codes and plates never break | `c06-visitor-passes-*`, `c07-visits-recent-*`, `c03-*` |
+| 4. Toasts over drawer buttons | Overlay-aware toasts: while a drawer or dialog is open, toasts from before it opened (about the page behind it, already announced) wait until it closes if still current; toasts from inside it show (one on a phone, two elsewhere) and rise above its action bar when it has one (measured again when the drawer's entry animation ends); three at most otherwise, oldest first out. Toasts and the live announcer are in React Aria's top layer: still announced while a drawer is open, closable, and closing one never closes the drawer | `c09` (a drawer after three quick confirmations: clear), `c10` (a toast from inside a drawer), phone and desktop; `Toast.test.tsx`; `d2-closure.spec` (phone at 200 % Urdu and desktop: the drawer's controls topmost and usable at once; the earlier toasts back after it closes; two comments in a drawer show one toast on the phone, the drawer's field and close button uncovered) |
+| 5. Bottom bar and focus proved in the viewport | Keyboard walks at 320 × 700 with 200 % text in both languages (Home, Notices, Visitors): each focused control is checked point by point with `elementFromPoint` against the sticky header and the bottom bar (z-order included); scrolled to the end, the last content sits above the bar and its raised button. Soft keyboard: the guest invitation at 320 × 360 | `d2-closure.spec` |
+| 6. Text size preserved | No layout reduces the chosen size; tests assert it | above |
+| 7. Firefox and WebKit | `tests/smoke/d2.smoke.spec.ts`: repair → resident confirmation, a walk-in approved from the phone, an official notice acknowledged and counted, and the 320 px / 200 % Urdu notices and bill | `test-results.md` |
+| 8. Security, finance, tenant isolation | Unchanged; the full regression passes | `test-results.md` |
+| 9. Screenshots, regression tests, report | This section, `test-results.md`, `FUNCTION_MATRIX.md`, `MANUAL_VERIFICATION.md` | |
+
+**Regression method (Issue #8):** `tests/support/layout.ts` reads the rendered boxes, not only the page width and axe: every text-bearing element and control against the viewport and against the nearest ancestor that clips it, every control's visible text against the control, and every word's rendered lines (a word split over lines although the column could hold it). A self-test restores the `93889a3` markup of the notice card and the bill card in the page and checks that these checks then fail.
+
+**Owner rulings applied (Issue #8):**
+- **Suspended Cedar Hills:** Gate B rule kept (no change).
+- **Amenities:** `Amenity.bookers` (`residents` or `residents_and_owners`). Rabia owns A-202 and lives in A-201: for A-202 she may request the hall, not the gym or the barbecue area (*Only the people who live in the flat can book this*); Junaid, who lives in A-202, books the gym. API test.
+- **Contractors and internal comments:** a third comment visibility, *Office and assigned technician* (`assignee`), offered while a job is assigned. A technician or contractor on the job sees only those and their own comments, never the office's internal or resident-facing discussion, nor who else is affected by a community issue. API test.
+- **Technician without a sign-in:** the office colleague is recorded (API test).
+- **Scheduled notices:** the composer and the notice detail say *Demo: there is no background job … (simulated scheduler)*.
+- **Moved-out tenant who owes:** already as ruled.
+- **PORTAL-043:** PARTIAL.
+- **Typing English in Urdu fields:** documented, not changed (§8).

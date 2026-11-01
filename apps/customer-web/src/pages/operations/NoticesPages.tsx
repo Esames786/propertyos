@@ -54,6 +54,7 @@ export function NoticesPage() {
           { id: 'archive', label: t('operations:residentNotice.archive') },
         ]}
         testId="notice-tabs"
+        wrap
       />
       <PlainCheckbox isSelected={unread === '1'} onChange={(on) => setParams({ unread: on ? '1' : null })} testId="notice-unread-only">
         {t('operations:residentNotice.unreadOnly')}
@@ -70,13 +71,17 @@ export function NoticesPage() {
           {items.map((n) => (
             <li key={n.id}>
               <Link href={OPS.notice(n.id)} variant="plain" className={`block space-y-2 rounded-card border bg-panel p-4 shadow-card hover:bg-raised ${n.state === 'unread' || (n.ackRequired && n.state !== 'acknowledged') ? 'border-primary/40' : 'border-border'}`} data-testid="notice-card" data-state={n.state}>
+                {/* The title keeps at least ~10 characters' width (em: it grows with the text size); when the
+                    badge does not fit beside that, the badge moves to its own line instead of squeezing the
+                    title. Words break only when one is wider than the card. */}
                 <span className="flex flex-wrap items-start justify-between gap-2">
-                  <span className="min-w-0 flex-1">
-                    <span className="block font-semibold text-text [overflow-wrap:anywhere]">{n.state === 'withdrawn' ? t('operations:residentNotice.withdrawnTitle') : <bdi>{n.title}</bdi>}</span>
+                  <span className="min-w-0 flex-[1_1_10em]">
+                    <span className="block font-semibold text-text break-words" data-testid="notice-card-title">{n.state === 'withdrawn' ? t('operations:residentNotice.withdrawnTitle') : <bdi>{n.title}</bdi>}</span>
                     <span className="block text-xs text-muted">
-                      {n.category ? `${t(`operations:noticeCategory.${n.category}`)} · ` : ''}
-                      {n.state === 'withdrawn' && n.withdrawn ? t('operations:residentNotice.withdrawnLine', { date: fmt.instant(n.withdrawn.at) }) : fmt.instant(n.publishedAt)}
-                      {n.updatedOn ? ` · ${t('operations:residentNotice.updatedOn', { date: fmt.instant(n.updatedOn) })}` : ''}
+                      {/* Each part isolated so two dates never join into one left-to-right run in Urdu. */}
+                      {n.category ? <><bdi>{t(`operations:noticeCategory.${n.category}`)}</bdi> · </> : null}
+                      <bdi>{n.state === 'withdrawn' && n.withdrawn ? t('operations:residentNotice.withdrawnLine', { date: fmt.instant(n.withdrawn.at) }) : fmt.instant(n.publishedAt)}</bdi>
+                      {n.updatedOn ? <> · <bdi>{t('operations:residentNotice.updatedOn', { date: fmt.instant(n.updatedOn) })}</bdi></> : null}
                     </span>
                   </span>
                   <NoticeStateChip notice={n} />

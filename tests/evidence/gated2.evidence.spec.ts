@@ -316,6 +316,88 @@ test('Phones at 320 px with 200 % text (both languages)', async ({ browser }) =>
   }
 });
 
+/**
+ * Review Issue #8: what a phone actually shows. Viewport captures (not full page: a full-page capture
+ * draws the fixed bottom bar in the middle of the content) at 320 × 700 with 100, 150 and 200 % text,
+ * element captures of the bill card, notice cards and visitor cards, a seven-figure amount (layout
+ * probe, as in d2-closure.spec) and toasts while a drawer is open.
+ */
+/** Element captures show the element alone: the fixed header and bottom bar would otherwise be painted over it. */
+const CHROME_HIDDEN = '[data-testid="portal-header"], [data-testid="portal-bottom-nav"] { visibility: hidden !important; }';
+
+test('Issue #8: 320 × 700 viewport at 100 / 150 / 200 % text, element captures, toasts over a drawer', async ({ browser }) => {
+  test.setTimeout(480_000);
+  for (const locale of ['en-PK', 'ur-PK'] as Locale[]) {
+    const l = lang(locale);
+    for (const scale of [1, 1.5, 2]) {
+      const ctx = await browser.newContext({ viewport: { width: 320, height: 700 } });
+      const page = await ctx.newPage();
+      await seedSociety(page, { locale, textScale: scale });
+      const pct = `${scale * 100}pct`;
+      await portal(page, '/customer/portal/home', 'dues-bill');
+      await shot(page, `c01-home-320x700-${pct}-${l}`, false);
+      if (scale === 2) await page.getByTestId('dues-bill').screenshot({ path: `${DIR}/c04-bill-card-320-${pct}-${l}.png`, style: CHROME_HIDDEN });
+      await portal(page, '/customer/portal/community-notices', 'notice-list');
+      await shot(page, `c02-notices-320x700-${pct}-${l}`, false);
+      if (scale === 2) await page.getByTestId('notice-list').screenshot({ path: `${DIR}/c05-notice-cards-320-${pct}-${l}.png`, style: CHROME_HIDDEN });
+      await portal(page, '/customer/portal/services-home?tab=visitors', 'passes-upcoming');
+      await page.getByTestId('passes-upcoming').scrollIntoViewIfNeeded();
+      await shot(page, `c03-visitors-320x700-${pct}-${l}`, false);
+      if (scale === 2) {
+        await page.getByTestId('passes-upcoming').screenshot({ path: `${DIR}/c06-visitor-passes-320-${pct}-${l}.png`, style: CHROME_HIDDEN });
+        await page.getByTestId('visits-recent').screenshot({ path: `${DIR}/c07-visits-recent-320-${pct}-${l}.png`, style: CHROME_HIDDEN });
+      }
+      if (scale === 2 && locale === 'ur-PK') {
+        await portal(page, '/customer/portal/home', 'dues-bill');
+        await page.getByTestId('dues-bill').evaluate((card) => {
+          const long = '1,234,567.00';
+          const dd = card.querySelector<HTMLElement>('[data-testid="dues-total"]')!;
+          dd.querySelectorAll('bdi > span')[1]!.textContent = long;
+          dd.style.fontSize = dd.style.fontSize.replace(/100cqi \/ [\d.]+/, `100cqi / ${(`Rs ${long}`.length * 0.62).toFixed(2)}`);
+          const pay = card.querySelector('[data-testid="dues-pay"]')!;
+          const walker = document.createTreeWalker(pay, NodeFilter.SHOW_TEXT);
+          for (let n = walker.nextNode(); n; n = walker.nextNode()) n.textContent = (n.textContent ?? '').replace('5,200.00', long);
+        });
+        await page.getByTestId('dues-bill').screenshot({ path: `${DIR}/c08-bill-card-long-amount-probe-320-${pct}-${l}.png`, style: CHROME_HIDDEN });
+      }
+      await ctx.close();
+    }
+  }
+  for (const [suffix, viewport, locale, scale] of [
+    ['320x700-200pct-ur', { width: 320, height: 700 }, 'ur-PK', 2],
+    ['1440-en', VIEWPORTS.desktop, 'en-PK', 1],
+  ] as const) {
+    const ctx = await browser.newContext({ viewport });
+    const page = await ctx.newPage();
+    await seedSociety(page, { locale, textScale: scale });
+    // c09: three bookings, then a drawer opens: the earlier confirmations wait, the drawer is clear.
+    await portal(page, '/customer/portal/amenities', 'amenity-list');
+    for (const kind of ['gym', 'bbq', 'hall']) {
+      await page.locator(`[data-testid="amenity-card"][data-amenity="${kind}"]`).getByTestId('amenity-book').click();
+      const sheet = page.getByTestId('booking-sheet');
+      await sheet.locator('[data-testid^="booking-slot-"]:not([disabled])').first().click();
+      await sheet.getByTestId('booking-submit').click();
+      await sheet.waitFor({ state: 'hidden' });
+    }
+    await page.locator('[data-testid="amenity-card"][data-amenity="gym"]').getByTestId('amenity-book').click();
+    await page.getByTestId('booking-sheet').waitFor();
+    await page.getByTestId('booking-sheet').locator('[data-testid^="booking-slot-"]:not([disabled])').first().click();
+    await settle(page, 900);
+    await shot(page, `c09-drawer-after-three-toasts-${suffix}`, false);
+    // c10: a toast from inside a drawer (a comment on a community issue).
+    await portal(page, '/customer/portal/issues', 'issues-page');
+    await page.locator('[data-testid="issue-card"]:not([data-state="resolved"])').first().locator('button').first().click();
+    const issue = page.getByTestId('issue-sheet');
+    await issue.waitFor();
+    await box(issue, 'issue-comment').fill('The water is still leaking near the stairs.');
+    await issue.getByTestId('issue-comment-send').click();
+    await page.getByTestId('toast-success').first().waitFor();
+    await settle(page, 900);
+    await shot(page, `c10-toast-inside-drawer-${suffix}`, false);
+    await ctx.close();
+  }
+});
+
 const OFFICE_PRINCIPAL: Partial<Record<PersonaId, string>> = { alnoor_manager: 'usr_anr_0001', alnoor_maintenance: 'usr_anr_0005' };
 
 /** Office display preferences (D.1) for one colleague, written once before the first load. */

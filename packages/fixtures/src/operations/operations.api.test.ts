@@ -15,6 +15,7 @@ import {
   type ResidentNotifications,
   type ResidentRequest,
   type ResidentRequests,
+  type ResidentAmenities,
   type ResidentVisitors,
   type VehicleCheck,
   type VehicleList,
@@ -128,6 +129,44 @@ describe('reference 1: repair → triage → technician → resident confirmatio
     expect(rabia.items.some((r) => r.flatCode === 'A-202')).toBe(false);
   });
 
+  it('owner ruling (Issue #8): a technician sees only the comments shared with the assignee and his own', async () => {
+    const api = session();
+    const raised = await api.as('alnoor_resident_a101').post<ResidentRequest>('/portal/requests', { category: 'electrical', title: 'Bedroom socket sparks', description: 'The socket near the bed sparks when a plug goes in.', flatId: A101, room: 'bedroom', urgency: 'urgent', idempotencyKey: 'k-cmt' });
+    await api.as('alnoor_maintenance').post(`/ops/requests/${raised.id}/triage`, { priority: 'p2' });
+    // Nobody assigned yet: nothing can be shared with an assignee.
+    expect((await refusal(api.post(`/ops/requests/${raised.id}/comments`, { text: 'For the electrician only.', visibility: 'assignee' }))).fields).toContain('visibility');
+    const assigned = await api.post<RequestDetail>(`/ops/requests/${raised.id}/assign`, { technicianId: 'tech_anr_waqas', scheduledOn: '2026-10-27', slot: 'morning' });
+    expect(assigned.actions.commentAssignee).toBe(true);
+    await api.post(`/ops/requests/${raised.id}/comments`, { text: 'Committee is discussing the wiring budget.', visibility: 'internal' });
+    await api.post(`/ops/requests/${raised.id}/comments`, { text: 'We will replace the whole socket today.', visibility: 'public' });
+    await api.post(`/ops/requests/${raised.id}/comments`, { text: 'Bring a 13 A socket; the breaker is in the corridor.', visibility: 'assignee' });
+    const office = await api.get<RequestDetail>(`/ops/requests/${raised.id}`);
+    expect(office.comments.map((c) => c.visibility)).toEqual(['internal', 'public', 'assignee']);
+
+    const waqas = await api.as('alnoor_technician').get<RequestDetail>(`/ops/requests/${raised.id}`);
+    expect(waqas.comments.map((c) => c.text)).toEqual(['Bring a 13 A socket; the breaker is in the corridor.']);
+    expect(waqas.actions.commentAssignee).toBe(false);
+    await api.post(`/ops/requests/${raised.id}/comments`, { text: 'Breaker found; socket replaced.', visibility: 'internal' });
+    const after = await api.get<RequestDetail>(`/ops/requests/${raised.id}`);
+    expect(after.comments.map((c) => c.text)).toEqual(['Bring a 13 A socket; the breaker is in the corridor.', 'Breaker found; socket replaced.']);
+    // The resident sees only the public one.
+    const kamran = (await api.as('alnoor_resident_a101').get<ResidentRequests>('/portal/requests')).items.find((r) => r.id === raised.id)!;
+    expect(kamran.comments.map((c) => c.text)).toEqual(['We will replace the whole socket today.']);
+  });
+
+  it('owner ruling (Issue #8): the office recording for a technician without a sign-in is recorded as the office', async () => {
+    const api = session();
+    const bilals = (await api.as('alnoor_maintenance').get<RequestList>('/ops/requests', { technician: 'tech_anr_bilal' })).items.find((r) => ['assigned', 'in_progress'].includes(r.state));
+    expect(bilals).toBeDefined();
+    const detail = await api.get<RequestDetail>(`/ops/requests/${bilals!.id}`);
+    const order = detail.workOrders.find((w) => w.technicianId === 'tech_anr_bilal' && !['done', 'cancelled'].includes(w.state))!;
+    const action = order.state === 'in_progress' ? 'hold' : 'start';
+    const done = await api.post<RequestDetail>(`/ops/work-orders/${order.id}/${action}`, action === 'hold' ? { note: 'Waiting for a part.' } : {});
+    const last = done.history.at(-1)!;
+    expect(last.byKind).toBe('staff');
+    expect(last.byName).not.toBe('Bilal Khan');
+  });
+
   it('rule R: withdrawing maintenance for the site closes repairs while notices stay', async () => {
     const noMaintenance = (p: Persona) => {
       const a = effectiveAccessFor(p);
@@ -187,6 +226,23 @@ describe('reference 2: invitation → gate → check-in and check-out', () => {
     expect(admitted.visit.outcome).toBe('inside');
     // A vacant flat has nobody to ask.
     expect((await refusal(api.post('/ops/gate/requests', { flatId: 'unt_anr_a407', visitorName: 'Somebody', purpose: 'guest' }))).fields).toContain('flatId');
+  });
+
+  it('owner ruling (Issue #8): amenities are booked by the people who live in the flat; owners only where the policy allows', async () => {
+    const api = session();
+    const rabia = await api.as('alnoor_owner_a201').get<ResidentAmenities>('/portal/amenities');
+    expect(rabia.flats).toEqual(expect.arrayContaining([{ id: 'unt_anr_a202', code: 'A-202', lives: false }]));
+    const policy = Object.fromEntries(rabia.amenities.map((a) => [a.kind, a.bookers]));
+    expect(policy).toMatchObject({ gym: 'residents', bbq: 'residents', hall: 'residents_and_owners' });
+    const gym = rabia.amenities.find((a) => a.kind === 'gym')!;
+    const hall = rabia.amenities.find((a) => a.kind === 'hall')!;
+    const refused = await refusal(api.post('/portal/bookings', { amenityId: gym.id, flatId: 'unt_anr_a202', on: '2026-10-28', slot: gym.slots[0] }));
+    expect(refused).toMatchObject({ status: 403, code: 'residents_only' });
+    const asOwner = await api.post<{ state: string; flatCode: string }>('/portal/bookings', { amenityId: hall.id, flatId: 'unt_anr_a202', on: '2026-10-29', slot: hall.slots[0] });
+    expect(asOwner).toMatchObject({ state: 'requested', flatCode: 'A-202' });
+    // Junaid, who lives in A-202, books the gym for it.
+    const junaid = await api.as('alnoor_tenant_a202').post<{ state: string }>('/portal/bookings', { amenityId: gym.id, flatId: 'unt_anr_a202', on: '2026-10-28', slot: gym.slots[0] });
+    expect(junaid.state).toBe('confirmed');
   });
 
   it('a non-resident owner cannot invite guests to a rented flat', async () => {

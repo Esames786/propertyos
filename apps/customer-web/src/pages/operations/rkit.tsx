@@ -151,3 +151,25 @@ export function demoNow(): Date {
   const wall = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Karachi', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).format(new Date());
   return new Date(`${DEMO_TODAY}T${wall}+05:00`);
 }
+
+/**
+ * A moment as a date and a time that each stay whole: a narrow line (a phone, large text) wraps between
+ * them, never inside "28 Oct 2026" or "8:00 PM". Each is isolated on its own, so a Latin "11:00 AM"
+ * keeps its order after an Urdu date.
+ */
+export function When({ iso, fmt, className }: { iso: string; fmt: { instant: (iso: string) => string; time: (iso: string) => string }; className?: string }) {
+  return (
+    <bdi className={className}>
+      <bdi className="whitespace-nowrap">{fmt.instant(iso)}</bdi> <bdi className="whitespace-nowrap">{fmt.time(iso)}</bdi>
+    </bdi>
+  );
+}
+
+/** A label and its value on one line when they fit, the value under the label when they do not. */
+export function Labelled({ label, children, testId }: { label: string; children: ReactNode; testId?: string }) {
+  return (
+    <span className="flex flex-wrap items-baseline gap-x-2" data-testid={testId}>
+      <span className="text-muted">{label}</span> <span className="min-w-0 text-text">{children}</span>
+    </span>
+  );
+}

@@ -1,6 +1,7 @@
 import { X } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Dialog as AriaDialog, Heading, Modal, ModalOverlay } from 'react-aria-components';
+import { useToastClearance, useToastOverlay } from '../feedback/Toast';
 import { cn } from '../lib/cn';
 import { useT } from '../lib/useT';
 import { IconButton } from '../primitives/IconButton';
@@ -25,6 +26,8 @@ export interface DrawerProps {
  */
 export function Drawer({ isOpen, onOpenChange, title, subtitle, children, footer, banner, size = 'md', testId }: DrawerProps) {
   const { t } = useT();
+  const clearance = useToastClearance();
+  useToastOverlay(isOpen && !footer);
   return (
     <ModalOverlay
       isOpen={isOpen}
@@ -59,7 +62,7 @@ export function Drawer({ isOpen, onOpenChange, title, subtitle, children, footer
             {children}
           </div>
           {footer && (
-            <footer className="flex flex-wrap justify-end gap-2 border-t border-border bg-panel px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <footer ref={clearance} className="flex flex-wrap justify-end gap-2 border-t border-border bg-panel px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
               {footer}
             </footer>
           )}

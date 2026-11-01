@@ -252,10 +252,13 @@ function ComposeDrawer({ isOpen, onClose, onDone, edit }: { isOpen: boolean; onC
               <>
                 <SegmentedControl label={t('operations:notices.when')} value={when} onChange={setWhen} options={[{ id: 'now', label: t('operations:notices.now') }, { id: 'later', label: t('operations:notices.later') }]} testId="compose-when" />
                 {when === 'later' && (
-                  <label className="flex flex-col gap-1.5 text-sm font-medium text-text">
-                    {t('operations:notices.publishAt')}
-                    <input type="datetime-local" min={`${DEMO_TODAY}T00:00`} value={at} onChange={(e) => setAt(e.target.value)} className="min-h-11 rounded-control border border-border-control bg-panel px-3 text-sm text-text" data-testid="compose-at" />
-                  </label>
+                  <>
+                    <label className="flex flex-col gap-1.5 text-sm font-medium text-text">
+                      {t('operations:notices.publishAt')}
+                      <input type="datetime-local" min={`${DEMO_TODAY}T00:00`} value={at} onChange={(e) => setAt(e.target.value)} className="min-h-11 rounded-control border border-border-control bg-panel px-3 text-sm text-text" data-testid="compose-at" />
+                    </label>
+                    <p className="text-xs text-muted" data-testid="compose-schedule-simulated">{t('operations:notices.scheduleSimulated')}</p>
+                  </>
                 )}
               </>
             )}
@@ -362,7 +365,12 @@ function NoticeDrawer({ noticeId, onClose, onChanged }: { noticeId: string | nul
             <Fact label={t('operations:notices.reference')}><bdi dir="ltr" className="ltr-ref">{d.notice.ref}</bdi></Fact>
             <Fact label={t('operations:notices.ackLabel')}>{d.notice.ackRequired ? t('operations:notices.ackYes') : t('operations:notices.ackNo')}</Fact>
             {d.notice.publishedAt && <Fact label={t('operations:notices.publishedOn')}><When at={d.notice.publishedAt} /></Fact>}
-            {d.notice.publishAt && <Fact label={t('operations:notices.scheduledFor')}><When at={d.notice.publishAt} /></Fact>}
+            {d.notice.publishAt && (
+              <Fact label={t('operations:notices.scheduledFor')}>
+                <When at={d.notice.publishAt} />
+                {d.notice.state === 'scheduled' && <span className="block text-xs text-muted">{t('operations:notices.scheduleSimulated')}</span>}
+              </Fact>
+            )}
             {d.notice.expiresOn && <Fact label={t('operations:notices.expires')}><When at={`${d.notice.expiresOn}T00:00:00Z`} style="date" /></Fact>}
             {d.notice.fromMessage && <Fact label={t('operations:notices.fromMessage')}><bdi dir="ltr" className="ltr-ref">{d.notice.fromMessage.ref}</bdi></Fact>}
           </FactGrid>

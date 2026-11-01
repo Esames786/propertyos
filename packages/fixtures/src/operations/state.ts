@@ -36,7 +36,7 @@ import { householdsOn } from './site';
  * that is what the visitor did. "Reset demo" and choosing a society demo start it again.
  */
 export const OPS_SECTION = 'operations';
-export const OPS_STATE_VERSION = 2;
+export const OPS_STATE_VERSION = 3;
 
 export interface Affirmation {
   partyId: string;
@@ -203,10 +203,10 @@ function technicians(site: OpsSite): TechnicianRecord[] {
 
 function amenities(): Amenity[] {
   return [
-    { id: 'amn_gym', kind: 'gym', hours: '06:00–22:00', booking: 'instant', capacity: 6, rules: ['gym1', 'gym2'], slots: ['06:00', '08:00', '18:00', '20:00'] },
-    { id: 'amn_hall', kind: 'hall', hours: '10:00–23:00', booking: 'request', capacity: 80, fee: { amount: '5000.00', currency: 'PKR' }, rules: ['hall1', 'hall2', 'hall3'], slots: ['12:00–16:00', '18:00–23:00'] },
-    { id: 'amn_kids', kind: 'kids_play', hours: '08:00–20:00', booking: 'none', capacity: 20, rules: ['kids1', 'kids2'], slots: [] },
-    { id: 'amn_bbq', kind: 'bbq', hours: '17:00–23:00', booking: 'request', capacity: 15, rules: ['bbq1', 'bbq2'], slots: ['17:00–20:00', '20:00–23:00'] },
+    { id: 'amn_gym', kind: 'gym', hours: '06:00–22:00', booking: 'instant', bookers: 'residents', capacity: 6, rules: ['gym1', 'gym2'], slots: ['06:00', '08:00', '18:00', '20:00'] },
+    { id: 'amn_hall', kind: 'hall', hours: '10:00–23:00', booking: 'request', bookers: 'residents_and_owners', capacity: 80, fee: { amount: '5000.00', currency: 'PKR' }, rules: ['hall1', 'hall2', 'hall3'], slots: ['12:00–16:00', '18:00–23:00'] },
+    { id: 'amn_kids', kind: 'kids_play', hours: '08:00–20:00', booking: 'none', bookers: 'residents', capacity: 20, rules: ['kids1', 'kids2'], slots: [] },
+    { id: 'amn_bbq', kind: 'bbq', hours: '17:00–23:00', booking: 'request', bookers: 'residents', capacity: 15, rules: ['bbq1', 'bbq2'], slots: ['17:00–20:00', '20:00–23:00'] },
   ];
 }
 

@@ -243,7 +243,7 @@
     "raisedOn": "Raised on",
     "urgency": "Resident’s urgency",
     "contact": "Contact and access",
-    "assignee": "Assigned to",
+    "assignee": "Office and assigned technician",
     "rating": "Resident’s rating",
     "ratingValue": "{{rating}} of 5",
     "related": "Related records",
@@ -264,7 +264,7 @@
     "public": "Resident can see",
     "visibility": "Who sees this",
     "publicHint": "The resident sees this message in their app.",
-    "internalHint": "Only the office and technicians see this note.",
+    "internalHint": "Only the office sees this note. A technician or contractor sees only the notes shared with them.",
     "comment": "Message",
     "addComment": "Add",
     "commented": "Message added",
@@ -275,7 +275,8 @@
     "cancelTitle": "Cancel {{ref}}?",
     "cancelEffect": "Any work order is cancelled and the resident is told.",
     "cancelReason": "Reason (the resident sees it)",
-    "cancelled": "Request cancelled"
+    "cancelled": "Request cancelled",
+    "assigneeHint": "The office and the technician or contractor assigned to this job see this note. The resident does not."
   },
   "next": {
     "label": "Next step",
@@ -575,7 +576,9 @@
     "capacity": "At most {{max}} guests.",
     "slotTaken": "That time is already booked. Choose another.",
     "merchantId": "Use a sandbox merchant ID that starts with DEMO-.",
-    "amount": "Enter an amount, for example 4200."
+    "amount": "Enter an amount, for example 4200.",
+    "residentsOnlyBook": "Only the people who live in the flat can book this amenity.",
+    "noAssignee": "No one is assigned to this job yet."
   },
   "notInPlan": {
     "title": "Not available for your home",
@@ -715,7 +718,12 @@
     "usedCount_other": "{{count}} times",
     "simulated": "Demo: codes are checked by the mock gate; no real gate system is connected.",
     "cancel": "Cancel this pass",
-    "cancelled": "Pass cancelled"
+    "cancelled": "Pass cancelled",
+    "starts": "Starts",
+    "ends": "Ends",
+    "askedAt": "Asked",
+    "arrived": "Arrived",
+    "left": "Left"
   },
   "purpose": {
     "guest": "Guest",
@@ -987,7 +995,8 @@
     "colAck": "Acknowledged",
     "left": "no longer in the audience",
     "pending": "Not yet",
-    "history": "History"
+    "history": "History",
+    "scheduleSimulated": "Demo: there is no background job. A scheduled notice is published the first time anyone opens notices after its time (simulated scheduler)."
   },
   "noticeState": {
     "draft": "Draft",
@@ -1313,7 +1322,8 @@
     "guests": "Guests",
     "feeNote": "A fee of {{amount}} applies (illustrative; it is billed with your dues, never paid here).",
     "booked": "Booked",
-    "requested": "Request sent to the office"
+    "requested": "Request sent to the office",
+    "residentsOnly": "Only the people who live in the flat can book this."
   },
   "bookingState": {
     "confirmed": "Confirmed",

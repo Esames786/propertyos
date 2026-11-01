@@ -45,7 +45,7 @@ function AttentionCard({ href, icon: Icon, eyebrow, title, body, action, testId 
       </span>
       <span className="min-w-0 flex-1">
         <span className="block text-xs font-semibold text-muted">{eyebrow}</span>
-        <Link href={href} variant="plain" className="block font-semibold text-text [overflow-wrap:anywhere] after:absolute after:inset-0 after:rounded-card">
+        <Link href={href} variant="plain" className="block font-semibold text-text break-words after:absolute after:inset-0 after:rounded-card">
           <bdi>{title}</bdi>
         </Link>
         <span className="block text-sm text-text">{body}</span>

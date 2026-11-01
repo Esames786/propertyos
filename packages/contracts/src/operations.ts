@@ -106,7 +106,11 @@ export interface RequestSla {
   resolution: SlaStatus;
 }
 
-export type RequestCommentVisibility = 'public' | 'internal';
+/**
+ * public: the resident(s) see it; internal: the office only; assignee: the office and the technician or
+ * contractor assigned now (owner ruling, Issue #8: a contractor sees only what was shared with them).
+ */
+export type RequestCommentVisibility = 'public' | 'internal' | 'assignee';
 
 export interface RequestComment {
   id: string;
@@ -231,6 +235,8 @@ export interface RequestActions {
   cancel: boolean;
   comment: boolean;
   commentInternal: boolean;
+  /** Share a comment with the assigned technician or contractor (the office, while a job is assigned). */
+  commentAssignee: boolean;
   merge: boolean;
   moderate: boolean;
   resolve: boolean;
@@ -876,11 +882,18 @@ export interface Amenity {
   kind: AmenityKind;
   hours: string;
   booking: 'none' | 'instant' | 'request';
+  /**
+   * Who may book (owner ruling, Issue #8): the people who live in a flat by default; an owner who
+   * lives elsewhere only where this amenity's policy allows it.
+   */
+  bookers: AmenityBookers;
   capacity: number;
   fee?: Money;
   rules: string[];
   slots: string[];
 }
+
+export type AmenityBookers = 'residents' | 'residents_and_owners';
 
 export type BookingState = 'confirmed' | 'requested' | 'approved' | 'declined' | 'cancelled';
 
@@ -904,7 +917,8 @@ export interface ResidentAmenities {
   asOf: string;
   amenities: Amenity[];
   bookings: AmenityBooking[];
-  flats: Array<{ id: string; code: string }>;
+  /** The resident's flats; `lives`: they live there today (an owner who lives elsewhere does not). */
+  flats: Array<{ id: string; code: string; lives: boolean }>;
   /** Booked slots per amenity and date (no names: only that a slot is taken). */
   taken: Array<{ amenityId: string; on: string; slot: string }>;
 }

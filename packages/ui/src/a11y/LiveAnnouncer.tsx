@@ -46,10 +46,10 @@ export function LiveAnnouncerProvider({ children }: { children: ReactNode }) {
   return (
     <AnnouncerContext.Provider value={value}>
       {children}
-      <div className={hidden} aria-live="polite" aria-atomic="true" data-testid="live-polite">
+      <div className={hidden} aria-live="polite" aria-atomic="true" data-react-aria-top-layer data-testid="live-polite">
         {polite}
       </div>
-      <div className={hidden} aria-live="assertive" aria-atomic="true" data-testid="live-assertive">
+      <div className={hidden} aria-live="assertive" aria-atomic="true" data-react-aria-top-layer data-testid="live-assertive">
         {assertive}
       </div>
     </AnnouncerContext.Provider>

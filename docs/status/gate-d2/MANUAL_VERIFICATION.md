@@ -18,6 +18,8 @@ These checks are **not a WCAG certification**. The checks below need a person. T
 | The gate on a shared tablet in daylight | VIS-004 check-in and the live queue | not performed | needs a device and a guard's view |
 | Windows High Contrast (forced colours) on Request 360, the gate and the notice composer | Edge on Windows | not performed | needs a person |
 | Urdu wording review by a native reader | `packages/i18n/locales/ur-PK/operations.json` (new: 1,336 keys) | not performed | needs a person |
+| Issue #8 closure on a real phone | Chrome on Android and Safari on iPhone at 320–360 px: the browser's own text size at 200 % and page zoom at 200 %; the notice cards, the bill card and Pay, the visitor cards; the soft keyboard over the guest invitation; a toast arriving while a drawer is open (still read by TalkBack/VoiceOver, closable, the drawer stays) | not performed (automated in Chromium, Firefox and WebKit; see test-results) | needs devices |
+| Firefox and WebKit beyond the smoke | the rest of the D.2 screens | not performed (smoke only: repair, visitor approval, notice, 320 px / 200 % Urdu) | Stage 6 |
 | Typing English into Urdu forms | the full stop shows at the start of the line while typing (shared fields, all gates; see test-results §Findings) | known, not fixed | owner to decide |
 
 ## Set-up

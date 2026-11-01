@@ -1,6 +1,7 @@
 import { X } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Dialog as AriaDialog, Heading, Modal, ModalOverlay } from 'react-aria-components';
+import { useToastClearance, useToastOverlay } from '../feedback/Toast';
 import { cn } from '../lib/cn';
 import { useT } from '../lib/useT';
 import { IconButton } from '../primitives/IconButton';
@@ -35,6 +36,8 @@ export function Dialog({
   className,
 }: DialogProps) {
   const { t } = useT();
+  const clearance = useToastClearance();
+  useToastOverlay(isOpen && !footer);
   return (
     <ModalOverlay
       isOpen={isOpen}
@@ -52,7 +55,7 @@ export function Dialog({
           </div>
           {description && <div className="mt-2 text-sm text-muted">{description}</div>}
           {children && <div className="mt-4">{children}</div>}
-          {footer && <div className="mt-6 flex flex-wrap justify-end gap-2">{footer}</div>}
+          {footer && <div ref={clearance} className="mt-6 flex flex-wrap justify-end gap-2">{footer}</div>}
         </AriaDialog>
       </Modal>
     </ModalOverlay>

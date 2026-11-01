@@ -29,7 +29,7 @@ The owner authorised **Gate D.2, Resident Operations / Society Maintenance** as 
 | 2.2 | Site / flat / party-link validation (Rule R) | `site.ts` `residentOps`, `requests-handlers.ts` `canRaiseFor` | `ops.api` ref 1 and refusals; `d2.spec` (A-102 cannot open A-101's repair) |
 | 2.3 | Triage, priority and SLA | `RequestWorkspace.tsx` triage drawer; `sla.ts` | `d2.spec`; `r05`, `r06`, `r15-sla-dashboard` |
 | 2.4 | Assignment to a technician (suggested by trade and load); technicians see only their own jobs | assign drawer; `MaintenancePages.tsx` technician board | `ops.api`; `d2.spec` (technician board, another technician's request not found); `r07`, `r08` |
-| 2.5 | Progress, comments and status updates | Request 360 Discussion (public and internal) and Timeline; resident comments | `ops.api` |
+| 2.5 | Progress, comments and status updates | Request 360 Discussion (public, internal and, while a job is assigned, *Office and assigned technician*) and Timeline; resident comments. A technician or contractor sees only comments shared with the assignee and their own (ruling, Issue #8) | `ops.api` (incl. *a technician sees only the comments shared with the assignee*) |
 | 2.6 | Evidence of completion | complete drawer: note and described photo | `d2.spec`; `r09-completion-evidence` |
 | 2.7 | Resident confirms or reopens | `RepairsPage.tsx` *Is it fixed?* (rating; "Not fixed" → same technician) | `d2.spec`; `ops.api`; `r13`, `r14` |
 | 2.8 | Manager SLA and related Flat 360 | SLA dashboard; Flat 360 → Services | `d2.spec`; `o08-flat-360-services` |
@@ -59,7 +59,7 @@ The owner authorised **Gate D.2, Resident Operations / Society Maintenance** as 
 | 4.4 | No `community_hub` or `community_chat` | notices need `resident_portal` only | `ops.api` |
 | 4.5 | Edit creates a version; withdraw keeps history and hides content | versions; tombstone with withdrawal date | `ops.api` |
 | 4.6 | No leak across block, site, legal entity or moved-out audience | audience re-checked on every read; "not available to you" | `ops.api`; `d2.spec` (move-out) |
-| 4.7 | Scheduling | scheduled notices publish on the next read after their time (simulated scheduler) | `ops.api` (scheduling refusals); report §6 item 5 |
+| 4.7 | Scheduling | scheduled notices publish on the next read after their time (simulated scheduler, labelled so in the composer and the notice detail) | `ops.api` (scheduling refusals); report §6 item 5 |
 
 ## 5. Community issues (D-28, D-47)
 
@@ -79,19 +79,21 @@ The owner authorised **Gate D.2, Resident Operations / Society Maintenance** as 
 | 6.2 | Rule R on resident screens; staff by module permission and scope | `site.ts`; route guards in `apps/backoffice/src/prototype/routes.tsx` | `ops.api`; `d2.spec` |
 | 6.3 | Nav, global search, related records, deep links and every read/write guarded | `tenantWorkspace.ts`; `operationsSearch` / `operationsRecordAccess` | `register` (every address); `ops.api` |
 | 6.4 | Shalimar (maintenance only): no CRM or developer leaks; future grants respected | Shalimar staff side; "not in your plan yet" before 1 November | `ops.api` |
-| 6.5 | Cedar Hills (suspended): no new operational actions | all D.2 areas paused (Gate B rule; report §6 item 1) | `security`; `tenantWorkspace.test.ts` |
+| 6.5 | Cedar Hills (suspended): no new operational actions | all D.2 areas paused (Gate B rule, kept by the owner ruling in Issue #8) | `security`; `tenantWorkspace.test.ts` |
 | 6.6 | Moves, transfers and payer changes never auto-invite or rewrite liabilities | move-out drawer: *still pays* warning, invitations untouched | `ops.api`; `d2.spec` move-out |
 | 6.7 | Audiences: owner vs occupant vs payer; no contact or last-login disclosure | audience roles; resident views | `ops.api` |
 | 6.8 | Fictional data; simulated uploads, channels and gateway; never Paid without C.2 evidence | sandbox gateway: *accepted, waiting for the bank* | `d2.spec` gateway (A-101 still owes 5,200.00) |
+| 6.9 | Amenities booked by the people who live in the flat; owners only where the amenity allows (ruling, Issue #8) | `Amenity.bookers`; `/portal/bookings`; PORTAL-022 shows *Only the people who live in the flat can book this* | `ops.api` (Rabia: hall yes, gym no for A-202; Junaid: gym yes) |
+| 6.10 | Office acting for a technician without a sign-in is recorded as the office colleague | work-order history | `ops.api` |
 
 ## 7. UI and acceptance
 
 | # | Requirement | Where | Checked by |
 |---|---|---|---|
 | 7.1 | Limestone & Evergreen; connected tabs, records, context trails, quick actions, instant feedback, no empty placeholders | all D.2 pages; empty states with next steps | screenshots |
-| 7.2 | EN/UR RTL at desktop, tablet, 390 and 320 px; 100–200 % text | all D.2 pages | `d2.spec`: axe EN/UR at 1440, 768 and 390 px, no sideways scroll; resident pages at 320 px with 200 % text |
+| 7.2 | EN/UR RTL at desktop, tablet, 390 and 320 px; 100–200 % text | all D.2 pages | `d2.spec`: axe EN/UR at 1440, 768 and 390 px, no sideways scroll; resident pages at 320 px with 200 % text. `d2-closure.spec` (Issue #8): Home, Notices (list and detail), Visitors, Repairs and Issues at 320 × 700 with 100, 150 and 200 % text in both languages, element by element (nothing clipped, off screen, spilling out of its control or broken mid-word; text size as chosen); a seven-figure amount probe; Firefox and WebKit smoke at 320 px / 200 % Urdu |
 | 7.3 | High contrast, dark mode, reduced motion | shared D.1 display preferences | `t01`–`t05` screenshots; reduced motion: shared D.1 behaviour, not re-tested in D.2 |
-| 7.4 | Fixed bars never hide actions | phone bottom bars; drawers with footers | screenshots; known limitation: toasts over drawer buttons (report §8) |
+| 7.4 | Fixed bars never hide actions | phone bottom bars; drawers with footers; toasts | `d2-closure.spec`: keyboard walks at 320 × 700 / 200 % (both languages) checked with `elementFromPoint` against the header and the bar, last content above the bar, soft keyboard at 320 × 360; toasts never cover an open drawer: earlier ones wait, ones from inside it are capped and stay above its action bar (phone and desktop; `Toast.test.tsx`); captures `c01`–`c10` |
 | 7.5 | Resident app purpose-first | Home: bill, then *Needs your attention*; bottom bar Home · Bills · Pay · Requests · Notices | `r11`, `z01` |
 | 7.6 | Negative vectors: revoked grants, other site or entity, moved out, withdrawn notice, outside-audience link, expired pass, duplicate plate, merging, differencing | `ops.api` refusals | `ops.api`; `d2.spec` |
 | 7.7 | Preserve D.1 accessibility, S.1/C.1/C.2 financial invariants and every regression suite | | full regression in `test-results.md` |

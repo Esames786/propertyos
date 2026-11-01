@@ -141,7 +141,7 @@ function NewVehicleSheet({ isOpen, flats, onClose, onDone }: { isOpen: boolean; 
       <div className="space-y-4">
         {flats.length > 1 && <SelectControl label={t('operations:vehicles.flat')} value={flatId} onChange={setFlatId} options={flats.map((f) => ({ id: f.id, label: f.code }))} testId="vehicle-flat" />}
         <PlainTextField label={t('operations:vehicles.plate')} description={t('operations:vehicles.plateHint')} value={plate} onChange={setPlate} dir="ltr" testId="vehicle-plate" />
-        <SegmentedControl label={t('operations:vehicles.kind')} value={kind} onChange={setKind} options={VEHICLE_KINDS.map((k) => ({ id: k, label: t(`operations:vehicleKind.${k}`) }))} testId="vehicle-kind" />
+        <SegmentedControl label={t('operations:vehicles.kind')} value={kind} onChange={setKind} options={VEHICLE_KINDS.map((k) => ({ id: k, label: t(`operations:vehicleKind.${k}`) }))} testId="vehicle-kind" wrap />
         <PlainTextField label={t('operations:vehicles.make')} value={make} onChange={setMake} testId="vehicle-make" />
         <PlainTextField label={t('operations:vehicles.colour')} value={colour} onChange={setColour} testId="vehicle-colour" />
         <p className="text-xs text-muted">{t('operations:vehicles.approvalNote')}</p>
@@ -238,10 +238,13 @@ export function AmenitiesPage() {
             <ul className="list-disc space-y-0.5 ps-5 text-xs text-muted">
               {a.rules.map((r) => <li key={r}>{t(`operations:amenities.rule.${r}` as 'operations:amenities.rule.gym1')}</li>)}
             </ul>
-            {a.booking !== 'none' && d.flats.length > 0 && (
+            {a.booking !== 'none' && bookable(a, d).length > 0 && (
               <Button variant="secondary" onPress={() => setParams({ book: a.id })} data-testid="amenity-book">
                 {a.booking === 'instant' ? t('operations:amenities.book') : t('operations:amenities.request')}
               </Button>
+            )}
+            {a.booking !== 'none' && d.flats.length > 0 && bookable(a, d).length === 0 && (
+              <p className="text-sm text-muted" data-testid="amenity-residents-only">{t('operations:amenities.residentsOnly')}</p>
             )}
           </li>
         ))}
@@ -279,6 +282,9 @@ export function AmenitiesPage() {
   );
 }
 
+/** Flats this resident may book the amenity for: where they live, or as owner where the policy allows. */
+const bookable = (a: Amenity, d: ResidentAmenities) => d.flats.filter((f) => f.lives || a.bookers === 'residents_and_owners');
+
 const slotLabel = (t: ReturnType<typeof useT>['t'], slot: string) => (/^\d/.test(slot) ? slot : t(`operations:slot.${slot}` as 'operations:slot.morning'));
 const addDays = (n: number) => new Date(Date.parse(`${DEMO_TODAY}T00:00:00Z`) + n * 86400_000).toISOString().slice(0, 10);
 
@@ -287,7 +293,8 @@ function BookSheet({ amenity: a, data, onClose, onDone }: { amenity: Amenity; da
   const toast = useToast();
   const fmt = usePortalFormat(`${DEMO_TODAY}T09:00:00Z`);
   const book = useApiMutation<AmenityBooking>();
-  const [flatId, setFlatId] = useState<string | null>(data.flats[0]?.id ?? null);
+  const flats = bookable(a, data);
+  const [flatId, setFlatId] = useState<string | null>(flats[0]?.id ?? null);
   const [on, setOn] = useState(addDays(1));
   const [slot, setSlot] = useState(a.slots[0] ?? '');
   const [guests, setGuests] = useState('0');
@@ -325,7 +332,7 @@ function BookSheet({ amenity: a, data, onClose, onDone }: { amenity: Amenity; da
       }
     >
       <div className="space-y-4">
-        {data.flats.length > 1 && <SelectControl label={t('operations:vehicles.flat')} value={flatId} onChange={setFlatId} options={data.flats.map((f) => ({ id: f.id, label: f.code }))} testId="booking-flat" />}
+        {flats.length > 1 && <SelectControl label={t('operations:vehicles.flat')} value={flatId} onChange={setFlatId} options={flats.map((f) => ({ id: f.id, label: f.code }))} testId="booking-flat" />}
         <SelectControl label={t('operations:amenities.day')} value={on} onChange={(v) => setOn(v ?? addDays(1))} options={[1, 2, 3, 4, 5, 6, 7, 10, 14].map((n) => ({ id: addDays(n), label: fmt.date(addDays(n)) }))} testId="booking-day" />
         <fieldset className="space-y-2">
           <legend className="text-sm font-medium text-text">{t('operations:amenities.time')}</legend>

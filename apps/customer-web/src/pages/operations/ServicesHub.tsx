@@ -4,7 +4,7 @@ import { CalendarClock, Car, CheckCircle2, ChevronRight, Clock3, Copy, DoorClose
 import { useState } from 'react';
 import { OPS } from '../../nav.config';
 import { PortalSkeleton, usePortalFormat } from '../portal/shared';
-import { DEMO_TODAY, demoNow, Sheet, useWords } from './rkit';
+import { DEMO_TODAY, demoNow, Labelled, Sheet, useWords, When } from './rkit';
 import { NotAvailable, ProblemText } from './ProblemText';
 
 /**
@@ -25,7 +25,7 @@ export default function ServicesHub() {
         </h1>
         <p className="text-sm text-muted">{t('operations:hub.intro')}</p>
       </header>
-      <SegmentedControl label={t('operations:hub.show')} value={tab === 'visitors' ? 'visitors' : 'all'} onChange={(v) => setParams({ tab: v === 'all' ? null : v, new: null })} options={[{ id: 'all', label: t('operations:hub.everything') }, { id: 'visitors', label: t('operations:hub.visitors') }]} testId="hub-tabs" />
+      <SegmentedControl label={t('operations:hub.show')} value={tab === 'visitors' ? 'visitors' : 'all'} onChange={(v) => setParams({ tab: v === 'all' ? null : v, new: null })} options={[{ id: 'all', label: t('operations:hub.everything') }, { id: 'visitors', label: t('operations:hub.visitors') }]} testId="hub-tabs" wrap />
       {tab === 'visitors' ? <VisitorsTab /> : <Overview />}
     </div>
   );
@@ -119,11 +119,15 @@ function VisitorsTab() {
           <h2 id="gate-asked" className="text-lg font-bold text-text">{t('operations:visitors.asked')}</h2>
           <ul className="space-y-2">
             {d.requests.map((r) => (
-              <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 rounded-tile border border-border bg-panel p-3 text-sm" data-testid="asked-row" data-state={r.state}>
-                <span>
-                  <bdi className="font-medium text-text">{r.visitorName}</bdi> · {w.purpose(r.purpose)} · {fmt.instantTime(r.createdAt)}
+              <li key={r.id} className="space-y-2 rounded-tile border border-border bg-panel p-3 text-sm" data-testid="asked-row" data-state={r.state}>
+                <span className="flex flex-wrap items-start justify-between gap-2">
+                  <span className="min-w-0 flex-[1_1_10em] space-y-0.5">
+                    <bdi className="block font-medium text-text break-words">{r.visitorName}</bdi>
+                    <span className="block text-xs text-muted">{w.purpose(r.purpose)}</span>
+                    <Labelled label={t('operations:visitors.askedAt')}><When iso={r.createdAt} fmt={fmt} /></Labelled>
+                  </span>
+                  <Badge tone={r.state === 'approved' ? 'success' : r.state === 'denied' ? 'error' : r.state === 'waiting' ? 'warning' : 'neutral'}>{t(`operations:gateRequestState.${r.state}`)}</Badge>
                 </span>
-                <Badge tone={r.state === 'approved' ? 'success' : r.state === 'denied' ? 'error' : r.state === 'waiting' ? 'warning' : 'neutral'}>{t(`operations:gateRequestState.${r.state}`)}</Badge>
                 {r.state === 'waiting' && <AskedActions id={r.id} name={r.visitorName} onDone={() => void q.refetch()} />}
               </li>
             ))}
@@ -137,13 +141,12 @@ function VisitorsTab() {
         ) : (
           <ul className="space-y-2">
             {d.visits.map((v) => (
-              <li key={v.id} className="flex flex-wrap items-center justify-between gap-2 rounded-tile border border-border bg-panel p-3 text-sm" data-testid="visit-row" data-outcome={v.outcome}>
-                <span className="min-w-0">
-                  <bdi className="font-medium text-text">{v.visitorName}</bdi>
-                  <span className="block text-xs text-muted">
-                    {w.purpose(v.purpose)} · {fmt.instantTime(v.at)}
-                    {v.checkedOutAt ? ` → ${fmt.instantTime(v.checkedOutAt)}` : ''}
-                  </span>
+              <li key={v.id} className="flex flex-wrap items-start justify-between gap-2 rounded-tile border border-border bg-panel p-3 text-sm" data-testid="visit-row" data-outcome={v.outcome}>
+                <span className="min-w-0 flex-[1_1_10em] space-y-0.5">
+                  <bdi className="block font-medium text-text break-words">{v.visitorName}</bdi>
+                  <span className="block text-xs text-muted">{w.purpose(v.purpose)}</span>
+                  <Labelled label={t('operations:visitors.arrived')}><When iso={v.at} fmt={fmt} /></Labelled>
+                  {v.checkedOutAt && <Labelled label={t('operations:visitors.left')}><When iso={v.checkedOutAt} fmt={fmt} /></Labelled>}
                 </span>
                 <Badge tone={v.outcome === 'refused' ? 'error' : v.outcome === 'inside' ? 'info' : 'neutral'} icon={v.outcome === 'refused' ? ShieldX : v.outcome === 'inside' ? LogIn : LogOut}>
                   {v.refusal ? t(`operations:refusal.${v.refusal}`) : t(`operations:visitOutcome.${v.outcome}`)}
@@ -174,17 +177,19 @@ function PassCard({ pass: p, onOpen }: { pass: GatePass; onOpen: () => void }) {
   return (
     <button type="button" onClick={onOpen} className="block w-full space-y-2 rounded-card border border-border bg-panel p-4 text-start shadow-card outline-none hover:bg-raised focus-visible:outline-2 focus-visible:outline-focus" data-testid="pass-card" data-ref={p.ref} data-state={p.state}>
       <span className="flex flex-wrap items-start justify-between gap-2">
-        <span className="min-w-0 flex-1">
-          <span className="block font-semibold text-text"><bdi>{p.visitorName}</bdi></span>
+        <span className="min-w-0 flex-[1_1_10em]">
+          <span className="block font-semibold text-text break-words"><bdi>{p.visitorName}</bdi></span>
           <span className="block text-xs text-muted">
-            {w.purpose(p.purpose)} · <bdi dir="ltr" className="ltr-ref">{p.flat.code}</bdi>
-            {p.vehiclePlate ? <> · <bdi dir="ltr" className="ltr-ref">{p.vehiclePlate}</bdi></> : null}
+            {w.purpose(p.purpose)} · <bdi dir="ltr" className="ltr-ref whitespace-nowrap">{p.flat.code}</bdi>
+            {p.vehiclePlate ? <> · <bdi dir="ltr" className="ltr-ref whitespace-nowrap">{p.vehiclePlate}</bdi></> : null}
           </span>
         </span>
         <PassChip state={p.state} />
       </span>
-      <span className="block text-sm text-text">
-        {fmt.instantTime(p.from)} – {fmt.instantTime(p.to)} · {p.entries === 'single' ? t('operations:visitors.single') : t('operations:visitors.multiple')}
+      <span className="block space-y-0.5 text-sm" data-testid="pass-window">
+        <Labelled label={t('operations:visitors.starts')}><When iso={p.from} fmt={fmt} /></Labelled>
+        <Labelled label={t('operations:visitors.ends')}><When iso={p.to} fmt={fmt} /></Labelled>
+        <Labelled label={t('operations:visitors.entries')}>{p.entries === 'single' ? t('operations:visitors.single') : t('operations:visitors.multiple')}</Labelled>
       </span>
       <span className="flex items-center gap-2 text-sm">
         <Ticket aria-hidden className="size-4 text-muted" />
@@ -269,7 +274,7 @@ function InviteSheet({ isOpen, flats, onClose, onCreated }: { isOpen: boolean; f
             <input type="datetime-local" value={to} onChange={(e) => setTo(e.target.value)} className="min-h-11 rounded-control border border-border-control bg-panel px-3 text-sm text-text" data-testid="invite-to" />
           </label>
         </div>
-        <SegmentedControl label={t('operations:visitors.entries')} value={entries} onChange={setEntries} options={[{ id: 'single', label: t('operations:visitors.single') }, { id: 'multiple', label: t('operations:visitors.multiple') }]} testId="invite-entries" />
+        <SegmentedControl label={t('operations:visitors.entries')} value={entries} onChange={setEntries} options={[{ id: 'single', label: t('operations:visitors.single') }, { id: 'multiple', label: t('operations:visitors.multiple') }]} testId="invite-entries" wrap />
         <p className="text-xs text-muted">{entries === 'single' ? t('operations:visitors.singleHint') : t('operations:visitors.multipleHint')}</p>
         <PlainTextArea label={t('operations:visitors.note')} optional value={note} onChange={setNote} testId="invite-note" />
         {error ? <ProblemText error={error} /> : null}
@@ -295,8 +300,9 @@ function PassSheet({ pass: p, onClose, onChanged }: { pass: GatePass | null; onC
             <p className="text-4xl font-bold tracking-[0.35em] text-text" data-testid="pass-code">
               <bdi dir="ltr">{p.code}</bdi>
             </p>
-            <p className="text-sm text-text">
-              {fmt.instantTime(p.from)} – {fmt.instantTime(p.to)}
+            <p className="flex flex-col items-center text-sm text-text">
+              <Labelled label={t('operations:visitors.starts')}><When iso={p.from} fmt={fmt} /></Labelled>
+              <Labelled label={t('operations:visitors.ends')}><When iso={p.to} fmt={fmt} /></Labelled>
             </p>
             <Button
               variant="secondary"

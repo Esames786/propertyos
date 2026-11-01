@@ -1,4 +1,4 @@
-import { REQUEST_CATEGORIES, REQUEST_PRIORITIES, type OpsFile, type RequestDetail, type RequestList, type RequestPriority, type Technician, type WorkOrder } from '@repo/contracts';
+import { REQUEST_CATEGORIES, REQUEST_PRIORITIES, type OpsFile, type RequestCommentVisibility, type RequestDetail, type RequestList, type RequestPriority, type Technician, type WorkOrder } from '@repo/contracts';
 import {
   Badge,
   Button,
@@ -19,7 +19,7 @@ import {
   useT,
   useToast,
 } from '@repo/ui';
-import { Ban, CheckCircle2, ClipboardCheck, EyeOff, GitMerge, Hammer, Lock, MessageSquarePlus, PauseCircle, Play, RefreshCw, Send, UserCheck, Users } from 'lucide-react';
+import { Ban, CheckCircle2, ClipboardCheck, EyeOff, GitMerge, Hammer, Lock, MessageSquarePlus, PauseCircle, Play, RefreshCw, Send, UserCheck, Users, Wrench } from 'lucide-react';
 import { useState } from 'react';
 import { OPS, SOCIETY } from '../../../nav.config';
 import { Loading, ProblemAlert, useSocietyFormat } from '../kit';
@@ -288,7 +288,7 @@ function WorkOrders({ orders }: { orders: WorkOrder[] }) {
 function Discussion({ detail: d, run, pending }: { detail: RequestDetail; run: Run; pending: boolean }) {
   const { t } = useT();
   const [text, setText] = useState('');
-  const [visibility, setVisibility] = useState<'public' | 'internal'>('public');
+  const [visibility, setVisibility] = useState<RequestCommentVisibility>('public');
   const r = d.request;
   return (
     <div className="space-y-4" data-testid="discussion">
@@ -297,10 +297,11 @@ function Discussion({ detail: d, run, pending }: { detail: RequestDetail; run: R
       ) : (
         <ol className="space-y-2">
           {d.comments.map((c) => (
-            <li key={c.id} className={c.visibility === 'internal' ? 'rounded-tile border border-warning/40 bg-warning-soft/30 p-3' : 'rounded-tile border border-border/70 bg-panel p-3'} data-testid="comment" data-visibility={c.visibility}>
+            <li key={c.id} className={c.visibility === 'internal' ? 'rounded-tile border border-warning/40 bg-warning-soft/30 p-3' : c.visibility === 'assignee' ? 'rounded-tile border border-info/40 bg-info-soft/30 p-3' : 'rounded-tile border border-border/70 bg-panel p-3'} data-testid="comment" data-visibility={c.visibility}>
               <p className="flex flex-wrap items-center gap-2 text-xs text-muted">
                 <bdi className="font-medium text-text">{c.byName}</bdi> · {t(`operations:actor.${c.byKind}`)} · <When at={c.at} />
                 {c.visibility === 'internal' && <Badge tone="warning" icon={Lock}>{t('operations:request.internal')}</Badge>}
+                {c.visibility === 'assignee' && <Badge tone="info" icon={Wrench}>{t('operations:request.assignee')}</Badge>}
                 {c.hidden && <Badge tone="neutral" icon={EyeOff}>{t('operations:issue.commentHidden')}</Badge>}
               </p>
               <p className="mt-1 text-sm text-text [overflow-wrap:anywhere]"><bdi>{c.text}</bdi></p>
@@ -316,8 +317,14 @@ function Discussion({ detail: d, run, pending }: { detail: RequestDetail; run: R
       )}
       {d.actions.comment && (
         <div className="space-y-3 rounded-card border border-border/70 bg-panel p-4">
-          <SegmentedControl label={t('operations:request.visibility')} value={visibility} onChange={setVisibility} options={[{ id: 'public', label: t('operations:request.public') }, { id: 'internal', label: t('operations:request.internal') }]} testId="comment-visibility" />
-          <p className="text-xs text-muted">{visibility === 'public' ? t('operations:request.publicHint') : t('operations:request.internalHint')}</p>
+          <SegmentedControl
+            label={t('operations:request.visibility')}
+            value={visibility}
+            onChange={setVisibility}
+            options={[{ id: 'public', label: t('operations:request.public') }, { id: 'internal', label: t('operations:request.internal') }, ...(d.actions.commentAssignee ? [{ id: 'assignee' as const, label: t('operations:request.assignee') }] : [])]}
+            testId="comment-visibility"
+          />
+          <p className="text-xs text-muted">{visibility === 'public' ? t('operations:request.publicHint') : visibility === 'assignee' ? t('operations:request.assigneeHint') : t('operations:request.internalHint')}</p>
           <PlainTextArea label={t('operations:request.comment')} value={text} onChange={setText} testId="comment-text" />
           <Button variant="secondary" icon={MessageSquarePlus} isPending={pending} isDisabled={text.trim().length < 2} onPress={async () => (await run(`/ops/requests/${r.id}/comments`, { text, visibility }, t('operations:request.commented'))) && setText('')} data-testid="comment-send">
             {t('operations:request.addComment')}

@@ -78,7 +78,7 @@ function amenitiesFor(ctx: HandlerContext, res: ResidentOps, staff: Staff): Resi
     asOf: ctx.at,
     amenities: staff.ops.amenities,
     bookings: staff.ops.bookings.filter((b) => ids.has(b.flatId) && b.partyId === res.partyId).map(publicBooking),
-    flats: res.flats.filter((f) => f.roles.includes('occupant') || f.roles.includes('owner')).map((f) => ({ id: f.flat.id, code: f.flat.code })),
+    flats: res.flats.filter((f) => f.roles.includes('occupant') || f.roles.includes('owner')).map((f) => ({ id: f.flat.id, code: f.flat.code, lives: f.roles.includes('occupant') })),
     // Taken slots carry no names: only that the slot is no longer free.
     taken: staff.ops.bookings.filter((b) => ['confirmed', 'requested', 'approved'].includes(b.state) && b.on >= ctx.at).map((b) => ({ amenityId: b.amenityId, on: b.on, slot: b.slot })),
   };
@@ -238,8 +238,12 @@ export const OPS_RESIDENT_HANDLERS: readonly Handler[] = [
       const a = staff.ops.amenities.find((x) => x.id === input.amenityId);
       if (!a) invalid(ctx, 'amenityId', 'forms:errors.required');
       if (a.booking === 'none') problem(ctx, 409, 'no_booking', 'operations:errors.noBooking');
-      const home = res.flats.find((f) => f.flat.id === input.flatId && (f.roles.includes('occupant') || f.roles.includes('owner')));
-      if (!home) invalid(ctx, 'flatId', 'operations:errors.flatNotYours');
+      const yours = res.flats.find((f) => f.flat.id === input.flatId && (f.roles.includes('occupant') || f.roles.includes('owner')));
+      if (!yours) invalid(ctx, 'flatId', 'operations:errors.flatNotYours');
+      // Owner ruling (Issue #8): the people who live in the flat book; an owner who lives elsewhere
+      // only where the amenity's policy allows owners.
+      const home = yours.roles.includes('occupant') || (a.bookers === 'residents_and_owners' && yours.roles.includes('owner')) ? yours : undefined;
+      if (!home) problem(ctx, 403, 'residents_only', 'operations:errors.residentsOnlyBook');
       if (!input.on || !/^\d{4}-\d{2}-\d{2}$/.test(input.on) || input.on < ctx.at || input.on > addDays(ctx.at, 30)) invalid(ctx, 'on', 'operations:errors.bookingDate');
       if (!input.slot || !a.slots.includes(input.slot)) invalid(ctx, 'slot', 'forms:errors.required');
       const guests = Math.max(0, Math.round(Number(input.guests ?? 0)));

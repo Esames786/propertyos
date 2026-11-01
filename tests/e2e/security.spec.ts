@@ -142,6 +142,8 @@ test.describe('Switching identity and organisation', () => {
     await page.getByTestId('welcome-explore').click();
 
     await page.goto(`${BO}/backoffice/crm/leads-list?q=Switch%20Test`);
+    // The list has loaded (and the app listens for Ctrl+K) before absence is checked.
+    await expect(page.getByText('No leads match')).toBeVisible();
     await expect(page.getByText('Switch Test Person')).toHaveCount(0);
     await page.keyboard.press('Control+k');
     await page.getByTestId('command-palette').getByRole('searchbox').fill('Switch Test');

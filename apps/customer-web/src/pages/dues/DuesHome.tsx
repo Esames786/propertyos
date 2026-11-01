@@ -44,11 +44,11 @@ function HomeView({ data }: { data: Home }) {
         <p className="flex flex-wrap gap-2 text-sm text-muted" data-testid="dues-identity">
           {data.property.flats.map((f) => (
             <span key={f.id} className="inline-flex items-center gap-1.5 rounded-pill border border-border bg-panel px-3 py-1 text-xs font-medium text-text">
-              {t('dues:home.flat')} <bdi dir="ltr" className="ltr-ref font-semibold">{f.code}</bdi> · {t(`dues:home.role.${f.role}`)}
+              {t('dues:home.flat')} <bdi dir="ltr" className="ltr-ref font-semibold whitespace-nowrap">{f.code}</bdi> · {t(`dues:home.role.${f.role}`)}
             </span>
           ))}
           <span className="inline-flex items-center gap-1.5 rounded-pill border border-border bg-panel px-3 py-1 text-xs font-medium text-text">
-            {t('dues:home.account')} <bdi dir="ltr" className="ltr-ref font-semibold">{data.property.accountNo}</bdi>
+            {t('dues:home.account')} <bdi dir="ltr" className="ltr-ref font-semibold whitespace-nowrap">{data.property.accountNo}</bdi>
           </span>
         </p>
       </header>
@@ -128,16 +128,25 @@ function BillHero({ position: p, fmt, pendingId }: { position: ResidentPosition;
               {t('dues:home.paidInAdvance')}
             </p>
           )}
-          <div className="mt-1 flex flex-wrap items-baseline justify-between gap-3 border-t border-border pt-3" data-tour-id="dues-total">
+          <div className="mt-1 flex flex-wrap items-baseline justify-between gap-3 border-t border-border pt-3 @container" data-tour-id="dues-total">
             <dt className="text-base font-semibold text-text">{t('dues:home.total')}</dt>
-            <dd className="text-figure-sm leading-none font-bold tracking-tight text-text sm:text-figure" data-testid="dues-total"><Amount value={p.totalPayable.amount} /></dd>
+            {/* The figure fits the card: as large as its display size when there is room, never smaller
+                than the person's chosen text size, and the currency wraps before any digit would. */}
+            <dd
+              className="max-w-full leading-tight font-bold tracking-tight text-text [--figure-max:var(--text-figure-sm)] sm:[--figure-max:var(--text-figure)]"
+              style={{ fontSize: `clamp(calc(1rem * var(--text-scale, 1)), calc(100cqi / ${(fmt.money(p.totalPayable.amount).length * 0.62).toFixed(2)}), var(--figure-max))` }}
+              data-testid="dues-total"
+            >
+              <Amount value={p.totalPayable.amount} wrap />
+            </dd>
           </div>
         </dl>
 
         {owing && p.dueOn && (
           <p className={cn('flex flex-wrap items-center gap-2 text-sm', days !== null && days < 0 ? 'text-error' : 'text-text')} data-testid="dues-due">
             <CalendarClock aria-hidden className="size-4" />
-            {t('dues:home.dueOn', { date: fmt.date(p.dueOn) })} · {days === null ? '' : days < 0 ? t('dues:home.overdueBy', { count: -days }) : days === 0 ? t('dues:home.dueToday') : t('dues:home.dueIn', { count: days })}
+            {/* Each part isolated: in Urdu, "… 2026 · 15 …" would otherwise join into one left-to-right run and read as "15 · 2026". */}
+            <bdi>{t('dues:home.dueOn', { date: fmt.date(p.dueOn) })}</bdi> · <bdi>{days === null ? '' : days < 0 ? t('dues:home.overdueBy', { count: -days }) : days === 0 ? t('dues:home.dueToday') : t('dues:home.dueIn', { count: days })}</bdi>
           </p>
         )}
         {Number(p.overdue.amount) > 0 && <p className="text-sm text-error" data-testid="dues-overdue">{t('dues:home.overdueNote', { amount: fmt.money(p.overdue.amount) })}</p>}
@@ -145,21 +154,24 @@ function BillHero({ position: p, fmt, pendingId }: { position: ResidentPosition;
           <p className="rounded-tile bg-info-soft px-3 py-2 text-sm text-info" data-testid="dues-pending">{t('dues:home.pendingNote', { amount: fmt.money(p.pendingVerification.amount) })}</p>
         )}
 
-        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+        {/* A container measured in em (it grows with the text size): when the card is too narrow for the
+            amount beside the wallet icon, the icon steps aside so the amount stays on one line. */}
+        <div className="flex flex-col gap-2 @container sm:flex-row sm:flex-wrap">
           {owing && p.status !== 'pending_verification' && (
-            <Link href={DUES.pay} variant="plain" className={cn(buttonClass('primary', 'lg'), 'justify-center gap-2')} data-tour-id="dues-pay" data-testid="dues-pay" onPress={() => emitTourEvent('dues.pay.opened')}>
-              <Wallet aria-hidden className="size-5" />
-              {t('dues:home.pay', { amount: fmt.money(p.totalPayable.amount) })}
+            <Link href={DUES.pay} variant="plain" className={cn(buttonClass('primary', 'lg'), 'justify-center gap-2 py-2 text-center whitespace-normal')} data-tour-id="dues-pay" data-testid="dues-pay" onPress={() => emitTourEvent('dues.pay.opened')}>
+              <Wallet aria-hidden className="size-5 shrink-0 @max-[14em]:hidden" />
+              {/* A breakable space: on a narrow phone with large text the currency may wrap before the digits do. */}
+              {t('dues:home.pay', { amount: fmt.money(p.totalPayable.amount).replace(' ', ' ') })}
             </Link>
           )}
           {p.status === 'pending_verification' && pendingId && (
-            <Link href={DUES.submission(pendingId)} variant="plain" className={cn(buttonClass('secondary', 'lg'), 'justify-center gap-2')} data-tour-id="dues-pay" data-testid="dues-pending-open">
+            <Link href={DUES.submission(pendingId)} variant="plain" className={cn(buttonClass('secondary', 'lg'), 'justify-center gap-2 py-2 text-center whitespace-normal')} data-tour-id="dues-pay" data-testid="dues-pending-open">
               {t('dues:home.seeProof')}
               <DirectionalIcon icon={ArrowRight} className="size-4" />
             </Link>
           )}
           {bill && (
-            <Link href={DUES.bill(bill.invoiceId)} variant="plain" className={cn(buttonClass('secondary', 'lg'), 'justify-center')} data-testid="dues-see-bill">
+            <Link href={DUES.bill(bill.invoiceId)} variant="plain" className={cn(buttonClass('secondary', 'lg'), 'justify-center py-2 text-center whitespace-normal')} data-testid="dues-see-bill">
               {t('dues:home.seeBill')}
             </Link>
           )}
