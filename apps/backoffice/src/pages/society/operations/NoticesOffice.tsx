@@ -37,6 +37,12 @@ export default function NoticesOffice() {
                 {t('operations:notices.new')}
               </Button>
             )}
+            {can('chat.groups.manage') && (
+              <Link href={OPS.chat} variant="plain" className={cn(buttonClass('secondary', 'md', 'gap-2'), WRAP)} data-testid="notices-chat-admin">
+                <MessageSquare aria-hidden className="size-4" />
+                {t('operations:communityOffice.title')}
+              </Link>
+            )}
             {can('messages.send') && (
               <Link href={OPS.message} variant="plain" className={cn(buttonClass('secondary', 'md', 'gap-2'), WRAP)} data-testid="notice-quick-message">
                 <MessageSquare aria-hidden className="size-4" />
