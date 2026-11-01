@@ -58,15 +58,26 @@ export function residentCount(published: Published | undefined, audience: Counts
   }
   if (audience.site < t.minAudience) return { shown: false, reason: 'audience_too_small' };
   if (published.site < t.minCount) return { shown: false, reason: 'below_threshold' };
-  const blocks = Object.keys(published.blocks)
-    .sort()
-    .filter((code) => {
-      const n = published.blocks[code] ?? 0;
-      const aud = audience.blocks[code] ?? 0;
-      const rest = published.site - n;
-      const restAudience = audience.site - aud;
-      return n >= t.minCount && aud >= t.minAudience && rest >= t.minCount && restAudience >= t.minAudience;
-    })
-    .map((code) => ({ code, count: published.blocks[code]! }));
+  const codes = Object.keys(published.blocks).sort();
+  let shown = codes.filter((code) => {
+    const n = published.blocks[code] ?? 0;
+    const aud = audience.blocks[code] ?? 0;
+    const rest = published.site - n;
+    const restAudience = audience.site - aud;
+    return n >= t.minCount && aud >= t.minAudience && rest >= t.minCount && restAudience >= t.minAudience;
+  });
+  // Adjacent blocks: with three or more blocks, the site minus every shown block is the hidden blocks
+  // together, so that remainder must clear the threshold too. Drop the smallest shown block until it does.
+  const remainderSafe = (set: string[]) => {
+    if (set.length === codes.length) return true;
+    const count = published.site - set.reduce((sum, c) => sum + (published.blocks[c] ?? 0), 0);
+    const aud = audience.site - set.reduce((sum, c) => sum + (audience.blocks[c] ?? 0), 0);
+    return count >= t.minCount && aud >= t.minAudience;
+  };
+  while (shown.length && !remainderSafe(shown)) {
+    const smallest = [...shown].sort((a, b) => (published.blocks[a] ?? 0) - (published.blocks[b] ?? 0) || a.localeCompare(b))[0]!;
+    shown = shown.filter((c) => c !== smallest);
+  }
+  const blocks = shown.map((code) => ({ code, count: published.blocks[code]! }));
   return { shown: true, site: published.site, blocks, asOf: published.at };
 }

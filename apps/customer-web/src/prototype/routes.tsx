@@ -100,6 +100,30 @@ const household = {
 };
 const DuesPayDetails = lazy(() => import('../pages/dues/DuesPay').then((m) => ({ default: () => <m.default mode="details" /> })));
 const DuesSubmission = lazy(() => import('../pages/dues/DuesPages').then((m) => ({ default: m.DuesSubmissionPage })));
+/** Gate D.2: the society edition's requests, notices and services (rule R is checked by the server). */
+const operations = {
+  services: lazy(() => import('../pages/operations/ServicesHub')),
+  repairs: lazy(() => import('../pages/operations/RepairsPage')),
+  notices: lazy(() => import('../pages/operations/NoticesPages').then((m) => ({ default: m.NoticesPage }))),
+  issues: lazy(() => import('../pages/operations/IssuesPage')),
+  vehicles: lazy(() => import('../pages/operations/ResidentServices').then((m) => ({ default: m.VehiclesPage }))),
+  parking: lazy(() => import('../pages/operations/ResidentServices').then((m) => ({ default: m.ParkingPage }))),
+  amenities: lazy(() => import('../pages/operations/ResidentServices').then((m) => ({ default: m.AmenitiesPage }))),
+};
+const NoticeDetail = lazy(() => import('../pages/operations/NoticesPages').then((m) => ({ default: m.NoticeDetailPage })));
+
+/** PORTAL-043: `/customer/portal/community-notices/:id` (the stable deep link of notifications and messages). */
+function NoticeRoute() {
+  const { id } = useParams();
+  const isDues = useIsDuesResident();
+  return isDues && id ? (
+    <Suspense fallback={null}>
+      <NoticeDetail noticeId={id} />
+    </Suspense>
+  ) : (
+    <RegisterResolver />
+  );
+}
 
 type Page = LazyExoticComponent<ComponentType>;
 function Edition({ dues: Dues, developer: Developer }: { dues?: Page; developer?: Page }) {
@@ -112,6 +136,11 @@ function Edition({ dues: Dues, developer: Developer }: { dues?: Page; developer?
   ) : (
     <RegisterResolver />
   );
+}
+
+/** An old register address: society residents go to their Gate D.2 page, developer buyers to the services hub. */
+function EditionRedirect({ dues, developer }: { dues: string; developer: string }) {
+  return <Navigate to={useIsDuesResident() ? dues : developer} replace />;
 }
 
 function SubmissionRoute() {
@@ -140,8 +169,17 @@ const portalChildren: RouteObject[] = [
   { path: 'upload-proof-mock', element: <Edition dues={dues.pay} developer={developer.pay} />, handle: handle({ title: (t) => t('portal:pages.pay') }) },
   { path: 'receipt', element: <Edition dues={dues.receipt} developer={developer.receipt} />, handle: handle({ title: (t) => t('portal:pages.receipt') }) },
   { path: 'construction-updates', loader: registerLoader, element: <Edition developer={developer.construction} />, handle: handle({ title: (t) => t('portal:pages.construction') }) },
-  { path: 'services-home', loader: registerLoader, element: <Edition developer={developer.services} />, handle: handle({ title: (t) => t('portal:pages.services') }) },
+  { path: 'services-home', loader: registerLoader, element: <Edition dues={operations.services} developer={developer.services} />, handle: handle({ title: (t) => t('portal:pages.services') }) },
   { path: 'documents', loader: registerLoader, element: <Edition developer={developer.documents} />, handle: handle({ title: (t) => t('portal:pages.documents') }) },
+  // Gate D.2: PORTAL-018 repairs, PORTAL-023 notices and PORTAL-043 notice detail (society edition).
+  { path: 'maintenance-workspace', loader: registerLoader, element: <Edition dues={operations.repairs} />, handle: handle({ title: (t) => t('operations:repairs.title') }) },
+  { path: 'community-notices', loader: registerLoader, element: <Edition dues={operations.notices} />, handle: handle({ title: (t) => t('operations:residentNotice.title') }) },
+  { path: 'community-notices/:id', loader: registerLoader, element: <NoticeRoute />, handle: handle({ title: (t) => t('operations:residentNotice.detailTitle') }) },
+  // Gate D.2: PORTAL-034 community issues, PORTAL-026 vehicles, PORTAL-021 parking, PORTAL-022 amenities.
+  { path: 'issues', loader: registerLoader, element: <Edition dues={operations.issues} />, handle: handle({ title: (t) => t('operations:residentIssue.title') }) },
+  { path: 'vehicles', loader: registerLoader, element: <Edition dues={operations.vehicles} />, handle: handle({ title: (t) => t('operations:vehicles.title') }) },
+  { path: 'parking', loader: registerLoader, element: <Edition dues={operations.parking} />, handle: handle({ title: (t) => t('operations:parking.title') }) },
+  { path: 'amenities', loader: registerLoader, element: <Edition dues={operations.amenities} />, handle: handle({ title: (t) => t('operations:amenities.title') }) },
   // Society dues screens (Gate C.2): PORTAL-005, 007, 028, 029.
   { path: 'invoice-detail', loader: registerLoader, element: <Edition dues={dues.bill} />, handle: handle({ title: (t) => t('dues:pages.bill') }) },
   { path: 'bank-transfer-details', loader: registerLoader, element: <Edition dues={DuesPayDetails} />, handle: handle({ title: (t) => t('dues:pages.payee') }) },
@@ -150,8 +188,8 @@ const portalChildren: RouteObject[] = [
   // Register screens served by a built screen (deep links keep working; see the screen register notes).
   { path: 'pay-online-mock', element: <Navigate to="/customer/portal/upload-proof-mock?mode=online" replace /> },
   { path: 'payment-history', element: <PaymentHistoryRoute />, handle: handle({ title: (t) => t('dues:pages.history') }) },
-  { path: 'maintenance-list', element: <Navigate to="/customer/portal/services-home?tab=maintenance" replace /> },
-  { path: 'create-maintenance', element: <Navigate to="/customer/portal/services-home?tab=maintenance&new=1" replace /> },
+  { path: 'maintenance-list', element: <EditionRedirect dues="/customer/portal/maintenance-workspace" developer="/customer/portal/services-home?tab=maintenance" /> },
+  { path: 'create-maintenance', element: <EditionRedirect dues="/customer/portal/maintenance-workspace?new=1" developer="/customer/portal/services-home?tab=maintenance&new=1" /> },
   { path: 'visitor-passes', element: <Navigate to="/customer/portal/services-home?tab=visitors" replace /> },
   { path: 'create-visitor-pass', element: <Navigate to="/customer/portal/services-home?tab=visitors&new=1" replace /> },
   {

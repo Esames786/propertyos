@@ -1,6 +1,6 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '../test/render';
 import { UrlTabs } from './Tabs';
 
@@ -27,5 +27,16 @@ describe('UrlTabs', () => {
     renderWithProviders(<UrlTabs label="Record" items={items}>{(id) => <p>panel {id}</p>}</UrlTabs>, { url: '/test?tab=t9' });
     expect(screen.getByRole('tab', { name: 'Tab 9' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByText('panel t9')).toBeInTheDocument();
+  });
+
+  it('shows three tabs on a phone, or fewer when the screen has long labels', () => {
+    const desktop = window.matchMedia;
+    vi.spyOn(window, 'matchMedia').mockImplementation((query: string) => ({ ...desktop(query), matches: false }));
+    const { unmount } = renderWithProviders(<UrlTabs label="Record" items={items}>{(id) => <p>panel {id}</p>}</UrlTabs>);
+    expect(screen.getAllByRole('tab')).toHaveLength(3);
+    unmount();
+    renderWithProviders(<UrlTabs label="Record" items={items} phoneLimit={2}>{(id) => <p>panel {id}</p>}</UrlTabs>, { url: '/test?tab=t9' });
+    expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['Tab 0', 'Tab 9']);
+    vi.restoreAllMocks();
   });
 });

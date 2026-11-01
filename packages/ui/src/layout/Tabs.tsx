@@ -22,6 +22,7 @@ export function UrlTabs({
   items,
   param = 'tab',
   defaultId,
+  phoneLimit = 3,
   children,
 }: {
   label: string;
@@ -29,6 +30,8 @@ export function UrlTabs({
   param?: string;
   /** Tab shown when the URL has no tab parameter (e.g. a route that deep-links to one tab). */
   defaultId?: string;
+  /** Tabs shown before "More" on a phone; lower it when the labels are long (they would scroll off). */
+  phoneLimit?: number;
   children: (selectedId: string) => ReactNode;
 }) {
   const { t } = useT();
@@ -38,7 +41,7 @@ export function UrlTabs({
   const fallback = defaultId && items.some((i) => i.id === defaultId) ? defaultId : items[0]!.id;
   const selected = items.some((i) => i.id === raw) ? raw! : fallback;
 
-  const limit = isDesktop ? 7 : isTablet ? 5 : 3;
+  const limit = isDesktop ? 7 : isTablet ? 5 : phoneLimit;
   let visible = items.slice(0, limit);
   if (items.length > limit && !visible.some((i) => i.id === selected)) {
     visible = [...items.slice(0, limit - 1), items.find((i) => i.id === selected)!];

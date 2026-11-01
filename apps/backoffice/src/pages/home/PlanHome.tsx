@@ -2,21 +2,16 @@ import { grantActive, type ModuleKey } from '@repo/contracts';
 import { formatCalendarDate, useLocale } from '@repo/i18n';
 import { Badge, dynamicT, IconTile, Link, Panel, QuickActions, useSession, useShell, useT, type QuickAction } from '@repo/ui';
 import { CalendarClock, ClipboardList, Compass, HardHat, KeyRound, Package, ReceiptText, Settings2, Wrench } from 'lucide-react';
-import { LINKS } from '../../nav.config';
+import { LINKS, OPS } from '../../nav.config';
 
 /** The demo's frozen "today" (see ACCESS_TODAY in fixtures); figures and greetings use it. */
 const TODAY = '2026-10-26';
 
 /**
- * Maintenance work the register plans for later gates (MNT-002, MNT-004, MNT-006, MNT-010). Shown
- * as planned, with its gate, never as working buttons: nothing here can be opened yet.
+ * Maintenance work the register still plans for a later gate (MNT-010). Shown as planned, with its
+ * gate, never as a working button. Requests, new requests and the technician board work since Gate D.2.
  */
-const PLANNED_MAINTENANCE = [
-  { id: 'requests', screen: 'MNT-002', gate: 'D', icon: ClipboardList },
-  { id: 'newRequest', screen: 'MNT-004', gate: 'D', icon: Wrench },
-  { id: 'technicians', screen: 'MNT-006', gate: 'D', icon: HardHat },
-  { id: 'preventive', screen: 'MNT-010', gate: 'G', icon: CalendarClock },
-] as const;
+const PLANNED_MAINTENANCE = [{ id: 'preventive', screen: 'MNT-010', gate: 'G', icon: CalendarClock }] as const;
 
 /**
  * HOME-001 for a workspace whose plan has no developer modules (a maintenance-only society, or a
@@ -33,20 +28,27 @@ export function PlanHome() {
   const firstName = persona?.displayName.split(/\s+/)[0] ?? '';
   const suspended = access?.tenant.status === 'suspended';
 
-  // Every action here opens a working screen that stays readable while the workspace is suspended.
-  const actions = (
-    [
-      { id: 'invoices', label: t('nav:pages.invoices'), icon: ReceiptText, hue: 'sky', href: LINKS.invoices, permission: 'invoice.view', testId: 'plan-qa-invoices' },
-      { id: 'my-access', label: t('nav:pages.myAccess'), icon: KeyRound, hue: 'emerald', href: LINKS.myAccess, testId: 'plan-qa-my-access' },
-      { id: 'plan', label: t('nav:pages.plan'), icon: Package, hue: 'slate', href: LINKS.plan, permission: 'admin.view', testId: 'plan-qa-plan' },
-      { id: 'help', label: t('nav:items.help'), icon: Compass, hue: 'gold', href: LINKS.tourLibrary, testId: 'plan-qa-help' },
-      { id: 'preferences', label: t('nav:pages.preferences'), icon: Settings2, hue: 'violet', href: LINKS.preferences, testId: 'plan-qa-preferences' },
-    ] as QuickAction[]
-  ).map((a): QuickAction => ({ ...a, suspension: 'history_read' }));
-  const { navItems } = useShell();
-  const areas = navItems.filter((i) => !['home', 'lab', 'help'].includes(i.id) && allows(i));
   const licensed: ModuleKey[] = [...new Set((access?.grants ?? []).filter((g) => grantActive(g, TODAY)).map((g) => g.module))];
   const maintains = licensed.includes('maintenance') && !suspended;
+  // Gate D.2: the maintenance screens that work (paused while the workspace is suspended).
+  const maintenance: QuickAction[] = maintains
+    ? [
+        { id: 'requests', label: t('workspace:home.actions.requests'), icon: ClipboardList, hue: 'emerald', href: OPS.requests(), permission: 'operations.view', testId: 'plan-qa-requests' },
+        { id: 'new-request', label: t('workspace:home.actions.newRequest'), icon: Wrench, hue: 'sky', href: OPS.newRequest(), permission: 'maintenance.manage', testId: 'plan-qa-new-request' },
+        { id: 'technicians', label: t('workspace:home.actions.technicians'), icon: HardHat, hue: 'gold', href: OPS.technicians, permission: 'operations.view', testId: 'plan-qa-technicians' },
+      ]
+    : [];
+  // Every other action opens a working screen that stays readable while the workspace is suspended.
+  const readable: QuickAction[] = [
+    { id: 'invoices', label: t('nav:pages.invoices'), icon: ReceiptText, hue: 'sky', href: LINKS.invoices, permission: 'invoice.view', testId: 'plan-qa-invoices' },
+    { id: 'my-access', label: t('nav:pages.myAccess'), icon: KeyRound, hue: 'emerald', href: LINKS.myAccess, testId: 'plan-qa-my-access' },
+    { id: 'plan', label: t('nav:pages.plan'), icon: Package, hue: 'slate', href: LINKS.plan, permission: 'admin.view', testId: 'plan-qa-plan' },
+    { id: 'help', label: t('nav:items.help'), icon: Compass, hue: 'gold', href: LINKS.tourLibrary, testId: 'plan-qa-help' },
+    { id: 'preferences', label: t('nav:pages.preferences'), icon: Settings2, hue: 'violet', href: LINKS.preferences, testId: 'plan-qa-preferences' },
+  ];
+  const actions = [...maintenance, ...readable.map((a): QuickAction => ({ ...a, suspension: 'history_read' }))];
+  const { navItems } = useShell();
+  const areas = navItems.filter((i) => !['home', 'lab', 'help'].includes(i.id) && allows(i));
   const admin = can('admin.view') || allows({ permission: 'admin.view', suspension: 'history_read' });
 
   return (

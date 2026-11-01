@@ -25,7 +25,10 @@
     "officeCollections": "Office collections",
     "approvals": "Approvals",
     "committee": "Committee",
-    "ownershipTransfers": "Transfers and clearance"
+    "ownershipTransfers": "Transfers and clearance",
+    "visitors": "Visitors & gate",
+    "vehicles": "Vehicles",
+    "notices": "Notices"
   },
   "header": {
     "search": "Search",
@@ -138,7 +141,27 @@
     "approvalPolicies": "Approval policies",
     "delegation": "Delegation",
     "ownershipTransfers": "Transfers and clearance",
-    "ownershipTransfer": "Transfer review"
+    "ownershipTransfer": "Transfer review",
+    "maintenance": "Maintenance",
+    "requests": "Maintenance requests",
+    "request": "Request 360",
+    "newRequest": "New request",
+    "technicianBoard": "Technician board",
+    "sla": "Service levels",
+    "residentConfirmation": "Resident confirmation",
+    "communityIssues": "Community issues",
+    "visitors": "Visitors and the gate",
+    "passes": "Visitor passes",
+    "pass": "Visitor pass",
+    "gate": "Gate check-in",
+    "visitHistory": "Visitor history",
+    "scan": "Scan a pass",
+    "notices": "Notices",
+    "sendMessage": "Quick message",
+    "vehicleRegistry": "Vehicle registry",
+    "residentsDashboard": "Residents",
+    "vehicles": "Vehicles",
+    "residents": "Residents"
   },
   "groups": {
     "workspace": "Workspace",

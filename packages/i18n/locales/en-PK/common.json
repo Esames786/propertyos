@@ -88,7 +88,9 @@
     "alnoor_owner_a201": "See your bill, pay the exact total and get your receipt",
     "alnoor_tenant_a202": "See your bill, pay the exact total and get your receipt",
     "alnoor_admin": "Run the society’s workspace: flats and people, billing and collections, who uses the resident app, and the organisation’s settings.",
-    "invited_resident": "See your bill, pay by bank transfer and keep your receipts, all in one place."
+    "invited_resident": "See your bill, pay by bank transfer and keep your receipts, all in one place.",
+    "alnoor_maintenance": "Triage residents’ repair requests, assign technicians and keep every job within its response time.",
+    "alnoor_technician": "See the jobs assigned to you, update them on site and record the fix with a photo."
   },
   "demo": {
     "signInTitle": "Choose a demo identity",

@@ -4,6 +4,7 @@ import { emitTourEvent } from '@repo/ui/onboarding';
 import { ArrowRight, Building2, CalendarClock, ChevronRight, FileQuestion, History, Landmark, ReceiptText, ScrollText, Type, Wallet } from 'lucide-react';
 import { useId } from 'react';
 import { DUES } from '../../nav.config';
+import { HomeAttention } from '../operations/HomeAttention';
 import { Amount, PortalSkeleton, usePortalFormat } from '../portal/shared';
 import { BillStatusChip, DemoLinkNote, DEMO_TODAY, daysUntil, ProofStateChip, ProofStepper } from './kit';
 
@@ -73,6 +74,8 @@ function HomeView({ data }: { data: Home }) {
           <DirectionalIcon icon={ChevronRight} className="mt-1 size-4 text-muted" />
         </Link>
       )}
+
+      <HomeAttention />
 
       {/* grid-cols-1 (minmax(0, 1fr)): at large text sizes a long reference must wrap, not widen the page. */}
       <div className="grid grid-cols-1 gap-5 @4xl:grid-cols-2">

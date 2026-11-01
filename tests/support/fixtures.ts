@@ -20,6 +20,8 @@ export type PersonaId =
   | 'alnoor_guard'
   | 'alnoor_accounts'
   | 'alnoor_admin'
+  | 'alnoor_maintenance'
+  | 'alnoor_technician'
   | 'alnoor_resident_a101'
   | 'alnoor_tenant_a102'
   | 'alnoor_owner_a201'
@@ -56,6 +58,8 @@ const TENANT_OF: Record<string, string> = {
   alnoor_guard: 'tnt_alnoor',
   alnoor_accounts: 'tnt_alnoor',
   alnoor_admin: 'tnt_alnoor',
+  alnoor_maintenance: 'tnt_alnoor',
+  alnoor_technician: 'tnt_alnoor',
   alnoor_resident_a101: 'tnt_alnoor',
   alnoor_tenant_a102: 'tnt_alnoor',
   alnoor_owner_a201: 'tnt_alnoor',

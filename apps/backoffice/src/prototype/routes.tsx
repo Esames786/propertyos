@@ -161,6 +161,80 @@ function S1Record({ page: Page, target }: { page: LazyExoticComponent<ComponentT
   );
 }
 
+/**
+ * Gate D.2: resident operations. Built for a society's (or a maintenance client's) own site; any other
+ * organisation keeps the register's planned page at these addresses, as do people without the module,
+ * feature or permission (nothing unfinished looks finished; the server refuses the same way).
+ */
+const ops = <K extends string>(load: () => Promise<Record<K, ComponentType>>, name: K) => lazy(() => load().then((m) => ({ default: m[name] })));
+const opsPages = () => import('../pages/society/operations/MaintenancePages');
+const MaintenanceDashboardPage = ops(opsPages, 'MaintenanceDashboardPage');
+const RequestsListPage = ops(opsPages, 'RequestsListPage');
+const TechnicianBoardPage = ops(opsPages, 'TechnicianBoardPage');
+const SlaDashboardPage = ops(opsPages, 'SlaDashboardPage');
+const ConfirmationPage = ops(opsPages, 'ConfirmationPage');
+const NewRequestPage = lazy(() => import('../pages/society/operations/NewRequestPage'));
+const IssuesBoard = lazy(() => import('../pages/society/operations/IssuesBoard'));
+const RequestById = lazy(() => import('../pages/society/operations/RequestWorkspace').then((m) => ({ default: ({ id }: { id: string }) => <m.default requestId={id} /> })));
+
+const visitorPages = () => import('../pages/society/operations/VisitorPages');
+const VisitorDashboardPage = ops(visitorPages, 'VisitorDashboardPage');
+const GatePage = ops(visitorPages, 'GatePage');
+const PassesPage = ops(visitorPages, 'PassesPage');
+const VisitHistoryPage = ops(visitorPages, 'VisitHistoryPage');
+const ScanPage = ops(visitorPages, 'ScanPage');
+const PassById = lazy(() => import('../pages/society/operations/VisitorPages').then((m) => ({ default: ({ id }: { id: string }) => <m.PassDetailPage passId={id} /> })));
+const NoticesOffice = lazy(() => import('../pages/society/operations/NoticesOffice'));
+const SendMessagePage = ops(() => import('../pages/society/operations/NoticesOffice'), 'SendMessagePage');
+const VehiclesOffice = lazy(() => import('../pages/society/operations/VehiclesOffice'));
+const ResidentsOffice = lazy(() => import('../pages/society/operations/ResidentsOffice'));
+
+const VISITORS: AccessTarget = { module: 'visitors', anyOf: ['visitors.view', 'visitors.manage'] };
+const GATE: AccessTarget = { module: 'visitors', permission: 'visitors.manage' };
+const NOTICES: AccessTarget = { module: 'residents', permission: 'residents.view' };
+const PARKING: AccessTarget = { module: 'parking', anyOf: ['parking.view', 'vehicles.approve'] };
+const RESIDENTS: AccessTarget = { module: 'residents', permission: 'residents.view' };
+const MESSAGES: AccessTarget = { module: 'communications', permission: 'messages.send' };
+const MAINT: AccessTarget = { module: 'maintenance', permission: 'operations.view' };
+const MAINT_MANAGE: AccessTarget = { module: 'maintenance', permission: 'maintenance.manage' };
+const MAINT_ISSUES: AccessTarget = { module: 'maintenance', feature: 'maintenance.community_issues', permission: 'issues.view' };
+
+function useOpsSite() {
+  const { access } = useSession();
+  return access?.tenant.type === 'association';
+}
+
+function OpsScreen({ page: Page, target }: { page: LazyExoticComponent<ComponentType>; target: AccessTarget }) {
+  const { allows } = useSession();
+  return useOpsSite() && allows(target) ? (
+    <Suspense fallback={null}>
+      <Page />
+    </Suspense>
+  ) : (
+    <RegisterResolver />
+  );
+}
+
+function OpsRecord({ page: Page, target, prefix }: { page: LazyExoticComponent<ComponentType<{ id: string }>>; target: AccessTarget; prefix: string }) {
+  const { allows } = useSession();
+  const [params] = useSearchParams();
+  const record = params.get('record');
+  return useOpsSite() && allows(target) && record?.startsWith(prefix) ? (
+    <Suspense fallback={null}>
+      <Page id={record} />
+    </Suspense>
+  ) : (
+    <RegisterResolver />
+  );
+}
+
+/** MNT-005's register address: the assignment drawer of Request 360. */
+function AssignRedirect() {
+  const [params] = useSearchParams();
+  const record = params.get('record');
+  return <Navigate to={record ? `/backoffice/mnt/maintenance-360-workspace?record=${record}&drawer=assign` : '/backoffice/mnt/maintenance-list?status=unassigned'} replace />;
+}
+
 const PortalAccessPage = lazy(() => import('../pages/society/portal/PortalAccessPage'));
 const HouseholdMembersPage = lazy(() => import('../pages/society/portal/HouseholdMembersPage'));
 const DataPrivacyPage = lazy(() => import('../pages/adm/data/DataPrivacyPage'));
@@ -365,6 +439,28 @@ const shellChildren: RouteObject[] = [
   { path: 'own/transfers-list', loader: registerLoader, element: <S1Screen page={OwnershipTransfersPage} target={CLEARANCE} />, handle: h({ title: (t) => t('nav:pages.ownershipTransfers') }) },
   { path: 'own/transfer-review-approval', loader: registerLoader, element: <S1Record page={OwnershipById} target={CLEARANCE} />, handle: h({ title: (t) => t('nav:pages.ownershipTransfer') }) },
   { path: 'bank/transfers', loader: registerLoader, element: <S1Screen page={TransfersPage} target={BANKING} />, handle: h({ title: (t) => t('nav:pages.transfers') }) },
+  // Gate D.2: maintenance and community issues (MNT-001…008, MNT-012/013).
+  { path: 'mnt/maintenance-dashboard', loader: registerLoader, element: <OpsScreen page={MaintenanceDashboardPage} target={MAINT} />, handle: h({ title: (t) => t('nav:pages.maintenance') }) },
+  { path: 'mnt/maintenance-list', loader: registerLoader, element: <OpsScreen page={RequestsListPage} target={MAINT} />, handle: h({ title: (t) => t('nav:pages.requests') }) },
+  { path: 'mnt/maintenance-360-workspace', loader: registerLoader, element: <OpsRecord page={RequestById} target={MAINT} prefix="req_" />, handle: h({ title: (t) => t('nav:pages.request') }) },
+  { path: 'mnt/new-request', loader: registerLoader, element: <OpsScreen page={NewRequestPage} target={MAINT_MANAGE} />, handle: h({ title: (t) => t('nav:pages.newRequest') }) },
+  { path: 'mnt/assign-work-order', loader: registerLoader, element: <AssignRedirect /> },
+  { path: 'mnt/technician-board', loader: registerLoader, element: <OpsScreen page={TechnicianBoardPage} target={MAINT} />, handle: h({ title: (t) => t('nav:pages.technicianBoard') }) },
+  { path: 'mnt/sla-dashboard', loader: registerLoader, element: <OpsScreen page={SlaDashboardPage} target={MAINT} />, handle: h({ title: (t) => t('nav:pages.sla') }) },
+  { path: 'mnt/resident-confirmation', loader: registerLoader, element: <OpsScreen page={ConfirmationPage} target={MAINT_MANAGE} />, handle: h({ title: (t) => t('nav:pages.residentConfirmation') }) },
+  { path: 'mnt/issues', loader: registerLoader, element: <OpsScreen page={IssuesBoard} target={MAINT_ISSUES} />, handle: h({ title: (t) => t('nav:pages.communityIssues') }) },
+  // Gate D.2: visitors and the gate (VIS-001…007).
+  { path: 'vis/visitor-dashboard', loader: registerLoader, element: <OpsScreen page={VisitorDashboardPage} target={VISITORS} />, handle: h({ title: (t) => t('nav:pages.visitors') }) },
+  { path: 'vis/visitor-passes', loader: registerLoader, element: <OpsScreen page={PassesPage} target={VISITORS} />, handle: h({ title: (t) => t('nav:pages.passes') }) },
+  { path: 'vis/pass-detail', loader: registerLoader, element: <OpsRecord page={PassById} target={VISITORS} prefix="gps_" />, handle: h({ title: (t) => t('nav:pages.pass') }) },
+  { path: 'vis/gate-check-in', loader: registerLoader, element: <OpsScreen page={GatePage} target={GATE} />, handle: h({ title: (t) => t('nav:pages.gate') }) },
+  { path: 'vis/visitor-history', loader: registerLoader, element: <OpsScreen page={VisitHistoryPage} target={VISITORS} />, handle: h({ title: (t) => t('nav:pages.visitHistory') }) },
+  { path: 'vis/scan-qr', loader: registerLoader, element: <OpsScreen page={ScanPage} target={GATE} />, handle: h({ title: (t) => t('nav:pages.scan') }) },
+  // Gate D.2: official notices (RES-005) and the quick broadcast (NOT-003).
+  { path: 'res/community-announcements', loader: registerLoader, element: <OpsScreen page={NoticesOffice} target={NOTICES} />, handle: h({ title: (t) => t('nav:pages.notices') }) },
+  { path: 'not/send-message', loader: registerLoader, element: <OpsScreen page={SendMessagePage} target={MESSAGES} />, handle: h({ title: (t) => t('nav:pages.sendMessage') }) },
+  { path: 'park/vehicle-registry', loader: registerLoader, element: <OpsScreen page={VehiclesOffice} target={PARKING} />, handle: h({ title: (t) => t('nav:pages.vehicles') }) },
+  { path: 'res/resident-dashboard', loader: registerLoader, element: <OpsScreen page={ResidentsOffice} target={RESIDENTS} />, handle: h({ title: (t) => t('nav:pages.residents') }) },
   { path: 'residents/portal-access', loader: registerLoader, element: <SocietyPermitted page={PortalAccessPage} permission="portal_access.view" />, handle: h({ title: (t) => t('nav:pages.portalAccess') }) },
   { path: 'res/household-members', loader: registerLoader, element: <SocietyPermitted page={HouseholdMembersPage} permission="residents.view" />, handle: h({ title: (t) => t('nav:pages.householdMembers') }) },
   { path: 'adm/data', loader: registerLoader, element: <DataPrivacyRoute />, handle: h({ title: (t) => t('nav:pages.dataPrivacy') }) },

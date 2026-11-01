@@ -22,7 +22,7 @@ import {
   XCircle,
   type LucideIcon,
 } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { ComboBox, Input, Label, ListBox, ListBoxItem, Popover, TextField } from 'react-aria-components';
 import { SOCIETY } from '../../nav.config';
 
@@ -293,17 +293,27 @@ export function FlatJump({ siteId, className, testId = 'flat-jump' }: { siteId: 
 }
 
 /** Choose one flat (a form field): type part of its number; shows who pays so the right flat is picked. */
-export function FlatSelect({ siteId, value, onChange, label, testId }: { siteId: string; value: string | null; onChange: (flatId: string) => void; label: string; testId?: string }) {
+/** `options` replaces the site structure for people who may not read it (the gate: codes only, no payers). */
+export function FlatSelect({ siteId, value, onChange, label, testId, options }: { siteId: string; value: string | null; onChange: (flatId: string) => void; label: string; testId?: string; options?: Array<{ id: string; code: string }> }) {
   const { t } = useT();
-  const structure = useApiQuery<SiteStructure>({ method: 'GET', path: `/sites/${siteId}/structure` });
-  const flats = (structure.data?.buildings ?? []).flatMap((b) => b.levels.flatMap((l) => l.flats));
+  const structure = useApiQuery<SiteStructure>({ method: 'GET', path: `/sites/${siteId}/structure` }, { enabled: !options });
+  const flats: Array<{ id: string; code: string; payerName?: string; occupancy?: OccupancyStatus }> = options ?? (structure.data?.buildings ?? []).flatMap((b) => b.levels.flatMap((l) => l.flats));
+  // The typed text is held here: a re-render from elsewhere on the page (the gate refreshing after a
+  // code check) must not clear what someone is typing. Until they type, it shows the chosen flat.
+  const [typed, setTyped] = useState<string | null>(null);
   const norm = (s: string) => s.toLowerCase().replace(/[\s-]/g, '');
   return (
     <ComboBox
       className="flex min-w-0 flex-col gap-1.5"
       defaultItems={flats}
       selectedKey={value}
-      onSelectionChange={(key) => key && onChange(String(key))}
+      inputValue={typed ?? flats.find((f) => f.id === value)?.code ?? ''}
+      onInputChange={setTyped}
+      onSelectionChange={(key) => {
+        if (!key) return;
+        setTyped(null);
+        onChange(String(key));
+      }}
       defaultFilter={(text, input) => norm(text).includes(norm(input))}
       menuTrigger="focus"
       data-testid={testId}
@@ -318,7 +328,7 @@ export function FlatSelect({ siteId, value, onChange, label, testId }: { siteId:
           {(f: (typeof flats)[number]) => (
             <ListBoxItem id={f.id} textValue={f.code} className="flex cursor-default items-center gap-3 rounded-control px-3 py-2 text-sm text-text outline-none data-focused:bg-primary-soft data-selected:font-semibold pointer-coarse:py-3">
               <bdi dir="ltr" className="ltr-ref w-14 shrink-0">{f.code}</bdi>
-              <span className="min-w-0 flex-1 truncate text-xs text-muted">{f.payerName ? t('sites:jump.payer', { name: f.payerName }) : t(`sites:occupancy.${f.occupancy}`)}</span>
+              <span className="min-w-0 flex-1 truncate text-xs text-muted">{f.payerName ? t('sites:jump.payer', { name: f.payerName }) : f.occupancy ? t(`sites:occupancy.${f.occupancy}`) : null}</span>
             </ListBoxItem>
           )}
         </ListBox>

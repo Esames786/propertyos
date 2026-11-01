@@ -306,8 +306,8 @@
     },
     "navigation": {
       "title": "Find your way",
-      "body": "Bills, receipts and your statement are always in the menu.",
-      "bodyMobile": "Bills, receipts and your statement are in the bar at the bottom; Pay is the round button."
+      "body": "Bills, receipts and your statement are always in the menu; repairs and notices are under Building.",
+      "bodyMobile": "The bar at the bottom has Bills, Requests and Notices; Pay is the round button. Receipts and your statement are under Bills."
     },
     "help": {
       "title": "Help any time",

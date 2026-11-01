@@ -26,10 +26,13 @@ import {
   useT,
   useToast,
 } from '@repo/ui';
-import { ArrowRight, Ban, BadgeCheck, Building, ChevronLeft, ChevronRight, Clock3, FileText, History, Layers, Link2, ReceiptText, Repeat2, ScrollText, Undo2, UserRound, Users, Wallet, XCircle } from 'lucide-react';
+import { ArrowRight, Ban, BadgeCheck, Building, ChevronLeft, ChevronRight, Clock3, DoorOpen, FileText, History, Layers, Link2, ReceiptText, Repeat2, ScrollText, Undo2, UserRound, Users, Wallet, XCircle } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { ACCESS_DATE, SOCIETY } from '../../../nav.config';
 import { FactList, Loading, OccupancyBadge, ProblemAlert, SettlementBadge, useSocietyFormat } from '../kit';
+import { FLAT_SERVICES_TARGET, FlatServicesTab } from '../operations/FlatServices';
+import { useOpsAvailable } from '../operations/okit';
+import { MoveOutDrawer } from '../operations/ResidentsOffice';
 import { AuditList, ChargesTable, ChoiceCards, StatementView } from '../parts';
 import { FlatPortalTab } from '../portal/FlatPortalTab';
 
@@ -59,8 +62,9 @@ export default function FlatWorkspace({ siteId, unitId }: { siteId: string; unit
 
 function Workspace({ data }: { data: FlatDetail }) {
   const { t } = useT();
-  const { can } = useSession();
+  const { allows, can } = useSession();
   const fmt = useSocietyFormat();
+  const opsSite = useOpsAvailable();
   const [, setTab] = useQueryParam('tab');
   const [drawer, setDrawer] = useQueryParam('drawer');
   const [corrects, setCorrects] = useState<string | null>(null);
@@ -74,6 +78,10 @@ function Workspace({ data }: { data: FlatDetail }) {
   const index = data.floorFlats.findIndex((f) => f.id === flat.id);
   const prev = data.floorFlats[index - 1];
   const next = data.floorFlats[index + 1];
+  // Gate D.2: the flat's repairs, visitors, vehicles and moves; a move-out needs someone living here.
+  const seesServices = opsSite && allows(FLAT_SERVICES_TARGET);
+  const movesAllowed = opsSite && can('site.manage') && allows({ module: 'residents', permission: 'site.manage' });
+  const recordsMoves = movesAllowed && !!occupant && occupant.occupancyKind !== 'association';
 
   const tabs = [
     { id: 'overview', label: t('sites:flat.tabs.overview') },
@@ -82,6 +90,7 @@ function Workspace({ data }: { data: FlatDetail }) {
     ...(seesCharges ? [{ id: 'charges', label: t('sites:flat.tabs.charges') }] : []),
     ...(seesMoney ? [{ id: 'invoices', label: t('sites:flat.tabs.invoices') }] : []),
     ...(can('portal_access.view') ? [{ id: 'portal', label: t('sites:flat.tabs.portal') }] : []),
+    ...(seesServices ? [{ id: 'services', label: t('operations:flatServices.tab') }] : []),
     { id: 'activity', label: t('sites:flat.tabs.activity') },
   ];
 
@@ -167,6 +176,11 @@ function Workspace({ data }: { data: FlatDetail }) {
               {t('sites:flat.changePayer')}
             </Button>
           )}
+          {recordsMoves && (
+            <Button variant="secondary" size="sm" icon={DoorOpen} onPress={() => setDrawer('move-out')} data-testid="flat-move-out">
+              {t('operations:move.title')}
+            </Button>
+          )}
           {seesMoney && (
             <Button variant="secondary" size="sm" icon={ScrollText} onPress={() => setTab('invoices')} data-testid="flat-open-statement">
               {t('sites:flat.statement')}
@@ -183,7 +197,7 @@ function Workspace({ data }: { data: FlatDetail }) {
         </div>
       </section>
 
-      <UrlTabs label={t('sites:flat.tabsLabel')} items={tabs}>
+      <UrlTabs label={t('sites:flat.tabsLabel')} items={tabs} phoneLimit={2}>
         {(tab) =>
           tab === 'people' ? (
             <PeopleTab data={data} />
@@ -205,6 +219,8 @@ function Workspace({ data }: { data: FlatDetail }) {
             <InvoicesTab data={data} />
           ) : tab === 'portal' && can('portal_access.view') ? (
             <FlatPortalTab flatId={flat.id} />
+          ) : tab === 'services' && seesServices ? (
+            <FlatServicesTab flatId={flat.id} {...(recordsMoves ? { onMoveOut: () => setDrawer('move-out') } : {})} />
           ) : tab === 'activity' ? (
             <Panel title={t('sites:flat.tabs.activity')}>
               <AuditList query={{ flat: flat.id }} />
@@ -224,6 +240,7 @@ function Workspace({ data }: { data: FlatDetail }) {
           {...((c) => (c ? { corrects: c } : {}))(data.changes.find((c) => c.id === corrects))}
         />
       )}
+      {movesAllowed && <MoveOutDrawer isOpen={drawer === 'move-out'} onClose={() => setDrawer(null)} siteId={flat.siteId} flatId={flat.id} />}
       <RelatedDrawer
         isOpen={related}
         onOpenChange={setRelated}

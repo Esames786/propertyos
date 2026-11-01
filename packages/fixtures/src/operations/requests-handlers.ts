@@ -10,6 +10,7 @@ import {
   type MaintenanceDashboard,
   type NewRequestInput,
   type OpsFile,
+  type OpsFlatPeople,
   type RequestActions,
   type RequestDetail,
   type RequestList,
@@ -52,9 +53,9 @@ const technicianOf = (ctx: HandlerContext, staff: Staff) => staff.ops.technician
 
 /** Requests this person may see: all with maintenance.manage; a technician only those with their work orders. */
 function visibleRequests(ctx: HandlerContext, staff: Staff): StoredRequest[] {
-  const issues = can(ctx, 'issues.view', 'history_read') && !!ctx.access?.features.includes(ISSUE_FEATURE);
+  const issues = can(ctx, 'issues.view', 'operational') && !!ctx.access?.features.includes(ISSUE_FEATURE);
   const all = staff.ops.requests.filter((r) => r.kind === 'repair' || issues);
-  if (managesMaintenance(ctx) || can(ctx, 'issues.view', 'history_read')) return all;
+  if (managesMaintenance(ctx) || can(ctx, 'issues.view', 'operational')) return all;
   const tech = technicianOf(ctx, staff);
   const mine = new Set(staff.ops.workOrders.filter((w) => tech && w.technicianId === tech.id).map((w) => w.requestId));
   return all.filter((r) => mine.has(r.id));
@@ -115,7 +116,7 @@ function detailOf(ctx: HandlerContext, staff: Staff, r: StoredRequest): RequestD
   const at = now(ctx);
   const related: RequestDetail['related'] = [];
   if (r.flat) related.push({ kind: 'flat', id: r.flat.id, label: r.flat.code });
-  if (r.raisedBy.partyId && can(ctx, 'residents.view', 'history_read')) related.push({ kind: 'person', id: r.raisedBy.partyId, label: r.raisedBy.name });
+  if (r.raisedBy.partyId && can(ctx, 'residents.view', 'operational')) related.push({ kind: 'person', id: r.raisedBy.partyId, label: r.raisedBy.name });
   for (const m of r.mergedFrom ?? []) related.push({ kind: 'issue', id: m.id, label: m.ref });
   if (r.mergedInto) related.push({ kind: 'issue', id: r.mergedInto.id, label: r.mergedInto.ref });
   if (r.flat) for (const o of staff.ops.requests.filter((x) => x.flat?.id === r.flat!.id && x.id !== r.id).slice(-4)) related.push({ kind: 'request', id: o.id, label: `${o.ref} · ${o.title}` });
@@ -128,7 +129,7 @@ function detailOf(ctx: HandlerContext, staff: Staff, r: StoredRequest): RequestD
     actions: actionsOf(ctx, staff, r),
     ...(r.kind === 'community_issue' ? { affected: issueAffected(staff, r, at) } : {}),
     related,
-    ...(can(ctx, 'maintenance.manage', 'history_read') ? { technicians: technicians(staff) } : {}),
+    ...(can(ctx, 'maintenance.manage', 'operational') ? { technicians: technicians(staff) } : {}),
   };
 }
 
@@ -526,37 +527,37 @@ export const OPS_REQUEST_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/ops\/maintenance\/dashboard$/,
-    access: requires('maintenance', 'operations.view', 'history_read'),
+    access: requires('maintenance', 'operations.view', 'operational'),
     handle: (ctx): MaintenanceDashboard => dashboard(ctx, staffOps(ctx, 'maintenance')),
   },
   {
     method: 'GET',
     pattern: /^\/ops\/maintenance\/sla$/,
-    access: requires('maintenance', 'operations.view', 'history_read'),
+    access: requires('maintenance', 'operations.view', 'operational'),
     handle: (ctx): SlaDashboard => slaBoard(ctx, staffOps(ctx, 'maintenance')),
   },
   {
     method: 'GET',
     pattern: /^\/ops\/technicians\/board$/,
-    access: requires('maintenance', 'operations.view', 'history_read'),
+    access: requires('maintenance', 'operations.view', 'operational'),
     handle: (ctx): TechnicianBoard => board(ctx, staffOps(ctx, 'maintenance')),
   },
   {
     method: 'GET',
     pattern: /^\/ops\/technicians$/,
-    access: requires('maintenance', 'maintenance.manage', 'history_read'),
+    access: requires('maintenance', 'maintenance.manage', 'operational'),
     handle: (ctx): Technician[] => technicians(staffOps(ctx, 'maintenance')),
   },
   {
     method: 'GET',
     pattern: /^\/ops\/requests$/,
-    access: requires('maintenance', 'operations.view', 'history_read'),
+    access: requires('maintenance', 'operations.view', 'operational'),
     handle: (ctx): RequestList => listOf(ctx, staffOps(ctx, 'maintenance')),
   },
   {
     method: 'GET',
     pattern: /^\/ops\/requests\/(?<id>[\w-]+)$/,
-    access: requires('maintenance', 'operations.view', 'history_read'),
+    access: requires('maintenance', 'operations.view', 'operational'),
     handle: (ctx): RequestDetail => {
       const staff = staffOps(ctx, 'maintenance');
       return detailOf(ctx, staff, findRequest(ctx, staff));
@@ -582,6 +583,36 @@ export const OPS_REQUEST_HANDLERS: readonly Handler[] = [
       if (input.onBehalfOf) r.followers = [input.onBehalfOf];
       save(ctx);
       return detailOf(ctx, staff, r);
+    },
+  },
+  {
+    // The site's shared places (lobby, lift, water tank …) for the office's new-request form.
+    method: 'GET',
+    pattern: /^\/ops\/areas$/,
+    access: requires('maintenance', 'operations.view', 'operational'),
+    handle: (ctx) => staffOps(ctx, 'maintenance').site.areas,
+  },
+  {
+    // The flats a request can be raised for, with who lives in or owns each today (names only: no
+    // payers or balances), so maintenance staff raise requests without reading the site's records.
+    method: 'GET',
+    pattern: /^\/ops\/flats$/,
+    access: requires('maintenance', 'maintenance.manage', 'operational'),
+    handle: (ctx): OpsFlatPeople => {
+      const site = staffOps(ctx, 'maintenance').site;
+      const facts = (site.society?.view.facts ?? []).filter((f) => (f.role === 'occupant' || f.role === 'owner') && f.occupancyKind !== 'association' && factOn(f, ctx.at));
+      return {
+        siteId: site.siteId,
+        flats: site.flats.map((flat) => ({
+          id: flat.id,
+          code: flat.code,
+          people: facts
+            .filter((f) => f.flatId === flat.id)
+            .sort((a, b) => (a.role === b.role ? 0 : a.role === 'occupant' ? -1 : 1))
+            .filter((f, i, all) => all.findIndex((x) => x.partyId === f.partyId) === i)
+            .map((f) => ({ partyId: f.partyId, partyName: f.partyName, role: f.role as 'owner' | 'occupant' })),
+        })),
+      };
     },
   },
   {
@@ -690,13 +721,13 @@ export const OPS_REQUEST_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/issues$/,
-    access: requires('maintenance', 'issues.view', 'history_read', ISSUE_FEATURE),
+    access: requires('maintenance', 'issues.view', 'operational', ISSUE_FEATURE),
     handle: (ctx): RequestList & { snapshotAt?: string; threshold: typeof DEFAULT_THRESHOLD; residentViews: Record<string, IssueAffected['residentView']>; live: Record<string, number> } => {
       const staff = staffOps(ctx, 'maintenance', ISSUE_FEATURE);
       ctx.req.query = { ...(ctx.req.query ?? {}), kind: 'community_issue' };
       const list = listOf(ctx, staff);
       const status = String(ctx.req.query?.issueStatus ?? '');
-      const items = status === 'merged' ? list.items.filter((i) => i.state === 'merged') : status === 'hidden' ? list.items.filter((i) => i.state === 'hidden') : status === 'resolved' ? list.items.filter((i) => i.state === 'resolved') : list.items;
+      const items = status === 'in_progress' ? list.items.filter((i) => ['assigned', 'in_progress', 'on_hold'].includes(i.state)) : status === 'merged' ? list.items.filter((i) => i.state === 'merged') : status === 'hidden' ? list.items.filter((i) => i.state === 'hidden') : status === 'resolved' ? list.items.filter((i) => i.state === 'resolved') : list.items;
       const at = now(ctx);
       const views = Object.fromEntries(items.map((i) => [i.id, issueAffected(staff, staff.ops.requests.find((r) => r.id === i.id)!, at).residentView]));
       return { ...list, items, ...(staff.ops.snapshotAt ? { snapshotAt: staff.ops.snapshotAt } : {}), threshold: DEFAULT_THRESHOLD, residentViews: views, live: Object.fromEntries(items.map((i) => [i.id, i.affected ?? 0])) };
@@ -812,7 +843,7 @@ export const OPS_REQUEST_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/portal\/requests$/,
-    access: requires('resident_portal', 'portal.use', 'history_read'),
+    access: requires('resident_portal', 'portal.use', 'operational'),
     handle: (ctx): ResidentRequests => {
       const res = residentOps(ctx, MAINTENANCE);
       return residentRequests(ctx, res, { site: res.site, ops: opsOf(ctx, res) });
@@ -908,7 +939,7 @@ export const OPS_REQUEST_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/portal\/issues$/,
-    access: requires('resident_portal', 'portal.use', 'history_read'),
+    access: requires('resident_portal', 'portal.use', 'operational'),
     handle: (ctx): ResidentIssues => {
       const res = residentOps(ctx, ISSUES);
       return residentIssueList(ctx, res, { site: res.site, ops: opsOf(ctx, res) });

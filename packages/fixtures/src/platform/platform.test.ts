@@ -67,7 +67,8 @@ async function createAlNoor(t: PlatformMockTransport, contractPatch?: (c: Contra
     body: {
       organisation: { displayName: 'Al-Noor Residency (Demo)', legalName: 'Al-Noor Residency Owners Association (Demo)', city: 'Lahore', timezone: 'Asia/Karachi', currency: 'PKR', language: 'en-PK', contactName: 'Faisal Butt', contactEmail: 'faisal@example.com', contactPhone: '+923994100000' },
       sites: [{ id: 'site_alnoor', name: 'Al-Noor Residency', city: 'Lahore', kind: 'residential', buildings: 2, declaredUnits: 80 }],
-      modules: PRESETS.find((p) => p.key === 'community')!.modules.map((m) => sel(m)),
+      // Gate D.2: the workspace's Al-Noor also has the online-payments add-on on its site (sandbox, BILL-011).
+      modules: [...PRESETS.find((p) => p.key === 'community')!.modules.map((m) => sel(m)), sel('online_payments', ['site_alnoor'])],
       contract,
     },
   });

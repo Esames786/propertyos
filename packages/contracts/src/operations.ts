@@ -346,6 +346,12 @@ export interface ResidentRequest {
   canComment: boolean;
 }
 
+/** MNT-004: the flats a request can be raised for, with who lives in or owns each today (names only). */
+export interface OpsFlatPeople {
+  siteId: string;
+  flats: Array<{ id: string; code: string; people: Array<{ partyId: string; partyName: string; role: 'owner' | 'occupant' }> }>;
+}
+
 export interface ResidentRequests {
   asOf: string;
   flats: Array<{ id: string; code: string; roles: Array<'owner' | 'occupant' | 'payer'> }>;
@@ -483,6 +489,8 @@ export interface GateQueue {
   recent: GateVisit[];
   /** The live queue needs the visitors.live_queue feature. */
   liveQueue: boolean;
+  /** Flats the guard may name for a walk-in (codes only: the gate never sees who pays). */
+  flats: Array<{ id: string; code: string }>;
 }
 
 export type CheckInResult =

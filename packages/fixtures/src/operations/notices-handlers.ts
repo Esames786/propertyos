@@ -87,7 +87,7 @@ function detailOf(ctx: HandlerContext, staff: Staff, n: StoredNotice): NoticeDet
       publish: publish && (state === 'draft' || state === 'scheduled'),
       edit: publish && (state === 'draft' || state === 'scheduled' || state === 'published'),
       withdraw: publish && (state === 'published' || state === 'scheduled'),
-      ...(!publish ? { reason: can(ctx, 'notices.publish', 'history_read') ? 'tenant_suspended' : 'read_only' } : {}),
+      ...(!publish ? { reason: can(ctx, 'notices.publish', 'operational') ? 'tenant_suspended' : 'read_only' } : {}),
     },
   };
 }
@@ -106,7 +106,7 @@ const text = (ctx: HandlerContext, field: string, v: unknown, min: number, max: 
 };
 
 /** Publication: recipients are resolved now from the verified links in force; each gets one notification. */
-function publish(ctx: HandlerContext, staff: Staff, n: StoredNotice) {
+function publish(ctx: HandlerContext, staff: Staff, n: StoredNotice, by: { name: string; kind: 'staff' | 'system' } = { name: who(ctx), kind: 'staff' }) {
   const at = now(ctx);
   const list = members(staff.site, facts(staff), n.audience, ctx.at);
   n.recipients = recipientsOf(list, n.channels, channelsLicensed(ctx), contactFacts(ctx));
@@ -115,7 +115,15 @@ function publish(ctx: HandlerContext, staff: Staff, n: StoredNotice) {
   delete n.publishAt;
   n.current = { ...n.current, at };
   n.versions = n.versions.map((v) => (v.version === n.current.version ? n.current : v));
-  n.history.push({ at, byName: who(ctx), byKind: 'staff', action: 'published', values: { recipients: String(n.recipients.length) } });
+  n.history.push({ at, byName: by.name, byKind: by.kind, action: 'published', values: { recipients: String(n.recipients.length) } });
+}
+
+/** The simulated scheduler: a scheduled notice publishes itself (recipients resolved then) once its time has come. */
+function releaseDue(ctx: HandlerContext, staff: Staff) {
+  const at = Date.parse(now(ctx));
+  const due = staff.ops.notices.filter((n) => n.state === 'scheduled' && n.publishAt && Date.parse(n.publishAt) <= at);
+  for (const n of due) publish(ctx, staff, n, { name: 'PropertyOS', kind: 'system' });
+  if (due.length) save(ctx);
 }
 
 const recent = new Map<string, string>();
@@ -167,7 +175,9 @@ function create(ctx: HandlerContext, staff: Staff, input: NoticeInput, action: '
 const resident = (ctx: HandlerContext) => {
   // Rule R for notices: resident_portal only (no hub, no chat), with a link in force at the site.
   const res = residentOps(ctx);
-  return { res, staff: { site: res.site, ops: opsOf(ctx, res.site) } satisfies Staff };
+  const staff = { site: res.site, ops: opsOf(ctx, res.site) } satisfies Staff;
+  releaseDue(ctx, staff);
+  return { res, staff };
 };
 
 const readIds = (staff: Staff, partyId: string) => new Set(staff.ops.reads[partyId] ?? []);
@@ -242,9 +252,10 @@ export const OPS_NOTICE_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/notices$/,
-    access: requires('residents', 'residents.view', 'history_read'),
+    access: requires('residents', 'residents.view', 'operational'),
     handle: (ctx): NoticeList => {
       const staff = staffOps(ctx, 'residents');
+      releaseDue(ctx, staff);
       const rows = staff.ops.notices.map((n) => rowOf(ctx, staff, n));
       const status = String(ctx.req.query?.status ?? 'published');
       const q = String(ctx.req.query?.q ?? '').trim().toLowerCase();
@@ -253,21 +264,30 @@ export const OPS_NOTICE_HANDLERS: readonly Handler[] = [
     },
   },
   {
+    // Who an audience reaches today (a read: the composer asks as the choice changes). Listed before
+    // /notices/:id so "preview" is never taken for a notice id.
     method: 'GET',
-    pattern: /^\/notices\/(?<id>ntc_[\w-]+)$/,
-    access: requires('residents', 'residents.view', 'history_read'),
-    handle: (ctx): NoticeDetail => {
+    pattern: /^\/notices\/preview$/,
+    access: requires('communications', ['notices.publish', 'messages.send'], 'operational'),
+    handle: (ctx): AudiencePreview => {
       const staff = staffOps(ctx, 'residents');
-      return detailOf(ctx, staff, findNotice(ctx, staff));
+      let raw: unknown;
+      try {
+        raw = JSON.parse(String(ctx.req.query?.audience ?? '{}'));
+      } catch {
+        raw = {};
+      }
+      return previewOf(staff.site, facts(staff), audienceOf(ctx, staff, raw), ctx.at, contactFacts(ctx));
     },
   },
   {
-    method: 'POST',
-    pattern: /^\/notices\/preview$/,
-    access: requires('communications', 'notices.publish', 'history_read'),
-    handle: (ctx): AudiencePreview => {
+    method: 'GET',
+    pattern: /^\/notices\/(?<id>[\w-]+)$/,
+    access: requires('residents', 'residents.view', 'operational'),
+    handle: (ctx): NoticeDetail => {
       const staff = staffOps(ctx, 'residents');
-      return previewOf(staff.site, facts(staff), audienceOf(ctx, staff, body<{ audience?: unknown }>(ctx).audience), ctx.at, contactFacts(ctx));
+      releaseDue(ctx, staff);
+      return detailOf(ctx, staff, findNotice(ctx, staff));
     },
   },
   {
@@ -286,7 +306,7 @@ export const OPS_NOTICE_HANDLERS: readonly Handler[] = [
   {
     // An edit: a draft changes in place; a published notice gets a new version (notify again only if chosen).
     method: 'PATCH',
-    pattern: /^\/notices\/(?<id>ntc_[\w-]+)$/,
+    pattern: /^\/notices\/(?<id>[\w-]+)$/,
     access: requires('communications', 'notices.publish', 'operational'),
     handle: (ctx): NoticeDetail => {
       const staff = staffOps(ctx, 'residents');
@@ -323,7 +343,7 @@ export const OPS_NOTICE_HANDLERS: readonly Handler[] = [
   },
   {
     method: 'POST',
-    pattern: /^\/notices\/(?<id>ntc_[\w-]+)\/publish$/,
+    pattern: /^\/notices\/(?<id>[\w-]+)\/publish$/,
     access: requires('communications', 'notices.publish', 'operational'),
     handle: (ctx): NoticeDetail => {
       const staff = staffOps(ctx, 'residents');
@@ -336,7 +356,7 @@ export const OPS_NOTICE_HANDLERS: readonly Handler[] = [
   },
   {
     method: 'POST',
-    pattern: /^\/notices\/(?<id>ntc_[\w-]+)\/withdraw$/,
+    pattern: /^\/notices\/(?<id>[\w-]+)\/withdraw$/,
     access: requires('communications', 'notices.publish', 'operational'),
     handle: (ctx): NoticeDetail => {
       const staff = staffOps(ctx, 'residents');
@@ -356,7 +376,7 @@ export const OPS_NOTICE_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/messages$/,
-    access: requires('communications', ['messages.send', 'notices.publish', 'residents.view'], 'history_read'),
+    access: requires('communications', ['messages.send', 'notices.publish', 'residents.view'], 'operational'),
     handle: (ctx): BroadcastMessage[] => {
       const staff = staffOps(ctx, 'residents');
       return [...staff.ops.messages].sort((a, b) => Date.parse(b.sentAt) - Date.parse(a.sentAt)).map(({ recipientIds: _r, ...m }) => m);
@@ -415,7 +435,7 @@ export const OPS_NOTICE_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/portal\/notices$/,
-    access: requires('resident_portal', 'portal.use', 'history_read'),
+    access: requires('resident_portal', 'portal.use', 'operational'),
     handle: (ctx): ResidentNotices => {
       const { res, staff } = resident(ctx);
       return noticesFor(ctx, res, staff);
@@ -424,7 +444,7 @@ export const OPS_NOTICE_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/portal\/notices\/(?<id>[\w-]+)$/,
-    access: requires('resident_portal', 'portal.use', 'history_read'),
+    access: requires('resident_portal', 'portal.use', 'operational'),
     handle: (ctx): ResidentNoticeOpen => {
       const { res, staff } = resident(ctx);
       const n = staff.ops.notices.find((x) => x.id === ctx.params.id && x.publishedAt);
@@ -438,7 +458,7 @@ export const OPS_NOTICE_HANDLERS: readonly Handler[] = [
     (action): Handler => ({
       method: 'POST',
       pattern: new RegExp(`^\\/portal\\/notices\\/(?<id>[\\w-]+)\\/${action}$`),
-      access: requires('resident_portal', 'portal.use', action === 'read' ? 'history_read' : 'operational'),
+      access: requires('resident_portal', 'portal.use', action === 'read' ? 'operational' : 'operational'),
       handle: (ctx): ResidentNotice => {
         const { res, staff } = resident(ctx);
         const n = staff.ops.notices.find((x) => x.id === ctx.params.id && x.publishedAt);
@@ -467,7 +487,7 @@ export const OPS_NOTICE_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/portal\/notifications$/,
-    access: requires('resident_portal', 'portal.use', 'history_read'),
+    access: requires('resident_portal', 'portal.use', 'operational'),
     handle: (ctx): ResidentNotifications => {
       const { res, staff } = resident(ctx);
       return notificationsFor(ctx, res, staff);
@@ -476,7 +496,7 @@ export const OPS_NOTICE_HANDLERS: readonly Handler[] = [
   {
     method: 'POST',
     pattern: /^\/portal\/notifications\/read-all$/,
-    access: requires('resident_portal', 'portal.use', 'history_read'),
+    access: requires('resident_portal', 'portal.use', 'operational'),
     handle: (ctx): ResidentNotifications => {
       const { res, staff } = resident(ctx);
       for (const i of notificationsFor(ctx, res, staff).items) markRead(staff, res.partyId, i.id);
@@ -487,7 +507,7 @@ export const OPS_NOTICE_HANDLERS: readonly Handler[] = [
   {
     method: 'POST',
     pattern: /^\/portal\/notifications\/(?<id>[\w-]+)\/read$/,
-    access: requires('resident_portal', 'portal.use', 'history_read'),
+    access: requires('resident_portal', 'portal.use', 'operational'),
     handle: (ctx): ResidentNotifications => {
       const { res, staff } = resident(ctx);
       const mine = notificationsFor(ctx, res, staff);

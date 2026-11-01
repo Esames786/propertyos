@@ -1,0 +1,28 @@
+{
+  "description": "D-47 small-audience privacy for counts residents see (Gate D.2). Default threshold: 3 households in an audience of at least 5. Each vector names the leak it guards against.",
+  "threshold": [
+    { "name": "a tenant may raise the count threshold", "tenant": { "minCount": 4 }, "expect": { "minCount": 4, "minAudience": 5 } },
+    { "name": "a tenant may not lower it", "tenant": { "minCount": 2, "minAudience": 3 }, "expect": { "minCount": 3, "minAudience": 5 } },
+    { "name": "no tenant setting: the defaults", "tenant": null, "expect": { "minCount": 3, "minAudience": 5 } }
+  ],
+  "refresh": [
+    { "name": "first publication takes the live value", "previous": null, "live": { "site": 6, "blocks": { "A": 4, "B": 2 } }, "expect": { "site": 6, "blocks": { "A": 4, "B": 2 } } },
+    { "name": "successive snapshots: one more household does not move the published count", "previous": { "site": 5, "blocks": { "A": 3, "B": 2 } }, "live": { "site": 6, "blocks": { "A": 4, "B": 2 } }, "expect": { "site": 5, "blocks": { "A": 3, "B": 2 } } },
+    { "name": "toggling on and off between snapshots changes nothing", "previous": { "site": 5, "blocks": { "A": 3, "B": 2 } }, "live": { "site": 5, "blocks": { "A": 3, "B": 2 } }, "expect": { "site": 5, "blocks": { "A": 3, "B": 2 } } },
+    { "name": "a change of at least the threshold is published", "previous": { "site": 5, "blocks": { "A": 3, "B": 2 } }, "live": { "site": 8, "blocks": { "A": 6, "B": 2 } }, "expect": { "site": 8, "blocks": { "A": 6, "B": 2 } } },
+    { "name": "a block that disappears from the live count reads as zero once the drop reaches the threshold", "previous": { "site": 6, "blocks": { "A": 3, "B": 3 } }, "live": { "site": 3, "blocks": { "B": 3 } }, "expect": { "site": 3, "blocks": { "A": 0, "B": 3 } } }
+  ],
+  "resident": [
+    { "name": "no snapshot yet", "published": null, "audience": { "site": 40, "blocks": { "A": 20, "B": 20 } }, "scope": { "kind": "site" }, "expect": { "shown": false, "reason": "no_snapshot" } },
+    { "name": "audience too small for the site", "published": { "site": 3, "blocks": { "A": 3 } }, "audience": { "site": 4, "blocks": { "A": 4 } }, "scope": { "kind": "site" }, "expect": { "shown": false, "reason": "audience_too_small" } },
+    { "name": "below the count threshold", "published": { "site": 2, "blocks": { "A": 2 } }, "audience": { "site": 40, "blocks": { "A": 40 } }, "scope": { "kind": "site" }, "expect": { "shown": false, "reason": "below_threshold" } },
+    { "name": "site minus block: a block is hidden when the rest of the site would be below the threshold", "published": { "site": 7, "blocks": { "A": 5, "B": 2 } }, "audience": { "site": 40, "blocks": { "A": 20, "B": 20 } }, "scope": { "kind": "site" }, "expect": { "shown": true, "site": 7, "blocks": [] } },
+    { "name": "site minus block: a small rest-of-site audience hides the block too", "published": { "site": 9, "blocks": { "A": 6, "B": 3 } }, "audience": { "site": 24, "blocks": { "A": 20, "B": 4 } }, "scope": { "kind": "site" }, "expect": { "shown": true, "site": 9, "blocks": [] } },
+    { "name": "two blocks that both qualify are both shown", "published": { "site": 10, "blocks": { "A": 5, "B": 5 } }, "audience": { "site": 40, "blocks": { "A": 20, "B": 20 } }, "scope": { "kind": "site" }, "expect": { "shown": true, "site": 10, "blocks": [{ "code": "A", "count": 5 }, { "code": "B", "count": 5 }] } },
+    { "name": "adjacent blocks: site minus two shown blocks would reveal the third (2), so the smaller shown block is dropped", "published": { "site": 9, "blocks": { "A": 4, "B": 3, "C": 2 } }, "audience": { "site": 60, "blocks": { "A": 20, "B": 20, "C": 20 } }, "scope": { "kind": "site" }, "expect": { "shown": true, "site": 9, "blocks": [{ "code": "A", "count": 4 }] } },
+    { "name": "adjacent blocks: a hidden block of zero is not revealed either", "published": { "site": 10, "blocks": { "A": 5, "B": 5, "C": 0 } }, "audience": { "site": 60, "blocks": { "A": 20, "B": 20, "C": 20 } }, "scope": { "kind": "site" }, "expect": { "shown": true, "site": 10, "blocks": [{ "code": "B", "count": 5 }] } },
+    { "name": "every block shown: nothing is hidden, nothing can be derived", "published": { "site": 12, "blocks": { "A": 4, "B": 4, "C": 4 } }, "audience": { "site": 60, "blocks": { "A": 20, "B": 20, "C": 20 } }, "scope": { "kind": "site" }, "expect": { "shown": true, "site": 12, "blocks": [{ "code": "A", "count": 4 }, { "code": "B", "count": 4 }, { "code": "C", "count": 4 }] } },
+    { "name": "a block issue shows only that block's count", "published": { "site": 10, "blocks": { "A": 10 } }, "audience": { "site": 40, "blocks": { "A": 20 } }, "scope": { "kind": "block", "code": "A" }, "expect": { "shown": true, "site": 10, "blocks": [] } },
+    { "name": "a block issue in a small block is not shown", "published": { "site": 4, "blocks": { "A": 4 } }, "audience": { "site": 40, "blocks": { "A": 4 } }, "scope": { "kind": "block", "code": "A" }, "expect": { "shown": false, "reason": "audience_too_small" } }
+  ]
+}

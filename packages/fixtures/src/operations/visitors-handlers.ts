@@ -50,15 +50,19 @@ export function passState(p: GatePass, at: string): PassState {
 const withState = (p: GatePass, at: string): GatePass => ({ ...p, state: passState(p, at) });
 
 /** Waiting walk-in requests past their time expire (recorded the first time anyone reads them). */
-function expireRequests(staff: Staff, at: string) {
+/** Requests nobody answered in time expire; true when any did (a read saves only then). */
+function expireRequests(staff: Staff, at: string): boolean {
+  let expired = false;
   for (const r of staff.ops.gateRequests) {
     if (r.state === 'waiting' && Date.parse(at) > Date.parse(r.expiresAt)) {
+      expired = true;
       r.state = 'expired';
       r.decidedAt = r.expiresAt;
       r.history.push({ at: r.expiresAt, byName: 'PropertyOS', byKind: 'system', action: 'expired' });
       logVisit(staff, { flatCode: r.flat.code, visitorName: r.visitorName, purpose: r.purpose, ...(r.vehiclePlate ? { vehiclePlate: r.vehiclePlate } : {}), gateRequestId: r.id, outcome: 'refused', refusal: 'request_expired', at: r.expiresAt, guardName: r.guardName });
     }
   }
+  return expired;
 }
 
 function logVisit(staff: Staff, v: Omit<GateVisit, 'id' | 'ref' | 'siteId'>): GateVisit {
@@ -108,6 +112,7 @@ function queue(ctx: HandlerContext, staff: Staff): GateQueue {
     inside: staff.ops.visits.filter((v) => v.outcome === 'inside'),
     recent: staff.ops.visits.filter((v) => v.outcome !== 'inside').slice(0, 6),
     liveQueue: !!ctx.access?.features.includes(LIVE_FEATURE),
+    flats: staff.site.flats.map((f) => ({ id: f.id, code: f.code })),
   };
 }
 
@@ -181,13 +186,13 @@ export const OPS_VISITOR_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/ops\/visitors\/dashboard$/,
-    access: requires('visitors', ['visitors.view', 'visitors.manage'], 'history_read'),
+    access: requires('visitors', ['visitors.view', 'visitors.manage'], 'operational'),
     handle: (ctx): VisitorDashboard => dashboard(ctx, staffOps(ctx, 'visitors')),
   },
   {
     method: 'GET',
     pattern: /^\/ops\/passes$/,
-    access: requires('visitors', ['visitors.view', 'visitors.manage'], 'history_read'),
+    access: requires('visitors', ['visitors.view', 'visitors.manage'], 'operational'),
     handle: (ctx): PassList => {
       const staff = staffOps(ctx, 'visitors');
       const at = now(ctx);
@@ -201,7 +206,7 @@ export const OPS_VISITOR_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/ops\/passes\/(?<id>[\w-]+)$/,
-    access: requires('visitors', ['visitors.view', 'visitors.manage'], 'history_read'),
+    access: requires('visitors', ['visitors.view', 'visitors.manage'], 'operational'),
     handle: (ctx) => {
       const staff = staffOps(ctx, 'visitors');
       const p = staff.ops.passes.find((x) => x.id === ctx.params.id);
@@ -231,11 +236,12 @@ export const OPS_VISITOR_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/ops\/gate\/queue$/,
-    access: requires('visitors', 'visitors.manage', 'history_read'),
+    access: requires('visitors', 'visitors.manage', 'operational'),
     handle: (ctx): GateQueue => {
       const staff = staffOps(ctx, 'visitors');
+      const expired = expireRequests(staff, now(ctx));
       const q = queue(ctx, staff);
-      save(ctx);
+      if (expired) save(ctx);
       return q;
     },
   },
@@ -264,6 +270,17 @@ export const OPS_VISITOR_HANDLERS: readonly Handler[] = [
       }
       save(ctx);
       return v;
+    },
+  },
+  {
+    // VIS-007: today's walk-in requests and the residents' answers (newest first; never who was asked).
+    method: 'GET',
+    pattern: /^\/ops\/gate\/requests$/,
+    access: requires('visitors', 'visitors.manage', 'operational'),
+    handle: (ctx) => {
+      const staff = staffOps(ctx, 'visitors');
+      if (expireRequests(staff, now(ctx))) save(ctx);
+      return { items: [...staff.ops.gateRequests].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)).map(publicRequest) };
     },
   },
   {
@@ -340,10 +357,10 @@ export const OPS_VISITOR_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/ops\/visits$/,
-    access: requires('visitors', ['visitors.view', 'visitors.manage'], 'history_read'),
+    access: requires('visitors', ['visitors.view', 'visitors.manage'], 'operational'),
     handle: (ctx) => {
       const staff = staffOps(ctx, 'visitors');
-      expireRequests(staff, now(ctx));
+      if (expireRequests(staff, now(ctx))) save(ctx);
       const q = String(ctx.req.query?.q ?? '').trim().toLowerCase();
       const outcome = String(ctx.req.query?.outcome ?? 'all');
       const items = staff.ops.visits.filter((v) => (outcome === 'all' || v.outcome === outcome) && (!q || [v.ref, v.visitorName, v.flatCode, v.vehiclePlate ?? '', v.passRef ?? ''].some((x) => x.toLowerCase().includes(q))));
@@ -354,11 +371,12 @@ export const OPS_VISITOR_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/portal\/visitors$/,
-    access: requires('resident_portal', 'portal.use', 'history_read'),
+    access: requires('resident_portal', 'portal.use', 'operational'),
     handle: (ctx): ResidentVisitors => {
       const { res, staff } = resident(ctx);
+      const expired = expireRequests(staff, now(ctx));
       const view = residentView(ctx, res, staff);
-      save(ctx);
+      if (expired) save(ctx);
       return view;
     },
   },
@@ -414,12 +432,12 @@ export const OPS_VISITOR_HANDLERS: readonly Handler[] = [
     // PORTAL-040: walk-in visitors waiting for this resident (polled by the app; simulated refresh).
     method: 'GET',
     pattern: /^\/portal\/gate-requests$/,
-    access: requires('resident_portal', 'portal.use', 'history_read'),
+    access: requires('resident_portal', 'portal.use', 'operational'),
     handle: (ctx) => {
       const { res, staff } = resident(ctx, LIVE);
-      expireRequests(staff, now(ctx));
+      const expired = expireRequests(staff, now(ctx));
       const ids = new Set(livesIn(res).map((f) => f.flat.id));
-      save(ctx);
+      if (expired) save(ctx);
       return { refreshSeconds: REFRESH_SECONDS, items: staff.ops.gateRequests.filter((r) => r.state === 'waiting' && ids.has(r.flat.id) && r.askedPartyIds.includes(res.partyId)).map(publicRequest) };
     },
   },

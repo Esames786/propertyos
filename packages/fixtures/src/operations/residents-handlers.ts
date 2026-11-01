@@ -111,8 +111,8 @@ export function operationsRecordAccess(ctx: HandlerContext, id: string): RecordA
   const ops = opsOf(ctx, site);
   const exists = kind === 'maintenance' ? ops.requests.some((r) => r.id === id) : kind === 'visitors' ? ops.passes.some((p) => p.id === id) || ops.visits.some((v) => v.id === id) || ops.gateRequests.some((r) => r.id === id) : kind === 'parking' ? ops.vehicles.some((v) => v.id === id) : ops.notices.some((n) => n.id === id);
   if (!exists) return { record: true, module: kind, decision: { allowed: false, reason: 'out_of_scope' } };
-  const permission = kind === 'maintenance' ? 'operations.view' : kind === 'visitors' ? (can(ctx, 'visitors.view', 'history_read') ? 'visitors.view' : 'visitors.manage') : kind === 'parking' ? (can(ctx, 'parking.view', 'history_read') ? 'parking.view' : 'vehicles.approve') : 'residents.view';
-  return { record: true, module: kind, decision: decideRecord({ ...ctx, suspension: 'history_read' }, kind, siteRecord(site), permission) };
+  const permission = kind === 'maintenance' ? 'operations.view' : kind === 'visitors' ? (can(ctx, 'visitors.view', 'operational') ? 'visitors.view' : 'visitors.manage') : kind === 'parking' ? (can(ctx, 'parking.view', 'operational') ? 'parking.view' : 'vehicles.approve') : 'residents.view';
+  return { record: true, module: kind, decision: decideRecord({ ...ctx, suspension: 'operational' }, kind, siteRecord(site), permission) };
 }
 
 /** Requests, passes, vehicles and notices for the header search (each by its own permission). */
@@ -127,9 +127,9 @@ export function operationsSearch(ctx: HandlerContext, q: string): SearchRecord[]
   const ops = opsOf(ctx, site);
   const out: SearchRecord[] = [];
   const has = (...v: Array<string | undefined>) => v.some((x) => x && x.toLowerCase().includes(q.toLowerCase()));
-  const allowed = (module: Parameters<typeof decideRecord>[1], permission: Parameters<typeof can>[1]) => can(ctx, permission, 'history_read') && decideRecord({ ...ctx, suspension: 'history_read' }, module, siteRecord(site)).allowed;
-  if (allowed('maintenance', 'operations.view') && can(ctx, 'maintenance.manage', 'history_read')) {
-    for (const r of ops.requests.filter((r) => (r.kind === 'repair' || can(ctx, 'issues.view', 'history_read')) && has(r.ref, r.title, r.flat?.code)).slice(0, 5)) out.push({ type: 'maintenance', id: r.id, ref: r.ref, title: r.title, subtitle: r.flat?.code ?? r.state, href: `/backoffice/mnt/maintenance-360-workspace?record=${r.id}` });
+  const allowed = (module: Parameters<typeof decideRecord>[1], permission: Parameters<typeof can>[1]) => can(ctx, permission, 'operational') && decideRecord({ ...ctx, suspension: 'operational' }, module, siteRecord(site)).allowed;
+  if (allowed('maintenance', 'operations.view') && can(ctx, 'maintenance.manage', 'operational')) {
+    for (const r of ops.requests.filter((r) => (r.kind === 'repair' || can(ctx, 'issues.view', 'operational')) && has(r.ref, r.title, r.flat?.code)).slice(0, 5)) out.push({ type: 'maintenance', id: r.id, ref: r.ref, title: r.title, subtitle: r.flat?.code ?? r.state, href: `/backoffice/mnt/maintenance-360-workspace?record=${r.id}` });
   }
   if (allowed('visitors', 'visitors.view')) {
     for (const p of ops.passes.filter((p) => has(p.ref, p.visitorName, p.vehiclePlate)).slice(0, 5)) out.push({ type: 'pass', id: p.id, ref: p.ref, title: p.visitorName, subtitle: p.flat.code, href: `/backoffice/vis/pass-detail?record=${p.id}` });
@@ -147,13 +147,13 @@ export const OPS_RESIDENT_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/ops\/residents\/dashboard$/,
-    access: requires('residents', 'residents.view', 'history_read'),
+    access: requires('residents', 'residents.view', 'operational'),
     handle: (ctx): ResidentsDashboard => residentsDashboard(ctx, staffOps(ctx, 'residents')),
   },
   {
     method: 'GET',
     pattern: /^\/ops\/moves$/,
-    access: requires('residents', 'residents.view', 'history_read'),
+    access: requires('residents', 'residents.view', 'operational'),
     handle: (ctx): MoveRecord[] => {
       staffOps(ctx, 'residents');
       return moves(ctx);
@@ -191,7 +191,7 @@ export const OPS_RESIDENT_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/ops\/bookings$/,
-    access: requires('amenities', ['amenities.manage', 'residents.view'], 'history_read'),
+    access: requires('amenities', ['amenities.manage', 'residents.view'], 'operational'),
     handle: (ctx): AmenityBooking[] => {
       const staff = staffOps(ctx, 'amenities');
       return staff.ops.bookings.map(publicBooking).sort((a, b) => a.on.localeCompare(b.on));
@@ -221,7 +221,7 @@ export const OPS_RESIDENT_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/portal\/amenities$/,
-    access: requires('resident_portal', 'portal.use', 'history_read'),
+    access: requires('resident_portal', 'portal.use', 'operational'),
     handle: (ctx): ResidentAmenities => {
       const res = residentOps(ctx, AMENITIES);
       return amenitiesFor(ctx, res, { site: res.site, ops: opsOf(ctx, res.site) });
@@ -271,7 +271,7 @@ export const OPS_RESIDENT_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/ops\/gateway$/,
-    access: requires('online_payments', ['merchant.manage', 'payment_methods.manage'], 'history_read'),
+    access: requires('online_payments', ['merchant.manage', 'payment_methods.manage'], 'operational'),
     handle: (ctx): GatewaySettings => gatewayOf(ctx, staffOps(ctx, 'online_payments')),
   },
   {
@@ -315,17 +315,17 @@ export const OPS_RESIDENT_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/ops\/flats\/(?<flatId>[\w-]+)\/services$/,
-    access: requires('residents', ['operations.view', 'visitors.view', 'visitors.manage', 'parking.view', 'residents.view'], 'history_read'),
+    access: requires('residents', ['operations.view', 'visitors.view', 'visitors.manage', 'parking.view', 'residents.view'], 'operational'),
     handle: (ctx) => {
       const site = opsSite(ctx);
       const flat = site.flats.find((f) => f.id === ctx.params.flatId);
       if (!flat) notFound(ctx);
       const ops = opsOf(ctx, site);
       const at = now(ctx);
-      const module = (m: Parameters<typeof decideRecord>[1]) => decideRecord({ ...ctx, suspension: 'history_read' }, m, siteRecord(site)).allowed;
-      const requests = can(ctx, 'operations.view', 'history_read') && module('maintenance') ? ops.requests.filter((r) => r.flat?.id === flat.id).map((r) => rowOf(r, ops.sla, at)) : null;
-      const visitors = (can(ctx, 'visitors.view', 'history_read') || can(ctx, 'visitors.manage', 'history_read')) && module('visitors');
-      const vehicles = (can(ctx, 'parking.view', 'history_read') || can(ctx, 'vehicles.approve', 'history_read')) && module('parking') ? ops.vehicles.filter((v) => v.flat.id === flat.id) : null;
+      const module = (m: Parameters<typeof decideRecord>[1]) => decideRecord({ ...ctx, suspension: 'operational' }, m, siteRecord(site)).allowed;
+      const requests = can(ctx, 'operations.view', 'operational') && module('maintenance') ? ops.requests.filter((r) => r.flat?.id === flat.id).map((r) => rowOf(r, ops.sla, at)) : null;
+      const visitors = (can(ctx, 'visitors.view', 'operational') || can(ctx, 'visitors.manage', 'operational')) && module('visitors');
+      const vehicles = (can(ctx, 'parking.view', 'operational') || can(ctx, 'vehicles.approve', 'operational')) && module('parking') ? ops.vehicles.filter((v) => v.flat.id === flat.id) : null;
       return {
         flat,
         requests,
@@ -334,7 +334,7 @@ export const OPS_RESIDENT_HANDLERS: readonly Handler[] = [
         visits: visitors ? ops.visits.filter((v) => v.flatCode === flat.code).slice(0, 10) : null,
         vehicles,
         slots: ops.slots.filter((s) => s.flatId === flat.id).map((s) => s.code),
-        moves: can(ctx, 'residents.view', 'history_read') ? moves(ctx).filter((m) => m.flatId === flat.id) : null,
+        moves: can(ctx, 'residents.view', 'operational') ? moves(ctx).filter((m) => m.flatId === flat.id) : null,
       };
     },
   },

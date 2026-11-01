@@ -92,7 +92,7 @@ export const OPS_VEHICLE_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/ops\/vehicles$/,
-    access: requires('parking', ['parking.view', 'vehicles.approve'], 'history_read'),
+    access: requires('parking', ['parking.view', 'vehicles.approve'], 'operational'),
     handle: (ctx): VehicleList => {
       const staff = staffOps(ctx, 'parking');
       const q = String(ctx.req.query?.q ?? '').trim().toLowerCase();
@@ -105,7 +105,7 @@ export const OPS_VEHICLE_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/ops\/vehicles\/(?<id>[\w-]+)\/check$/,
-    access: requires('parking', ['parking.view', 'vehicles.approve'], 'history_read'),
+    access: requires('parking', ['parking.view', 'vehicles.approve'], 'operational'),
     handle: (ctx): VehicleCheck => {
       const staff = staffOps(ctx, 'parking');
       return check(ctx, staff, findVehicle(ctx, staff));
@@ -163,7 +163,7 @@ export const OPS_VEHICLE_HANDLERS: readonly Handler[] = [
   {
     method: 'GET',
     pattern: /^\/portal\/parking$/,
-    access: requires('resident_portal', 'portal.use', 'history_read'),
+    access: requires('resident_portal', 'portal.use', 'operational'),
     handle: (ctx): ResidentParking => {
       const { res, staff } = resident(ctx);
       return parkingOf(ctx, res, staff);

@@ -4,6 +4,7 @@ import { Accessibility, ArrowLeftRight, CircleHelp, Compass, LogOut, Smartphone,
 import { useCallback } from 'react';
 import { Button as AriaButton } from 'react-aria-components';
 import { Outlet, ScrollRestoration, useHref, useLocation, useMatches, useNavigate } from 'react-router';
+import { GatePrompt, NotificationsBell } from '../pages/operations/GatePrompt';
 import { switchToOfficeUrl, CUSTOMER_BOTTOM_NAV, CUSTOMER_CENTRE_ACTION, CUSTOMER_NAV_ALIASES, CUSTOMER_NAV_GROUPS, DUES, DUES_BOTTOM_NAV, DUES_CENTRE_ACTION, DUES_NAV_ALIASES, DUES_NAV_GROUPS, PORTAL, START } from '../nav.config';
 
 const PHONE_SIGN_IN = '/shared/auth/customer-portal-login';
@@ -74,6 +75,8 @@ function HeaderActions() {
     <>
       {/* Below 400px the header keeps room for the organisation name; the menu heading names the mode. */}
       <RoleModeChip app="customer" compact className="max-[25rem]:hidden" />
+      {/* Gate D.2 (PORTAL-042): notices and the resident's own news, behind the bell. */}
+      {dues && <NotificationsBell />}
       <IconButton label={t('portal:shell.help')} icon={CircleHelp} onPress={() => tour.start(tourId)} data-tour-id="portal-help" data-testid="portal-help" />
       <MenuButton
         label={t('portal:shell.account', { name: persona.displayName })}
@@ -160,6 +163,8 @@ function SignedIn() {
       headerEnd={<HeaderActions />}
     >
       <Outlet />
+      {/* Gate D.2 (PORTAL-040): a visitor at the gate asks this occupant (simulated refresh). */}
+      {dues && <GatePrompt />}
     </CustomerShell>
   );
 }

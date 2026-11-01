@@ -36,7 +36,7 @@ import { householdsOn } from './site';
  * that is what the visitor did. "Reset demo" and choosing a society demo start it again.
  */
 export const OPS_SECTION = 'operations';
-export const OPS_STATE_VERSION = 1;
+export const OPS_STATE_VERSION = 2;
 
 export interface Affirmation {
   partyId: string;
@@ -204,9 +204,9 @@ function technicians(site: OpsSite): TechnicianRecord[] {
 function amenities(): Amenity[] {
   return [
     { id: 'amn_gym', kind: 'gym', hours: '06:00–22:00', booking: 'instant', capacity: 6, rules: ['gym1', 'gym2'], slots: ['06:00', '08:00', '18:00', '20:00'] },
-    { id: 'amn_hall', kind: 'hall', hours: '10:00–23:00', booking: 'request', capacity: 80, fee: { amount: '5000.00', currency: 'PKR' }, rules: ['hall1', 'hall2', 'hall3'], slots: ['afternoon', 'evening'] },
+    { id: 'amn_hall', kind: 'hall', hours: '10:00–23:00', booking: 'request', capacity: 80, fee: { amount: '5000.00', currency: 'PKR' }, rules: ['hall1', 'hall2', 'hall3'], slots: ['12:00–16:00', '18:00–23:00'] },
     { id: 'amn_kids', kind: 'kids_play', hours: '08:00–20:00', booking: 'none', capacity: 20, rules: ['kids1', 'kids2'], slots: [] },
-    { id: 'amn_bbq', kind: 'bbq', hours: '17:00–23:00', booking: 'request', capacity: 15, rules: ['bbq1', 'bbq2'], slots: ['evening'] },
+    { id: 'amn_bbq', kind: 'bbq', hours: '17:00–23:00', booking: 'request', capacity: 15, rules: ['bbq1', 'bbq2'], slots: ['17:00–20:00', '20:00–23:00'] },
   ];
 }
 
@@ -568,10 +568,10 @@ function seedBookings(s: OpsState, site: OpsSite) {
     const { id, ref } = nextOf(s, site, 'booking');
     s.bookings.push({ id, ref, amenityId, amenityKind: a.kind, flatCode: flat, flatId: w.flat.id, partyId: w.resident.partyId, name: w.resident.partyName, on, slot, guests, state, at, ...extra });
   };
-  book('amn_hall', 'B-306', '2026-11-02', 'evening', 'requested', pk('2026-10-25', '13:00'), 45);
-  book('amn_hall', 'A-201', '2026-10-31', 'afternoon', 'approved', pk('2026-10-20', '10:00'), 30, { decidedByName: MANAGER });
+  book('amn_hall', 'B-306', '2026-11-02', '18:00–23:00', 'requested', pk('2026-10-25', '13:00'), 45);
+  book('amn_hall', 'A-201', '2026-10-31', '12:00–16:00', 'approved', pk('2026-10-20', '10:00'), 30, { decidedByName: MANAGER });
   book('amn_gym', 'A-101', '2026-10-27', '06:00', 'confirmed', pk('2026-10-25', '22:00'));
-  book('amn_bbq', 'A-404', '2026-10-29', 'evening', 'declined', pk('2026-10-23', '12:00'), 12, { decidedByName: MANAGER, reason: 'The rooftop is closed for waterproofing until 1 November.' });
+  book('amn_bbq', 'A-404', '2026-10-29', '17:00–20:00', 'declined', pk('2026-10-23', '12:00'), 12, { decidedByName: MANAGER, reason: 'The rooftop is closed for waterproofing until 1 November.' });
 }
 
 function seedShalimar(s: OpsState, site: OpsSite) {

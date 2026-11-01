@@ -25,7 +25,10 @@
     "officeCollections": "دفتری وصولیاں",
     "approvals": "منظوریاں",
     "committee": "کمیٹی",
-    "ownershipTransfers": "منتقلیاں اور کلیئرنس"
+    "ownershipTransfers": "منتقلیاں اور کلیئرنس",
+    "visitors": "مہمان اور گیٹ",
+    "vehicles": "گاڑیاں",
+    "notices": "نوٹس"
   },
   "header": {
     "search": "تلاش",
@@ -138,7 +141,27 @@
     "approvalPolicies": "منظوری کی پالیسیاں",
     "delegation": "اختیارات کی تفویض",
     "ownershipTransfers": "منتقلیاں اور کلیئرنس",
-    "ownershipTransfer": "منتقلی کا جائزہ"
+    "ownershipTransfer": "منتقلی کا جائزہ",
+    "maintenance": "مرمت و دیکھ بھال",
+    "requests": "مرمت کی درخواستیں",
+    "request": "درخواست 360",
+    "newRequest": "نئی درخواست",
+    "technicianBoard": "ٹیکنیشن بورڈ",
+    "sla": "سروس کی سطح",
+    "residentConfirmation": "رہائشی کی تصدیق",
+    "communityIssues": "کمیونٹی مسائل",
+    "visitors": "مہمان اور گیٹ",
+    "passes": "مہمان پاس",
+    "pass": "مہمان پاس",
+    "gate": "گیٹ پر اندراج",
+    "visitHistory": "مہمانوں کی تاریخ",
+    "scan": "پاس اسکین کریں",
+    "notices": "نوٹس",
+    "sendMessage": "فوری پیغام",
+    "vehicleRegistry": "گاڑیوں کا رجسٹر",
+    "residentsDashboard": "رہائشی",
+    "vehicles": "گاڑیاں",
+    "residents": "رہائشی"
   },
   "groups": {
     "workspace": "کاروبار",

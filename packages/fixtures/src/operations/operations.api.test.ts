@@ -202,7 +202,7 @@ describe('reference 3: notice → notification → acknowledgement (no community
     const noHub = (p: Persona) => effectiveAccessFor(p);
     const api = session({ accessFor: noHub });
     const blockA = { scope: 'blocks', ids: ['bld_anr_a'], roles: ['occupant'] };
-    const preview = await api.as('alnoor_manager').post<{ households: number; flats: string[] }>('/notices/preview', { audience: blockA });
+    const preview = await api.as('alnoor_manager').get<{ households: number; flats: string[] }>('/notices/preview', { audience: JSON.stringify(blockA) });
     expect(preview.flats).toContain('A-101');
     expect(preview.flats.some((f) => f.startsWith('B-'))).toBe(false);
     const created = await api.post<NoticeDetail>('/notices', { action: 'publish', title: 'Fire drill on Saturday', body: 'A fire drill will be held in Block A on Saturday at 10:00. Please follow the wardens.', category: 'security', audience: blockA, ackRequired: true, channels: { sms: true, whatsapp: false } });

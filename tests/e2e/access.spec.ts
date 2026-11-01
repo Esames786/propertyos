@@ -42,10 +42,12 @@ test.describe('Effective access in the workspace (V3.1)', () => {
     await expect(page.getByTestId('plan-home-open-access')).toBeVisible();
     await expect(page.getByTestId('plan-qa-plan')).toHaveCount(0);
     await expect(page.getByTestId('plan-qa-my-access')).toBeVisible();
-    // Planned maintenance screens are listed as planned (with their gate), never as working actions.
-    await expect(page.getByTestId('plan-qa-new-request')).toHaveCount(0);
-    await expect(page.getByTestId('plan-home-planned')).toContainText('Maintenance requests');
-    await expect(page.getByTestId('plan-planned-requests')).toContainText('Planned · Gate D');
+    // Gate D.2: requests, new requests and the technician board work; maintenance still planned is
+    // listed as planned (with its gate), never as a working action.
+    await expect(page.getByTestId('plan-qa-new-request')).toBeVisible();
+    await expect(page.getByTestId('plan-qa-requests')).toBeVisible();
+    await expect(page.getByTestId('plan-home-planned')).not.toContainText('Maintenance requests');
+    await expect(page.getByTestId('plan-planned-preventive')).toContainText('Planned · Gate G');
     await expect(page.getByTestId('plan-home-planned').getByRole('link')).toHaveCount(0);
 
     // Quick create offers the maintenance request only; no lead, visit, hold or payment.
@@ -88,9 +90,9 @@ test.describe('Effective access in the workspace (V3.1)', () => {
     expect(await apiCode(page, '/units')).toBe('module_not_licensed');
     expect(await apiCode(page, '/units/unt_0001/hold', 'POST')).toBe('module_not_licensed');
 
-    // Maintenance addresses open (planned pages for now).
+    // Maintenance addresses open the working screens (Gate D.2).
     await page.goto(`${BO}/backoffice/mnt/maintenance-list`);
-    await expect(page.getByTestId('planned-screen')).toBeVisible();
+    await expect(page.getByTestId('request-row').first()).toBeVisible();
     expect(consoleErrors).toEqual([]);
   });
 

@@ -1,10 +1,11 @@
-import { ApiError, type SetupStep, type SiteOverview } from '@repo/contracts';
+import { ApiError, type AccessTarget, type SetupStep, type SiteOverview } from '@repo/contracts';
 import { Badge, Breadcrumbs, cn, DirectionalIcon, ErrorState, Link, NotFoundState, Panel, UrlTabs, useApiQuery, useSession, useT } from '@repo/ui';
 import { Building, Check, ChevronRight, CircleDashed, Clock3, Lock } from 'lucide-react';
 import { SOCIETY } from '../../../nav.config';
 import { FlatJump, LaterBadge, Loading, useSocietyFormat } from '../kit';
 import { BillingControlsTab, CollectionAccountTab, PaymentMethodsTab } from '../collections/SettingsTabs';
 import { AuditList } from '../parts';
+import { GatewayTab } from '../operations/GatewayTab';
 
 /**
  * SITE-002 Site 360 with SITE-008 (the onboarding checklist, A4 §1) as its overview, the verified
@@ -12,8 +13,12 @@ import { AuditList } from '../parts';
  * period), the payment methods allowed at the site (BILL-012) and the billing controls (document
  * numbering per issuing entity, who may post a run).
  */
+/** BILL-011 (Gate D.2): the online-payments add-on, for whoever manages the merchant or the methods. */
+const ONLINE_PAYMENTS: AccessTarget = { module: 'online_payments', anyOf: ['merchant.manage', 'payment_methods.manage'] };
+
 export default function SiteWorkspace({ siteId }: { siteId: string }) {
   const { t } = useT();
+  const { allows } = useSession();
   const q = useApiQuery<SiteOverview>({ method: 'GET', path: `/sites/${siteId}` });
   if (q.isError && q.error instanceof ApiError && [403, 404].includes(q.error.problem.status)) {
     return (
@@ -30,6 +35,7 @@ export default function SiteWorkspace({ siteId }: { siteId: string }) {
     { id: 'overview', label: t('sites:site.tabs.overview') },
     { id: 'collection-settings', label: t('sites:site.tabs.collection') },
     { id: 'payment-methods', label: t('sites:site.tabs.methods') },
+    ...(allows(ONLINE_PAYMENTS) ? [{ id: 'online-payments', label: t('operations:gateway.tab') }] : []),
     { id: 'billing-controls', label: t('sites:site.tabs.controls') },
     { id: 'activity', label: t('sites:site.tabs.activity') },
   ];
@@ -44,12 +50,14 @@ export default function SiteWorkspace({ siteId }: { siteId: string }) {
         </div>
         {data.site.flats > 0 && <FlatJump siteId={siteId} className="w-full sm:w-72" testId="site-flat-jump" />}
       </header>
-      <UrlTabs label={t('sites:site.tabsLabel')} items={tabs}>
+      <UrlTabs label={t('sites:site.tabsLabel')} items={tabs} phoneLimit={2}>
         {(tab) =>
           tab === 'collection-settings' ? (
             <CollectionAccountTab siteId={siteId} />
           ) : tab === 'payment-methods' ? (
             <PaymentMethodsTab siteId={siteId} />
+          ) : tab === 'online-payments' && allows(ONLINE_PAYMENTS) ? (
+            <GatewayTab siteId={siteId} />
           ) : tab === 'billing-controls' ? (
             <BillingControlsTab siteId={siteId} />
           ) : tab === 'activity' ? (

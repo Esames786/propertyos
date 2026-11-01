@@ -83,6 +83,8 @@ export function bridgedSharedPartitions(bridgeUrl: string, keys: readonly string
   const cache = new Map<string, DemoOverlay | undefined>();
   const listeners = new Set<(key: string) => void>();
   const pending = new Map<number, (m: BridgeMessage) => void>();
+  /** Writes made here per partition: a copy fetched before one of them is older than the cache. */
+  const writes = new Map<string, number>();
   const session = safeSessionStorage();
   let linked: boolean | null = null;
   /** Something was saved in this app's own copy (then a late link is not taken: nothing is lost). */
@@ -170,6 +172,7 @@ export function bridgedSharedPartitions(bridgeUrl: string, keys: readonly string
         return local.write(key, overlay);
       }
       cache.set(key, overlay);
+      writes.set(key, (writes.get(key) ?? 0) + 1);
       void ask({ op: 'set', key, value: JSON.stringify(overlay) });
     },
     remove: (key) => {
@@ -179,8 +182,11 @@ export function bridgedSharedPartitions(bridgeUrl: string, keys: readonly string
     },
     sync: async (key) => {
       if (!(await connect())) return;
+      const before = writes.get(key) ?? 0;
       const reply = await ask({ op: 'get', key });
-      if (reply) cache.set(key, parse(reply.value ?? null));
+      // Requests overlap: if this app saved while the copy was on its way, the copy is older than the
+      // save and must not replace it (that lost a resident's text size pushed from the home page).
+      if (reply && (writes.get(key) ?? 0) === before) cache.set(key, parse(reply.value ?? null));
     },
     subscribe: (listener) => {
       listeners.add(listener);
