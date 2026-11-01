@@ -110,6 +110,7 @@ const operations = {
   parking: lazy(() => import('../pages/operations/ResidentServices').then((m) => ({ default: m.ParkingPage }))),
   amenities: lazy(() => import('../pages/operations/ResidentServices').then((m) => ({ default: m.AmenitiesPage }))),
 };
+const ResidentChat = lazy(() => import('../pages/community/ResidentChatPage'));
 const NoticeDetail = lazy(() => import('../pages/operations/NoticesPages').then((m) => ({ default: m.NoticeDetailPage })));
 
 /** PORTAL-043: `/customer/portal/community-notices/:id` (the stable deep link of notifications and messages). */
@@ -173,6 +174,7 @@ const portalChildren: RouteObject[] = [
   { path: 'documents', loader: registerLoader, element: <Edition developer={developer.documents} />, handle: handle({ title: (t) => t('portal:pages.documents') }) },
   // Gate D.2: PORTAL-018 repairs, PORTAL-023 notices and PORTAL-043 notice detail (society edition).
   { path: 'maintenance-workspace', loader: registerLoader, element: <Edition dues={operations.repairs} />, handle: handle({ title: (t) => t('operations:repairs.title') }) },
+  { path: 'chat', element: <Edition dues={ResidentChat} />, handle: handle({ title: (t) => t('operations:community.chatTitle') }) },
   { path: 'community-notices', loader: registerLoader, element: <Edition dues={operations.notices} />, handle: handle({ title: (t) => t('operations:residentNotice.title') }) },
   { path: 'community-notices/:id', loader: registerLoader, element: <NoticeRoute />, handle: handle({ title: (t) => t('operations:residentNotice.detailTitle') }) },
   // Gate D.2: PORTAL-034 community issues, PORTAL-026 vehicles, PORTAL-021 parking, PORTAL-022 amenities.

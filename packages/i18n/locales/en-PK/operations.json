@@ -1578,5 +1578,23 @@
     "noVehicles": "No vehicles registered.",
     "moves": "Moves",
     "noMoves": "No moves recorded for this flat."
+  },
+  "community": {
+    "loading": "Loading community…",
+    "chatTitle": "Community chat",
+    "chatDescription": "Talk to your building groups. Group membership follows current residency.",
+    "simulated": "Fictional demo only. No live messages or notifications are sent.",
+    "unavailable": "Chat is not active yet",
+    "retentionRequired": "Your association must choose a message-retention policy before enabling chat.",
+    "notices": "See official notices",
+    "chatGroups": "My groups",
+    "conversation": "Conversation",
+    "chooseGroup": "Choose a group to read messages",
+    "messages": "Messages",
+    "you": "You",
+    "noMessages": "No messages yet. Start the conversation.",
+    "compose": "Write a message",
+    "send": "Send message",
+    "sent": "Message saved in this demo"
   }
 }
