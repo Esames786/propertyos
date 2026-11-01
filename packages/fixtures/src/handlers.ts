@@ -21,6 +21,7 @@ import { HOUSEHOLD_HANDLERS } from './identity/household-handlers';
 import { ME_HANDLERS } from './identity/me-handlers';
 import { PORTAL_ACCESS_HANDLERS } from './identity/portal-access-handlers';
 import { OPERATIONS_HANDLERS, operationsRecordAccess, operationsSearch } from './operations';
+import { COMMUNITY_CHAT_HANDLERS } from './community/chat-handlers';
 
 export type { Handler, HandlerAccess, HandlerContext } from './handler-types';
 
@@ -300,4 +301,6 @@ export const HANDLERS: readonly Handler[] = [...CORE_HANDLERS, ...CRM_HANDLERS, 
   // Gate D.1: identity, devices, portal access, households, data and privacy, organisation colours.
   ...ME_HANDLERS, ...ADMIN_IDENTITY_HANDLERS, ...PORTAL_ACCESS_HANDLERS, ...HOUSEHOLD_HANDLERS, ...DATA_HANDLERS, ...APPEARANCE_HANDLERS,
   // Gate D.2: resident operations (maintenance and community issues, the gate, vehicles, notices).
-  ...OPERATIONS_HANDLERS];
+  ...OPERATIONS_HANDLERS,
+  // D.3: real typed mock endpoints; two optional modules, no tenant gains a licence implicitly.
+  ...COMMUNITY_CHAT_HANDLERS];
