@@ -139,6 +139,7 @@ export const OPS = {
   notice: (id: string) => `/backoffice/res/community-announcements${q({ record: id })}`,
   compose: '/backoffice/res/community-announcements?drawer=compose',
   message: '/backoffice/not/send-message',
+  chat: '/backoffice/res/community-chat',
   vehicles: (params: Record<string, string | undefined> = {}) => `/backoffice/park/vehicle-registry${q(params)}`,
   vehicle: (id: string) => `/backoffice/park/vehicle-registry${q({ record: id })}`,
   gateway: (siteId: string) => `/backoffice/sites/${siteId}${q({ tab: 'online-payments' })}`,

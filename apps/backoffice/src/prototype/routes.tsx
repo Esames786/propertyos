@@ -184,6 +184,7 @@ const PassesPage = ops(visitorPages, 'PassesPage');
 const VisitHistoryPage = ops(visitorPages, 'VisitHistoryPage');
 const ScanPage = ops(visitorPages, 'ScanPage');
 const PassById = lazy(() => import('../pages/society/operations/VisitorPages').then((m) => ({ default: ({ id }: { id: string }) => <m.PassDetailPage passId={id} /> })));
+const CommunityOffice = lazy(() => import('../pages/society/community/CommunityOfficePage'));
 const NoticesOffice = lazy(() => import('../pages/society/operations/NoticesOffice'));
 const SendMessagePage = ops(() => import('../pages/society/operations/NoticesOffice'), 'SendMessagePage');
 const VehiclesOffice = lazy(() => import('../pages/society/operations/VehiclesOffice'));
@@ -194,6 +195,7 @@ const GATE: AccessTarget = { module: 'visitors', permission: 'visitors.manage' }
 const NOTICES: AccessTarget = { module: 'residents', permission: 'residents.view' };
 const PARKING: AccessTarget = { module: 'parking', anyOf: ['parking.view', 'vehicles.approve'] };
 const RESIDENTS: AccessTarget = { module: 'residents', permission: 'residents.view' };
+const CHAT_ADMIN: AccessTarget = { module: 'community_chat', anyOf: ['chat.groups.manage', 'chat.moderate'] };
 const MESSAGES: AccessTarget = { module: 'communications', permission: 'messages.send' };
 const MAINT: AccessTarget = { module: 'maintenance', permission: 'operations.view' };
 const MAINT_MANAGE: AccessTarget = { module: 'maintenance', permission: 'maintenance.manage' };
@@ -458,6 +460,7 @@ const shellChildren: RouteObject[] = [
   { path: 'vis/scan-qr', loader: registerLoader, element: <OpsScreen page={ScanPage} target={GATE} />, handle: h({ title: (t) => t('nav:pages.scan') }) },
   // Gate D.2: official notices (RES-005) and the quick broadcast (NOT-003).
   { path: 'res/community-announcements', loader: registerLoader, element: <OpsScreen page={NoticesOffice} target={NOTICES} />, handle: h({ title: (t) => t('nav:pages.notices') }) },
+  { path: 'res/community-chat', element: <OpsScreen page={CommunityOffice} target={CHAT_ADMIN} />, handle: h({ title: (t) => t('operations:communityOffice.title') }) },
   { path: 'not/send-message', loader: registerLoader, element: <OpsScreen page={SendMessagePage} target={MESSAGES} />, handle: h({ title: (t) => t('nav:pages.sendMessage') }) },
   { path: 'park/vehicle-registry', loader: registerLoader, element: <OpsScreen page={VehiclesOffice} target={PARKING} />, handle: h({ title: (t) => t('nav:pages.vehicles') }) },
   { path: 'res/resident-dashboard', loader: registerLoader, element: <OpsScreen page={ResidentsOffice} target={RESIDENTS} />, handle: h({ title: (t) => t('nav:pages.residents') }) },

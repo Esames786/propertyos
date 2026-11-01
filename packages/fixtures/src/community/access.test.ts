@@ -21,24 +21,24 @@ describe('D.3 resident add-on dual grants Rule R',()=>{
   expect(communityResidentAccess(access(),at,record,'community_hub','community_hub.polls')).toEqual({allowed:true});
  });
  it('refuses missing resident portal even if chat is licensed',()=>{
-  const a=access();a.grants=a.grants.filter(g=>g.module!=='resident_portal');
+  const a={...access(),grants:access().grants.filter(g=>g.module!=='resident_portal')};
   expect(communityResidentAccess(a,at,record,'community_chat')).toEqual({allowed:false,reason:'module_not_licensed'});
  });
  it('refuses unlicensed chat and different site',()=>{
-  const a=access();a.grants=a.grants.filter(g=>g.module!=='community_chat');
+  const a={...access(),grants:access().grants.filter(g=>g.module!=='community_chat')};
   expect(communityResidentAccess(a,at,record,'community_chat')).toEqual({allowed:false,reason:'module_not_licensed'});
   expect(communityResidentAccess(access(),at,{...record,siteId:'site_b'},'community_chat')).toEqual({allowed:false,reason:'site_not_licensed'});
  });
  it('refuses moved out or unverified residents',()=>{
-  const a=access();a.scopes=[{type:'party',partyId:'resident',links:[]}];
+  const a={...access(),scopes:[{type:'party',partyId:'resident' as const,links:[]}]};
   expect(communityResidentAccess(a,at,record,'community_chat')).toEqual({allowed:false,reason:'out_of_scope'});
-  const b=access();b.scopes=[{type:'party',partyId:'resident',links:[{unitId:'flat_101',billingAccountId:'account_a',siteId:'site_a',legalEntityId:'le_a',verified:true,from:'2026-10-01',to:'2026-11-01'}]}];
+  const b={...access(),scopes:[{type:'party' as const,partyId:'resident',links:[{unitId:'flat_101',billingAccountId:'account_a',siteId:'site_a',legalEntityId:'le_a',verified:true,from:'2026-10-01',to:'2026-11-01'}]}]};
   expect(communityResidentAccess(b,at,record,'community_chat')).toEqual({allowed:false,reason:'out_of_scope'});
  });
  it('refuses missing hub feature and suspended tenant',()=>{
-  const a=access();a.features=[];
+  const a={...access(),features:[]};
   expect(communityResidentAccess(a,at,record,'community_hub','community_hub.polls')).toEqual({allowed:false,reason:'feature_not_licensed'});
-  const b=access();b.tenant.status='suspended';
+  const b={...access(),tenant:{...access().tenant,status:'suspended' as const}};
   expect(communityResidentAccess(b,at,record,'community_chat')).toEqual({allowed:false,reason:'tenant_suspended'});
  });
 });
