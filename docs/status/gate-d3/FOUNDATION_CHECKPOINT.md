@@ -1,15 +1,19 @@
-# Gate D.3 — Foundation checkpoint 0 (code only; tests not executed)
+# Gate D.3 — Checkpoint 1 (staged licensing and smart-group foundation)
 
-Parent: accepted D.2 closure `a54f594`. Separate branch `feature/gate-d3-community-chat`.
+Branch: `feature/gate-d3-community-chat`. Base: accepted D.2 `a54f594`.
 
-This checkpoint introduces an **isolated pure TypeScript policy layer** and Vitest cases for group membership, join-time history, leave/move-out revocation, queued offline send rejection, tenant-set retention, and held/deleted messages. It deliberately makes **no** production claims and adds no UI, routes, endpoints, fixtures, notifications, mock persistence or licensed modules yet. The existing 27-module catalogue and D.2 demos remain unchanged.
+## Added in code
+- `community_chat` and `community_hub` module keys, site-scope grants, optional catalogue add-ons and permissions. Existing presets **do not** activate them.
+- Administrator/manager role permission declarations (grants still enforce licence separately).
+- Smart site/block/floor groups derived from effective-dated occupant facts. Pure resident-facing lists contain no identities or debt.
+- A reusable dual-entitlement policy: verified resident portal at the same site **and** separately licensed add-on with scope/feature checks. Tests cover missing licence, cross-site, move-out, suspension, missing feature.
+- Earlier policy layer: joined-at history boundary, revocation and queued-send refusal, configured retention.
 
-## Next implementation steps
-1. Implement module catalogue expansion to `community_chat` and `community_hub` with same-site Rule R, add explicit role permissions and fail-closed typed mock endpoints.
-2. Implement dynamic groups from effective-dated occupancy and committee/staff facts; avoid free-form resident-to-resident DMs by default.
-3. Implement reporting/moderation, tenant-configured retention (no assumed statutory period), delivery states and offline revocation caveats.
-4. Implement three reference UI experiences: office moderation/groups, resident group conversation, resident Community home with optional services/polls. Official D.2 notices must work when both add-ons are removed.
-5. Marketplace is OFF by default until D-31 owner choice; SOS remains parked. Never expose resident debts or contact details.
-6. Run unit/API, E2E, axe, EN/UR 320/390/1440, 200% zoom, Firefox/WebKit smoke on the final implementation and report actual results.
+## Still not implemented
+No complete UI/Chat APIs/persistence, group conversation, moderation, services, polling, marketplace or dynamically configured retention page yet. No D.3 screen may be marked BUILT based on this checkpoint.
 
-No backend, no VPS update, no Bingoo changes, no merge into main. This checkpoint does not mark any D.3 screens built.
+## Test limitation
+These TypeScript tests were written and committed through the GitHub connector, **not executed** in a locally installed repository environment. A complete build and tests are mandatory before integration or owner sign-off. This is a **code checkpoint only**, not Gate D.3 completion.
+
+## Safety boundaries
+No existing tenant is newly granted chat or hub. No changes to `main`, live preview, Nginx, Laravel, production databases, Bingoo, SOS or financial settlement.
