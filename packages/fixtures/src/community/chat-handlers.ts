@@ -31,7 +31,7 @@ interface ChatState {
   reports: Report[];
   lastRead: Record<string, string>;
 }
-const section = (ctx: HandlerContext) => ctx.demo.section<ChatState>('community_chat', () => ({
+const section = (ctx: HandlerContext) => ctx.demo.section<ChatState>('community_chat:' + opsSite(ctx).siteId, () => ({
   retentionVersions: [], messages: [], reports: [], lastRead: {},
 }));
 const timestamp = (ctx: HandlerContext) => new Date(ctx.at.length === 10 ? ctx.at + 'T12:00:00Z' : ctx.at).toISOString();

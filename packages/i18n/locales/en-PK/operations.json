@@ -1636,5 +1636,14 @@
     "couldNotLoad": "Could not load this section",
     "noticesIndependent": "Official notices work even without Chat or Community Hub.",
     "officialNotices": "Open official notices"
+  },
+  "communityHub": {
+    "title": "My community",
+    "links": "Community services",
+    "notices": "Official notices",
+    "requests": "Building requests",
+    "directory": "Local services directory",
+    "safeContact": "These providers are fictional. Contact the society office for verified information; no personal phone numbers are shared.",
+    "empty": "No approved services yet."
   }
 }

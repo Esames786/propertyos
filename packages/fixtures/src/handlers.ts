@@ -22,6 +22,7 @@ import { ME_HANDLERS } from './identity/me-handlers';
 import { PORTAL_ACCESS_HANDLERS } from './identity/portal-access-handlers';
 import { OPERATIONS_HANDLERS, operationsRecordAccess, operationsSearch } from './operations';
 import { COMMUNITY_CHAT_HANDLERS } from './community/chat-handlers';
+import { COMMUNITY_HUB_HANDLERS } from './community/hub-handlers';
 
 export type { Handler, HandlerAccess, HandlerContext } from './handler-types';
 
@@ -303,4 +304,4 @@ export const HANDLERS: readonly Handler[] = [...CORE_HANDLERS, ...CRM_HANDLERS, 
   // Gate D.2: resident operations (maintenance and community issues, the gate, vehicles, notices).
   ...OPERATIONS_HANDLERS,
   // D.3: real typed mock endpoints; two optional modules, no tenant gains a licence implicitly.
-  ...COMMUNITY_CHAT_HANDLERS];
+  ...COMMUNITY_CHAT_HANDLERS, ...COMMUNITY_HUB_HANDLERS];
