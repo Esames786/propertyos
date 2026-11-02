@@ -199,6 +199,57 @@ test.describe('D.3 reference 1: community chat and moderation', () => {
   });
 });
 
+/**
+ * Issue #9: a message older than the retention period with an open report about it, put into the
+ * shared demo as the office app keeps it (the seeds are all recent). Call on an office page after the
+ * community state exists.
+ */
+async function injectExpiredReport(page: Page) {
+  // The community state is stored on its first change: mark the office's group read first.
+  await societyApi(page, '/ops/chat/groups/site/read', 'POST');
+  await page.evaluate(() => {
+    const key = 'demo:shared:tnt_alnoor';
+    const overlay = JSON.parse(localStorage.getItem(key)!) as { sections: Record<string, { chat: { messages: unknown[]; reports: unknown[] } }> };
+    const s = overlay.sections['community:site_alnoor']!;
+    s.chat.messages.push({ id: 'msg_expired', groupId: 'site', senderKind: 'resident', senderName: 'Hina Iqbal', partyId: 'pty_anr_0005', text: 'An old complaint kept as evidence', at: '2025-09-01T10:00:00Z' });
+    s.chat.reports.push({ id: 'crp_expired', ref: 'ANR-CR-0090', messageId: 'msg_expired', groupId: 'site', state: 'open', reports: [{ by: 'pty_anr_0001', reason: 'abusive', note: 'Threatening', at: '2025-09-01T11:00:00Z' }], history: [] });
+    localStorage.setItem(key, JSON.stringify(overlay));
+  });
+}
+
+test.describe('D.3 Issue #9: retention ends visibility; an open report keeps evidence for moderators only', () => {
+  test('an expired message under an open report is in no chat, is evidence in the report queue, and is not shown again once decided', async ({ page, consoleErrors }, testInfo) => {
+    await seedSociety(page, { staff: 'alnoor_manager' });
+    await office(page, 'alnoor_manager', '/backoffice/chat/settings?tab=reports', 'report-list');
+    await injectExpiredReport(page);
+    await page.reload();
+    const card = page.getByTestId('report-card').filter({ hasText: 'ANR-CR-0090' });
+    await expect(card).toContainText('An old complaint kept as evidence');
+    await expect(card.getByTestId('report-evidence-hold')).toBeVisible();
+    await axe(page, testInfo, 'chat-report-evidence-hold-1440-en');
+    // Not in the office's conversation, nor a resident's.
+    await page.goto(`${BO}/backoffice/chat/site`);
+    await expect(page.getByTestId('chat-log')).toBeVisible();
+    await expect(page.getByTestId('chat-log')).not.toContainText('An old complaint');
+    await resident(page, 'alnoor_resident_a101', '/customer/portal/chat/site', 'chat-conversation');
+    await expect(page.getByTestId('chat-log')).not.toContainText('An old complaint');
+    await expect(page.getByTestId('chat-groups')).not.toContainText('An old complaint');
+    // The policy page counts it as held for the moderators only.
+    await office(page, 'alnoor_manager', '/backoffice/chat/settings?tab=policy', 'chat-policy');
+    await expect(page.getByTestId('chat-policy')).toContainText('1 reported message is past the period');
+    // Decided: the text is not shown again; the decision stays.
+    await page.goto(`${BO}/backoffice/chat/settings?tab=reports`);
+    await page.getByTestId('report-card').filter({ hasText: 'ANR-CR-0090' }).getByTestId('report-dismiss').click();
+    await confirm(page, /^Dismiss$/, 'Checked; no action needed.');
+    await page.getByTestId('reports-status').getByText('Decided').click();
+    const decided = page.getByTestId('report-card').filter({ hasText: 'ANR-CR-0090' });
+    await expect(decided.getByTestId('report-text-gone')).toBeVisible();
+    await expect(decided).not.toContainText('An old complaint');
+    await expect(decided).toContainText('Checked; no action needed.');
+    expect(consoleErrors).toEqual([]);
+  });
+});
+
 test.describe('D.3 reference 2: groups, custom groups and the retention policy', () => {
   test('Imran sees who is in the committee and why, creates a group for Block A owners and checks the policy', async ({ page, consoleErrors }, testInfo) => {
     await seedSociety(page, { staff: 'alnoor_manager' });
@@ -291,19 +342,49 @@ test.describe('D.3 reference 3: an informal poll', () => {
     await expect(page.getByTestId('poll-totals')).toHaveCount(0);
     await page.getByTestId('poll-close').click();
     await confirm(page, /Close now/);
-    await expect(page.getByTestId('poll-totals')).toContainText('2 answers');
+    // Anonymous and split 2–1: even the office sees no breakdown (Issue #9), only the turnout.
+    await expect(page.getByTestId('poll-totals-withheld')).toContainText('3 answers');
+    await expect(page.getByTestId('poll-totals')).toHaveCount(0);
     await page.getByTestId('poll-publish').click();
     await confirm(page, /Publish results/);
-    await expect(page.getByTestId('poll-published')).toHaveAttribute('data-shown', 'true');
+    await expect(page.getByTestId('poll-published')).toHaveAttribute('data-shown', 'withheld');
     await axe(page, testInfo, 'poll-detail-1440-en');
 
     await resident(page, 'alnoor_tenant_a102', '/customer/portal/community?tab=polls', 'poll-list');
     const results = page.getByTestId('poll-card').filter({ hasText: 'Car wash bay' }).getByTestId('poll-results');
-    await expect(results).toHaveAttribute('data-shown', 'true');
+    await expect(results).toHaveAttribute('data-shown', 'withheld');
     await expect(results).toContainText('3 answers in total');
-    // The published gym poll shows results; a below-threshold poll explains why it shows none.
+    await expect(results.getByTestId('poll-withheld')).toContainText('withheld for privacy');
+    // No option label with a count or a share, no bar: nothing to work the 1 out from.
+    await expect(results).not.toContainText('%');
+    await expect(results.locator('li')).toHaveCount(0);
+    // The published gym poll (31 answers, safe) shows its breakdown; the 5–1 patrol poll its turnout only.
+    await expect(page.getByTestId('poll-card').filter({ hasText: 'Gym opening hours' }).getByTestId('poll-results')).toHaveAttribute('data-shown', 'true');
     await expect(page.getByTestId('poll-card').filter({ hasText: 'Gym opening hours' }).getByTestId('poll-results')).toContainText('31 answers');
+    await expect(page.getByTestId('poll-card').filter({ hasText: 'Evening security patrol' }).getByTestId('poll-results')).toHaveAttribute('data-shown', 'withheld');
     await axe(page, testInfo, 'community-polls-1440-en');
+    expect(consoleErrors).toEqual([]);
+  });
+
+  test('a named poll says the office will see the name and answer, and is answered only after agreeing', async ({ page, consoleErrors }, testInfo) => {
+    await seedSociety(page, { staff: 'alnoor_manager' });
+    await become(page, 'backoffice', 'alnoor_manager');
+    await page.goto(`${BO}/backoffice/community/polls`);
+    await expect(page.getByTestId('polls-office')).toBeVisible();
+    const draft = await api<{ id: string }>(page, '/ops/community/polls', 'POST', { title: 'Lobby repaint colour', question: 'Which colour should the Block A lobby be repainted?', options: ['Cream', 'Sage'], audience: { scope: 'blocks', ids: ['bld_anr_a'], roles: ['occupant'] }, unit: 'person', anonymous: false, closesOn: '2026-11-10' });
+    expect(draft.ok).toBe(true);
+    expect((await api(page, `/ops/community/polls/${draft.ok ? draft.res.id : ''}/open`, 'POST')).ok).toBe(true);
+    await resident(page, 'alnoor_tenant_a102', '/customer/portal/community?tab=polls', 'poll-list');
+    await page.getByTestId('poll-card').filter({ hasText: 'Lobby repaint colour' }).getByTestId('poll-answer').click();
+    const drawer = page.getByTestId('poll-drawer');
+    await drawer.getByTestId('poll-option-opt_2').click();
+    await expect(drawer.getByTestId('poll-named-warning')).toContainText('will see your name');
+    await expect(drawer.getByTestId('poll-submit')).toBeDisabled();
+    await axe(page, testInfo, 'poll-named-drawer-1440-en');
+    await drawer.getByTestId('poll-named-consent').click();
+    await drawer.getByTestId('poll-submit').click();
+    await expect(drawer).toHaveCount(0);
+    await expect(page.getByTestId('poll-card').filter({ hasText: 'Lobby repaint colour' }).getByTestId('poll-answered')).toContainText('Sage');
     expect(consoleErrors).toEqual([]);
   });
 });
@@ -480,6 +561,47 @@ for (const locale of ['en-PK', 'ur-PK'] as const) {
 }
 
 const lang = (locale: Locale) => (locale === 'ur-PK' ? 'ur' : 'en');
+
+for (const locale of ['en-PK', 'ur-PK'] as const) {
+  test(`dark mode, then high contrast (${lang(locale)}, 390 px): the D.3 screens pass axe with nothing clipped or spilled`, async ({ page, consoleErrors }, testInfo) => {
+    test.setTimeout(240_000);
+    await page.setViewportSize(VIEWPORTS.phone);
+    await seedSociety(page, { locale, staff: 'alnoor_manager' });
+    const html = (name: string) => page.evaluate((n) => document.documentElement.getAttribute(n), name);
+    // Set through the person's own settings, as a resident would (the hub is shared by both apps).
+    await resident(page, 'alnoor_resident_a101', '/customer/portal/accessibility-preferences', 'hub-theme');
+    await page.getByTestId('hub-theme-dark').click();
+    await expect.poll(() => html('data-theme')).toBe('dark');
+    for (const mode of ['dark', 'dark-contrast'] as const) {
+      if (mode === 'dark-contrast') {
+        await page.goto(`${CU}/customer/portal/accessibility-preferences`);
+        await page.getByTestId('hub-contrast-high').click();
+        await expect.poll(() => html('data-contrast')).toBe('high');
+      }
+      for (const [name, path, ready] of [...RESIDENT_SCREENS, ['patrol-withheld', '/customer/portal/community?tab=polls', 'poll-list']] as const) {
+        await page.goto(`${CU}${path}`);
+        await expect(page.getByTestId(ready).first()).toBeVisible();
+        await settle(page);
+        await axe(page, testInfo, `portal-${name}-390-${mode}-${locale}`);
+        expect(await layoutProblems(page), `${name} ${mode} ${lang(locale)}`).toEqual([]);
+      }
+    }
+    // The office's reports queue and a poll in dark mode with high contrast.
+    await become(page, 'backoffice', 'alnoor_manager');
+    await page.goto(`${BO}/backoffice/global/accessibility-preferences`);
+    await expect(page.getByTestId('hub-theme')).toBeVisible();
+    await page.getByTestId('hub-theme-dark').click();
+    await page.getByTestId('hub-contrast-high').click();
+    await expect.poll(() => html('data-contrast')).toBe('high');
+    for (const [name, path, ready] of OFFICE_SCREENS.filter(([n]) => ['chat-reports', 'poll-detail', 'chat-policy'].includes(n))) {
+      await page.goto(`${BO}${path}`);
+      await expect(page.getByTestId(ready).first()).toBeVisible();
+      await axe(page, testInfo, `${name}-390-dark-contrast-${locale}`);
+      expect(await overflowOf(page), `${name} ${lang(locale)}`).toBeLessThanOrEqual(0);
+    }
+    expect(consoleErrors).toEqual([]);
+  });
+}
 
 for (const locale of ['en-PK', 'ur-PK'] as const) {
   for (const scale of [1, 1.5, 2] as const) {

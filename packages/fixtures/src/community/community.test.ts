@@ -35,18 +35,36 @@ describe('chat membership vectors (D-25)', () => {
   }
 });
 
-describe('poll result vectors (D-47)', () => {
-  for (const c of polls.cases as Array<(typeof polls.cases)[number] & { threshold?: { minCount: number; minAudience: number } }>) {
+describe('poll result vectors (D-47, Issue #9)', () => {
+  type PollCase = { name: string; tally: unknown; audience: unknown; options?: PollOption[]; threshold?: { minCount: number; minAudience: number }; expect: { shown: boolean; reason?: string; total?: number; options?: Record<string, number> | null; blocks?: Record<string, number> } };
+  for (const c of polls.cases as PollCase[]) {
     it(c.name, () => {
-      const r = pollResults(c.tally as unknown as Record<string, Record<string, number>>, polls.options as PollOption[], c.audience as unknown as { site: number; blocks: Record<string, number> }, c.threshold);
-      const e = c.expect as { shown: boolean; reason?: string; total?: number; options?: Record<string, number>; blocks?: Record<string, number> };
+      const options = c.options ?? (polls.options as PollOption[]);
+      const r = pollResults(c.tally as Record<string, Record<string, number>>, options, c.audience as { site: number; blocks: Record<string, number> }, c.threshold);
+      const e = c.expect;
       expect(r.shown).toBe(e.shown);
       if (!r.shown) return expect(r.reason).toBe(e.reason);
       expect(r.total).toBe(e.total);
-      expect(Object.fromEntries(r.options.map((o) => [o.id, o.count]))).toEqual(e.options);
+      if (e.options === null) {
+        // Withheld: no option count, no block, nothing to subtract from the total.
+        expect(r.options).toBeNull();
+        expect(r.blocks).toEqual([]);
+        return;
+      }
+      expect(Object.fromEntries((r.options ?? []).map((o) => [o.id, o.count]))).toEqual(e.options);
       expect(Object.fromEntries(r.blocks.map((b) => [b.code, b.total]))).toEqual(e.blocks);
-      // A shown block's option counts add up to its total.
-      for (const b of r.blocks) expect(b.options.reduce((n, o) => n + o.count, 0)).toBe(b.total);
+      // Everything shown is safe: every option count, and every complement, is 0 or at least the threshold.
+      const min = c.threshold?.minCount ?? 3;
+      const safe = (counts: number[]) => counts.every((n) => n === 0 || n >= min) && counts.every((n) => r.total - n === 0 || r.total - n >= min || counts.length === 0);
+      expect(safe((r.options ?? []).map((o) => o.count))).toBe(true);
+      for (const b of r.blocks) {
+        const counts = b.options.map((o) => o.count);
+        expect(counts.reduce((n, x) => n + x, 0)).toBe(b.total);
+        expect(counts.every((n) => n === 0 || n >= min)).toBe(true);
+        // site − block is safe too.
+        const rest = (r.options ?? []).map((o, i) => o.count - counts[i]!);
+        expect(rest.every((n) => n === 0 || n >= min)).toBe(true);
+      }
     });
   }
 });

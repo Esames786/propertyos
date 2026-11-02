@@ -83,17 +83,26 @@ export function senderKeyOf(m: Pick<StoredChatMessage, 'partyId' | 'principalId'
 
 const isMine = (c: Chat, m: StoredChatMessage) => (c.who.kind === 'resident' ? m.senderKind === 'resident' && m.partyId === c.who.partyId : m.senderKind === 'office' && m.principalId === c.who.principalId);
 const reporterOf = (c: Chat) => c.who.partyId ?? c.who.principalId;
-const heldIds = (state: CommunityState) => state.chat.reports.filter((r) => r.state === 'open').map((r) => r.messageId);
+const DAY = 86_400_000;
 
-/** What the reader may see of a group: from their join, within retention (or held by an open report). */
+/** Past the society's retention period (shown in no chat from then on, whatever its reports). */
+export const pastRetention = (state: CommunityState, m: Pick<StoredChatMessage, 'at'>, at: string) => !!state.chat.retentionDays && Date.parse(at) - Date.parse(m.at) >= state.chat.retentionDays * DAY;
+
+/** Reported messages past retention still kept as evidence because their report is open (moderators only). */
+const evidenceHeld = (ctx: HandlerContext, state: CommunityState) => state.chat.reports.filter((r) => r.state === 'open' && pastRetention(state, state.chat.messages.find((m) => m.id === r.messageId)!, now(ctx)));
+
+/**
+ * What the reader may see of a group: from their join and within the retention period. An open
+ * report never extends what members see (Issue #9): a message kept as evidence past the period is
+ * shown only in the moderators' report queue, never in a conversation.
+ */
 function readable(ctx: HandlerContext, c: Chat, groupId: string): StoredChatMessage[] {
   const m = c.mine.get(groupId);
   const days = c.state.chat.retentionDays;
   if (!m || !days) return [];
   const at = now(ctx);
-  const holds = heldIds(c.state);
   return c.state.chat.messages
-    .filter((x) => x.groupId === groupId && mayReadMessage({ enabled: true, memberships: [{ principalId: c.who.key, groupId, joinedAt: m.since }], principalId: c.who.key, groupId, message: { id: x.id, groupId, senderId: x.partyId ?? x.principalId ?? '', createdAt: x.at }, now: at, retention: { days, heldMessageIds: holds } }).allowed)
+    .filter((x) => x.groupId === groupId && mayReadMessage({ enabled: true, memberships: [{ principalId: c.who.key, groupId, joinedAt: m.since }], principalId: c.who.key, groupId, message: { id: x.id, groupId, senderId: x.partyId ?? x.principalId ?? '', createdAt: x.at }, now: at, retention: { days, heldMessageIds: [] } }).allowed)
     .sort(byInstant((x) => x.at));
 }
 
@@ -377,7 +386,7 @@ export function readAudience(ctx: HandlerContext, site: OpsSite, raw: unknown): 
   return { scope: a.scope as 'site' | 'blocks', ids: a.scope === 'site' ? [] : [...new Set(ids)], roles: [...new Set(roles)] };
 }
 
-function reportView(state: CommunityState, r: StoredChatReport): ChatReportView {
+function reportView(ctx: HandlerContext, state: CommunityState, r: StoredChatReport): ChatReportView {
   const m = state.chat.messages.find((x) => x.id === r.messageId)!;
   const parts = r.groupId.split(':');
   const kind = (parts[0] === 'custom' ? 'custom' : parts[0]) as ChatReportView['group']['kind'];
@@ -391,7 +400,12 @@ function reportView(state: CommunityState, r: StoredChatReport): ChatReportView 
     reporters: r.reports.length,
     reportedAt: r.reports[0]?.at ?? '',
     group: { id: r.groupId, kind, ...(custom ? { name: custom.name } : {}) },
-    message: { id: m.id, text: m.text, senderName: m.senderName, at: m.at },
+    // Past the period, the text is kept only as evidence while the report is open; once decided it is
+    // not shown again (the decision, its note and who reported how many times remain).
+    message: (() => {
+      const past = pastRetention(state, m, now(ctx));
+      return { id: m.id, text: past && r.state !== 'open' ? null : m.text, senderName: m.senderName, at: m.at, pastRetention: past, evidenceHold: past && r.state === 'open' };
+    })(),
     ...(r.decision ? { decision: { at: r.decision.at, byName: r.decision.byName, note: r.decision.note } } : {}),
     history: r.history,
   };
@@ -421,7 +435,7 @@ function decideReport(ctx: HandlerContext, action: 'hide' | 'warn' | 'dismiss'):
     notify(ctx, { site: m.site, ops: opsOf(ctx, m.site) }, { partyIds: [msg.partyId], module: 'community_chat', kind: 'chat', key: action === 'hide' ? 'chatRemoved' : 'chatWarned', values: {}, href: '/customer/portal/chat' });
   }
   ctx.demo.save();
-  return reportView(m.state, r);
+  return reportView(ctx, m.state, r);
 }
 
 const MANAGE = requires('community_chat', 'chat.groups.manage', 'operational');
@@ -433,7 +447,7 @@ function policyOf(ctx: HandlerContext, state: CommunityState): ChatPolicy {
     directMessages: false,
     etiquette: state.chat.etiquette,
     versions: [...state.chat.versions].reverse(),
-    held: heldIds(state).length,
+    held: evidenceHeld(ctx, state).length,
     actions: { manage: can(ctx, 'chat.groups.manage') },
   };
 }
@@ -532,7 +546,7 @@ const OFFICE_HANDLERS: Handler[] = [
     handle: (ctx): ChatReports => {
       const m = manage(ctx, 'chat.moderate');
       const status = String(ctx.req.query?.status ?? 'open');
-      const all = m.state.chat.reports.map((r) => reportView(m.state, r)).sort((a, b) => Date.parse(b.reportedAt) - Date.parse(a.reportedAt));
+      const all = m.state.chat.reports.map((r) => reportView(ctx, m.state, r)).sort((a, b) => Date.parse(b.reportedAt) - Date.parse(a.reportedAt));
       const counts = Object.fromEntries((['open', 'hidden', 'warned', 'dismissed'] as const).map((s) => [s, all.filter((r) => r.state === s).length])) as ChatReports['counts'];
       return { items: status === 'closed' ? all.filter((r) => r.state !== 'open') : all.filter((r) => r.state === 'open'), counts };
     },

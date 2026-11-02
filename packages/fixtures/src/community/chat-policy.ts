@@ -21,7 +21,10 @@ export interface ChatMessage {
 export interface RetentionRule {
   /** Tenant-specified days, no implicit legal/default retention choice. */
   days: number;
-  /** IDs preserved by authorized legal hold or open moderation report. */
+  /**
+   * IDs preserved by an authorised legal hold or an open moderation report. Issue #9: group readers
+   * always pass none (a hold keeps evidence for moderators; it never extends what members see).
+   */
   heldMessageIds: readonly string[];
 }
 export type ChatRefusal =

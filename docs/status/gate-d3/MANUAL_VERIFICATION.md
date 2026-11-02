@@ -19,7 +19,9 @@ These checks are **not a WCAG certification**. The checks below need a person. T
 | Real phones at 320–360 px | the conversation and composer with the soft keyboard; the poll drawer; the services list | not performed (automated in Chromium, Firefox and WebKit) | needs devices |
 | Live-region behaviour of the message log | new messages announced once, not the whole log | not performed | needs NVDA and VoiceOver |
 | Windows High Contrast (forced colours) | unread badges, the "new messages" line, poll result bars | not performed | needs a person |
-| Urdu wording by a native reader | `packages/i18n/locales/ur-PK/community.json` (547 keys) | not performed | needs a person |
+| Urdu wording by a native reader | `packages/i18n/locales/ur-PK/community.json` (554 keys) | not performed | needs a person |
+| Issue #9 wording with a real reader | the withheld-results explanation and the named-poll warning, in English and Urdu, with NVDA and TalkBack | not performed | needs a person |
+| Issue #9 evidence-hold review | a moderator's view of *Kept as evidence* and of a decided report with its text gone; the policy page's count | not performed (automated in `d3.spec`) | needs a person |
 | Firefox and WebKit beyond the smoke | the rest of the D.3 screens | not performed (smoke: chat report and removal, a poll answer, no add-ons, 320 px / 200 % Urdu) | later stage |
 
 ## Set-up

@@ -1,9 +1,10 @@
 # Gate D.3: Community engagement (Al-Noor Residency)
 
-**Status: built, frontend only; stopped for GPT/owner review.**
-- **Branch:** `feature/gate-d3-community-chat`, continuing GPT's checkpoint `1a7d340` (eight commits on the accepted D.2 closure `a54f594`). Two commits on top:
+**Status: built, frontend only; final closure for Issue #9 done; stopped for owner and GPT final review.**
+- **Branch:** `feature/gate-d3-community-chat`, continuing GPT's checkpoint `1a7d340` (eight commits on the accepted D.2 closure `a54f594`). On top:
   - `69dafef` makes GPT's checkpoint compile, lint and pass, unchanged otherwise ([§2](#2-audit-of-gpts-checkpoint-1a7d340));
-  - the D.3 commit completes the gate.
+  - `85f7eb7` completes the gate (reviewed in Issue #9: functionality provisionally accepted);
+  - the closure commit makes the two privacy corrections Issue #9 asked for ([§9](#9-issue-9-final-closure)).
 - **Authorisation and sources:**
   - the owner's development handoff of 2 November 2026;
   - V3.2 at `0e57604` (`docs/blueprint/v3.2/*` on `docs/nizam-v3.2-scope-review`): execution plan §D.3, owner decisions D-21, D-25, D-30, D-31, D-32, D-38, D-47 and D-49, and the D.3 register delta (13 new rows, 2 changed).
@@ -83,7 +84,7 @@ The code was completed, rebuilt where needed and tested.
   - a member sees nothing written before they joined. A move-out ends every group that day. A left custom group can be joined again, without the history in between.
 - **Chat (`chat-handlers.ts`):**
   - closed until the society sets a retention period (30–3,650 days, with its own legal check confirmed; versioned);
-  - messages past the period disappear unless a report about them is open;
+  - messages past the period leave every conversation; a reported one is kept only as evidence for moderators while the report is open (Issue #9, §9.2);
   - sends are idempotent by client key; a message written offline carries `queuedAt` and is re-authorised on arrival;
   - mute; block a resident (for the reader only; the office cannot be blocked);
   - reports: one per message, several reporters, never named;
@@ -98,7 +99,7 @@ The code was completed, rebuilt where needed and tested.
   - informal and labelled; one answer per person or per flat; anonymous or named; last day within 90 days;
   - no running tally: staff see turnout while open, totals after close, and who answered what only for named polls;
   - anonymous polls keep only counts per block and option;
-  - results are frozen at publication and shown to residents only when the grouping has at least 3 answers and 5 households, with site − block and adjacent-block differencing (D.2's tested rule).
+  - results are computed from the frozen answers on every read; residents see nothing below 3 answers or 5 households, the turnout only when any option count (or its complement) is 1 or 2, and blocks only when every difference with the shown figures is safe (Issue #9, §9.1).
 - **Resources (DOC-001 "Published to residents"):** a PDF (fictional) for an audience; withdraw with a reason; re-checked against the audience on every read.
 - **Community home (PORTAL-036):** the notices summary (resident app only, D-49), the chat card when chat is licensed, community issues when licensed, and only the hub tabs the plan includes.
 
@@ -142,7 +143,9 @@ The code was completed, rebuilt where needed and tested.
   - keyboard walks: no focused control is hidden under the header or the bottom bar, and the last content sits above the bar;
   - toasts follow the D.2 overlay policy.
 
-## 5. Decisions made in D.3 (please confirm or correct)
+## 5. Decisions made in D.3
+
+The owner and GPT ruled on these in Issue #9 (see [§9.3](#93-owner-rulings-applied)). All were confirmed as they stand except the poll rule, which is now stricter (§9.1).
 
 1. **The demo's licence:**
    - Al-Noor gets both add-ons by a dated, explicit amendment (21 Oct 2026), with the hub features `services_directory`, `polls` and `resources`;
@@ -165,7 +168,7 @@ The code was completed, rebuilt where needed and tested.
 7. **Offline:** a labelled demo control in the resident chat simulates being offline. Messages written then wait on the device, are re-authorised on reconnect, and the group's copy is removed if refused.
 8. **Directory:** independent vetting (whoever adds does not list); without consent to show it, the number is not stored; rejecting or suspending needs 10 characters.
 9. **Polls:**
-   - D-47 is applied to each grouping's total answers; option counts are shown inside a grouping that qualifies;
+   - D-47 was applied to each grouping's total answers and option counts were shown inside it. **Replaced in Issue #9 (§9.1):** small option counts suppress the whole breakdown;
    - staff see turnout while a poll is open;
    - a poll past its last day closes on the next read (the demo has no background jobs);
    - withdrawing needs a reason residents see.
@@ -180,12 +183,18 @@ The code was completed, rebuilt where needed and tested.
 
 ## 6. Outstanding owner decisions
 
+Issue #9 settled most of these (§9.3). Still open:
+- the D-25 legal review of retention before production;
+- the UX and privacy design of mentions and replies.
+
+The table below is kept as it was at `85f7eb7`.
+
 | Decision | Why it matters | Current behaviour |
 |---|---|---|
-| D-25 retention: legal review (still conditional) | the period and its exceptions | society-set, 30–3,650 days, review confirmation required, open reports hold messages |
+| D-25 retention: legal review (still conditional) | the period and its exceptions | society-set, 30–3,650 days, review confirmation required; open reports keep evidence for moderators only (Issue #9) |
 | D-31 marketplace | CMTY-003, PORTAL-038 | not built; feature never granted |
 | D-38 society accounts on the Community home | resident-visible finance | tab not built |
-| D-47 for polls: thresholds on totals or on each option | privacy of small option counts | totals per grouping (see §5.9) |
+| D-47 for polls: thresholds on totals or on each option | privacy of small option counts | ruled in Issue #9: option-level protection with whole-breakdown suppression (§9.1) |
 | Mentions and replies in chat | needs a member list residents may see | not built (CHAT-001 PARTIAL) |
 | Direct messages | D-25 (1) says off by default; no switch built | off, no switch |
 | Chat in the phone bar's centre slot (D-25 (6)) | navigation | Pay stays centre |
@@ -201,18 +210,103 @@ The code was completed, rebuilt where needed and tested.
 - A removed or retention-expired message disappears from the server at once. A device that was offline keeps what it downloaded until it next connects (D-25 (3)); the demo shows that cache only while the simulated offline control is on.
 - Resident direct messages, replies, mentions, attachments in chat, provider photos and reviews are not built.
 - The demo's chat does not refresh by itself while a page is open: another app's change appears on the next action or reload (as in D.2).
-- Urdu wording was written by us and needs a native reader's review (new namespace `community`: 547 keys).
+- Urdu wording was written by us and needs a native reader's review (new namespace `community`: 554 keys).
 - English typed into Urdu forms: the full stop shows at the start of the line while typing (shared fields, known since D.2; documented, not changed).
 
 ## 8. Evidence
 
-- **Screenshots** (`screenshots/`, 67):
+- **Screenshots** (`screenshots/`, 76 after the Issue #9 closure):
   - `a01–a10`: resident screens at 1440 px English and 390 px Urdu;
   - `b01–b16`: office screens, the same two sizes;
   - `c01–c08`: 320 × 700 at 200 % Urdu, viewport captures with the fixed bars in place;
   - `d01–d04`: without the add-ons;
-  - `e01–e03`: a move-out while offline.
+  - `e01–e03`: a move-out while offline;
+  - `f01–f02`: poll results shown and withheld at 320 × 700 / 200 %, English and Urdu (Issue #9);
+  - `g01–g03`: a reported message held as evidence past retention, and decided (Issue #9).
 - **Videos** (`video/`):
   - `chat-report-and-moderation-desktop-en.webm`;
   - `informal-poll-to-results-desktop-en.webm`.
 - **Results:** [`test-results.md`](test-results.md).
+
+## 9. Issue #9 final closure
+
+Issue #9 (the independent review of `85f7eb7`) accepted the functionality provisionally and asked for two privacy corrections and a clean, complete regression run. Both corrections are made as ruled; nothing else was redesigned.
+
+### 9.1 Anonymous poll results (P0)
+
+**Before:** D-47 was checked only on each grouping's total. Exact counts were then shown for every option. A 2–1 split could be published, and a block line could disclose an option chosen by one person.
+
+**Now** (`packages/fixtures/src/community/polls.ts`, rule in [`SECURITY_FINDINGS.md`](SECURITY_FINDINGS.md)):
+- **Nothing is shown** below 3 answers or 5 eligible households, not even the turnout.
+- **Turnout only** when any option count (or the answers outside it) is 1 or 2.
+  - The whole breakdown is withheld (`options: null`), with a plain explanation. There are no option counts, no percentages, no bars and no block lines.
+  - No single cell is masked: a masked cell could be worked out from the total and the others (for example 6 − 5 = 1).
+- **Blocks:** a block is shown only when the whole audience's breakdown is shown and the block's own breakdown is safe.
+  - Every difference that can be worked out from the shown figures must be safe too: the audience minus any set of shown blocks. This covers site − block and adjacent blocks.
+  - Blocks are dropped, smallest first, until it is. A one-block poll shows no block line.
+- **Results are computed on every read** from the frozen answers, never from a stored snapshot.
+  - A result stored before the rule cannot leak; a test injects an old exact snapshot and gets the withheld result.
+  - Repeated reads, other residents in the audience and unrelated query parameters all get the same answer.
+- **Staff:**
+  - **Anonymous polls:** the office sees no more than residents do. Its totals are the same breakdown, or "withheld".
+  - **Named polls** keep their consent model. The answer drawer says, before answering, that the office will see the name and answer, and the resident must tick that they understand (the server refuses without it). Only the office's poll managers (`polls.manage`) see who answered what; residents see the same privacy-safe results as for anonymous polls.
+- **Seeded data:**
+  - a fictional published anonymous poll split 5–1 (*Evening security patrol*) shows turnout only;
+  - the 31-answer gym poll still shows its breakdown and both blocks.
+- **New vectors:** `polls.vectors.json`, 15 cases (2–1, 5–1, one small option among blocks, site − block, adjacent blocks, zero-count options, the gym poll, raised thresholds).
+- **API tests:**
+  - the published 5–1 poll for residents and staff;
+  - repeated and varied reads;
+  - a stored legacy snapshot;
+  - named-poll consent and roster access.
+
+### 9.2 Retention and evidence holds (P1)
+
+**Before:** an open report kept an expired message visible to every member of the group.
+
+**Now** (`packages/fixtures/src/community/chat-handlers.ts`):
+- **What members see:** what the retention period allows, and nothing older.
+  - An expired message leaves resident and office conversations, group previews and reportable messages at the cutoff, whatever its reports.
+  - A removed message keeps its marker while it is within the period, then goes too.
+- **Evidence for moderators:**
+  - a reported message past the period stays in the report queue (`chat.moderate` only), marked *Kept as evidence*, while the report is open;
+  - once the report is decided, its text is not shown again, in the queue or anywhere else;
+  - the decision, its note, the reporter count and the history remain, and no history entry holds message text.
+- **Policy page:** counts only expired messages held as evidence. Its wording says plainly that the demo's 365 days is not a legal recommendation and that a real legal review is needed before production.
+- **Unchanged:** group membership, move-out revocation (a reporter who moves out loses the group at once, while the report stays, unnamed) and tenant and site isolation.
+- **API tests:**
+  - expired message without a report, and with an open report;
+  - the moderator's view, and residents and non-moderators refused;
+  - a report dismissed after expiry, and one decided before it;
+  - a removed message inside and outside the period;
+  - a move-out with an open report;
+  - another site and another organisation.
+- **Browser test:** the same in both apps (`d3.spec`).
+- **Limitation (prototype):** the evidence hold has no separate legal-hold workflow, consent record or expiry of its own; it lasts while the report is open. A production design needs the legal review D-25 (5) asks for.
+
+### 9.3 Owner rulings applied
+
+| Ruling (Issue #9) | Applied |
+|---|---|
+| D-31 marketplace off | unchanged: not built, feature never granted |
+| D-38 no society accounts or other residents' balances on the Community home | unchanged: no such tab, nothing financial in community payloads |
+| Direct messages off, no toggle | unchanged |
+| Mentions and replies deferred | CHAT-001 stays PARTIAL |
+| Smart groups: current occupants; others only in scoped custom groups | unchanged |
+| Al-Noor licences: explicit fictional grants only | unchanged; presets and other organisations unchanged |
+| 365 days is a demo setting, not legal advice | policy wording and this report say so |
+| Directory: independent vetting and explicit contact consent | unchanged |
+| Pay stays the phone's centre action | unchanged |
+| PORTAL-036 and DOC-001 stay PARTIAL | unchanged (register: 437 rows, 353 distinct; 122 built, 35 partial, 196 planned) |
+| SOS parked; no S.2 | unchanged |
+
+### 9.4 Evidence of the closure
+
+- **`f01`, `f02`:** poll results shown (gym) and withheld (5–1), at 320 × 700 with 200 % text, in English and Urdu.
+- **`b17`:** the office's view of an anonymous withheld poll.
+- **`g01`–`g03`:** an expired reported message held as evidence, the policy page's count, and the decided report with its text gone.
+- **Tests and the complete run:** [`test-results.md`](test-results.md) §Issue #9:
+  - complete combined regression **358 / 358** with retries off;
+  - unit/API **1,308 / 1,308**;
+  - Firefox and WebKit **28 / 28**;
+  - **1,179 axe scans, 0 violations**.

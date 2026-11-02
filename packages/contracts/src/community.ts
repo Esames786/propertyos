@@ -1,4 +1,4 @@
-import type { AudienceRole, OpsEvent, OpsFile, ResidentCount } from './operations';
+import type { AudienceRole, OpsEvent, OpsFile } from './operations';
 
 /**
  * Gate D.3: community engagement (V3.2 F01 chat, F14 local services, F15 polls, resources and the
@@ -143,7 +143,7 @@ export interface ChatPolicy {
   directMessages: false;
   etiquette: string;
   versions: ChatPolicyVersion[];
-  /** Messages kept past the retention period because a report about them is still open. */
+  /** Reported messages past the retention period kept as evidence for moderators (never shown in chats). */
   held: number;
   actions: { manage: boolean };
 }
@@ -160,8 +160,12 @@ export interface ChatReportView {
   reporters: number;
   reportedAt: string;
   group: { id: string; kind: ChatGroupKind; code?: string; name?: string };
-  /** Only the reported message: moderators never browse conversations (D-25 (4)). */
-  message: { id: string; text: string; senderName: string; at: string };
+  /**
+   * Only the reported message: moderators never browse conversations (D-25 (4)). Past the retention
+   * period the text is kept only as evidence while the report is open (`evidenceHold`), for
+   * moderators only; once the report is decided it is no longer shown (`text: null`).
+   */
+  message: { id: string; text: string | null; senderName: string; at: string; pastRetention: boolean; evidenceHold: boolean };
   decision?: { at: string; byName: string; note: string };
   history: OpsEvent[];
 }
@@ -255,10 +259,16 @@ export interface PollOption {
   label: string;
 }
 
-/** D-47: shown only when enough people answered and the audience is large enough (and in fixed groupings). */
+/**
+ * D-47 with Issue #9's ruling: nothing when fewer than 3 answered or the audience has fewer than 5
+ * households; the turnout alone when the answers per option could point at one or two people
+ * (`options: null`: the whole breakdown is withheld, never a single masked cell); otherwise every
+ * option's count, and the blocks whose breakdown, and every difference with the shown figures, is
+ * safe too.
+ */
 export type PollResults =
-  | { shown: false; reason: Extract<ResidentCount, { shown: false }>['reason'] }
-  | { shown: true; total: number; options: Array<PollOption & { count: number }>; blocks: Array<{ code: string; total: number; options: Array<{ id: string; count: number }> }> };
+  | { shown: false; reason: 'below_threshold' | 'audience_too_small' }
+  | { shown: true; total: number; options: Array<PollOption & { count: number }> | null; blocks: Array<{ code: string; total: number; options: Array<{ id: string; count: number }> }> };
 
 export interface PollOffice {
   id: string;
@@ -279,8 +289,12 @@ export interface PollOffice {
   createdByName: string;
   createdAt: string;
   withdrawnReason?: string;
-  /** After closing: every answer counted (staff); residents see the published, privacy-checked results. */
-  totals?: Array<PollOption & { count: number }>;
+  /**
+   * After closing, the answers per option. A named poll shows every count (its answers are given with
+   * names, and the office sees who answered what); an anonymous poll shows the office only what the
+   * privacy rule allows residents to see (`null`: withheld).
+   */
+  totals?: Array<PollOption & { count: number }> | null;
   /** Named polls only, after closing: who answered what. Anonymous polls never record it. */
   respondents?: Array<{ name: string; flat: string; optionId: string }>;
   /** What residents see once published (D-47). */

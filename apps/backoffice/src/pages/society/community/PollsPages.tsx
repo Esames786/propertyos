@@ -287,22 +287,30 @@ export function PollDetailPage({ pollId }: { pollId: string }) {
             <Vote aria-hidden className="size-5 text-primary" />
             {t('community:polls.results')}
           </h2>
-          {!p.totals ? (
+          {p.totals === undefined ? (
             <p className="flex items-start gap-1.5 text-sm text-muted" data-testid="poll-no-tally">
               <ShieldOff aria-hidden className="mt-0.5 size-4 shrink-0" />
               {t(p.state === 'withdrawn' ? 'community:polls.withdrawnNoResults' : 'community:polls.noTally')}
             </p>
           ) : (
             <>
-              <h3 className="text-sm font-semibold text-text">{t('community:polls.totals')}</h3>
-              <ul className="space-y-1 text-sm" data-testid="poll-totals">
-                {p.totals.map((o) => (
-                  <li key={o.id} className="flex flex-wrap justify-between gap-x-3">
-                    <bdi className="min-w-0 break-words">{o.label}</bdi>
-                    <span className="text-muted">{t('community:polls.answers', { count: o.count })}</span>
-                  </li>
-                ))}
-              </ul>
+              <h3 className="text-sm font-semibold text-text">{t(p.anonymous ? 'community:polls.totalsAnonymous' : 'community:polls.totals')}</h3>
+              {p.totals === null ? (
+                // Anonymous: the office sees no more than residents may (Issue #9).
+                <p className="flex items-start gap-1.5 text-sm text-muted" data-testid="poll-totals-withheld">
+                  <ShieldOff aria-hidden className="mt-0.5 size-4 shrink-0" />
+                  {t('community:polls.totalsWithheld', { count: p.responses })}
+                </p>
+              ) : (
+                <ul className="space-y-1 text-sm" data-testid="poll-totals">
+                  {p.totals.map((o) => (
+                    <li key={o.id} className="flex flex-wrap justify-between gap-x-3">
+                      <bdi className="min-w-0 break-words">{o.label}</bdi>
+                      <span className="text-muted">{t('community:polls.answers', { count: o.count })}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
               {p.respondents && (
                 <details className="text-sm" data-testid="poll-respondents">
                   <summary className="min-h-11 cursor-pointer py-2 font-medium text-primary">{t('community:polls.respondents', { count: p.respondents.length })}</summary>
@@ -357,6 +365,13 @@ function PublishedResults({ results, options }: { results: PollResults; options:
       <p className="text-sm text-muted" data-testid="poll-published" data-shown="false">
         {t(`community:poll.hidden.${results.reason}`)}
       </p>
+    );
+  if (!results.options)
+    return (
+      <div className="space-y-1 text-sm" data-testid="poll-published" data-shown="withheld">
+        <p className="text-muted">{t('community:poll.total', { count: results.total })}</p>
+        <p className="text-muted">{t('community:poll.withheld')}</p>
+      </div>
     );
   return (
     <div className="space-y-1 text-sm" data-testid="poll-published" data-shown="true">

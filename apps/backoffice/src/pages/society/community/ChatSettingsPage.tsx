@@ -362,13 +362,26 @@ function ReportCard({ r }: { r: ChatReportView }) {
           {t(`community:office.reportState.${r.state}`)}
         </Badge>
       </div>
-      <blockquote className="space-y-1 rounded-tile border-s-4 border-border bg-sunken/40 p-3 text-sm" data-testid="report-message">
+      <blockquote className="space-y-1 rounded-tile border-s-4 border-border bg-sunken/40 p-3 text-sm" data-testid="report-message" data-evidence-hold={r.message.evidenceHold} data-past-retention={r.message.pastRetention}>
         <p className="text-xs text-muted">
           <bdi className="font-semibold text-text">{r.message.senderName}</bdi> · <When at={r.message.at} />
         </p>
-        <p dir="auto" className="whitespace-pre-wrap break-words text-text">
-          {r.message.text}
-        </p>
+        {r.message.text === null ? (
+          // Issue #9: past the retention period and decided: the text is not shown again.
+          <p className="text-sm text-muted italic" data-testid="report-text-gone">
+            {t('community:office.textGone')}
+          </p>
+        ) : (
+          <p dir="auto" className="whitespace-pre-wrap break-words text-text">
+            {r.message.text}
+          </p>
+        )}
+        {r.message.evidenceHold && (
+          <p className="flex items-start gap-1.5 text-xs text-muted" data-testid="report-evidence-hold">
+            <ShieldAlert aria-hidden className="mt-0.5 size-3.5 shrink-0" />
+            {t('community:office.evidenceHold')}
+          </p>
+        )}
       </blockquote>
       {r.notes.length > 0 && (
         <div className="text-sm">

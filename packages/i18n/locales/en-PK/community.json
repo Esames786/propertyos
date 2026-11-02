@@ -125,8 +125,8 @@
     "who": "Who is in it",
     "automatic": "Members are added and removed automatically from the society's records; nobody is added by hand.",
     "history": "History and retention",
-    "retention_one": "Messages are kept for {{count}} day, then deleted, unless a report about them is still open.",
-    "retention_other": "Messages are kept for {{count}} days, then deleted, unless a report about them is still open.",
+    "retention_one": "Messages are shown for {{count}} day, then removed from the chat. A reported message may be kept longer as evidence for the moderators only; it is never shown in the chat again.",
+    "retention_other": "Messages are shown for {{count}} days, then removed from the chat. A reported message may be kept longer as evidence for the moderators only; it is never shown in the chat again.",
     "etiquette": "Group rules",
     "mute": "Mute this group",
     "muteHint": "Unread messages are still counted here but not added to your Community home.",
@@ -180,7 +180,7 @@
     "perFlat": "One answer per flat.",
     "perPerson": "One answer per person.",
     "anonymousLong": "Anonymous: your answer is counted, but nobody, including the office, can see what you chose.",
-    "namedLong": "Named: the society office will see your name and answer once the poll closes. Other residents never see it.",
+    "namedLong": "Named poll: the society office will see your name, your flat and your answer once the poll closes. Other residents never see who answered.",
     "openUntil": "Open until {{date}}",
     "resultsOut": "Results published",
     "closed": "Closed",
@@ -206,9 +206,10 @@
     "privacyRule": "Results are shown only for groups large enough that no household's answer can be worked out.",
     "hidden": {
       "below_threshold": "Not enough responses to show results. This protects the privacy of the few who answered.",
-      "audience_too_small": "The audience is too small to show results without revealing how households answered.",
-      "no_snapshot": "Results are not available yet."
-    }
+      "audience_too_small": "The audience is too small to show results without revealing how households answered."
+    },
+    "withheld": "Results withheld for privacy: the answers per option are not shown because they could reveal how one or two people answered.",
+    "namedConsent": "I understand that the office will see my name and my answer."
   },
   "services": {
     "disclaimer": "The society lists providers it has checked, but does not guarantee their work. Agree prices and terms with the provider directly.",
@@ -391,16 +392,18 @@
       "warned": "warned the author",
       "dismissed": "dismissed the report"
     },
-    "noticesIndependent": "Official notices work without chat or the community hub."
+    "noticesIndependent": "Official notices work without chat or the community hub.",
+    "evidenceHold": "Kept as evidence: past the retention period, so no longer shown in the chat. Moderators see it only while this report is open.",
+    "textGone": "Message text no longer kept: the retention period has ended and the report is decided."
   },
   "policy": {
     "title": "Message retention",
     "current_one": "Messages are kept for {{count}} day.",
     "current_other": "Messages are kept for {{count}} days.",
     "notSet": "Not set: chat stays closed until the society sets a retention period.",
-    "why": "No legal period is assumed. Check what applies to your society before setting it. Messages with an open report are kept until the report is decided.",
-    "held_one": "{{count}} message is being kept past the period because of an open report.",
-    "held_other": "{{count}} messages are being kept past the period because of open reports.",
+    "why": "No legal period is assumed, and the demo's 365 days is not a recommendation: check what applies to your society before production. When the period ends, a message leaves every chat; a reported message is kept as evidence for the moderators until the report is decided.",
+    "held_one": "{{count}} reported message is past the period and kept as evidence for the moderators only (not shown in any chat).",
+    "held_other": "{{count}} reported messages are past the period and kept as evidence for the moderators only (not shown in any chat).",
     "days": "Keep messages for (days)",
     "daysHint": "Between 30 and 3650 days.",
     "etiquette": "Group rules",
@@ -623,7 +626,10 @@
       "closed": "closed the poll",
       "published": "published the results",
       "withdrawn": "withdrew the poll"
-    }
+    },
+    "totalsAnonymous": "Answers per option (anonymous: as residents see them)",
+    "totalsWithheld_one": "Withheld for privacy: {{count}} answer, but the answers per option could reveal how one or two people answered. The office sees no more than residents in an anonymous poll.",
+    "totalsWithheld_other": "Withheld for privacy: {{count}} answers, but the answers per option could reveal how one or two people answered. The office sees no more than residents in an anonymous poll."
   },
   "pollState": {
     "draft": "Draft",
@@ -666,6 +672,7 @@
     "alreadyAnswered": "Already answered (one answer per person or per flat).",
     "fileRequired": "Choose a file.",
     "fileType": "Choose a PDF file.",
-    "fileSize": "The file must be {{max}} MB or smaller."
+    "fileSize": "The file must be {{max}} MB or smaller.",
+    "namedConsent": "This poll is named: confirm that you understand the office will see your name and answer."
   }
 }

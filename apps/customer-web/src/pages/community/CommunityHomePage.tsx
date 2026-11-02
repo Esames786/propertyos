@@ -1,5 +1,5 @@
 import { PROVIDER_CATEGORIES, type CommunityHome, type CommunityTab, type PollResident, type PollResults, type ProviderCategory, type ResourceResident, type ServiceDirectoryResident, type ServiceProviderResident } from '@repo/contracts';
-import { Badge, Button, ChoiceCards, DirectionalIcon, Drawer, EmptyState, InlineAlert, KeepWords, Link, PlainTextArea, PlainTextField, saveFile, SegmentedControl, SelectControl, useApiMutation, useApiQuery, useQueryParams, useQueryParam, useT, useToast } from '@repo/ui';
+import { Badge, Button, ChoiceCards, DirectionalIcon, Drawer, EmptyState, InlineAlert, KeepWords, Link, PlainCheckbox, PlainTextArea, PlainTextField, saveFile, SegmentedControl, SelectControl, useApiMutation, useApiQuery, useQueryParams, useQueryParam, useT, useToast } from '@repo/ui';
 import { BadgeCheck, ChevronRight, CircleDot, Download, Flag, Info, Megaphone, MessagesSquare, Phone, ShieldOff, ThumbsUp, TriangleAlert, Undo2, Vote } from 'lucide-react';
 import { useState } from 'react';
 import { COMMUNITY, OPS } from '../../nav.config';
@@ -220,6 +220,17 @@ export function Results({ results, options, fmt, testId = 'poll-results' }: { re
         {t(`community:poll.hidden.${results.reason}`)}
       </p>
     );
+  // Issue #9: the turnout only, and why; never a partial breakdown, a percentage or a "the rest" line.
+  if (!results.options)
+    return (
+      <div className="space-y-2" data-testid={testId} data-shown="withheld">
+        <p className="text-sm text-muted">{t('community:poll.total', { count: results.total })}</p>
+        <p className="flex items-start gap-1.5 rounded-tile border border-border bg-sunken/40 p-3 text-sm text-muted" data-testid="poll-withheld">
+          <ShieldOff aria-hidden className="mt-0.5 size-4 shrink-0" />
+          {t('community:poll.withheld')}
+        </p>
+      </div>
+    );
   const label = (id: string) => options.find((o) => o.id === id)?.label ?? '';
   return (
     <div className="space-y-3" data-testid={testId} data-shown="true">
@@ -264,11 +275,13 @@ function AnswerDrawer({ poll, onClose, fmt }: { poll: PollResident | null; onClo
   const toast = useToast();
   const [choice, setChoice] = useState('');
   const [flat, setFlat] = useState('');
+  const [consent, setConsent] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const respond = useApiMutation<PollResident>();
   const close = () => {
     setChoice('');
     setFlat('');
+    setConsent(false);
     setError(null);
     onClose();
   };
@@ -290,12 +303,12 @@ function AnswerDrawer({ poll, onClose, fmt }: { poll: PollResident | null; onClo
             variant="primary"
             icon={Vote}
             isPending={respond.isPending}
-            isDisabled={!choice || (poll?.unit === 'flat' && !flatId)}
+            isDisabled={!choice || (poll?.unit === 'flat' && !flatId) || (poll?.anonymous === false && !consent)}
             onPress={async () => {
               if (!poll) return;
               setError(null);
               try {
-                await respond.mutateAsync({ method: 'POST', path: `/portal/community/polls/${poll.id}/respond`, body: { optionId: choice, ...(poll.unit === 'flat' ? { flatId } : {}) } });
+                await respond.mutateAsync({ method: 'POST', path: `/portal/community/polls/${poll.id}/respond`, body: { optionId: choice, ...(poll.unit === 'flat' ? { flatId } : {}), ...(poll.anonymous ? {} : { namedConsent: consent }) } });
                 toast.success(t('community:poll.recorded'));
                 close();
               } catch (e) {
@@ -318,7 +331,19 @@ function AnswerDrawer({ poll, onClose, fmt }: { poll: PollResident | null; onClo
             <ChoiceCards<string> label={t('community:poll.forFlat')} value={flat} onChange={setFlat} columns="list" options={flats.map((f) => ({ id: f.flatId!, label: f.flatCode ?? '' }))} testId="poll-flat" />
           )}
           <ChoiceCards<string> label={t('community:poll.yourAnswer')} value={choice} onChange={setChoice} columns="list" options={poll.options.map((o) => ({ id: o.id, label: o.label }))} testId="poll-option" />
-          <p className="text-sm text-muted">{t(poll.anonymous ? 'community:poll.anonymousLong' : 'community:poll.namedLong')}</p>
+          {poll.anonymous ? (
+            <p className="text-sm text-muted">{t('community:poll.anonymousLong')}</p>
+          ) : (
+            // Named: said before the answer is given, and agreed to (Issue #9).
+            <InlineAlert tone="warning" role="status" data-testid="poll-named-warning">
+              <p>{t('community:poll.namedLong')}</p>
+              <div className="mt-2">
+                <PlainCheckbox isSelected={consent} onChange={setConsent} testId="poll-named-consent">
+                  {t('community:poll.namedConsent')}
+                </PlainCheckbox>
+              </div>
+            </InlineAlert>
+          )}
           <p className="text-sm text-muted">{t('community:poll.informal')}</p>
           {error ? <ProblemText error={error} /> : null}
         </div>

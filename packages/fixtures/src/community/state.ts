@@ -1,4 +1,4 @@
-import type { ChatAudience, ChatPolicyVersion, ChatPostingPolicy, ChatReportReason, ChatReportState, OpsEvent, PollOption, PollResults, PollState, PollUnit, ProviderCategory, ProviderConsent, ProviderStatus, ResourceCategory } from '@repo/contracts';
+import type { ChatAudience, ChatPolicyVersion, ChatPostingPolicy, ChatReportReason, ChatReportState, OpsEvent, PollOption, PollState, PollUnit, ProviderCategory, ProviderConsent, ProviderStatus, ResourceCategory } from '@repo/contracts';
 import type { HandlerContext } from '../handler-types';
 import { opsStamp } from '../operations/state';
 import type { OpsSite } from '../operations/site';
@@ -10,7 +10,8 @@ import { ALNOOR_STAFF } from '../society/alnoor';
  * organisation's demo partition (shared by the office and resident apps of this browser). Seeds are
  * deterministic and fictional; names come from the society register. Nothing leaves the browser.
  */
-export const COMMUNITY_STATE_VERSION = 1;
+// 2: Issue #9 (poll results derived from the frozen answers; a published 5–1 poll whose breakdown is withheld).
+export const COMMUNITY_STATE_VERSION = 2;
 export const COMMUNITY_SECTION = 'community';
 
 export interface StoredChatMessage {
@@ -115,7 +116,6 @@ export interface StoredPoll {
   named: Array<{ partyId: string; name: string; flat: string; optionId: string }>;
   /** Eligible households per block when the poll closed (for D-47). */
   audienceAtClose?: { site: number; blocks: Record<string, number> };
-  published?: PollResults;
   history: OpsEvent[];
 }
 
@@ -271,11 +271,15 @@ export function seedCommunity(site: OpsSite): CommunityState {
     vote(sports, flat.id, holder('occupant', code), flat.buildingCode, `opt_${(i % 3) + 1}`, pk('2026-10-23', `${String(9 + (i % 10)).padStart(2, '0')}:00`));
   });
   const gym = poll({ title: 'Gym opening hours', question: 'Should the gym open at 5:30 instead of 6:00 on weekdays?', options: opts('Yes, open at 5:30', 'No, keep 6:00'), audience: { scope: 'site', ids: [], roles: ['occupant'] }, unit: 'person', anonymous: true, closesOn: '2026-10-20', state: 'published', createdBy: office.principalId, createdByName: office.name, createdAt: pk('2026-10-10', '10:00'), history: [ev(pk('2026-10-10', '10:00'), office.name, 'staff', 'created'), ev(pk('2026-10-10', '10:05'), office.name, 'staff', 'opened'), ev(pk('2026-10-21', '00:00'), '', 'system', 'closed'), ev(pk('2026-10-21', '10:00'), secretary.name, 'staff', 'published')] });
-  // The published result (frozen when published): 31 answers; Block A and B each pass D-47.
+  // Published: 31 answers; the breakdown, and each block's, is safe under D-47 (computed on every read).
   gym.tally = { A: { opt_1: 11, opt_2: 6 }, B: { opt_1: 9, opt_2: 5 } };
   gym.audienceAtClose = { site: 75, blocks: { A: 38, B: 37 } };
-  gym.published = { shown: true, total: 31, options: [{ id: 'opt_1', label: 'Yes, open at 5:30', count: 20 }, { id: 'opt_2', label: 'No, keep 6:00', count: 11 }], blocks: [{ code: 'A', total: 17, options: [{ id: 'opt_1', count: 11 }, { id: 'opt_2', count: 6 }] }, { code: 'B', total: 14, options: [{ id: 'opt_1', count: 9 }, { id: 'opt_2', count: 5 }] }] };
   for (let i = 0; i < 31; i++) gym.voters.push({ key: `seed_${i}`, by: `seed_${i}`, at: pk('2026-10-15', '12:00') });
+  // Published, anonymous, 6 answers split 5–1: the turnout shows, the breakdown is withheld (Issue #9).
+  const patrol = poll({ title: 'Evening security patrol', question: 'Should the guards add a 9 pm round of Block A’s parking?', options: opts('Yes', 'No'), audience: { scope: 'blocks', ids: [A], roles: ['occupant'] }, unit: 'flat', anonymous: true, closesOn: '2026-10-19', state: 'published', createdBy: office.principalId, createdByName: office.name, createdAt: pk('2026-10-12', '10:00'), history: [ev(pk('2026-10-12', '10:00'), office.name, 'staff', 'created'), ev(pk('2026-10-12', '10:05'), office.name, 'staff', 'opened'), ev(pk('2026-10-20', '00:00'), '', 'system', 'closed'), ev(pk('2026-10-20', '11:00'), secretary.name, 'staff', 'published')] });
+  patrol.tally = { A: { opt_1: 5, opt_2: 1 } };
+  patrol.audienceAtClose = { site: 38, blocks: { A: 38 } };
+  for (let i = 0; i < 6; i++) patrol.voters.push({ key: `seed_patrol_${i}`, by: `seed_patrol_${i}`, at: pk('2026-10-14', '19:00') });
   const parking = poll({ title: 'Visitor parking on weekends', question: 'Should weekend visitor parking move to the rear lot?', options: opts('Yes', 'No', 'No preference'), audience: { scope: 'blocks', ids: [block('B')], roles: ['owner', 'occupant'] }, unit: 'person', anonymous: false, closesOn: '2026-10-25', state: 'closed', createdBy: office.principalId, createdByName: office.name, createdAt: pk('2026-10-18', '10:00'), history: [ev(pk('2026-10-18', '10:00'), office.name, 'staff', 'created'), ev(pk('2026-10-18', '10:10'), office.name, 'staff', 'opened'), ev(pk('2026-10-26', '00:00'), '', 'system', 'closed')] });
   parking.named.push({ partyId: 'pty_anr_0046', name: name('pty_anr_0046'), flat: 'B-102', optionId: 'opt_1' }, { partyId: 'pty_anr_0055', name: name('pty_anr_0055'), flat: 'B-202', optionId: 'opt_2' });
   for (const n of parking.named) {

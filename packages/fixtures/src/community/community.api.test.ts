@@ -179,7 +179,7 @@ describe('community chat: retention (D-25 (5)) and history from joining (D-25 (2
     expect((await api.as('alnoor_resident_a101').get<ChatGroups>('/portal/chat/groups')).available).toBe(true);
   });
 
-  it('messages older than the period disappear unless a report about them is open', async () => {
+  it('messages older than the period disappear from every chat, reported or not (Issue #9)', async () => {
     const api = session();
     await api.as('alnoor_resident_a101').get('/portal/chat/groups');
     const s = api.community();
@@ -188,9 +188,11 @@ describe('community chat: retention (D-25 (5)) and history from joining (D-25 (2
     s.chat.retentionDays = 30;
     const conv = await api.get<ChatConversation>('/portal/chat/groups/site/messages');
     expect(conv.messages.some((m) => m.id === 'msg_old_1')).toBe(false);
-    expect(conv.messages.some((m) => m.id === 'msg_old_2')).toBe(true);
+    // An open report never extends what members see.
+    expect(conv.messages.some((m) => m.id === 'msg_old_2')).toBe(false);
+    // Only the expired, reported one is held (as evidence for moderators).
     const policy = await api.as('alnoor_manager').get<ChatPolicy>('/ops/chat/policy');
-    expect(policy.held).toBeGreaterThanOrEqual(2);
+    expect(policy.held).toBe(1);
   });
 
   it('leaving a custom group hides it; rejoining shows only what was written after rejoining', async () => {
@@ -429,14 +431,15 @@ describe('polls (CMTY-002, PORTAL-039): eligible, once, informal, no running tal
     expect(running.responses).toBe(3);
     expect(running.totals).toBeUndefined();
     const closed = await api.post<PollOffice>(`/ops/community/polls/${draft.id}/close`);
-    expect(closed.totals!.map((o) => o.count)).toEqual([2, 1]);
+    // Anonymous, 2–1: the office sees no more than residents may (Issue #9): the breakdown is withheld.
+    expect(closed.totals).toBeNull();
     expect(closed.respondents).toBeUndefined();
     expect((await refusal(api.as('alnoor_tenant_a102').post(`/portal/community/polls/${draft.id}/respond`, { optionId: 'opt_1' }))).code).toBe('poll_closed');
     const published = await api.as('alnoor_manager').post<PollOffice>(`/ops/community/polls/${draft.id}/publish`);
-    // Three answers out of a large audience: total shown; neither block (2 and 1... in one block) is.
-    expect(published.published).toMatchObject({ shown: true, total: 3, blocks: [] });
+    // Three answers out of a large audience: the turnout, and nothing per option or per block.
+    expect(published.published).toEqual({ shown: true, total: 3, options: null, blocks: [] });
     const res = await api.as('alnoor_tenant_a102').get<PollsResident>('/portal/community/polls');
-    expect(res.items.find((p) => p.id === draft.id)!.results).toMatchObject({ shown: true, total: 3 });
+    expect(res.items.find((p) => p.id === draft.id)!.results).toEqual({ shown: true, total: 3, options: null, blocks: [] });
   });
 
   it('per-flat polls take one answer per household; an owner with two flats answers for each', async () => {
@@ -482,5 +485,167 @@ describe('resources (DOC-001 published to residents)', () => {
     const bylaws = all.items.find((x) => x.category === 'bylaws')!;
     expect((await api.post<ResourceOffice>(`/ops/community/resources/${bylaws.id}/withdraw`, { reason: 'Replaced by the 2027 edition.' })).state).toBe('withdrawn');
     expect((await api.as('alnoor_resident_a101').get<{ items: Array<{ id: string }> }>('/portal/community/resources')).items.some((x) => x.id === bylaws.id)).toBe(false);
+  });
+});
+
+describe('Issue #9: anonymous poll results never point at one or two people', () => {
+  const patrol = async (api: ReturnType<typeof session>, persona: string, query?: Record<string, string>) => (await api.as(persona).get<PollsResident>('/portal/community/polls', query)).items.find((p) => p.title.startsWith('Evening security patrol'))!;
+
+  it('a published 5–1 poll shows residents the turnout only; the office sees no more for an anonymous poll', async () => {
+    const api = session();
+    const seen = await patrol(api, 'alnoor_tenant_a102');
+    expect(seen.results).toEqual({ shown: true, total: 6, options: null, blocks: [] });
+    // Nothing that could be subtracted: no option count, no percentage, no block line.
+    expect(JSON.stringify(seen.results)).not.toMatch(/"count"/);
+    const office = (await api.as('alnoor_manager').get<PollsOffice>('/ops/community/polls', { status: 'closed' })).items.find((p) => p.title.startsWith('Evening security patrol'))!;
+    expect(office.totals).toBeNull();
+    expect(office.published).toEqual({ shown: true, total: 6, options: null, blocks: [] });
+    expect(office.respondents).toBeUndefined();
+  });
+
+  it('repeated reads, other residents in the audience and unrelated filters all get the same answer', async () => {
+    const api = session();
+    const first = await patrol(api, 'alnoor_tenant_a102');
+    const again = await patrol(api, 'alnoor_tenant_a102');
+    const other = await patrol(api, 'alnoor_resident_a101');
+    const filtered = await patrol(api, 'alnoor_tenant_a102', { status: 'all', block: 'bld_anr_a', category: 'x' });
+    for (const r of [again, other, filtered]) expect(r.results).toEqual(first.results);
+    // The gym poll (31 answers, both blocks safe) still shows everything.
+    const gym = (await api.get<PollsResident>('/portal/community/polls')).items.find((p) => p.title.startsWith('Gym opening hours'))!;
+    expect(gym.results).toMatchObject({ shown: true, total: 31, options: [{ count: 20 }, { count: 11 }], blocks: [{ code: 'A', total: 17 }, { code: 'B', total: 14 }] });
+  });
+
+  it('a result stored before this rule cannot leak: results are recomputed from the frozen answers', async () => {
+    const api = session();
+    await patrol(api, 'alnoor_tenant_a102');
+    const stored = api.community().polls.find((p) => p.title.startsWith('Evening security patrol'))! as unknown as Record<string, unknown>;
+    // A legacy snapshot with exact counts, as the first D.3 build kept them.
+    stored.published = { shown: true, total: 6, options: [{ id: 'opt_1', label: 'Yes', count: 5 }, { id: 'opt_2', label: 'No', count: 1 }], blocks: [] };
+    expect((await patrol(api, 'alnoor_tenant_a102')).results).toEqual({ shown: true, total: 6, options: null, blocks: [] });
+  });
+
+  it('a named poll is answered only with consent; then the office (polls.manage only) sees who answered what', async () => {
+    const api = session();
+    const draft = await api.as('alnoor_manager').post<PollOffice>('/ops/community/polls', { title: 'Lobby repaint colour', question: 'Which colour should the Block A lobby be repainted?', options: ['Cream', 'Sage'], audience: { scope: 'blocks', ids: ['bld_anr_a'], roles: ['occupant'] }, unit: 'person', anonymous: false, closesOn: '2026-11-10' });
+    await api.post(`/ops/community/polls/${draft.id}/open`);
+    api.as('alnoor_tenant_a102');
+    expect((await refusal(api.post(`/portal/community/polls/${draft.id}/respond`, { optionId: 'opt_1' }))).fields).toContain('namedConsent');
+    await api.post(`/portal/community/polls/${draft.id}/respond`, { optionId: 'opt_1', namedConsent: true });
+    await api.as('alnoor_resident_a101').post(`/portal/community/polls/${draft.id}/respond`, { optionId: 'opt_2', namedConsent: true });
+    const closed = await api.as('alnoor_manager').post<PollOffice>(`/ops/community/polls/${draft.id}/close`);
+    // Named: the office sees every count and who answered (the answers were given with names).
+    expect(closed.totals!.map((o) => o.count)).toEqual([1, 1]);
+    expect(closed.respondents!.map((r) => r.name).sort()).toEqual(['Kamran Siddiqui', 'Sana Iqbal']);
+    // Residents never do: two answers are below the threshold.
+    await api.post(`/ops/community/polls/${draft.id}/publish`);
+    expect((await api.as('alnoor_tenant_a102').get<PollsResident>('/portal/community/polls')).items.find((p) => p.id === draft.id)!.results).toEqual({ shown: false, reason: 'below_threshold' });
+    // Office roles without polls.manage never see the roster.
+    expect((await refusal(api.as('alnoor_treasurer').get(`/ops/community/polls/${draft.id}`))).code).toBe('permission_missing');
+    expect((await refusal(api.as('alnoor_guard').get(`/ops/community/polls/${draft.id}`))).code).toBe('permission_missing');
+  });
+});
+
+describe('Issue #9: retention ends visibility; an open report keeps evidence for moderators only', () => {
+  /** An expired message (and optionally a report about it) put straight into the demo state. */
+  async function expired(api: ReturnType<typeof session>, report?: 'open' | 'dismissed') {
+    await api.as('alnoor_resident_a101').get('/portal/chat/groups');
+    const s = api.community();
+    s.chat.retentionDays = 30;
+    s.chat.messages.push({ id: 'msg_exp', groupId: 'site', senderKind: 'resident', senderName: 'Hina Iqbal', partyId: 'pty_anr_0005', text: 'Expired and reported text', at: '2026-08-02T10:00:00Z' });
+    if (report) {
+      s.chat.reports.push({
+        id: 'crp_exp',
+        ref: 'ANR-CR-0900',
+        messageId: 'msg_exp',
+        groupId: 'site',
+        state: report,
+        reports: [{ by: 'pty_anr_0001', reason: 'abusive', note: 'Rude', at: '2026-08-02T11:00:00Z' }],
+        ...(report === 'dismissed' ? { decision: { at: '2026-08-03T10:00:00Z', by: 'usr_anr_0001', byName: 'Imran Qureshi', note: 'Not abusive.' } } : {}),
+        history: [],
+      });
+    }
+    return s;
+  }
+  const inChat = async (api: ReturnType<typeof session>, persona: string, path: string) => JSON.stringify(await api.as(persona).get<ChatConversation>(path));
+
+  it('expired without a report: gone for residents and for the office inbox', async () => {
+    const api = session();
+    await expired(api);
+    expect(await inChat(api, 'alnoor_resident_a101', '/portal/chat/groups/site/messages')).not.toContain('msg_exp');
+    expect(await inChat(api, 'alnoor_manager', '/ops/chat/groups/site/messages')).not.toContain('msg_exp');
+  });
+
+  it('expired with an open report: not in any chat; in the report queue for moderators, marked as an evidence hold', async () => {
+    const api = session();
+    await expired(api, 'open');
+    expect(await inChat(api, 'alnoor_resident_a101', '/portal/chat/groups/site/messages')).not.toContain('Expired and reported text');
+    expect(await inChat(api, 'alnoor_tenant_a102', '/portal/chat/groups/site/messages')).not.toContain('Expired and reported text');
+    expect(await inChat(api, 'alnoor_manager', '/ops/chat/groups/site/messages')).not.toContain('Expired and reported text');
+    // Not reportable again, and not readable through the group list's previews either.
+    expect((await refusal(api.as('alnoor_tenant_a102').post('/portal/chat/messages/msg_exp/report', { reason: 'spam' }))).status).toBe(404);
+    expect(JSON.stringify(await api.get<ChatGroups>('/portal/chat/groups'))).not.toContain('Expired and reported');
+    // The moderator reviews the evidence.
+    const queue = await api.as('alnoor_manager').get<ChatReports>('/ops/chat/reports');
+    const r = queue.items.find((i) => i.id === 'crp_exp')!;
+    expect(r.message).toMatchObject({ text: 'Expired and reported text', pastRetention: true, evidenceHold: true });
+    // A resident, or staff without chat.moderate, cannot reach the queue.
+    expect((await refusal(api.as('alnoor_resident_a101').get('/ops/chat/reports'))).status).toBe(403);
+    expect((await refusal(api.as('alnoor_treasurer').get('/ops/chat/reports'))).code).toBe('permission_missing');
+  });
+
+  it('dismissed after expiry: the text is not shown again, in the chat or the queue; the decision stays on record', async () => {
+    const api = session();
+    await expired(api, 'open');
+    await api.as('alnoor_manager').post('/ops/chat/reports/crp_exp/dismiss', { note: 'Not abusive; no action.' });
+    const decided = (await api.get<ChatReports>('/ops/chat/reports', { status: 'closed' })).items.find((i) => i.id === 'crp_exp')!;
+    expect(decided).toMatchObject({ state: 'dismissed', decision: { note: 'Not abusive; no action.' }, message: { text: null, pastRetention: true, evidenceHold: false } });
+    expect(JSON.stringify(decided)).not.toContain('Expired and reported text');
+    expect(await inChat(api, 'alnoor_resident_a101', '/portal/chat/groups/site/messages')).not.toContain('Expired and reported text');
+    // A report decided before the message expired is shown the same way once it has.
+    const other = session();
+    await expired(other, 'dismissed');
+    const old = (await other.as('alnoor_manager').get<ChatReports>('/ops/chat/reports', { status: 'closed' })).items.find((i) => i.id === 'crp_exp')!;
+    expect(old.message.text).toBeNull();
+  });
+
+  it('a removed message keeps its marker while within the period, and is gone (marker too) after it', async () => {
+    const api = session();
+    const conv = await api.as('alnoor_resident_a101').get<ChatConversation>('/portal/chat/groups/site/messages');
+    const target = conv.messages.find((m) => m.sender.name === 'Ahmed Sheikh')!;
+    const r = await api.post<{ id: string }>(`/portal/chat/messages/${target.id}/report`, { reason: 'off_topic' });
+    await api.as('alnoor_manager').post(`/ops/chat/reports/${r.id}/hide`, { note: 'Moved to the community issues.' });
+    const inside = await api.as('alnoor_tenant_a102').get<ChatConversation>('/portal/chat/groups/site/messages');
+    expect(inside.messages.find((m) => m.id === target.id)).toMatchObject({ state: 'removed' });
+    // The same message, now older than the period.
+    api.community().chat.messages.find((m) => m.id === target.id)!.at = '2026-01-01T10:00:00Z';
+    const after = await api.get<ChatConversation>('/portal/chat/groups/site/messages');
+    expect(after.messages.some((m) => m.id === target.id)).toBe(false);
+  });
+
+  it('a reporter who moves out loses the group at once; the report stays with the moderators, its reporter unnamed', async () => {
+    const api = session();
+    const conv = await api.as('alnoor_tenant_a202').get<ChatConversation>(`/portal/chat/groups/${BLOCK_A}/messages`);
+    const target = conv.messages.find((m) => !m.sender.isMe && m.state === 'visible')!;
+    const r = await api.post<{ id: string }>(`/portal/chat/messages/${target.id}/report`, { reason: 'abusive', note: 'Please check' });
+    await api.as('alnoor_manager').post('/ops/moves', { flatId: 'unt_anr_a202', partyId: 'pty_anr_0011', effectiveOn: '2026-10-26', reason: 'Tenancy ended' });
+    expect((await refusal(api.as('alnoor_tenant_a202').get(`/portal/chat/groups/${BLOCK_A}/messages`))).status).toBe(404);
+    const queued = (await api.as('alnoor_manager').get<ChatReports>('/ops/chat/reports')).items.find((i) => i.id === r.id)!;
+    expect(queued).toMatchObject({ state: 'open', reporters: 1 });
+    expect(JSON.stringify(queued)).not.toMatch(/Junaid|pty_anr_0011/);
+    expect((await api.post<ChatReportView>(`/ops/chat/reports/${r.id}/dismiss`, { note: 'Checked; no action.' })).state).toBe('dismissed');
+  });
+
+  it('another site or another organisation never reaches the reports or the chat', async () => {
+    const otherSite = (p: Persona): EffectiveAccess | null => {
+      const a = effectiveAccessFor(p);
+      return a ? { ...a, grants: a.grants.map((g) => (g.module === 'community_chat' ? { ...g, sites: ['site_elsewhere'] } : g)) } : null;
+    };
+    const api = session({ accessFor: otherSite });
+    expect((await refusal(api.as('alnoor_manager').get('/ops/chat/reports'))).status).toBe(403);
+    expect((await refusal(api.as('alnoor_resident_a101').get('/portal/chat/groups'))).status).toBe(403);
+    // Shalimar Court's administrator: no community add-on, and none of Al-Noor's records.
+    const shalimar = session();
+    expect((await refusal(shalimar.as('society_admin').get('/ops/chat/reports'))).status).toBe(403);
+    expect((await refusal(shalimar.as('society_admin').get('/ops/community/polls'))).status).toBe(403);
   });
 });

@@ -1,6 +1,6 @@
 # Gate D.3: test, accessibility and localisation results
 
-**Run date:** 2026-11-02.
+**Run date:** 2026-11-02. **Issue #9 final closure:** results on the closure code are in [§ Issue #9](#issue-9-final-closure-results) at the end; the sections before it are the `85f7eb7` run.
 
 **Environment:**
 - Production builds of all three apps on isolated ports: `E2E_PORT_OFFSET=300` (office 5473, resident 5474, HQ 5475; built with `VITE_OFFICE_ORIGIN` / `VITE_CUSTOMER_ORIGIN`).
@@ -90,3 +90,57 @@ GPT's checkpoint findings are in the report, §2.
   - `c`: 320 × 700 at 200 % Urdu, viewport captures with the fixed bars in place (part of a page sits behind the bar, as on a phone);
   - `d`: without the add-ons; `e`: move-out while offline.
 - **Full-page screenshots** of phone pages draw the fixed header and bar where the viewport was (as in D.2); the `c` captures show the real viewport.
+
+## Issue #9 final closure: results
+
+Run on the closure code: the two privacy corrections, their tests, the documents. Same environment: `E2E_PORT_OFFSET=300`, production builds, Node 20.20.1, retries off, 3 workers.
+
+| Check | Command | Result |
+|---|---|---|
+| Typecheck | `npx tsc -p tsconfig.json --noEmit` | clean |
+| Lint (ESLint, logical-CSS RTL guard, i18n parity) | `npm run lint` | clean. 2 locales × 24 namespaces, **9,178 keys** each (`community`: 554) |
+| Unit and API tests | `npx vitest run` | **1,308 / 1,308** in 44 files (`85f7eb7`: 1,291) |
+| Community suites | `npx vitest run packages/fixtures/src/community` | **71 / 71**:<br>• `community.api.test.ts` 33 (10 new for Issue #9);<br>• `community.test.ts` 29 vectors: membership 14, polls 15 (rewritten);<br>• `chat-policy.test.ts` 9 |
+| Register | `node scripts/sync-screen-register.mjs` | unchanged: 437 rows, 353 distinct; 122 built, 35 partial, 196 planned (PORTAL-036, CHAT-001 and DOC-001 stay PARTIAL) |
+| **Complete combined regression** | `E2E_PORT_OFFSET=300 npx playwright test --project=e2e --project=evidence tests/e2e tests/evidence/gated3.evidence.spec.ts --workers=3 --retries=0` | **358 / 358** in one 36.9-minute run on the closure code:<br>• **e2e 346 / 346** (every gate, B to D.3);<br>• **evidence 12 / 12**.<br>No retries, no test excluded, no assertion weakened |
+| D.3 end-to-end | `tests/e2e/d3.spec.ts` (inside the run) | **24 / 24**. New:<br>• the evidence-hold journey in both apps;<br>• named-poll consent;<br>• dark mode then high contrast in English and Urdu |
+| Accessibility (inside the run) | axe in every spec that scans | **1,179 scans, 32,530 rule passes, 0 violations**; `d3.spec` had 142 of them, including dark mode and high contrast |
+| Firefox and WebKit smoke | `npx playwright test tests/smoke --project=firefox-smoke --project=webkit-smoke --retries=0` | **28 / 28** (all 14 smoke tests, both browsers) |
+| Evidence | `tests/evidence/gated3.evidence.spec.ts` | **76 screenshots, 2 videos**; every viewport capture exactly its width |
+
+### How the complete run was obtained (honestly)
+
+- **The first attempt was aborted and does not count.** At test 48 every page load began to fail with `net::ERR_CONNECTION_TIMED_OUT` on `localhost:5473`.
+  - Cause: a TUN VPN (`xray.exe` and `tun2socks.exe`) started on the shared machine during the run. It made IPv6 loopback (`::1`) hang; IPv4 loopback kept working (6 ms).
+  - `vite preview` had bound `localhost` to `::1` only, so the servers kept listening but never answered.
+  - I did not stop the VPN, which is the machine owner's. The preview servers were restarted on `127.0.0.1`; browsers fall back from `::1` to IPv4, and no test or address changed.
+- **The full suite was then run again from the start.** A watchdog checked all three servers every 20 seconds and recorded no failure.
+- **After the complete run, one change was made to the evidence spec only:** element captures hide the fixed header and bottom bar, as D.2's evidence does, so they are not drawn over tall cards. The D.3 evidence spec was then run again on its own (**12 / 12**) to regenerate the screenshots. No product code or other test changed after the complete run.
+
+### What the new tests prove
+
+**Poll privacy (P0):**
+- The vectors cover 2–1, 5–1, one small option among several blocks, site − block, adjacent blocks, zero-count options (4–0–2 withheld, 4–3–0 shown), the gym poll and raised thresholds.
+- Everything shown is checked to be safe: every option and complement, and site − block.
+- The seeded published 5–1 poll shows residents and the office the turnout only.
+- Repeated reads, another resident and unrelated query parameters return the same answer.
+- A legacy stored snapshot with exact counts cannot leak (results are recomputed).
+- A named poll is refused without consent. Only `polls.manage` sees who answered what; the treasurer and the guard are refused.
+- In the browser: no option, percentage or list item is shown for a withheld poll.
+
+**Retention and evidence (P1):**
+- An expired message is in no resident or office conversation, preview or report action, with or without an open report.
+- The moderators' queue shows it as *Kept as evidence* while the report is open; a resident or a non-moderator cannot reach the queue.
+- After dismissal, or once a report decided earlier passes the period, the text is `null`; the decision and its note remain.
+- A removed message keeps its marker inside the period and goes after it.
+- A reporter who moves out loses the group at once; the report stays, without naming them.
+- Another site's licence and another organisation are refused.
+- In the browser: the same journey through both apps, and the policy page's count.
+
+### Captures for the corrections
+
+- `f01-poll-results-shown-320x700-200pct-{en,ur}` and `f02-poll-results-withheld-320x700-200pct-{en,ur}`;
+- `b17-poll-anonymous-withheld-{1440-en,390-ur}` (the office);
+- `g01-report-evidence-hold-1440-en`, `g02-policy-held-as-evidence-1440-en`, `g03-report-decided-text-gone-1440-en`.
+
+Every other D.3 capture was regenerated from the same run, so they show the closure code.

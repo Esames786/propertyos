@@ -1,4 +1,4 @@
-import { PROVIDER_CATEGORIES, RESOURCE_CATEGORIES, type ChatAudience, type CommunityHome, type CommunityTab, type FeatureKey, type Permission, type PollOffice, type PollResident, type PollsOffice, type PollsResident, type PollState, type ProviderCategory, type ProviderStatus, type ResourceOffice, type ResourceResident, type ResourcesOffice, type ServiceDirectoryOffice, type ServiceDirectoryResident, type ServiceProviderOffice } from '@repo/contracts';
+import { PROVIDER_CATEGORIES, RESOURCE_CATEGORIES, type ChatAudience, type CommunityHome, type CommunityTab, type FeatureKey, type Permission, type PollOffice, type PollResident, type PollResults, type PollsOffice, type PollsResident, type PollState, type ProviderCategory, type ProviderStatus, type ResourceOffice, type ResourceResident, type ResourcesOffice, type ServiceDirectoryOffice, type ServiceDirectoryResident, type ServiceProviderOffice } from '@repo/contracts';
 import { authorize, matches, notFound, requires, type Handler, type HandlerContext } from '../handler-types';
 import { members } from '../operations/audience';
 import { invalid, notify, opsOf } from '../operations/common';
@@ -273,9 +273,26 @@ function close(site: OpsSite, p: StoredPoll, on: string, _at: string) {
   p.audienceAtClose = eligibility(site, p, on).households;
 }
 
+/**
+ * The results of a closed poll, recomputed from its frozen answers on every read (Issue #9): never a
+ * stored snapshot, so earlier published results get today's privacy rule too.
+ */
+function resultsOf(site: OpsSite, p: StoredPoll, on: string): PollResults {
+  return pollResults(p.tally, p.options, p.audienceAtClose ?? eligibility(site, p, on).households);
+}
+
 function pollOffice(ctx: HandlerContext, site: OpsSite, p: StoredPoll): PollOffice {
   const after = p.state === 'closed' || p.state === 'published';
-  const totals = p.options.map((o) => ({ ...o, count: Object.values(p.tally).reduce((n, byOption) => n + (byOption[o.id] ?? 0), 0) }));
+  // Named polls: the answers were given with names, so the office sees every count and who answered
+  // what. Anonymous polls: the office sees no more than residents may (the breakdown or nothing).
+  const results = after ? resultsOf(site, p, ctx.at) : undefined;
+  const totals = !after
+    ? undefined
+    : !p.anonymous
+      ? p.options.map((o) => ({ ...o, count: Object.values(p.tally).reduce((n, byOption) => n + (byOption[o.id] ?? 0), 0) }))
+      : results?.shown
+        ? results.options
+        : null;
   return {
     id: p.id,
     ref: p.ref,
@@ -293,9 +310,9 @@ function pollOffice(ctx: HandlerContext, site: OpsSite, p: StoredPoll): PollOffi
     createdAt: p.createdAt,
     ...(p.withdrawnReason ? { withdrawnReason: p.withdrawnReason } : {}),
     // No running tally: how people answered appears only after the poll closes.
-    ...(after ? { totals } : {}),
+    ...(totals !== undefined ? { totals } : {}),
     ...(after && !p.anonymous ? { respondents: p.named.map((n) => ({ ...n })).map(({ partyId: _p, ...n }) => n) } : {}),
-    ...(p.published ? { published: p.published } : {}),
+    ...(p.state === 'published' && results ? { published: results } : {}),
     history: p.history,
     actions: { edit: p.state === 'draft', open: p.state === 'draft', close: p.state === 'open', publish: p.state === 'closed', withdraw: p.state === 'draft' || p.state === 'open' },
   };
@@ -348,9 +365,10 @@ function pollAction(ctx: HandlerContext, action: 'open' | 'close' | 'publish' | 
     p.history.push(ev(at, me, 'staff', 'closed'));
   } else if (action === 'publish') {
     // Frozen at publication: what residents see never moves afterwards (D-47).
-    p.published = pollResults(p.tally, p.options, p.audienceAtClose ?? eligibility(site, p, ctx.at).households);
+    // Residents see the result computed from the frozen answers (never a stored copy).
     p.state = 'published';
-    p.history.push(ev(at, me, 'staff', 'published', p.published.shown ? {} : { values: { reason: p.published.reason } }));
+    const r = resultsOf(site, p, ctx.at);
+    p.history.push(ev(at, me, 'staff', 'published', { values: { result: r.shown ? (r.options ? 'shown' : 'withheld') : r.reason } }));
   } else {
     const reason = text(ctx, 'reason', (ctx.req.body as { reason?: unknown } | undefined)?.reason, 10, 400);
     p.state = 'withdrawn';
@@ -392,7 +410,7 @@ function residentPoll(ctx: HandlerContext, res: ResidentOps, p: StoredPoll): Pol
     answerable,
     answered: answered.map((a) => (a.optionId === undefined ? (({ optionId: _o, ...rest }) => rest)(a) : a)),
     ...(p.withdrawnReason ? { withdrawnReason: p.withdrawnReason } : {}),
-    ...(p.state === 'published' && p.published ? { results: p.published } : {}),
+    ...(p.state === 'published' ? { results: resultsOf(res.site, p, ctx.at) } : {}),
   };
 }
 
@@ -484,8 +502,10 @@ const POLL_HANDLERS: Handler[] = [
       const view = p ? residentPoll(ctx, res, p) : null;
       if (!p || !view) notFound(ctx);
       if (p.state !== 'open') problem(ctx, 409, 'poll_closed', 'community:errors.pollClosed');
-      const b = (ctx.req.body ?? {}) as { optionId?: unknown; flatId?: unknown };
+      const b = (ctx.req.body ?? {}) as { optionId?: unknown; flatId?: unknown; namedConsent?: unknown };
       if (!p.options.some((o) => o.id === b.optionId)) invalid(ctx, 'optionId', 'forms:errors.required');
+      // A named poll's answer is seen by the office with the name: the resident says they understand.
+      if (!p.anonymous && b.namedConsent !== true) invalid(ctx, 'namedConsent', 'community:errors.namedConsent');
       let key = res.partyId;
       let flatCode = '';
       if (p.unit === 'flat') {

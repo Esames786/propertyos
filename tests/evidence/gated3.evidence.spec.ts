@@ -45,7 +45,9 @@ async function context(browser: Browser, viewport: { width: number; height: numb
 }
 
 const shot = (page: Page, name: string, full = true) => page.screenshot({ path: `${DIR}/${name}.png`, fullPage: full });
-const shotOf = (locator: Locator, name: string) => locator.screenshot({ path: `${DIR}/${name}.png` });
+/** The fixed header and bottom bar would be drawn over a tall element's capture (as in D.2's evidence). */
+const CHROME_HIDDEN = '[data-testid="portal-header"], [data-testid="portal-bottom-nav"] { visibility: hidden !important; }';
+const shotOf = (locator: Locator, name: string) => locator.screenshot({ path: `${DIR}/${name}.png`, style: CHROME_HIDDEN });
 
 async function keepVideo(page: Page, name: string) {
   const video = page.video();
@@ -146,6 +148,8 @@ for (const locale of ['en-PK', 'ur-PK'] as Locale[]) {
     await open(page, BO, '/backoffice/community/polls/pol_anr_0002', 'poll-detail');
     await shot(page, `b12-poll-published-results-${w}-${l}`);
     await open(page, BO, '/backoffice/community/polls/pol_anr_0003', 'poll-detail');
+    await shot(page, `b17-poll-anonymous-withheld-${w}-${l}`);
+    await open(page, BO, '/backoffice/community/polls/pol_anr_0004', 'poll-detail');
     await shot(page, `b13-poll-closed-named-${w}-${l}`);
     await open(page, BO, '/backoffice/community/polls', 'poll-rows');
     await page.getByTestId('poll-new').click();
@@ -195,6 +199,44 @@ test('320 × 700, Urdu, 200 % text: Community home, polls, chat (viewport captur
   await page.keyboard.press('Escape');
   await open(page, CU, '/customer/portal/community?tab=polls', 'poll-list');
   await shotOf(page.getByTestId('poll-card').filter({ hasText: 'Gym' }), 'c08-poll-results-card-320x700-200pct-ur');
+  await page.context().close();
+});
+
+for (const locale of ['en-PK', 'ur-PK'] as Locale[]) {
+  test(`Issue #9: poll results at 320 × 700 with 200 % text, shown and withheld (${lang(locale)})`, async ({ browser }) => {
+    const page = await context(browser, { width: 320, height: 700 }, { locale, textScale: 2 });
+    await open(page, CU, '/customer/portal/community?tab=polls', 'poll-list');
+    await shotOf(page.getByTestId('poll-card').filter({ hasText: 'Gym' }), `f01-poll-results-shown-320x700-200pct-${lang(locale)}`);
+    await shotOf(page.getByTestId('poll-card').filter({ hasText: 'Evening security patrol' }), `f02-poll-results-withheld-320x700-200pct-${lang(locale)}`);
+    await page.context().close();
+  });
+}
+
+test('Issue #9: an expired reported message is evidence in the report queue only, and its text is gone once decided (1440, en)', async ({ browser }) => {
+  const page = await context(browser, VIEWPORTS.desktop, { staff: 'alnoor_manager' });
+  await as(page, 'alnoor_manager', '/backoffice/chat/settings?tab=reports', 'report-list');
+  // A message older than the retention period, reported and still open (the seeds are all recent).
+  // The community state is stored on its first change: mark the office's group read first.
+  await societyApi(page, '/ops/chat/groups/site/read', 'POST');
+  await page.evaluate(() => {
+    const key = 'demo:shared:tnt_alnoor';
+    const overlay = JSON.parse(localStorage.getItem(key)!) as { sections: Record<string, { chat: { messages: unknown[]; reports: unknown[] } }> };
+    const s = overlay.sections['community:site_alnoor']!;
+    s.chat.messages.push({ id: 'msg_expired', groupId: 'site', senderKind: 'resident', senderName: 'Hina Iqbal', partyId: 'pty_anr_0005', text: 'An old complaint kept as evidence', at: '2025-09-01T10:00:00Z' });
+    s.chat.reports.push({ id: 'crp_expired', ref: 'ANR-CR-0090', messageId: 'msg_expired', groupId: 'site', state: 'open', reports: [{ by: 'pty_anr_0001', reason: 'abusive', note: 'Threatening', at: '2025-09-01T11:00:00Z' }], history: [] });
+    localStorage.setItem(key, JSON.stringify(overlay));
+  });
+  await open(page, BO, '/backoffice/chat/settings?tab=reports', 'report-list');
+  await shotOf(page.getByTestId('report-card').filter({ hasText: 'ANR-CR-0090' }), 'g01-report-evidence-hold-1440-en');
+  await open(page, BO, '/backoffice/chat/settings?tab=policy', 'chat-policy');
+  await shot(page, 'g02-policy-held-as-evidence-1440-en');
+  await open(page, BO, '/backoffice/chat/settings?tab=reports', 'report-list');
+  await page.getByTestId('report-card').filter({ hasText: 'ANR-CR-0090' }).getByTestId('report-dismiss').click();
+  await page.getByRole('alertdialog').locator('textarea').fill('Checked; no action needed.');
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Dismiss' }).click();
+  await page.getByRole('alertdialog').waitFor({ state: 'detached' });
+  await open(page, BO, '/backoffice/chat/settings?tab=reports&status=closed', 'report-list');
+  await shotOf(page.getByTestId('report-card').filter({ hasText: 'ANR-CR-0090' }), 'g03-report-decided-text-gone-1440-en');
   await page.context().close();
 });
 
