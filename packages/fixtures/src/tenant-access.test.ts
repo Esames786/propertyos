@@ -94,7 +94,9 @@ describe('ADM-023 your plan & modules', () => {
     expect(plan.tenant).toMatchObject({ id: 'tnt_shalimar', name: 'Shalimar Court Residents (Demo)' });
     expect(plan.modules.filter((m) => m.licensed).map((m) => m.key).sort()).toEqual(['core', 'maintenance']);
     expect(plan.modules.filter((m) => m.scheduledFrom).map((m) => [m.key, m.scheduledFrom])).toEqual([['residents', '2026-11-01'], ['visitors', '2026-11-01']]);
-    expect(plan.modules).toHaveLength(27);
+    // 27 baseline modules plus Gate D.3's two opt-in add-ons, which no existing plan includes.
+    expect(plan.modules).toHaveLength(29);
+    expect(plan.modules.filter((m) => m.key === 'community_chat' || m.key === 'community_hub').map((m) => m.licensed)).toEqual([false, false]);
   });
 
   it('a role without administration may not open it', async () => {

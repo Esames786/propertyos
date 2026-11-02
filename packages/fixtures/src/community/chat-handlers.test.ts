@@ -24,7 +24,7 @@ function api({ licence = true }:{licence?:boolean}={}){
 async function refused(p:Promise<unknown>,status:number){try{await p;throw Error('accepted unsafe request');}catch(e){if(e instanceof ApiError){expect(e.problem.status).toBe(status);return;}throw e;}}
 describe('D.3 typed mock messaging access, retention and moderation',()=>{
  it('is off without a licensed module or an explicit tenant retention policy',async()=>{
-  const unlicensed=api();
+  const unlicensed=api({licence:false});
   await refused(unlicensed.as('alnoor_resident_a101').get('/portal/chat/groups'),403);
   const a=api();
   const groups=await a.as('alnoor_resident_a101').get<{available:boolean,groups:{id:string}[]}>('/portal/chat/groups');

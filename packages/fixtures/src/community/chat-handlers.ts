@@ -1,4 +1,4 @@
-import { decide, type FlatFact } from '@repo/contracts';
+import type { FlatFact } from '@repo/contracts';
 import { invalid, notFound, requires, refused, authorize, type Handler, type HandlerContext } from '../handler-types';
 import { opsSite, residentOps, siteRecord } from '../operations/site';
 import { smartGroups, type CommunityFlat, type CommunityGroup } from './smart-groups';

@@ -331,6 +331,14 @@
     "api_access": {
       "name": "API access",
       "description": "API keys for integrations."
+    },
+    "community_chat": {
+      "name": "Community chat",
+      "description": "Group conversations for verified residents and the office; automatic groups, reports and retention set by the society."
+    },
+    "community_hub": {
+      "name": "Community hub",
+      "description": "Resident community home: local services directory, informal polls and published resources."
     }
   },
   "components": {

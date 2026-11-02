@@ -30,7 +30,7 @@ describe('D.3 resident add-on dual grants Rule R',()=>{
   expect(communityResidentAccess(access(),at,{...record,siteId:'site_b'},'community_chat')).toEqual({allowed:false,reason:'site_not_licensed'});
  });
  it('refuses moved out or unverified residents',()=>{
-  const a={...access(),scopes:[{type:'party',partyId:'resident' as const,links:[]}]};
+  const a={...access(),scopes:[{type:'party' as const,partyId:'resident',links:[]}]};
   expect(communityResidentAccess(a,at,record,'community_chat')).toEqual({allowed:false,reason:'out_of_scope'});
   const b={...access(),scopes:[{type:'party' as const,partyId:'resident',links:[{unitId:'flat_101',billingAccountId:'account_a',siteId:'site_a',legalEntityId:'le_a',verified:true,from:'2026-10-01',to:'2026-11-01'}]}]};
   expect(communityResidentAccess(b,at,record,'community_chat')).toEqual({allowed:false,reason:'out_of_scope'});
