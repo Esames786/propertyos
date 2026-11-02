@@ -519,3 +519,9 @@ export const OPS_NOTICE_HANDLERS: readonly Handler[] = [
   },
 ];
 
+
+/** Gate D.3: the resident's notices for the Community home's summary (resident_portal only, D-49). */
+export function residentNoticeList(ctx: HandlerContext): ResidentNotices {
+  const { res, staff } = resident(ctx);
+  return noticesFor(ctx, res, staff);
+}

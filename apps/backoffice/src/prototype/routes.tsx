@@ -184,7 +184,14 @@ const PassesPage = ops(visitorPages, 'PassesPage');
 const VisitHistoryPage = ops(visitorPages, 'VisitHistoryPage');
 const ScanPage = ops(visitorPages, 'ScanPage');
 const PassById = lazy(() => import('../pages/society/operations/VisitorPages').then((m) => ({ default: ({ id }: { id: string }) => <m.PassDetailPage passId={id} /> })));
-const CommunityOffice = lazy(() => import('../pages/society/community/CommunityOfficePage'));
+// Gate D.3: community chat (CHAT-001…003), local services (CMTY-001), polls (CMTY-002/004), resources (DOC-001).
+const ChatInbox = lazy(() => import('../pages/society/community/ChatInboxPage'));
+const ChatSettings = lazy(() => import('../pages/society/community/ChatSettingsPage'));
+const ServicesDirectory = lazy(() => import('../pages/society/community/ServicesDirectoryPage'));
+const PollsPage = lazy(() => import('../pages/society/community/PollsPages').then((m) => ({ default: m.PollsPage })));
+const PollById = lazy(() => import('../pages/society/community/PollsPages').then((m) => ({ default: ({ id }: { id: string }) => <m.PollDetailPage pollId={id} /> })));
+const ChatGroupById = lazy(() => import('../pages/society/community/ChatInboxPage').then((m) => ({ default: ({ id }: { id: string }) => <m.default groupId={id} /> })));
+const ResourcesPage = lazy(() => import('../pages/society/community/ResourcesPage'));
 const NoticesOffice = lazy(() => import('../pages/society/operations/NoticesOffice'));
 const SendMessagePage = ops(() => import('../pages/society/operations/NoticesOffice'), 'SendMessagePage');
 const VehiclesOffice = lazy(() => import('../pages/society/operations/VehiclesOffice'));
@@ -195,7 +202,11 @@ const GATE: AccessTarget = { module: 'visitors', permission: 'visitors.manage' }
 const NOTICES: AccessTarget = { module: 'residents', permission: 'residents.view' };
 const PARKING: AccessTarget = { module: 'parking', anyOf: ['parking.view', 'vehicles.approve'] };
 const RESIDENTS: AccessTarget = { module: 'residents', permission: 'residents.view' };
+const CHAT: AccessTarget = { module: 'community_chat', permission: 'chat.use' };
 const CHAT_ADMIN: AccessTarget = { module: 'community_chat', anyOf: ['chat.groups.manage', 'chat.moderate'] };
+const DIRECTORY: AccessTarget = { module: 'community_hub', feature: 'community_hub.services_directory', permission: 'directory.manage' };
+const POLLS: AccessTarget = { module: 'community_hub', feature: 'community_hub.polls', permission: 'polls.manage' };
+const RESOURCES: AccessTarget = { module: 'community_hub', feature: 'community_hub.resources', permission: 'resources.publish' };
 const MESSAGES: AccessTarget = { module: 'communications', permission: 'messages.send' };
 const MAINT: AccessTarget = { module: 'maintenance', permission: 'operations.view' };
 const MAINT_MANAGE: AccessTarget = { module: 'maintenance', permission: 'maintenance.manage' };
@@ -224,6 +235,19 @@ function OpsRecord({ page: Page, target, prefix }: { page: LazyExoticComponent<C
   return useOpsSite() && allows(target) && record?.startsWith(prefix) ? (
     <Suspense fallback={null}>
       <Page id={record} />
+    </Suspense>
+  ) : (
+    <RegisterResolver />
+  );
+}
+
+/** A screen whose record is in the path (`/backoffice/chat/:id`, `/backoffice/community/polls/:id`). */
+function OpsParam({ page: Page, target }: { page: LazyExoticComponent<ComponentType<{ id: string }>>; target: AccessTarget }) {
+  const { allows } = useSession();
+  const { id } = useParams();
+  return useOpsSite() && allows(target) && id ? (
+    <Suspense fallback={null}>
+      <Page id={id} />
     </Suspense>
   ) : (
     <RegisterResolver />
@@ -460,7 +484,14 @@ const shellChildren: RouteObject[] = [
   { path: 'vis/scan-qr', loader: registerLoader, element: <OpsScreen page={ScanPage} target={GATE} />, handle: h({ title: (t) => t('nav:pages.scan') }) },
   // Gate D.2: official notices (RES-005) and the quick broadcast (NOT-003).
   { path: 'res/community-announcements', loader: registerLoader, element: <OpsScreen page={NoticesOffice} target={NOTICES} />, handle: h({ title: (t) => t('nav:pages.notices') }) },
-  { path: 'res/community-chat', element: <OpsScreen page={CommunityOffice} target={CHAT_ADMIN} />, handle: h({ title: (t) => t('operations:communityOffice.title') }) },
+  // Gate D.3: community chat, local services, polls and documents published to residents.
+  { path: 'chat', loader: registerLoader, element: <OpsScreen page={ChatInbox} target={CHAT} />, handle: h({ title: (t) => t('community:chat.title') }) },
+  { path: 'chat/settings', loader: registerLoader, element: <OpsScreen page={ChatSettings} target={CHAT_ADMIN} />, handle: h({ title: (t) => t('community:office.title') }) },
+  { path: 'chat/:id', loader: registerLoader, element: <OpsParam page={ChatGroupById} target={CHAT} />, handle: h({ title: (t) => t('community:chat.title') }) },
+  { path: 'community/services', loader: registerLoader, element: <OpsScreen page={ServicesDirectory} target={DIRECTORY} />, handle: h({ title: (t) => t('community:directory.title') }) },
+  { path: 'community/polls', loader: registerLoader, element: <OpsScreen page={PollsPage} target={POLLS} />, handle: h({ title: (t) => t('community:polls.title') }) },
+  { path: 'community/polls/:id', loader: registerLoader, element: <OpsParam page={PollById} target={POLLS} />, handle: h({ title: (t) => t('community:polls.detailTitle') }) },
+  { path: 'doc/document-center', loader: registerLoader, element: <OpsScreen page={ResourcesPage} target={RESOURCES} />, handle: h({ title: (t) => t('community:resources.officeTitle') }) },
   { path: 'not/send-message', loader: registerLoader, element: <OpsScreen page={SendMessagePage} target={MESSAGES} />, handle: h({ title: (t) => t('nav:pages.sendMessage') }) },
   { path: 'park/vehicle-registry', loader: registerLoader, element: <OpsScreen page={VehiclesOffice} target={PARKING} />, handle: h({ title: (t) => t('nav:pages.vehicles') }) },
   { path: 'res/resident-dashboard', loader: registerLoader, element: <OpsScreen page={ResidentsOffice} target={RESIDENTS} />, handle: h({ title: (t) => t('nav:pages.residents') }) },

@@ -139,8 +139,22 @@ export const OPS = {
   notice: (id: string) => `/backoffice/res/community-announcements${q({ record: id })}`,
   compose: '/backoffice/res/community-announcements?drawer=compose',
   message: '/backoffice/not/send-message',
-  chat: '/backoffice/res/community-chat',
   vehicles: (params: Record<string, string | undefined> = {}) => `/backoffice/park/vehicle-registry${q(params)}`,
   vehicle: (id: string) => `/backoffice/park/vehicle-registry${q({ record: id })}`,
   gateway: (siteId: string) => `/backoffice/sites/${siteId}${q({ tab: 'online-payments' })}`,
+} as const;
+
+/**
+ * Gate D.3: community chat (CHAT-001 inbox, CHAT-002 a conversation, CHAT-003 groups, policy and
+ * reports), local services (CMTY-001), polls (CMTY-002 and CMTY-004) and documents published to
+ * residents (DOC-001). Addresses follow the screen register.
+ */
+export const COMMUNITY = {
+  inbox: '/backoffice/chat',
+  group: (id: string) => `/backoffice/chat/${encodeURIComponent(id)}`,
+  settings: (tab?: string) => `/backoffice/chat/settings${q({ tab })}`,
+  services: (params: Record<string, string | undefined> = {}) => `/backoffice/community/services${q(params)}`,
+  polls: (params: Record<string, string | undefined> = {}) => `/backoffice/community/polls${q(params)}`,
+  poll: (id: string) => `/backoffice/community/polls/${id}`,
+  resources: '/backoffice/doc/document-center',
 } as const;

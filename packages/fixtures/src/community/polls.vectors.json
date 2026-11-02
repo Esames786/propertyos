@@ -1,0 +1,55 @@
+{
+  "about": "Gate D.3 poll result vectors (V3.2 execution plan §4, D-47). Results are computed once, after the poll closes, from per-block answer counts and the eligible households per block. Defaults: at least 3 answers and an audience of at least 5 households for any shown grouping; a block is shown only when the rest of the audience (site - block, and all hidden blocks together) also qualifies.",
+  "options": [{ "id": "opt_1", "label": "Yes" }, { "id": "opt_2", "label": "No" }],
+  "cases": [
+    {
+      "name": "two answers: not enough responses to show anything",
+      "tally": { "A": { "opt_1": 1 }, "B": { "opt_2": 1 } },
+      "audience": { "site": 40, "blocks": { "A": 20, "B": 20 } },
+      "expect": { "shown": false, "reason": "below_threshold" }
+    },
+    {
+      "name": "enough answers but an audience of four households: nothing shown",
+      "tally": { "A": { "opt_1": 2, "opt_2": 1 } },
+      "audience": { "site": 4, "blocks": { "A": 4 } },
+      "expect": { "shown": false, "reason": "audience_too_small" }
+    },
+    {
+      "name": "both blocks qualify and so does each remainder: site and both blocks shown",
+      "tally": { "A": { "opt_1": 4, "opt_2": 2 }, "B": { "opt_1": 1, "opt_2": 3 } },
+      "audience": { "site": 40, "blocks": { "A": 20, "B": 20 } },
+      "expect": { "shown": true, "total": 10, "options": { "opt_1": 5, "opt_2": 5 }, "blocks": { "A": 6, "B": 4 } }
+    },
+    {
+      "name": "site minus block: block B has only 2 answers, so block A (whose remainder is B) is hidden too",
+      "tally": { "A": { "opt_1": 5, "opt_2": 3 }, "B": { "opt_1": 2 } },
+      "audience": { "site": 40, "blocks": { "A": 20, "B": 20 } },
+      "expect": { "shown": true, "total": 10, "options": { "opt_1": 7, "opt_2": 3 }, "blocks": {} }
+    },
+    {
+      "name": "a block of four households is never shown, nor its complement",
+      "tally": { "A": { "opt_1": 6, "opt_2": 4 }, "B": { "opt_1": 3 } },
+      "audience": { "site": 24, "blocks": { "A": 20, "B": 4 } },
+      "expect": { "shown": true, "total": 13, "options": { "opt_1": 9, "opt_2": 4 }, "blocks": {} }
+    },
+    {
+      "name": "adjacent groupings: with three blocks, the hidden ones together must also qualify",
+      "tally": { "A": { "opt_1": 6 }, "B": { "opt_1": 5, "opt_2": 1 }, "C": { "opt_2": 2 } },
+      "audience": { "site": 60, "blocks": { "A": 20, "B": 20, "C": 20 } },
+      "expect": { "shown": true, "total": 14, "options": { "opt_1": 11, "opt_2": 3 }, "blocks": { "B": 6 } }
+    },
+    {
+      "name": "an audience of one block: only the total is shown (the block equals the site)",
+      "tally": { "B": { "opt_1": 3, "opt_2": 2 } },
+      "audience": { "site": 37, "blocks": { "B": 37 } },
+      "expect": { "shown": true, "total": 5, "options": { "opt_1": 3, "opt_2": 2 }, "blocks": {} }
+    },
+    {
+      "name": "a tenant may raise the thresholds (never lower): 5 answers under a threshold of 6 shows nothing",
+      "threshold": { "minCount": 6, "minAudience": 5 },
+      "tally": { "A": { "opt_1": 3, "opt_2": 2 } },
+      "audience": { "site": 40, "blocks": { "A": 40 } },
+      "expect": { "shown": false, "reason": "below_threshold" }
+    }
+  ]
+}

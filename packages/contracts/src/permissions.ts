@@ -101,6 +101,7 @@ export const PERMISSIONS = [
   'chat.moderate',
   'directory.manage',
   'polls.manage',
+  'resources.publish',
   'marketplace.moderate',
   // Platform HQ (central plane, V3.1). Operators are a separate principal type from tenant staff.
   'platform.dashboard.view',

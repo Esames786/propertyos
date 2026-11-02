@@ -1,4 +1,4 @@
-import { ACCESS_TODAY, BACKOFFICE_TENANTS, DemoStore, effectiveAccessFor, localSharedPartitions, MockTransport, ALL_PERSONAS, TENANT } from '@repo/fixtures';
+import { ACCESS_TODAY, BACKOFFICE_TENANTS, DemoStore, demoAccessFor, localSharedPartitions, MockTransport, ALL_PERSONAS, TENANT } from '@repo/fixtures';
 import { getMissingKeys } from '@repo/i18n';
 import { AppProviders } from '@repo/ui';
 import { StrictMode } from 'react';
@@ -17,6 +17,9 @@ declare global {
 /** One transport per page load (StrictMode may call state initialisers twice in development). */
 let transport: MockTransport | undefined;
 
+/** Gate D.3: the same access for the screens and the mock server (a demo can withdraw an add-on, never grant one). */
+const accessFor = demoAccessFor();
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <AppProviders
@@ -24,11 +27,11 @@ createRoot(document.getElementById('root')!).render(
       tenant={TENANT}
       tenants={BACKOFFICE_TENANTS}
       personas={ALL_PERSONAS}
-      accessFor={effectiveAccessFor}
+      accessFor={accessFor}
       accessDate={ACCESS_TODAY}
       createTransport={(getContext, getMode) => {
         // The society demo is shared with the customer app of this browser (see shared-demo.ts).
-        transport ??= new MockTransport({ getContext, getMode, demo: new DemoStore(undefined, localSharedPartitions()) });
+        transport ??= new MockTransport({ getContext, getMode, accessFor, demo: new DemoStore(undefined, localSharedPartitions()) });
         window.__prototype = { transport, missingKeys: getMissingKeys };
         return transport;
       }}

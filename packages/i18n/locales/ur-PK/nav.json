@@ -28,7 +28,12 @@
     "ownershipTransfers": "منتقلیاں اور کلیئرنس",
     "visitors": "مہمان اور گیٹ",
     "vehicles": "گاڑیاں",
-    "notices": "نوٹس"
+    "notices": "نوٹس",
+    "communityChat": "کمیونٹی چیٹ",
+    "chatSettings": "چیٹ گروپ اور رپورٹس",
+    "localServices": "مقامی خدمات",
+    "polls": "رائے شماری",
+    "residentDocuments": "رہائشیوں کے لیے دستاویزات"
   },
   "header": {
     "search": "تلاش",

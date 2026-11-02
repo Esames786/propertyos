@@ -171,7 +171,14 @@ export const TENANT_DIRECTORY: readonly DirectoryTenant[] = [
     city: 'Lahore',
     contactName: 'Imran Qureshi',
     sites: [{ id: 'site_alnoor', name: 'Al-Noor Residency', city: 'Lahore', kind: 'residential', buildings: 2, declaredUnits: 80 }],
-    modules: [...all(presetFor('community').modules), { module: 'online_payments', sites: ['site_alnoor'], from: '2026-10-20' }],
+    // Gate D.3 amendment (fictional, explicit and dated): the two opt-in community add-ons for Al-Noor's
+    // one site from 21 October 2026. No edition preset includes them, so no other organisation gains them.
+    modules: [
+      ...all(presetFor('community').modules),
+      { module: 'online_payments', sites: ['site_alnoor'], from: '2026-10-20' },
+      { module: 'community_chat', sites: ['site_alnoor'], from: '2026-10-21' },
+      { module: 'community_hub', sites: ['site_alnoor'], from: '2026-10-21' },
+    ],
     licensedFrom: '2026-10-01',
     allowSettlement: true,
     // Gate S.1 amendment (fictional, V3.2 matrix §7): cashbook, bulk collection and the committee, plus the
@@ -179,7 +186,9 @@ export const TENANT_DIRECTORY: readonly DirectoryTenant[] = [
     // SMS/WhatsApp channels D.1 already simulates. Every message stays simulated.
     // Gate D.2 (V3.2 matrix §7, fictional): the included resident-operations features, and the online
     // payments add-on on Al-Noor's site in sandbox mode only (BILL-011; nothing is ever paid through it).
-    features: ['banking.cashbook', 'receivables.bulk_office_collection', 'receivables.office_collections', 'receivables.reminders', 'residents.committee', 'residents.transfer_clearance', 'communications.sms', 'communications.whatsapp', 'maintenance.community_issues', 'visitors.live_queue', 'parking.vehicle_approvals'],
+    // Gate D.3 (fictional): the hub's local services, polls and resources. The marketplace is not granted
+    // (off until the owner decides D-31).
+    features: ['banking.cashbook', 'receivables.bulk_office_collection', 'receivables.office_collections', 'receivables.reminders', 'residents.committee', 'residents.transfer_clearance', 'communications.sms', 'communications.whatsapp', 'maintenance.community_issues', 'visitors.live_queue', 'parking.vehicle_approvals', 'community_hub.services_directory', 'community_hub.polls', 'community_hub.resources'],
     timeZone: 'Asia/Karachi',
   },
 ];

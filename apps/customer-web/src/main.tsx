@@ -1,4 +1,4 @@
-import { ACCESS_TODAY, bridgedSharedPartitions, CUSTOMER_TENANTS, DemoStore, effectiveAccessFor, MockTransport, ALL_PERSONAS, TENANT } from '@repo/fixtures';
+import { ACCESS_TODAY, bridgedSharedPartitions, CUSTOMER_TENANTS, DemoStore, demoAccessFor, MockTransport, ALL_PERSONAS, TENANT } from '@repo/fixtures';
 import { getMissingKeys } from '@repo/i18n';
 import { AppProviders } from '@repo/ui';
 import { StrictMode } from 'react';
@@ -16,6 +16,9 @@ declare global {
 
 let transport: MockTransport | undefined;
 
+/** Gate D.3: the same access for the screens and the mock server (a demo can withdraw an add-on, never grant one). */
+const accessFor = demoAccessFor();
+
 /**
  * Prototype: the office app's bridge page, which keeps the society demo both apps share in this
  * browser (a resident's proof reaches the accounts officer; the receipt comes back). Same host
@@ -30,10 +33,10 @@ createRoot(document.getElementById('root')!).render(
       tenant={TENANT}
       tenants={CUSTOMER_TENANTS}
       personas={ALL_PERSONAS}
-      accessFor={effectiveAccessFor}
+      accessFor={accessFor}
       accessDate={ACCESS_TODAY}
       createTransport={(getContext, getMode) => {
-        transport ??= new MockTransport({ getContext, getMode, demo: new DemoStore(undefined, bridgedSharedPartitions(`${officeOrigin()}/demo-bridge.html`)) });
+        transport ??= new MockTransport({ getContext, getMode, accessFor, demo: new DemoStore(undefined, bridgedSharedPartitions(`${officeOrigin()}/demo-bridge.html`)) });
         window.__prototype = { transport, missingKeys: getMissingKeys };
         return transport;
       }}

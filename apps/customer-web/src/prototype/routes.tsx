@@ -110,8 +110,22 @@ const operations = {
   parking: lazy(() => import('../pages/operations/ResidentServices').then((m) => ({ default: m.ParkingPage }))),
   amenities: lazy(() => import('../pages/operations/ResidentServices').then((m) => ({ default: m.AmenitiesPage }))),
 };
-const CommunityHub = lazy(() => import('../pages/community/CommunityHubPage'));
+// Gate D.3: the Community home (PORTAL-036) and the community chat (PORTAL-031, its phone route PORTAL-032).
+const CommunityHome = lazy(() => import('../pages/community/CommunityHomePage'));
 const ResidentChat = lazy(() => import('../pages/community/ResidentChatPage'));
+
+/** PORTAL-032: `/customer/portal/chat/:groupId` (the conversation on its own on a phone). */
+function ChatGroupRoute() {
+  const { groupId } = useParams();
+  const isDues = useIsDuesResident();
+  return isDues && groupId ? (
+    <Suspense fallback={null}>
+      <ResidentChat groupId={groupId} />
+    </Suspense>
+  ) : (
+    <RegisterResolver />
+  );
+}
 const NoticeDetail = lazy(() => import('../pages/operations/NoticesPages').then((m) => ({ default: m.NoticeDetailPage })));
 
 /** PORTAL-043: `/customer/portal/community-notices/:id` (the stable deep link of notifications and messages). */
@@ -175,9 +189,10 @@ const portalChildren: RouteObject[] = [
   { path: 'documents', loader: registerLoader, element: <Edition developer={developer.documents} />, handle: handle({ title: (t) => t('portal:pages.documents') }) },
   // Gate D.2: PORTAL-018 repairs, PORTAL-023 notices and PORTAL-043 notice detail (society edition).
   { path: 'maintenance-workspace', loader: registerLoader, element: <Edition dues={operations.repairs} />, handle: handle({ title: (t) => t('operations:repairs.title') }) },
-  { path: 'community', element: <Edition dues={CommunityHub} />, handle: handle({ title: (t) => t('operations:communityHub.title') }) },
-  { path: 'community/services', element: <Edition dues={CommunityHub} />, handle: handle({ title: (t) => t('operations:communityHub.title') }) },
-  { path: 'chat', element: <Edition dues={ResidentChat} />, handle: handle({ title: (t) => t('operations:community.chatTitle') }) },
+  // Gate D.3: PORTAL-036 Community home (tabs by ?tab=), PORTAL-031 chat and PORTAL-032 a conversation.
+  { path: 'community', loader: registerLoader, element: <Edition dues={CommunityHome} />, handle: handle({ title: (t) => t('community:home.title') }) },
+  { path: 'chat', loader: registerLoader, element: <Edition dues={ResidentChat} />, handle: handle({ title: (t) => t('community:chat.title') }) },
+  { path: 'chat/:groupId', loader: registerLoader, element: <ChatGroupRoute />, handle: handle({ title: (t) => t('community:chat.title') }) },
   { path: 'community-notices', loader: registerLoader, element: <Edition dues={operations.notices} />, handle: handle({ title: (t) => t('operations:residentNotice.title') }) },
   { path: 'community-notices/:id', loader: registerLoader, element: <NoticeRoute />, handle: handle({ title: (t) => t('operations:residentNotice.detailTitle') }) },
   // Gate D.2: PORTAL-034 community issues, PORTAL-026 vehicles, PORTAL-021 parking, PORTAL-022 amenities.

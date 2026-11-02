@@ -341,6 +341,7 @@ export const PERMISSION_MODULE: Partial<Record<Permission, ModuleKey>> = {
   'chat.moderate': 'community_chat',
   'directory.manage': 'community_hub',
   'polls.manage': 'community_hub',
+  'resources.publish': 'community_hub',
   'marketplace.moderate': 'community_hub',
 };
 

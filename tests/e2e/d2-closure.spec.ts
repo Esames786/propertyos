@@ -172,7 +172,9 @@ for (const [name, viewport, locale, scale] of [
     // The page's clock is paused and moved on only a little at each step (enough for the mock API's
     // zero-delay timers), so on a slow machine no confirmation dismisses itself (8 s) before the drawer
     // opens: the test does not depend on how fast it runs.
-    await page.clock.pauseAt(await page.evaluate(() => Date.now() + 10));
+    // A second ahead (not 10 ms): on a loaded machine the page's clock can pass a closer target before the
+    // pause reaches it ("cannot fast-forward to the past"). Nothing is on screen yet that a second could expire.
+    await page.clock.pauseAt(await page.evaluate(() => Date.now() + 1000));
     const advanceUntil = (done: () => Promise<boolean>) => expect.poll(async () => (await page.clock.runFor(100), done())).toBe(true);
     // Three bookings in quick succession: three confirmations on screen at once.
     for (const kind of ['gym', 'bbq', 'hall']) {

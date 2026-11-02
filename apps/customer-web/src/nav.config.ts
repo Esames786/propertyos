@@ -1,5 +1,5 @@
 import type { NavItem } from '@repo/ui';
-import { Accessibility, Building2, FileText, HardHat, History, House, LifeBuoy, Megaphone, ReceiptText, ScrollText, UserRound, UsersRound, Wallet, Wrench } from 'lucide-react';
+import { Accessibility, Building2, FileText, HardHat, HeartHandshake, History, House, LifeBuoy, Megaphone, ReceiptText, ScrollText, UserRound, UsersRound, Wallet, Wrench } from 'lucide-react';
 
 /** Customer portal routes (register URLs, blueprint 06). */
 export const PORTAL = {
@@ -90,7 +90,19 @@ export const OPS = {
   amenities: '/customer/portal/amenities',
 } as const;
 
+/**
+ * Gate D.3: the Community home (PORTAL-036, notices summary for every resident; hub tabs where the
+ * society has the add-on) and the community chat (PORTAL-031/032).
+ */
+export const COMMUNITY = {
+  home: '/customer/portal/community',
+  tab: (tab: string) => `/customer/portal/community?tab=${tab}`,
+  chat: '/customer/portal/chat',
+  chatGroup: (id: string) => `/customer/portal/chat/${encodeURIComponent(id)}`,
+} as const;
+
 const D_REQUESTS = item('requests', OPS.services, Wrench, 'operations:nav.requests');
+const D_COMMUNITY = item('community', COMMUNITY.home, HeartHandshake, 'community:nav.community');
 const D_NOTICES = item('notices', OPS.notices, Megaphone, 'operations:nav.notices');
 
 export const DUES_CENTRE_ACTION: NavItem = item('pay', DUES.pay, Wallet, 'dues:nav.pay');
@@ -102,7 +114,7 @@ export const DUES_BOTTOM_NAV: NavItem[] = [D_HOME, D_BILLS, D_REQUESTS, D_NOTICE
 export const DUES_NAV_GROUPS = [
   { id: 'top', items: [D_HOME] },
   { id: 'money', labelKey: 'dues:nav.groups.money', items: [D_BILLS, D_HISTORY, D_STATEMENT] },
-  { id: 'services', labelKey: 'operations:nav.group', items: [D_REQUESTS, D_NOTICES] },
+  { id: 'services', labelKey: 'operations:nav.group', items: [D_REQUESTS, D_NOTICES, D_COMMUNITY] },
   { id: 'flats', labelKey: 'portal:nav.groups.property', items: [D_PROPERTIES, D_HOUSEHOLD] },
   { id: 'account', labelKey: 'portal:nav.groups.account', items: [PROFILE, D_SETTINGS] },
 ];
@@ -117,6 +129,7 @@ export const DUES_NAV_ALIASES: Record<string, string> = {
   '/customer/portal/vehicles': 'requests',
   '/customer/portal/parking': 'requests',
   '/customer/portal/amenities': 'requests',
+  [COMMUNITY.chat]: 'community',
 };
 
 export const START = PORTAL.home;

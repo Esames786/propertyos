@@ -1,8 +1,8 @@
 import { AUDIENCE_ROLES, NOTICE_CATEGORIES, type AudiencePreview, type BroadcastMessage, type NoticeAudience, type NoticeCategory, type NoticeDetail, type NoticeList, type SiteStructure, type SiteSummary } from '@repo/contracts';
 import { Badge, Button, buttonClass, cn, ConfirmDialog, Drawer, dynamicT, EmptyState, ErrorState, FilterPills, InlineAlert, Link, PageHeader, PlainCheckbox, PlainTextArea, PlainTextField, SegmentedControl, SelectControl, useApiMutation, useApiQuery, useQueryParam, useQueryParams, useSession, useT, useToast } from '@repo/ui';
-import { BadgeCheck, Eye, Mail, Megaphone, MessageSquare, PenLine, Plus, Send, Smartphone, Undo2, UserX, Users } from 'lucide-react';
+import { BadgeCheck, Eye, Mail, Megaphone, MessageSquare, MessagesSquare, PenLine, Plus, Send, Smartphone, Undo2, UserX, Users } from 'lucide-react';
 import { useState } from 'react';
-import { OPS } from '../../../nav.config';
+import { COMMUNITY, OPS } from '../../../nav.config';
 import { Loading, ProblemAlert, useSocietyFormat } from '../kit';
 import { Fact, FactGrid, HistoryList, WRAP } from '../finance/fkit';
 import { AudienceText, NoticeBadge, When } from './okit';
@@ -37,10 +37,12 @@ export default function NoticesOffice() {
                 {t('operations:notices.new')}
               </Button>
             )}
-            {can('chat.groups.manage') && (
-              <Link href={OPS.chat} variant="plain" className={cn(buttonClass('secondary', 'md', 'gap-2'), WRAP)} data-testid="notices-chat-admin">
-                <MessageSquare aria-hidden className="size-4" />
-                {t('operations:communityOffice.title')}
+            {/* Gate D.3: where the society has community chat, its groups and reports are one step away
+                (notices themselves never depend on it). */}
+            {(can('chat.groups.manage') || can('chat.moderate')) && (
+              <Link href={COMMUNITY.settings()} variant="plain" className={cn(buttonClass('secondary', 'md', 'gap-2'), WRAP)} data-testid="notices-chat-admin">
+                <MessagesSquare aria-hidden className="size-4" />
+                {t('community:office.title')}
               </Link>
             )}
             {can('messages.send') && (

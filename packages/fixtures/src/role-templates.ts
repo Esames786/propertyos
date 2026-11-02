@@ -47,7 +47,7 @@ const STARTER_PERMISSIONS: Record<StarterRoleKey, readonly Permission[]> = {
     // vehicles, amenity bookings, official notices and quick broadcasts, and the sandbox gateway.
     'maintenance.manage', 'issues.view', 'issues.manage', 'issues.moderate', 'visitors.view', 'parking.view', 'vehicles.approve', 'amenities.manage', 'notices.publish', 'messages.send', 'merchant.manage',
     // D.3 opt-in modules: licence still required even for administrators.
-    'chat.use', 'chat.groups.manage', 'chat.moderate', 'directory.manage', 'polls.manage',
+    'chat.use', 'chat.groups.manage', 'chat.moderate', 'directory.manage', 'polls.manage', 'resources.publish',
   ],
   manager: [
     'quickcreate.use', 'customer.view', 'residents.view', 'operations.view', 'workorder.update', 'visitors.manage', 'invoice.view', 'reports.view',
@@ -59,7 +59,7 @@ const STARTER_PERMISSIONS: Record<StarterRoleKey, readonly Permission[]> = {
     'committee.view', 'approval.view', 'cashbook.view', 'transfer.review',
     // Gate D.2: runs the building day to day: requests, issues, the gate, vehicles, bookings and notices.
     'maintenance.manage', 'issues.view', 'issues.manage', 'issues.moderate', 'visitors.view', 'parking.view', 'vehicles.approve', 'amenities.manage', 'notices.publish', 'messages.send',
-    'chat.use', 'chat.groups.manage', 'chat.moderate', 'directory.manage', 'polls.manage',
+    'chat.use', 'chat.groups.manage', 'chat.moderate', 'directory.manage', 'polls.manage', 'resources.publish',
   ],
   treasurer: [
     'quickcreate.use', 'customer.view', 'invoice.view', 'payment.receive', 'finance.evidence.review', 'residents.view', 'reports.view',

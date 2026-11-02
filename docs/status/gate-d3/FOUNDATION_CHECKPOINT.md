@@ -1,5 +1,7 @@
 # Gate D.3 — Checkpoint 1 (staged licensing and smart-group foundation)
 
+> **Superseded.** GPT's interim note, kept as history. Its "not executed" caveats were resolved in `69dafef` (audit) and the D.3 commit; the gate's current state is in [`GATE_D3_REPORT.md`](GATE_D3_REPORT.md) and [`test-results.md`](test-results.md).
+
 Branch: `feature/gate-d3-community-chat`. Base: accepted D.2 `a54f594`.
 
 ## Added in code

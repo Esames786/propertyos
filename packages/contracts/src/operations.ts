@@ -807,7 +807,7 @@ export interface ResidentNotices {
 /** PORTAL-043: a notice, or why it cannot be shown (the audience is checked on every open). */
 export type ResidentNoticeOpen = { available: true; notice: ResidentNotice } | { available: false; reason: 'not_in_audience' | 'not_found' };
 
-export const NOTIFICATION_KINDS = ['notice', 'message', 'request', 'gate', 'vehicle', 'booking'] as const;
+export const NOTIFICATION_KINDS = ['notice', 'message', 'request', 'gate', 'vehicle', 'booking', 'chat', 'poll'] as const;
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
 
 export interface ResidentNotification {

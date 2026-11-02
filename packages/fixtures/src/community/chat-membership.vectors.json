@@ -1,0 +1,125 @@
+{
+  "about": "Gate D.3 chat membership vectors (V3.2 execution plan §4, D-25). A small fictional site: block A (floors 1 and 2) and block B (floor 1). Each case lists the facts in force, the reader and the groups they must (and must not) be in, with the moment they joined. Groups come only from facts: occupancy for site/block/floor, committee terms, staff roles, a custom group's audience.",
+  "site": {
+    "buildings": [{ "id": "bld_a", "code": "A" }, { "id": "bld_b", "code": "B" }],
+    "floors": [{ "id": "flr_a_1", "buildingId": "bld_a", "level": 1 }, { "id": "flr_a_2", "buildingId": "bld_a", "level": 2 }, { "id": "flr_b_1", "buildingId": "bld_b", "level": 1 }],
+    "flats": [
+      { "id": "unt_a101", "code": "A-101", "buildingId": "bld_a", "buildingCode": "A", "floor": 1 },
+      { "id": "unt_a201", "code": "A-201", "buildingId": "bld_a", "buildingCode": "A", "floor": 2 },
+      { "id": "unt_b101", "code": "B-101", "buildingId": "bld_b", "buildingCode": "B", "floor": 1 }
+    ]
+  },
+  "on": "2026-10-26",
+  "cases": [
+    {
+      "name": "a current occupant is in the site, their block and their floor, from their move-in",
+      "facts": [{ "partyId": "p1", "role": "occupant", "flatId": "unt_a101", "from": "2024-05-01", "occupancyKind": "owner" }],
+      "reader": { "kind": "resident", "partyId": "p1" },
+      "in": { "site": "2024-05-01T00:00:00+05:00", "block:bld_a": "2024-05-01T00:00:00+05:00", "floor:bld_a:1": "2024-05-01T00:00:00+05:00" },
+      "notIn": ["block:bld_b", "floor:bld_a:2", "floor:bld_b:1", "committee", "staff"]
+    },
+    {
+      "name": "an owner who lives elsewhere, and a payer, are in no resident group",
+      "facts": [{ "partyId": "p2", "role": "owner", "flatId": "unt_a101", "from": "2020-01-01" }, { "partyId": "p2", "role": "payer", "flatId": "unt_a101", "from": "2020-01-01" }],
+      "reader": { "kind": "resident", "partyId": "p2" },
+      "in": {},
+      "notIn": ["site", "block:bld_a", "floor:bld_a:1"]
+    },
+    {
+      "name": "the occupancy ended yesterday: every group is gone today (server revocation at once)",
+      "facts": [{ "partyId": "p3", "role": "occupant", "flatId": "unt_b101", "from": "2023-01-01", "to": "2026-10-26", "occupancyKind": "tenant" }],
+      "reader": { "kind": "resident", "partyId": "p3" },
+      "in": {},
+      "notIn": ["site", "block:bld_b", "floor:bld_b:1"]
+    },
+    {
+      "name": "a move-in today joins today: nothing earlier is visible",
+      "facts": [{ "partyId": "p4", "role": "occupant", "flatId": "unt_a201", "from": "2026-10-26", "occupancyKind": "tenant" }],
+      "reader": { "kind": "resident", "partyId": "p4" },
+      "in": { "site": "2026-10-26T00:00:00+05:00", "block:bld_a": "2026-10-26T00:00:00+05:00", "floor:bld_a:2": "2026-10-26T00:00:00+05:00" },
+      "notIn": ["floor:bld_a:1"]
+    },
+    {
+      "name": "a move-in after today has not joined yet",
+      "facts": [{ "partyId": "p5", "role": "occupant", "flatId": "unt_a201", "from": "2026-11-01", "occupancyKind": "tenant" }],
+      "reader": { "kind": "resident", "partyId": "p5" },
+      "in": {},
+      "notIn": ["site", "block:bld_a"]
+    },
+    {
+      "name": "two flats in one block: one block membership from the earlier move-in",
+      "facts": [
+        { "partyId": "p6", "role": "occupant", "flatId": "unt_a101", "from": "2022-03-01", "occupancyKind": "owner" },
+        { "partyId": "p6", "role": "occupant", "flatId": "unt_a201", "from": "2025-06-01", "occupancyKind": "owner" }
+      ],
+      "reader": { "kind": "resident", "partyId": "p6" },
+      "in": { "site": "2022-03-01T00:00:00+05:00", "block:bld_a": "2022-03-01T00:00:00+05:00", "floor:bld_a:1": "2022-03-01T00:00:00+05:00", "floor:bld_a:2": "2025-06-01T00:00:00+05:00" },
+      "notIn": ["block:bld_b"]
+    },
+    {
+      "name": "the association's own occupancy (office flat) is nobody's membership",
+      "facts": [{ "partyId": "assoc", "role": "occupant", "flatId": "unt_b101", "from": "2020-01-01", "occupancyKind": "association" }],
+      "reader": { "kind": "resident", "partyId": "assoc" },
+      "in": {},
+      "notIn": ["site", "block:bld_b"]
+    },
+    {
+      "name": "a committee member in force is in the committee group from the term start; a tenant-payer is not",
+      "facts": [{ "partyId": "p7", "role": "occupant", "flatId": "unt_a101", "from": "2019-01-01", "occupancyKind": "owner" }],
+      "terms": [{ "partyId": "p7", "from": "2026-04-01", "to": "2028-04-01" }, { "partyId": "p8", "from": "2026-04-01", "to": "2026-09-01" }],
+      "reader": { "kind": "resident", "partyId": "p7" },
+      "in": { "site": "2019-01-01T00:00:00+05:00", "block:bld_a": "2019-01-01T00:00:00+05:00", "floor:bld_a:1": "2019-01-01T00:00:00+05:00", "committee": "2026-04-01T00:00:00+05:00" },
+      "notIn": ["staff"]
+    },
+    {
+      "name": "an ended committee term is no membership",
+      "facts": [{ "partyId": "p8", "role": "occupant", "flatId": "unt_b101", "from": "2019-01-01", "occupancyKind": "owner" }],
+      "terms": [{ "partyId": "p8", "from": "2026-04-01", "to": "2026-09-01" }],
+      "reader": { "kind": "resident", "partyId": "p8" },
+      "in": { "site": "2019-01-01T00:00:00+05:00", "block:bld_b": "2019-01-01T00:00:00+05:00", "floor:bld_b:1": "2019-01-01T00:00:00+05:00" },
+      "notIn": ["committee"]
+    },
+    {
+      "name": "staff who may chat join the site and office groups from the licence start, never a block or floor",
+      "facts": [],
+      "reader": { "kind": "office", "principalId": "usr_1", "mayChat": true },
+      "in": { "site": "2026-10-21T00:00:00+05:00", "staff": "2026-10-21T00:00:00+05:00" },
+      "notIn": ["block:bld_a", "floor:bld_a:1", "committee"]
+    },
+    {
+      "name": "staff without chat.use are in no group",
+      "facts": [],
+      "reader": { "kind": "office", "principalId": "usr_2", "mayChat": false },
+      "in": {},
+      "notIn": ["site", "staff"]
+    },
+    {
+      "name": "a custom group for block A owners: an owner joins from the group's creation, an occupant tenant does not",
+      "facts": [
+        { "partyId": "p9", "role": "owner", "flatId": "unt_a201", "from": "2018-01-01" },
+        { "partyId": "p10", "role": "occupant", "flatId": "unt_a201", "from": "2024-01-01", "occupancyKind": "tenant" }
+      ],
+      "custom": { "id": "cg1", "audience": { "scope": "blocks", "ids": ["bld_a"], "roles": ["owner"] }, "createdAt": "2026-10-22T10:00:00+05:00" },
+      "reader": { "kind": "resident", "partyId": "p9" },
+      "in": { "custom:cg1": "2026-10-22T10:00:00+05:00" },
+      "notIn": ["site"]
+    },
+    {
+      "name": "left a custom group: out until joining again, then only from the rejoin",
+      "facts": [{ "partyId": "p11", "role": "owner", "flatId": "unt_a101", "from": "2018-01-01" }],
+      "custom": { "id": "cg2", "audience": { "scope": "site", "ids": [], "roles": ["owner"] }, "createdAt": "2026-10-22T10:00:00+05:00" },
+      "left": [{ "groupId": "custom:cg2", "at": "2026-10-23T09:00:00+05:00", "rejoinedAt": "2026-10-25T18:00:00+05:00" }],
+      "reader": { "kind": "resident", "partyId": "p11" },
+      "in": { "custom:cg2": "2026-10-25T18:00:00+05:00" },
+      "notIn": []
+    },
+    {
+      "name": "a disabled group vanishes for its members",
+      "facts": [{ "partyId": "p12", "role": "occupant", "flatId": "unt_b101", "from": "2020-01-01", "occupancyKind": "owner" }],
+      "rules": { "floor:bld_b:1": { "enabled": false, "postingPolicy": "everyone" } },
+      "reader": { "kind": "resident", "partyId": "p12" },
+      "in": { "site": "2020-01-01T00:00:00+05:00", "block:bld_b": "2020-01-01T00:00:00+05:00" },
+      "notIn": ["floor:bld_b:1"]
+    }
+  ]
+}

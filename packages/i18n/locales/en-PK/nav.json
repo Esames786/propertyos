@@ -28,7 +28,12 @@
     "ownershipTransfers": "Transfers and clearance",
     "visitors": "Visitors & gate",
     "vehicles": "Vehicles",
-    "notices": "Notices"
+    "notices": "Notices",
+    "communityChat": "Community chat",
+    "chatSettings": "Chat groups & reports",
+    "localServices": "Local services",
+    "polls": "Polls",
+    "residentDocuments": "Documents for residents"
   },
   "header": {
     "search": "Search",

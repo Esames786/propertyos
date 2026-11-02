@@ -135,6 +135,8 @@ export { useMediaQuery, useIsDesktop, useIsTabletUp, BREAKPOINTS } from './lib/u
 export { DevicesPanel, SecurityActivity, useDeviceName } from './identity/Sessions';
 export { ProfileDetails, useMyProfile } from './identity/Profile';
 export { AppSwitchCard, AppSwitchLanding, RoleModeChip, useAppSwitch, type SwitchableApp } from './identity/AppSwitch';
+// Gate D.3: the community chat (resident app and office).
+export { Chat, KeepWords, useChatGroupName, type ChatProps } from './community/Chat';
 export { saveFile } from './lib/download';
 export { useOrgAppearanceSync, type OrgAppearanceAnswer } from './identity/OrgAppearance';
 export { flushSharedPreferences, useSharedPreferences } from './preferences/SharedPreferences';

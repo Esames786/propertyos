@@ -1,6 +1,6 @@
 import type { GateRequest, ResidentNotifications } from '@repo/contracts';
 import { Button, Dialog, Drawer, IconButton, Link, useApiMutation, useApiQuery, useNavigation, useT, useToast } from '@repo/ui';
-import { Bell, CheckCheck, CheckCircle2, DoorClosed, Megaphone, PhoneCall, Wrench, Car, DoorOpen, CalendarCheck, MessageSquare } from 'lucide-react';
+import { Bell, CheckCheck, CheckCircle2, DoorClosed, Megaphone, PhoneCall, Wrench, Car, DoorOpen, CalendarCheck, MessageSquare, MessagesSquare, Vote } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { usePortalFormat } from '../portal/shared';
 import { DEMO_TODAY, demoNow, useWords } from './rkit';
@@ -74,7 +74,7 @@ export function GatePrompt() {
   );
 }
 
-const KIND_ICON = { notice: Megaphone, message: MessageSquare, request: Wrench, gate: DoorOpen, vehicle: Car, booking: CalendarCheck } as const;
+const KIND_ICON = { notice: Megaphone, message: MessageSquare, request: Wrench, gate: DoorOpen, vehicle: Car, booking: CalendarCheck, chat: MessagesSquare, poll: Vote } as const;
 
 /**
  * PORTAL-042: the resident's notifications behind the bell in the header. Notices, messages and the

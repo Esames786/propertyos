@@ -1,6 +1,6 @@
 import { decideTarget, MODULE_KEYS, type AccessDecision, type AccessTarget, type EffectiveAccess, type ModuleKey, type SuspensionClass } from '@repo/contracts';
 import { findScreenByRegisterRoute } from '@repo/contracts/screens';
-import { ArrowRightLeft, Banknote, BarChart3, Briefcase, Building, Building2, Car, ClipboardCheck, Compass, Contact, DatabaseZap, DoorOpen, FlaskConical, HandCoins, Coins, Home, Landmark, Megaphone, MonitorSmartphone, ReceiptText, Settings2, ShoppingCart, Smartphone, Users, UsersRound, Wallet, Wrench } from 'lucide-react';
+import { ArrowRightLeft, BadgeCheck, Banknote, BarChart3, Briefcase, Building, Building2, Car, ClipboardCheck, Compass, Contact, DatabaseZap, DoorOpen, FileText, FlaskConical, HandCoins, Coins, Home, Landmark, Megaphone, MessagesSquare, MonitorSmartphone, ReceiptText, Settings2, ShieldCheck, ShoppingCart, Smartphone, Users, UsersRound, Vote, Wallet, Wrench } from 'lucide-react';
 import { LIVE, PLANNED } from '../shell/QuickCreateMenu';
 import type { NavItem } from '../shell/types';
 
@@ -43,6 +43,12 @@ export const TENANT_NAV: NavItem[] = [
   { id: 'vehicles', labelKey: 'nav:items.vehicles', href: '/backoffice/park/vehicle-registry', icon: Car, anyOf: ['parking.view', 'vehicles.approve'], module: 'parking', match: '/backoffice/park/vehicle-registry', group: 'operations' },
   { id: 'notices', labelKey: 'nav:items.notices', href: '/backoffice/res/community-announcements', icon: Megaphone, permission: 'residents.view', module: 'residents', match: '/backoffice/res/community-announcements', group: 'operations' },
   { id: 'send-message', labelKey: 'nav:pages.sendMessage', href: '/backoffice/not/send-message', icon: Megaphone, anyOf: ['messages.send'], module: 'communications', match: '/backoffice/not/send-message', group: 'operations', menu: false, hub: 'notices' },
+  // Gate D.3: the optional community add-ons (each needs its licence for the site, the feature and the permission).
+  { id: 'community-chat', labelKey: 'nav:items.communityChat', href: '/backoffice/chat', icon: MessagesSquare, permission: 'chat.use', module: 'community_chat', match: '/backoffice/chat', group: 'operations' },
+  { id: 'chat-settings', labelKey: 'nav:items.chatSettings', href: '/backoffice/chat/settings', icon: ShieldCheck, anyOf: ['chat.groups.manage', 'chat.moderate'], module: 'community_chat', match: '/backoffice/chat/settings', group: 'operations' },
+  { id: 'local-services', labelKey: 'nav:items.localServices', href: '/backoffice/community/services', icon: BadgeCheck, permission: 'directory.manage', module: 'community_hub', feature: 'community_hub.services_directory', match: '/backoffice/community/services', group: 'operations' },
+  { id: 'polls', labelKey: 'nav:items.polls', href: '/backoffice/community/polls', icon: Vote, permission: 'polls.manage', module: 'community_hub', feature: 'community_hub.polls', match: '/backoffice/community/polls', group: 'operations' },
+  { id: 'resident-documents', labelKey: 'nav:items.residentDocuments', href: '/backoffice/doc/document-center', icon: FileText, permission: 'resources.publish', module: 'community_hub', feature: 'community_hub.resources', match: '/backoffice/doc/document-center', group: 'operations' },
   // Gate D.1: residents' use of the resident app (societies: like Collections, other organisations keep the planned page).
   { id: 'committee', labelKey: 'nav:items.committee', href: '/backoffice/committee', icon: UsersRound, permission: 'committee.view', module: 'residents', feature: 'residents.committee', match: '/backoffice/committee', group: 'operations', suspension: 'history_read' },
   { id: 'ownership-transfers', labelKey: 'nav:items.ownershipTransfers', href: '/backoffice/own/transfers-list', icon: ArrowRightLeft, anyOf: ['transfer.review', 'transfer.approve', 'clearance.issue'], module: 'residents', feature: 'residents.transfer_clearance', match: '/backoffice/own/transfer', group: 'operations', suspension: 'history_read' },

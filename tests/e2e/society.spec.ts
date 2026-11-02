@@ -279,8 +279,9 @@ test.describe('Gate C.1: Al-Noor Residency, setup to monthly billing', () => {
     await page.goto(`${BO}/backoffice`);
     await expect(page.getByTestId('society-dashboard')).toBeVisible();
     const jump = page.getByTestId('flat-jump').getByRole('combobox');
-    // The menu grows with what the persona may open (Gate S.1 added its society finance and governance areas).
-    for (let i = 0; i < 40 && !(await jump.evaluate((el) => el === document.activeElement)); i++) await page.keyboard.press('Tab');
+    // The menu grows with what the persona may open (Gate S.1 added its society finance and governance areas;
+    // Gate D.3 its community chat, local services, polls and documents for residents).
+    for (let i = 0; i < 60 && !(await jump.evaluate((el) => el === document.activeElement)); i++) await page.keyboard.press('Tab');
     await expect(jump).toBeFocused();
     await page.keyboard.type('a102');
     await page.keyboard.press('ArrowDown');
@@ -289,12 +290,12 @@ test.describe('Gate C.1: Al-Noor Residency, setup to monthly billing', () => {
 
     await page.goto(`${BO}/backoffice/billing/runs/new`);
     const create = page.getByTestId('new-run-create');
-    for (let i = 0; i < 40 && !(await create.evaluate((el) => el === document.activeElement)); i++) await page.keyboard.press('Tab');
+    for (let i = 0; i < 60 && !(await create.evaluate((el) => el === document.activeElement)); i++) await page.keyboard.press('Tab');
     await expect(create).toBeFocused();
     await page.keyboard.press('Enter');
     const preview = page.getByTestId('run-preview');
     await expect(preview).toBeVisible();
-    for (let i = 0; i < 40 && !(await preview.evaluate((el) => el === document.activeElement)); i++) await page.keyboard.press('Tab');
+    for (let i = 0; i < 60 && !(await preview.evaluate((el) => el === document.activeElement)); i++) await page.keyboard.press('Tab');
     await expect(preview).toBeFocused();
     await page.keyboard.press('Enter');
     await expect(page.getByTestId('run-workspace')).toHaveAttribute('data-state', 'PREVIEWED');

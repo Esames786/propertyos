@@ -34,11 +34,14 @@ test.describe('Screen register coverage (V3.1)', () => {
     // BANK-008, BANK-009, FIN-014, BILL-018, COL-008, COL-009 and OWN-006.
     // Gate D.2 adopts its V3.2 rows only: MNT-012 and PORTAL-034, and the states MNT-013, PORTAL-035,
     // PORTAL-040, PORTAL-042, PORTAL-043, VIS-007 and PARK-007.
-    expect(SCREENS.length).toBe(424);
+    // Gate D.3 adopts its V3.2 rows only: CHAT-001, CHAT-003, PORTAL-031, PORTAL-036, CMTY-001, CMTY-002
+    // and CMTY-003 (planned until D-31), and the states CHAT-002, CHAT-004, PORTAL-032, CMTY-004,
+    // PORTAL-038 (planned) and PORTAL-039.
+    expect(SCREENS.length).toBe(437);
     for (const prefix of ['GLOBAL', 'AUTH', 'SAAS', 'CRM', 'PORTAL', 'WEB', 'HQ', 'SITE', 'BILL', 'ENTRY']) {
       expect([...ids].some((id) => id.startsWith(`${prefix}-`)), prefix).toBe(true);
     }
-    expect(SCREENS.filter((s) => s.canonicalId === s.id)).toHaveLength(346);
+    expect(SCREENS.filter((s) => s.canonicalId === s.id)).toHaveLength(353);
   });
 
   for (const [i, group] of chunks(OPENABLE, 25).entries()) {
