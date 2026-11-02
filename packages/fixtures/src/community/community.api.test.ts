@@ -545,6 +545,66 @@ describe('Issue #9: anonymous poll results never point at one or two people', ()
   });
 });
 
+describe('Issue #10: block results stay safe however many blocks a society has', () => {
+  const title = 'Evening security patrol';
+  const resident = async (api: ReturnType<typeof session>, persona: string, query?: Record<string, string>) => (await api.as(persona).get<PollsResident>('/portal/community/polls', query)).items.find((p) => p.title.startsWith(title))!;
+  /** The published patrol poll, given the Issue #10 counterexample: 32 blocks at 3–3 and X at 2–1, 20 households each. */
+  async function counterexample(api: ReturnType<typeof session>) {
+    await resident(api, 'alnoor_tenant_a102');
+    const stored = api.community().polls.find((p) => p.title.startsWith(title))!;
+    const codes = Array.from({ length: 32 }, (_, i) => `B${String(i + 1).padStart(3, '0')}`);
+    stored.tally = { ...Object.fromEntries(codes.map((c) => [c, { opt_1: 3, opt_2: 3 }])), X: { opt_1: 2, opt_2: 1 } };
+    stored.audienceAtClose = { site: 660, blocks: { ...Object.fromEntries(codes.map((c) => [c, 20])), X: 20 } };
+    return stored;
+  }
+  const remainder = (r: PollsResident['items'][number]['results']) => {
+    if (!r?.shown || !r.options) throw new Error('expected a breakdown');
+    return r.options.map((o, i) => o.count - r.blocks.reduce((n, b) => n + b.options[i]!.count, 0));
+  };
+
+  it('the 33-block counterexample through the API: 31 blocks shown, X and one 3–3 block hidden together (5–4)', async () => {
+    const api = session();
+    await counterexample(api);
+    const poll = await resident(api, 'alnoor_tenant_a102');
+    const seen = poll.results!;
+    expect(seen).toMatchObject({ shown: true, total: 195, options: [{ count: 98 }, { count: 97 }] });
+    if (!seen.shown) throw new Error('expected results');
+    expect(seen.blocks).toHaveLength(31);
+    expect(seen.blocks.map((b) => b.code)).not.toContain('X');
+    expect(remainder(seen)).toEqual([5, 4]);
+    // The office sees no more for an anonymous poll: the same breakdown and block lines.
+    const office = await api.as('alnoor_manager').get<PollOffice>(`/ops/community/polls/${poll.id}`);
+    expect(office.totals).toEqual(seen.options);
+    expect(office.published).toEqual(seen);
+  });
+
+  it('repeated reads, another resident and unrelated query parameters get the same result', async () => {
+    const api = session();
+    await counterexample(api);
+    const first = (await resident(api, 'alnoor_tenant_a102')).results;
+    const reads = [await resident(api, 'alnoor_tenant_a102'), await resident(api, 'alnoor_resident_a101'), await resident(api, 'alnoor_tenant_a102', { status: 'all', block: 'X', blocks: 'B001,X', threshold: '1', minCount: '1' })];
+    for (const r of reads) expect(r.results).toEqual(first);
+  });
+
+  it('a result published before this fix (every 3–3 block shown) cannot leak: it is recomputed on every read', async () => {
+    const api = session();
+    const stored = (await counterexample(api)) as unknown as Record<string, unknown>;
+    const blocks = Array.from({ length: 32 }, (_, i) => ({ code: `B${String(i + 1).padStart(3, '0')}`, total: 6, options: [{ id: 'opt_1', count: 3 }, { id: 'opt_2', count: 3 }] }));
+    stored.published = { shown: true, total: 195, options: [{ id: 'opt_1', label: 'Yes', count: 98 }, { id: 'opt_2', label: 'No', count: 97 }], blocks };
+    const seen = (await resident(api, 'alnoor_tenant_a102')).results;
+    expect(remainder(seen)).toEqual([5, 4]);
+  });
+
+  it('answers that cannot be real fail closed for residents and the office', async () => {
+    const api = session();
+    const stored = await counterexample(api);
+    stored.tally.X = { opt_1: 2, opt_2: -1 };
+    const seen = await resident(api, 'alnoor_tenant_a102');
+    expect(seen.results).toEqual({ shown: false, reason: 'unavailable' });
+    expect((await api.as('alnoor_manager').get<PollOffice>(`/ops/community/polls/${seen.id}`)).totals).toBeNull();
+  });
+});
+
 describe('Issue #9: retention ends visibility; an open report keeps evidence for moderators only', () => {
   /** An expired message (and optionally a report about it) put straight into the demo state. */
   async function expired(api: ReturnType<typeof session>, report?: 'open' | 'dismissed') {

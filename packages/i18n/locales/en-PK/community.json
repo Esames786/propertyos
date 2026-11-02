@@ -206,7 +206,8 @@
     "privacyRule": "Results are shown only for groups large enough that no household's answer can be worked out.",
     "hidden": {
       "below_threshold": "Not enough responses to show results. This protects the privacy of the few who answered.",
-      "audience_too_small": "The audience is too small to show results without revealing how households answered."
+      "audience_too_small": "The audience is too small to show results without revealing how households answered.",
+      "unavailable": "Results are not available: the recorded answers could not be checked, so nothing is shown."
     },
     "withheld": "Results withheld for privacy: the answers per option are not shown because they could reveal how one or two people answered.",
     "namedConsent": "I understand that the office will see my name and my answer."

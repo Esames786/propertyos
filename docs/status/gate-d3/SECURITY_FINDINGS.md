@@ -21,6 +21,14 @@ What was checked, what was found and what enforces each rule. Prototype scope: t
 | S8 (P1) | An open report kept an expired message visible to every member of the group | retention extended for residents by a moderation event | members see only what the retention period allows; the report queue (`chat.moderate`) alone keeps the reported text as evidence while the report is open; once decided it is not shown again (API: 6 tests; `d3.spec`) |
 | S9 | Named polls showed the office who answered what, but residents were only told in small print | answers given without clear consent | a warning and an "I understand" box before answering; the server refuses a named answer without it; only `polls.manage` sees the roster (API, `d3.spec`) |
 
+## 1b. Found in the review of the Issue #9 closure (Issue #10) and closed
+
+| # | Finding | Risk | Closed by |
+|---|---|---|---|
+| S10 (P0) | The Issue #9 block rule was checked by trying every subset of shown blocks with a 32-bit mask (`mask < 1 << set.length`). From 31 candidate blocks `1 << n` wraps (`1 << 32` is 1), so nothing was checked and every safe block was shown. With 33 blocks (32 at 3–3, X at 2–1) the audience minus the 32 shown blocks is X: one household's answer. Below 31 blocks the check grew as 2^n | an anonymous answer can be worked out in a large society; a large poll could freeze the page | no subset enumeration: every shown block and the undisclosed remainder (all hidden blocks together) must be safe, which by the closure lemma makes every computable group safe; at most 2k + 2 blocks returned to the remainder, O(n log n + n·k²) ([report §10](GATE_D3_REPORT.md#10-issue-10-security-closure)). Vectors: 37 (the counterexample, 20 to 128 blocks); 5,000 random polls attacked by enumerating every set of shown blocks; 20,000 lemma pairs; societies of 100 to 10,000 blocks; API: 4 tests; `d3.spec`: 128 blocks in both apps |
+| S11 | Found by our own random test of the old code: when every block was shown it skipped the remainder, so households the audience counted outside any block were never checked; a group of 4 households was shown to have given no answer | non-participation of a small group disclosed (only with an audience that does not add up, which the demo's own data never has) | the remainder is always checked, households included; an audience that is not exactly the sum of its blocks is refused |
+| S12 | Stored answers were trusted as they were: a negative, fractional or non-numeric count, or an answer for an option the poll does not have, would have been shown or summed | a corrupted or crafted record changes what residents see | inputs that cannot be real fail closed: nothing is shown (`unavailable`, with a plain explanation), for residents and the office (vectors: 5; API) |
+
 ## 2. Access rules and where they are enforced
 
 | Rule | Enforced in | Proven by |
@@ -37,7 +45,7 @@ What was checked, what was found and what enforces each rule. Prototype scope: t
 | Retention: closed until set; expired messages leave every conversation (members get no holds); an open report keeps the text as evidence for moderators only; decided reports past the period show no text | `needsRetention`, `readable`, `reportView` | API (6 tests for Issue #9); `d3.spec` |
 | Moderators see only reported messages; reporters never named | reports queue returns the reported message only; reporters as a count | API (`JSON` of the queue contains no party ids or names of reporters) |
 | No debt, login or contact leak to residents | resident payloads carry names only (no flat codes in chat, no phone without consent, no balances) | API (`not.toMatch(/pty_anr|usr_anr|@example|A-1\d\d|balance/)`) |
-| Poll privacy (D-47, Issue #9): no running tally; anonymous answers unlinkable; a grouping shown only with 3 answers and 5 households; its breakdown only if every option count and complement is 0 or at least 3 (otherwise the turnout only, never a partly masked breakdown); blocks only if every difference with the shown figures is safe; computed from frozen answers on every read | `safeBreakdown`, `pollResults`, `resultsOf` | vectors (15 cases); API |
+| Poll privacy (D-47, Issues #9 and #10): no running tally; anonymous answers unlinkable; a grouping shown only with 3 answers and 5 households; its breakdown only if every option count and complement is 0 or at least 3 (otherwise the turnout only, never a partly masked breakdown); blocks only if each shown block and the undisclosed remainder are safe (no subset enumeration, no block limit); answers that cannot be real fail closed; computed from frozen answers on every read | `safeBreakdown`, `safeRemainder`, `pollResults` (`polls.ts`), `resultsOf` | vectors (37 cases); random attack (5,000 polls) and lemma (20,000 pairs); large societies (to 10,000 blocks); API; `d3.spec` |
 | Notices independent of both add-ons (D-49) | notices handlers need `residents`/`resident_portal` only | API and E2E with both add-ons withdrawn |
 | No new tenant gets an add-on automatically | catalogue: `includedIn: []`; presets unchanged | `platform.test.ts`, `tenant-access.test.ts` (Shalimar's plan lists both unlicensed) |
 | The demo's licence override can only remove | `demoAccessFor` filters grants from a fixed list | code review; E2E uses it only to withdraw |
@@ -50,3 +58,8 @@ What was checked, what was found and what enforces each rule. Prototype scope: t
 - Retention legal review (D-25 (5)) remains a specialist decision; the demo's 365 days is not a recommendation. The evidence hold lasts while a report is open and has no legal-hold workflow, consent record or expiry of its own (prototype).
 - Poll results: a unanimous result (every respondent chose one option, at least 3 of them) is shown; it says nothing about who answered, which residents never learn in an anonymous poll. Owner to confirm.
 - The minimum counts follow D-47 (3 answers, 5 households); a society may raise them, never lower them.
+- Poll blocks (Issue #10): what a reader can still learn, by design:
+  - which blocks are hidden; that only says some hidden block would have been unsafe alone, never its figures, which stay inside a safe remainder;
+  - ranges from what they already know (for example a hidden block's household count), never an exact small count;
+  - nothing across polls is protected: two polls with overlapping audiences can still be compared (D-47 is per result; not in scope);
+  - more blocks are hidden than strictly necessary in some polls: the returning step is greedy, not the fewest possible (safety does not depend on it).

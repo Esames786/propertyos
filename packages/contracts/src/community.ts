@@ -267,7 +267,7 @@ export interface PollOption {
  * safe too.
  */
 export type PollResults =
-  | { shown: false; reason: 'below_threshold' | 'audience_too_small' }
+  | { shown: false; reason: 'below_threshold' | 'audience_too_small' | 'unavailable' }
   | { shown: true; total: number; options: Array<PollOption & { count: number }> | null; blocks: Array<{ code: string; total: number; options: Array<{ id: string; count: number }> }> };
 
 export interface PollOffice {

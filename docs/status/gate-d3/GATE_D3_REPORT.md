@@ -1,10 +1,11 @@
 # Gate D.3: Community engagement (Al-Noor Residency)
 
-**Status: built, frontend only; final closure for Issue #9 done; stopped for owner and GPT final review.**
+**Status: built, frontend only; Issue #9 closure and Issue #10 security closure done; stopped for GPT and owner review.**
 - **Branch:** `feature/gate-d3-community-chat`, continuing GPT's checkpoint `1a7d340` (eight commits on the accepted D.2 closure `a54f594`). On top:
   - `69dafef` makes GPT's checkpoint compile, lint and pass, unchanged otherwise ([§2](#2-audit-of-gpts-checkpoint-1a7d340));
   - `85f7eb7` completes the gate (reviewed in Issue #9: functionality provisionally accepted);
-  - the closure commit makes the two privacy corrections Issue #9 asked for ([§9](#9-issue-9-final-closure)).
+  - `ff82161` makes the two privacy corrections Issue #9 asked for ([§9](#9-issue-9-final-closure));
+  - the Issue #10 commit replaces the block check with one that is safe for any number of blocks ([§10](#10-issue-10-security-closure)).
 - **Authorisation and sources:**
   - the owner's development handoff of 2 November 2026;
   - V3.2 at `0e57604` (`docs/blueprint/v3.2/*` on `docs/nizam-v3.2-scope-review`): execution plan §D.3, owner decisions D-21, D-25, D-30, D-31, D-32, D-38, D-47 and D-49, and the D.3 register delta (13 new rows, 2 changed).
@@ -210,18 +211,19 @@ The table below is kept as it was at `85f7eb7`.
 - A removed or retention-expired message disappears from the server at once. A device that was offline keeps what it downloaded until it next connects (D-25 (3)); the demo shows that cache only while the simulated offline control is on.
 - Resident direct messages, replies, mentions, attachments in chat, provider photos and reviews are not built.
 - The demo's chat does not refresh by itself while a page is open: another app's change appears on the next action or reload (as in D.2).
-- Urdu wording was written by us and needs a native reader's review (new namespace `community`: 554 keys).
+- Urdu wording was written by us and needs a native reader's review (new namespace `community`: 555 keys).
 - English typed into Urdu forms: the full stop shows at the start of the line while typing (shared fields, known since D.2; documented, not changed).
 
 ## 8. Evidence
 
-- **Screenshots** (`screenshots/`, 76 after the Issue #9 closure):
+- **Screenshots** (`screenshots/`, 78 after the Issue #10 closure):
   - `a01–a10`: resident screens at 1440 px English and 390 px Urdu;
   - `b01–b16`: office screens, the same two sizes;
   - `c01–c08`: 320 × 700 at 200 % Urdu, viewport captures with the fixed bars in place;
   - `d01–d04`: without the add-ons;
   - `e01–e03`: a move-out while offline;
   - `f01–f02`: poll results shown and withheld at 320 × 700 / 200 %, English and Urdu (Issue #9);
+  - `f03–f04`: the 33-block counterexample for a resident (390 px) and the office (1440 px) (Issue #10);
   - `g01–g03`: a reported message held as evidence past retention, and decided (Issue #9).
 - **Videos** (`video/`):
   - `chat-report-and-moderation-desktop-en.webm`;
@@ -244,6 +246,7 @@ Issue #9 (the independent review of `85f7eb7`) accepted the functionality provis
 - **Blocks:** a block is shown only when the whole audience's breakdown is shown and the block's own breakdown is safe.
   - Every difference that can be worked out from the shown figures must be safe too: the audience minus any set of shown blocks. This covers site − block and adjacent blocks.
   - Blocks are dropped, smallest first, until it is. A one-block poll shows no block line.
+  - *Issue #10 replaced how this is checked (the subset enumeration broke from 31 blocks): see [§10](#10-issue-10-security-closure).*
 - **Results are computed on every read** from the frozen answers, never from a stored snapshot.
   - A result stored before the rule cannot leak; a test injects an old exact snapshot and gets the withheld result.
   - Repeated reads, other residents in the audience and unrelated query parameters all get the same answer.
@@ -310,3 +313,141 @@ Issue #9 (the independent review of `85f7eb7`) accepted the functionality provis
   - unit/API **1,308 / 1,308**;
   - Firefox and WebKit **28 / 28**;
   - **1,179 axe scans, 0 violations**.
+
+## 10. Issue #10 security closure
+
+Issue #10 found that the Issue #9 block rule was right but its check was not: from 31 blocks it could show one household's answer. The check is replaced; nothing else in D.3 changed.
+
+### 10.1 Root cause
+
+- **The rule (Issue #9):** a block is shown only if the audience minus every set of shown blocks is safe.
+- **The check:** every subset of the candidate blocks, as a 32-bit mask: `for (let mask = 1; mask < 1 << set.length; mask++)`.
+  - In JavaScript `1 << n` uses only the last five bits of n: `1 << 31` is negative, `1 << 32` is 1, `1 << 33` is 2.
+  - From 31 candidate blocks the loop checked nothing, or almost nothing, and every candidate was shown.
+  - Below that it was exact but grew as 2^n: 30 candidate blocks are about a thousand million subsets, enough to freeze the page.
+- **The counterexample:** 33 blocks of 20 households; 32 at 3–3 and X at 2–1; the site 98–97.
+  - The 32 safe blocks were all shown, so the site minus them is X: 2–1.
+  - The new tests fail on the old code exactly there (checked by running them against `ff82161`'s `polls.ts`).
+- **A second gap, found by our random test of the old code (S11):** when every block was shown, the remainder was skipped. Households the audience counted outside any block were never checked, so 4 households were shown to have given no answer. The demo's own audiences always add up, so only inconsistent data could reach it; such data is now refused.
+
+### 10.2 The algorithm (`packages/fixtures/src/community/polls.ts`)
+
+1. **Check the inputs; fail closed** (`unavailable`, nothing shown, for residents and the office):
+   - option ids unique;
+   - every count a non-negative safe integer for an option the poll has;
+   - every household count a non-negative integer, adding up exactly to the audience.
+2. **The whole audience**, as before:
+   - nothing below 3 answers or 5 households;
+   - turnout only when any option (or the answers outside it) is 1 or 2;
+   - otherwise the breakdown.
+3. **Candidates:** the blocks whose own breakdown is safe (polls with two or more blocks).
+4. **The undisclosed remainder** R is the audience minus the candidates: every hidden block together, with its households.
+5. **While R has a *small figure*, one candidate goes back into R.**
+   - A small figure is an option count, or the answers outside it, between 1 and 2.
+   - Unless R is empty (no household, no answer), fewer than 3 answers or fewer than 5 households also count. A remainder with households and no answers would show that every one of them stayed silent, so it is not allowed, as in Issue #9.
+   - The candidate chosen is the one that leaves the fewest small figures, then the smallest, then by block code.
+6. **Show** the remaining candidates, by code.
+
+### 10.3 Why it is safe
+
+1. **What a reader can compute.** The published figures are the audience's breakdown S and each shown block's breakdown.
+   - From them a reader can compute any combination αS + Σ βᵢbᵢ. For this to be some group's figures whatever the answers, it must give the same weight to every hidden block (they appear only inside S) and weight 0 or 1 to each block.
+   - So the groups a reader can compute are exactly the unions of *atoms*: each shown block, and the remainder R.
+   - No single hidden block, and no part of the hidden set, is ever computable unless it is all of R.
+2. **Lemma (closure).** A group is *safe* when it has no small figure: it is empty, or it has at least 3 answers among at least 5 households and every option count and complement is 0 or at least 3.
+   - If two disjoint groups are safe, so is their sum. An empty part changes nothing.
+   - Otherwise each count and complement is 0 or at least 3 in both parts, so it is in the sum too. The total and the households only grow.
+   - The tests check the lemma on 20,000 random pairs.
+3. **Theorem.** Every shown block is a candidate, so it is safe, and the loop ends only when R is safe.
+   - Every group a reader can compute is a union of atoms, that is, a sum of disjoint safe groups, so it is safe.
+   - This covers the audience minus any set of shown blocks, adjacent blocks and several hidden blocks.
+4. **Termination and a bound independent of the number of blocks.**
+   - Adding a safe block to R never makes a figure small (the lemma, figure by figure). It clears R's total and households figures, because a candidate has at least 3 answers and 5 households. It also clears every count or complement where the block is non-zero, because there it is at least 3.
+   - R plus every candidate is S, which has no small figure. So for each small figure of R, some candidate is non-zero there, and the chosen candidate clears at least one.
+   - There are at most 2k + 2 figures for k options, so there are at most 2k + 2 returns, however many blocks.
+   - Time: O(n log n + n·k²) for n blocks. There is no mask, no 2^n and no limit on blocks; the arithmetic is on safe integers.
+   - The tests check the bound (blocks returned ≤ 2k + 2) on every vector, every random poll and every large society.
+5. **Deterministic.** Ties break by total, then block code. The tests reverse the input order and repeat API reads with other residents and parameters.
+
+### 10.4 Performance
+
+Median of 9 runs after warm-up, Node 20.20.1, on the shared machine (`bench.mjs` over the bundled `polls.ts`):
+
+| Case | Blocks | Options | Blocks shown | Median ms | Slowest ms |
+|---|---:|---:|---:|---:|---:|
+| 19 at 3–3 + X at 2–1 | 20 | 2 | 18 | 0.08 | 0.84 |
+| 29 at 3–3 + X at 2–1 | 30 | 2 | 28 | 0.10 | 0.32 |
+| 30 at 3–3 + X at 2–1 | 31 | 2 | 29 | 0.10 | 0.15 |
+| 31 at 3–3 + X at 2–1 | 32 | 2 | 30 | 0.17 | 0.33 |
+| 32 at 3–3 + X at 2–1 | 33 | 2 | 31 | 0.09 | 0.25 |
+| 63 at 3–3 + X at 2–1 | 64 | 2 | 62 | 0.39 | 0.79 |
+| 127 at 3–3 + X at 2–1 | 128 | 2 | 126 | 0.83 | 1.53 |
+| random society | 100 | 2 | 46 | 0.13 | 0.47 |
+| random society | 1,000 | 2 | 544 | 2.33 | 3.17 |
+| random society | 1,000 | 6 | 165 | 2.88 | 3.50 |
+| random society | 10,000 | 2 | 5,147 | 20.03 | 25.07 |
+| random society | 10,000 | 6 | 1,619 | 21.84 | 23.18 |
+| random society | 100,000 | 2 | 51,071 | 527.59 | 559.04 |
+| built to force returns | 10,001 | 8 | 9,992 | 50.83 | 80.96 |
+| built to force returns | 100,001 | 8 | 99,992 | 752.30 | 1052.02 |
+
+- The 33-block counterexample takes 0.09 ms. A random society of 1,000 blocks takes 2.33 ms, and one of 10,000 blocks takes 20.03 ms.
+- 10,000 blocks built to force the most returns (8 options) take 50.83 ms.
+- Returning the smallest block each time would have hidden every block in that case. The chosen step returns 8.
+- In the browser (`d3.spec`), a resident's polls page with a 128-block poll shows its results 1024 ms after navigation, at 320 px with 200 % text.
+
+### 10.5 Tests
+
+- **Vectors** (`polls.vectors.json`): 37 cases.
+  - Issue #9's 15 cases are unchanged and give the same results.
+  - 22 new cases:
+    - the exact counterexample;
+    - 20, 30, 31, 32, 64 and 128 blocks (one 2–1 block among 3–3 blocks);
+    - 120 blocks with 20 hidden together;
+    - 63 blocks built to force returns;
+    - several hidden blocks whose sum is safe, and whose sum is not;
+    - unanimous 3–0 and 4–0 (shown) and 2–0 (not shown);
+    - a block with no answers among 3 households, and among 10 (both keep a safe block with it, so its silence is never shown);
+    - different audience sizes;
+    - a raised threshold;
+    - five invalid inputs.
+  - Large cases are written compactly (`generate`) and expanded by the test.
+- **The attack** (`community.test.ts`) is written apart from `polls.ts`:
+  - every result's shown figures must be the true ones;
+  - each shown block, the audience minus it, and the remainder must be safe;
+  - for results of up to 14 blocks, every set of shown blocks and the audience minus it is enumerated (tests only).
+  - It is applied to every vector, 5,000 seeded random polls (2–4 options, 1–9 blocks, three thresholds, blocks with no answers or no households left) and the large societies.
+- **Large societies:** 100, 1,000 and 10,000 blocks with 2 and 6 options, and 10,000 blocks built to force returns, each with a time bound.
+- **API** (`community.api.test.ts`, 4 new tests):
+  - the counterexample through the resident and office routes;
+  - repeated reads, another resident, and unrelated or threshold-like query parameters;
+  - an old exact snapshot of all 32 blocks, which cannot leak;
+  - invalid stored answers, which fail closed for both apps.
+- **Browser** (`d3.spec`, 1 new test): 128 blocks for a resident at 320 px with 200 % text and for the office at 1440 px.
+  - 126 lines are shown; neither X nor the block hidden with it is shown;
+  - no sideways scroll; axe clean;
+  - the office's totals equal the residents' figures.
+  - The injected answers change only the tally, so the office's turnout line still shows the seed's "6 of 38".
+- **Evidence:** `f03` and `f04`, the counterexample for a resident and for the office.
+
+### 10.6 Results
+
+- unit/API **1,344 / 1,344** (community suites 107 / 107).
+- typecheck clean.
+- lint: ESLint, logical-CSS and i18n parity (9,179 keys) clean.
+- complete combined regression **360 / 360** with retries off:
+  - e2e 347 / 347;
+  - evidence 13 / 13.
+- Firefox and WebKit **28 / 28**.
+- **1,180 axe scans, 0 violations**.
+- Details: [`test-results.md`](test-results.md) §Issue #10.
+
+### 10.7 Limitations
+
+- **The remainder is found greedily.** It is always safe but not always as small as possible: some polls hide a block that a cleverer choice could show. Safety does not depend on the choice.
+- **What a reader can still learn:**
+  - which blocks are hidden; this says only that some hidden block would have been unsafe alone, never its figures;
+  - ranges from what they already know (for example a hidden block's households).
+- **Comparing two different polls** with overlapping audiences is not protected. D-47 is per result, as before.
+- **A unanimous result** is shown when it is safe (owner ruling): it says that everyone who answered chose that option.
+- **The rule lives in the mock server.** The backend must reproduce `pollResults` and these vectors at Gate H.

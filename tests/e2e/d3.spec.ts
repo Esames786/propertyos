@@ -250,6 +250,72 @@ test.describe('D.3 Issue #9: retention ends visibility; an open report keeps evi
   });
 });
 
+/**
+ * Issue #10: the published patrol poll with a large society's answers (the seed has two blocks): X at
+ * 2–1 and `count` − 1 blocks at 3–3, 20 households each, put into the shared demo as the office app
+ * keeps it. Call on an office page.
+ */
+async function injectManyBlocks(page: Page, count: number) {
+  await societyApi(page, '/ops/chat/groups/site/read', 'POST');
+  await page.evaluate((n) => {
+    const key = 'demo:shared:tnt_alnoor';
+    type Poll = { title: string; tally: Record<string, Record<string, number>>; audienceAtClose?: { site: number; blocks: Record<string, number> } };
+    const overlay = JSON.parse(localStorage.getItem(key)!) as { sections: Record<string, { polls: Poll[] }> };
+    const poll = overlay.sections['community:site_alnoor']!.polls.find((p) => p.title.startsWith('Evening security patrol'))!;
+    poll.tally = { X: { opt_1: 2, opt_2: 1 } };
+    poll.audienceAtClose = { site: 20 * n, blocks: { X: 20 } };
+    for (let b = 1; b < n; b++) {
+      const code = `B${String(b).padStart(3, '0')}`;
+      poll.tally[code] = { opt_1: 3, opt_2: 3 };
+      poll.audienceAtClose.blocks[code] = 20;
+    }
+    localStorage.setItem(key, JSON.stringify(overlay));
+  }, count);
+}
+
+test.describe('D.3 Issue #10: block results for a large society', () => {
+  test('128 blocks: the resident (320 px, 200 % text) and the office see 126 block lines, never X; the results stay quick', async ({ page, consoleErrors }, testInfo) => {
+    await seedSociety(page, { staff: 'alnoor_manager', resident: 'alnoor_resident_a101', textScale: 2 });
+    await office(page, 'alnoor_manager', '/backoffice/community/polls', 'polls-office');
+    await injectManyBlocks(page, 128);
+    const list = await api<{ items: Array<{ id: string; title: string }> }>(page, '/ops/community/polls', 'GET', {}, { status: 'closed' });
+    const pollId = list.ok ? list.res.items.find((p) => p.title.startsWith('Evening security patrol'))!.id : '';
+
+    await page.setViewportSize(PHONE);
+    await become(page, 'customer', 'alnoor_resident_a101');
+    const started = Date.now();
+    await page.goto(`${CU}/customer/portal/community?tab=polls`);
+    const results = page.getByTestId('poll-card').filter({ hasText: 'Evening security patrol' }).getByTestId('poll-results');
+    await expect(results).toHaveAttribute('data-shown', 'true');
+    const residentMs = Date.now() - started;
+    await expect(results).toContainText('765 answers');
+    await results.locator('summary').click();
+    const lines = results.locator('details li');
+    await expect(lines).toHaveCount(126);
+    const texts = await lines.allTextContents();
+    // X (2–1) is never a line of its own; the one 3–3 block hidden with it is B001.
+    expect(texts.filter((t) => /^Block (X|B001),/.test(t))).toEqual([]);
+    expect(await overflowOf(page)).toBe(0);
+    await axe(page, testInfo, 'poll-results-128-blocks-320x700-200pct-en');
+
+    await page.setViewportSize(VIEWPORTS.desktop);
+    await become(page, 'backoffice', 'alnoor_manager');
+    await page.goto(`${BO}/backoffice/community/polls/${pollId}`);
+    const published = page.getByTestId('poll-published');
+    await expect(published).toHaveAttribute('data-shown', 'true');
+    await expect(published).toContainText('765 answers');
+    const codes = ((await published.locator('p').last().textContent()) ?? '').replace(/^.*?:\s*/, '').split(', ');
+    expect(codes).toHaveLength(126);
+    expect(codes).not.toContain('X');
+    expect(codes).not.toContain('B001');
+    // The office's totals for an anonymous poll are the residents' figures (127 × 3 + 2 and 127 × 3 + 1).
+    await expect(page.getByTestId('poll-totals').locator('li')).toHaveText([/Yes\s*383 answers/, /No\s*382 answers/]);
+    testInfo.annotations.push({ type: 'timing', description: `resident results for 128 blocks visible ${residentMs} ms after navigation` });
+    expect(residentMs).toBeLessThan(15_000);
+    expect(consoleErrors).toEqual([]);
+  });
+});
+
 test.describe('D.3 reference 2: groups, custom groups and the retention policy', () => {
   test('Imran sees who is in the committee and why, creates a group for Block A owners and checks the policy', async ({ page, consoleErrors }, testInfo) => {
     await seedSociety(page, { staff: 'alnoor_manager' });

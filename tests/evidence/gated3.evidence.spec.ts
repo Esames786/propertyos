@@ -212,6 +212,36 @@ for (const locale of ['en-PK', 'ur-PK'] as Locale[]) {
   });
 }
 
+test('Issue #10: the 33-block counterexample, for the resident (390, en) and the office (1440, en): 31 block lines, X never on its own', async ({ browser }) => {
+  const page = await context(browser, VIEWPORTS.phone, { staff: 'alnoor_manager' });
+  await as(page, 'alnoor_manager', '/backoffice/community/polls', 'polls-office');
+  // The published patrol poll given the counterexample's answers: 32 blocks at 3–3, X at 2–1, 20 households each.
+  await societyApi(page, '/ops/chat/groups/site/read', 'POST');
+  await page.evaluate(() => {
+    const key = 'demo:shared:tnt_alnoor';
+    type Poll = { title: string; tally: Record<string, Record<string, number>>; audienceAtClose?: { site: number; blocks: Record<string, number> } };
+    const overlay = JSON.parse(localStorage.getItem(key)!) as { sections: Record<string, { polls: Poll[] }> };
+    const poll = overlay.sections['community:site_alnoor']!.polls.find((p) => p.title.startsWith('Evening security patrol'))!;
+    poll.tally = { X: { opt_1: 2, opt_2: 1 } };
+    poll.audienceAtClose = { site: 660, blocks: { X: 20 } };
+    for (let b = 1; b <= 32; b++) {
+      poll.tally[`B${String(b).padStart(3, '0')}`] = { opt_1: 3, opt_2: 3 };
+      poll.audienceAtClose.blocks[`B${String(b).padStart(3, '0')}`] = 20;
+    }
+    localStorage.setItem(key, JSON.stringify(overlay));
+  });
+  const list = await societyApi<{ items: Array<{ id: string; title: string }> }>(page, '/ops/community/polls', 'GET', {}, { status: 'closed' });
+  const pollId = list.ok ? list.res.items.find((p) => p.title.startsWith('Evening security patrol'))!.id : '';
+  await resident(page, 'alnoor_resident_a101', '/customer/portal/community?tab=polls', 'poll-list');
+  const card = page.getByTestId('poll-card').filter({ hasText: 'Evening security patrol' });
+  await card.locator('summary').click();
+  await shotOf(card, 'f03-poll-results-33-blocks-390-en');
+  await page.setViewportSize(VIEWPORTS.desktop);
+  await as(page, 'alnoor_manager', `/backoffice/community/polls/${pollId}`, 'poll-detail');
+  await shotOf(page.getByTestId('poll-detail'), 'f04-poll-33-blocks-office-1440-en');
+  await page.context().close();
+});
+
 test('Issue #9: an expired reported message is evidence in the report queue only, and its text is gone once decided (1440, en)', async ({ browser }) => {
   const page = await context(browser, VIEWPORTS.desktop, { staff: 'alnoor_manager' });
   await as(page, 'alnoor_manager', '/backoffice/chat/settings?tab=reports', 'report-list');

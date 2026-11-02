@@ -1,6 +1,9 @@
 # Gate D.3: test, accessibility and localisation results
 
-**Run date:** 2026-11-02. **Issue #9 final closure:** results on the closure code are in [§ Issue #9](#issue-9-final-closure-results) at the end; the sections before it are the `85f7eb7` run.
+**Run date:** 2026-11-02; Issue #10 on 2026-11-03.
+- **Issue #10 security closure:** results on the current code are in [§ Issue #10](#issue-10-security-closure-results) at the end.
+- **Issue #9 final closure:** [§ Issue #9](#issue-9-final-closure-results).
+- The sections before them are the `85f7eb7` run.
 
 **Environment:**
 - Production builds of all three apps on isolated ports: `E2E_PORT_OFFSET=300` (office 5473, resident 5474, HQ 5475; built with `VITE_OFFICE_ORIGIN` / `VITE_CUSTOMER_ORIGIN`).
@@ -144,3 +147,83 @@ Run on the closure code: the two privacy corrections, their tests, the documents
 - `g01-report-evidence-hold-1440-en`, `g02-policy-held-as-evidence-1440-en`, `g03-report-decided-text-gone-1440-en`.
 
 Every other D.3 capture was regenerated from the same run, so they show the closure code.
+
+## Issue #10 security closure: results
+
+Run on the Issue #10 code: the new block check, its tests and the documents. Same environment: `E2E_PORT_OFFSET=300`, production builds rebuilt from this code and served on `127.0.0.1` and `::1`, Node 20.20.1, retries off, 3 workers.
+
+| Check | Command | Result |
+|---|---|---|
+| Typecheck | `npx tsc -p tsconfig.json --noEmit` | clean |
+| Lint (ESLint, logical-CSS RTL guard, i18n parity) | `npm run lint` | clean. 2 locales × 24 namespaces, **9,179 keys** each (`community`: 555; new: `poll.hidden.unavailable`) |
+| Unit and API tests | `npx vitest run` | **1,344 / 1,344** in 44 files (Issue #9: 1,308) |
+| Community suites | `npx vitest run packages/fixtures/src/community` | **107 / 107**:<br>• `community.test.ts` 61: membership 14, poll vectors 37, attack and lemma 4, large societies 6;<br>• `community.api.test.ts` 37 (4 new);<br>• `chat-policy.test.ts` 9 |
+| D.3 poll vectors | `polls.vectors.json` | **37 / 37** (15 from Issue #9 unchanged, 22 new) |
+| Old code against the new tests | `ff82161`'s `polls.ts` swapped in, then restored (the large-society tests left out: the old code does not finish them) | **8 failures**, as it should:<br>• the 33-block counterexample, as a vector and through the attack (audience − shown = X, 2–1);<br>• the 5 invalid-input vectors (the old code shows results);<br>• the random attack (first at poll 39: an audience larger than its blocks, shown instead of refused).<br>An earlier version of the random test, before such audiences were refused, found the gap in S11 (poll 838: 4 households shown to have given no answer).<br>The silent-block and several-hidden-blocks vectors pass on the old code too: it was as strict there. |
+| Register | `node scripts/sync-screen-register.mjs` | unchanged: 437 rows, 353 distinct; 122 built, 35 partial, 196 planned |
+| **Complete combined regression** | `E2E_PORT_OFFSET=300 npx playwright test --project=e2e --project=evidence tests/e2e tests/evidence/gated3.evidence.spec.ts --workers=3 --retries=0` | **360 / 360** in one 30.6-minute run:<br>• **e2e 347 / 347** (every gate, B to D.3);<br>• **evidence 13 / 13**.<br>No retries, no test excluded, no assertion weakened. A watchdog fetched each server's page and main bundle over IPv4 and IPv6 every 20 seconds (87 rounds) and recorded no failure or answer slower than 2 s. |
+| D.3 end-to-end | `tests/e2e/d3.spec.ts` (inside the run) | **25 / 25**. New: 128 blocks for a resident (320 px, 200 %) and the office |
+| Accessibility (inside the run) | axe in every spec that scans | **1,180 scans, 32,558 rule passes, 0 violations**; `d3.spec` had 143 of them |
+| Firefox and WebKit smoke | `npx playwright test tests/smoke --project=firefox-smoke --project=webkit-smoke --retries=0` | **28 / 28** (all 14 smoke tests, both browsers) |
+| Mobile, English and Urdu, 320 px at 200 % | `d3.spec` and evidence (inside the run) | the 320 × 700 at 100/150/200 % layout tests in both languages and the 128-block test passed; captures `c01–c08`, `f01–f03` |
+| Evidence | `tests/evidence/gated3.evidence.spec.ts` | **78 screenshots, 2 videos**, all from this run; all 62 full-page viewport captures exactly their width (element captures `c08`, `f01`–`f04`, `g01`, `g03` are the element's own size) |
+
+### How the complete run was obtained (honestly)
+
+- **A first complete run was started and then stopped by me after 11 of 360 tests** (none had failed). It does not count.
+  - While writing the limitations I found that my first version let the hidden remainder have no answers if it had at least 5 households.
+  - That would have shown that every household in it stayed silent. Issue #9's code never allowed it, so the change was a weakening.
+  - I made the remainder rule as strict as Issue #9's: empty, or at least 3 answers among at least 5 households. I updated the test's own attacker and one vector to match, rebuilt the apps, and ran the complete suite again from the start.
+- **The second complete run, on the final code, does not count either.** It was cut off at test 102 of 360 when my working session was interrupted, and by then it had **2 failures**: Gate C.2's text-size test, phone, in English and in Urdu (`collections.spec.ts:757`).
+  - Both timed out in `page.reload()` at the same instant (00:54:24), in two separate browsers.
+  - Their traces show the resident app's main JavaScript files requested from the 5474 server and never answered (status −1), while other files on the same connections answered in 3–66 ms. The server's page answered normally 11 seconds before and 11 seconds after.
+  - Nothing in Issue #10 touches that test or the text-size code. I read it as a brief stall in serving those files, but I have not proven the cause.
+  - I stopped that run. I also served the builds on IPv6 loopback (`::1`) as well as `127.0.0.1`, because `localhost` was first trying a refused `::1` on every new connection.
+  - I extended the watchdog to fetch each app's main bundle as well as its page, over both address families, so a stall like that would be recorded.
+- **The counted run is the third, on the final code, from the start.** A watchdog fetched each server's page and main bundle over IPv4 and IPv6 every 20 seconds (87 rounds) and recorded no failure or answer slower than 2 s.
+
+### Large-society performance
+
+Median of 9 runs after warm-up (`pollResults` alone, bundled from `polls.ts`, Node 20.20.1, the shared machine):
+
+| Case | Blocks | Options | Blocks shown | Median ms | Slowest ms |
+|---|---:|---:|---:|---:|---:|
+| 19 at 3–3 + X at 2–1 | 20 | 2 | 18 | 0.08 | 0.84 |
+| 29 at 3–3 + X at 2–1 | 30 | 2 | 28 | 0.10 | 0.32 |
+| 30 at 3–3 + X at 2–1 | 31 | 2 | 29 | 0.10 | 0.15 |
+| 31 at 3–3 + X at 2–1 | 32 | 2 | 30 | 0.17 | 0.33 |
+| 32 at 3–3 + X at 2–1 | 33 | 2 | 31 | 0.09 | 0.25 |
+| 63 at 3–3 + X at 2–1 | 64 | 2 | 62 | 0.39 | 0.79 |
+| 127 at 3–3 + X at 2–1 | 128 | 2 | 126 | 0.83 | 1.53 |
+| random society | 100 | 2 | 46 | 0.13 | 0.47 |
+| random society | 1,000 | 2 | 544 | 2.33 | 3.17 |
+| random society | 1,000 | 6 | 165 | 2.88 | 3.50 |
+| random society | 10,000 | 2 | 5,147 | 20.03 | 25.07 |
+| random society | 10,000 | 6 | 1,619 | 21.84 | 23.18 |
+| random society | 100,000 | 2 | 51,071 | 527.59 | 559.04 |
+| built to force returns | 10,001 | 8 | 9,992 | 50.83 | 80.96 |
+| built to force returns | 100,001 | 8 | 99,992 | 752.30 | 1052.02 |
+
+Inside vitest each large case also has a bound:
+- 100 blocks under 100 ms;
+- 1,000 under 250 ms;
+- 10,000 under 1,000 ms (2 options) and 2,000 ms (6 options, and the forced case).
+
+In the browser, a 128-block poll's results were on screen 1024 ms after navigation.
+
+### What the new tests prove
+
+- **The counterexample is closed.** The audience minus the 31 shown blocks is 5–4 (X with B001), never 2–1. This holds in the pure function, through the API, and in both apps.
+- **Every computable group is safe** for every vector and 5,000 random polls:
+  - for results of up to 14 blocks, every set of shown blocks and the audience minus it;
+  - otherwise each block, its complement and the remainder (the lemma covers the rest, and is itself tested).
+- **No mask or block limit:**
+  - 20 to 128 blocks give exactly n − 2 shown;
+  - societies of 10,000 blocks are safe and fast;
+  - at most 2k + 2 blocks are ever returned.
+- **Deterministic:** the same result with the input reversed, on repeated reads, for another resident and with unrelated or threshold-like parameters.
+- **Fail closed:** negative, fractional and unknown-option counts, and households that do not add up, show nothing.
+- **Preserved:**
+  - Issue #9's 15 vectors give the same results;
+  - unanimous results are shown when safe;
+  - the complete combined run passes.

@@ -1,100 +1,1180 @@
 {
-  "about": "Gate D.3 poll result vectors (V3.2 execution plan §4, D-47, owner ruling in Issue #9). Results come from per-block answer counts and eligible households per block. Defaults: at least 3 answers and 5 households for any grouping; the breakdown of a grouping is shown only if every option count is 0 or at least 3 and so is every option's complement, otherwise the whole breakdown is withheld (turnout only, options: null). A block is shown only if the whole audience's breakdown is, its own is safe, and the audience minus every set of shown blocks is safe too. 'options' maps option id to count; 'blocks' maps block code to its total.",
-  "options": [{ "id": "opt_1", "label": "Yes" }, { "id": "opt_2", "label": "No" }],
+  "about": "Gate D.3 poll result vectors (V3.2 execution plan §4, D-47, owner ruling in Issue #9). Results come from per-block answer counts and eligible households per block. Defaults: at least 3 answers and 5 households for any grouping; the breakdown of a grouping is shown only if every option count is 0 or at least 3 and so is every option's complement, otherwise the whole breakdown is withheld (turnout only, options: null). A block is shown only if the whole audience's breakdown is, its own is safe, and the audience minus every set of shown blocks is safe too. 'options' maps option id to count; 'blocks' maps block code to its total. Issue #10: blocks are chosen without subset enumeration. Every shown block and the undisclosed remainder (all hidden blocks together) must be safe; the remainder may also be empty (no household, no answer), but never a group with households and fewer than 3 answers (that would show they stayed silent). While the remainder is not safe, the shown block that leaves it the fewest small figures goes back into it (at most 2k + 2 steps for k options). 'generate' describes many blocks compactly: 'count' blocks named prefix001, prefix002, … each with the same answers and households, or one named block. 'blocksShown' is the number of blocks shown; 'hidden' lists blocks that must not be shown; 'maxMs' bounds the time of one call. Block households must add up to the audience exactly.",
+  "options": [
+    {
+      "id": "opt_1",
+      "label": "Yes"
+    },
+    {
+      "id": "opt_2",
+      "label": "No"
+    }
+  ],
   "cases": [
     {
       "name": "two answers: nothing is shown, not even the turnout",
-      "tally": { "A": { "opt_1": 1 }, "B": { "opt_2": 1 } },
-      "audience": { "site": 40, "blocks": { "A": 20, "B": 20 } },
-      "expect": { "shown": false, "reason": "below_threshold" }
+      "tally": {
+        "A": {
+          "opt_1": 1
+        },
+        "B": {
+          "opt_2": 1
+        }
+      },
+      "audience": {
+        "site": 40,
+        "blocks": {
+          "A": 20,
+          "B": 20
+        }
+      },
+      "expect": {
+        "shown": false,
+        "reason": "below_threshold"
+      }
     },
     {
       "name": "an audience of four households: nothing is shown",
-      "tally": { "A": { "opt_1": 2, "opt_2": 1 } },
-      "audience": { "site": 4, "blocks": { "A": 4 } },
-      "expect": { "shown": false, "reason": "audience_too_small" }
+      "tally": {
+        "A": {
+          "opt_1": 2,
+          "opt_2": 1
+        }
+      },
+      "audience": {
+        "site": 4,
+        "blocks": {
+          "A": 4
+        }
+      },
+      "expect": {
+        "shown": false,
+        "reason": "audience_too_small"
+      }
     },
     {
       "name": "three answers split 2–1: turnout only, the whole breakdown withheld",
-      "tally": { "A": { "opt_1": 2, "opt_2": 1 } },
-      "audience": { "site": 38, "blocks": { "A": 38 } },
-      "expect": { "shown": true, "total": 3, "options": null, "blocks": {} }
+      "tally": {
+        "A": {
+          "opt_1": 2,
+          "opt_2": 1
+        }
+      },
+      "audience": {
+        "site": 38,
+        "blocks": {
+          "A": 38
+        }
+      },
+      "expect": {
+        "shown": true,
+        "total": 3,
+        "options": null,
+        "blocks": {}
+      }
     },
     {
       "name": "six answers split 5–1: turnout only (masking the 1 alone would leave it derivable as 6 − 5)",
-      "tally": { "A": { "opt_1": 5, "opt_2": 1 } },
-      "audience": { "site": 38, "blocks": { "A": 38 } },
-      "expect": { "shown": true, "total": 6, "options": null, "blocks": {} }
+      "tally": {
+        "A": {
+          "opt_1": 5,
+          "opt_2": 1
+        }
+      },
+      "audience": {
+        "site": 38,
+        "blocks": {
+          "A": 38
+        }
+      },
+      "expect": {
+        "shown": true,
+        "total": 6,
+        "options": null,
+        "blocks": {}
+      }
     },
     {
       "name": "six answers split 3–3 in one block: shown, no block line (it would repeat the total)",
-      "tally": { "B": { "opt_1": 3, "opt_2": 3 } },
-      "audience": { "site": 37, "blocks": { "B": 37 } },
-      "expect": { "shown": true, "total": 6, "options": { "opt_1": 3, "opt_2": 3 }, "blocks": {} }
+      "tally": {
+        "B": {
+          "opt_1": 3,
+          "opt_2": 3
+        }
+      },
+      "audience": {
+        "site": 37,
+        "blocks": {
+          "B": 37
+        }
+      },
+      "expect": {
+        "shown": true,
+        "total": 6,
+        "options": {
+          "opt_1": 3,
+          "opt_2": 3
+        },
+        "blocks": {}
+      }
     },
     {
       "name": "both blocks safe and each difference safe: the audience and both blocks shown",
-      "tally": { "A": { "opt_1": 3, "opt_2": 3 }, "B": { "opt_1": 4, "opt_2": 3 } },
-      "audience": { "site": 40, "blocks": { "A": 20, "B": 20 } },
-      "expect": { "shown": true, "total": 13, "options": { "opt_1": 7, "opt_2": 6 }, "blocks": { "A": 6, "B": 7 } }
+      "tally": {
+        "A": {
+          "opt_1": 3,
+          "opt_2": 3
+        },
+        "B": {
+          "opt_1": 4,
+          "opt_2": 3
+        }
+      },
+      "audience": {
+        "site": 40,
+        "blocks": {
+          "A": 20,
+          "B": 20
+        }
+      },
+      "expect": {
+        "shown": true,
+        "total": 13,
+        "options": {
+          "opt_1": 7,
+          "opt_2": 6
+        },
+        "blocks": {
+          "A": 6,
+          "B": 7
+        }
+      }
     },
     {
       "name": "several blocks, one with a small option (B: 5–1): the audience shown; no block, since site − A would equal B",
-      "tally": { "A": { "opt_1": 3, "opt_2": 3 }, "B": { "opt_1": 5, "opt_2": 1 } },
-      "audience": { "site": 40, "blocks": { "A": 20, "B": 20 } },
-      "expect": { "shown": true, "total": 12, "options": { "opt_1": 8, "opt_2": 4 }, "blocks": {} }
+      "tally": {
+        "A": {
+          "opt_1": 3,
+          "opt_2": 3
+        },
+        "B": {
+          "opt_1": 5,
+          "opt_2": 1
+        }
+      },
+      "audience": {
+        "site": 40,
+        "blocks": {
+          "A": 20,
+          "B": 20
+        }
+      },
+      "expect": {
+        "shown": true,
+        "total": 12,
+        "options": {
+          "opt_1": 8,
+          "opt_2": 4
+        },
+        "blocks": {}
+      }
     },
     {
       "name": "site minus block: A (4–4) is safe on its own, but site − A = B (3–1) is not, so A is not shown",
-      "tally": { "A": { "opt_1": 4, "opt_2": 4 }, "B": { "opt_1": 3, "opt_2": 1 } },
-      "audience": { "site": 40, "blocks": { "A": 20, "B": 20 } },
-      "expect": { "shown": true, "total": 12, "options": { "opt_1": 7, "opt_2": 5 }, "blocks": {} }
+      "tally": {
+        "A": {
+          "opt_1": 4,
+          "opt_2": 4
+        },
+        "B": {
+          "opt_1": 3,
+          "opt_2": 1
+        }
+      },
+      "audience": {
+        "site": 40,
+        "blocks": {
+          "A": 20,
+          "B": 20
+        }
+      },
+      "expect": {
+        "shown": true,
+        "total": 12,
+        "options": {
+          "opt_1": 7,
+          "opt_2": 5
+        },
+        "blocks": {}
+      }
     },
     {
       "name": "adjacent blocks: A and B safe, C (2–1) not; showing A and B would reveal C as site − A − B, so only one of them is shown",
-      "tally": { "A": { "opt_1": 3, "opt_2": 3 }, "B": { "opt_1": 3, "opt_2": 3 }, "C": { "opt_1": 2, "opt_2": 1 } },
-      "audience": { "site": 60, "blocks": { "A": 20, "B": 20, "C": 20 } },
-      "expect": { "shown": true, "total": 15, "options": { "opt_1": 8, "opt_2": 7 }, "blocks": { "B": 6 } }
+      "tally": {
+        "A": {
+          "opt_1": 3,
+          "opt_2": 3
+        },
+        "B": {
+          "opt_1": 3,
+          "opt_2": 3
+        },
+        "C": {
+          "opt_1": 2,
+          "opt_2": 1
+        }
+      },
+      "audience": {
+        "site": 60,
+        "blocks": {
+          "A": 20,
+          "B": 20,
+          "C": 20
+        }
+      },
+      "expect": {
+        "shown": true,
+        "total": 15,
+        "options": {
+          "opt_1": 8,
+          "opt_2": 7
+        },
+        "blocks": {
+          "B": 6
+        }
+      }
     },
     {
       "name": "a block with answers but too few households is never shown, nor the audience minus it",
-      "tally": { "A": { "opt_1": 6, "opt_2": 4 }, "B": { "opt_1": 3 } },
-      "audience": { "site": 24, "blocks": { "A": 20, "B": 4 } },
-      "expect": { "shown": true, "total": 13, "options": { "opt_1": 9, "opt_2": 4 }, "blocks": {} }
+      "tally": {
+        "A": {
+          "opt_1": 6,
+          "opt_2": 4
+        },
+        "B": {
+          "opt_1": 3
+        }
+      },
+      "audience": {
+        "site": 24,
+        "blocks": {
+          "A": 20,
+          "B": 4
+        }
+      },
+      "expect": {
+        "shown": true,
+        "total": 13,
+        "options": {
+          "opt_1": 9,
+          "opt_2": 4
+        },
+        "blocks": {}
+      }
     },
     {
       "name": "zero-count options with a small one (4–0–2): the whole breakdown withheld, so neither the 2 nor the 0 can be used to work it out",
-      "options": [{ "id": "opt_1", "label": "Yes" }, { "id": "opt_2", "label": "No" }, { "id": "opt_3", "label": "No preference" }],
-      "tally": { "A": { "opt_1": 4, "opt_3": 2 } },
-      "audience": { "site": 38, "blocks": { "A": 38 } },
-      "expect": { "shown": true, "total": 6, "options": null, "blocks": {} }
+      "options": [
+        {
+          "id": "opt_1",
+          "label": "Yes"
+        },
+        {
+          "id": "opt_2",
+          "label": "No"
+        },
+        {
+          "id": "opt_3",
+          "label": "No preference"
+        }
+      ],
+      "tally": {
+        "A": {
+          "opt_1": 4,
+          "opt_3": 2
+        }
+      },
+      "audience": {
+        "site": 38,
+        "blocks": {
+          "A": 38
+        }
+      },
+      "expect": {
+        "shown": true,
+        "total": 6,
+        "options": null,
+        "blocks": {}
+      }
     },
     {
       "name": "a zero-count option beside counts of 3 or more (4–3–0) is shown: no option or complement is one or two people",
-      "options": [{ "id": "opt_1", "label": "Yes" }, { "id": "opt_2", "label": "No" }, { "id": "opt_3", "label": "No preference" }],
-      "tally": { "A": { "opt_1": 4, "opt_2": 3 } },
-      "audience": { "site": 38, "blocks": { "A": 38 } },
-      "expect": { "shown": true, "total": 7, "options": { "opt_1": 4, "opt_2": 3, "opt_3": 0 }, "blocks": {} }
+      "options": [
+        {
+          "id": "opt_1",
+          "label": "Yes"
+        },
+        {
+          "id": "opt_2",
+          "label": "No"
+        },
+        {
+          "id": "opt_3",
+          "label": "No preference"
+        }
+      ],
+      "tally": {
+        "A": {
+          "opt_1": 4,
+          "opt_2": 3
+        }
+      },
+      "audience": {
+        "site": 38,
+        "blocks": {
+          "A": 38
+        }
+      },
+      "expect": {
+        "shown": true,
+        "total": 7,
+        "options": {
+          "opt_1": 4,
+          "opt_2": 3,
+          "opt_3": 0
+        },
+        "blocks": {}
+      }
     },
     {
       "name": "the published gym poll (31 answers): the audience and both blocks are safe and shown",
-      "tally": { "A": { "opt_1": 11, "opt_2": 6 }, "B": { "opt_1": 9, "opt_2": 5 } },
-      "audience": { "site": 75, "blocks": { "A": 38, "B": 37 } },
-      "expect": { "shown": true, "total": 31, "options": { "opt_1": 20, "opt_2": 11 }, "blocks": { "A": 17, "B": 14 } }
+      "tally": {
+        "A": {
+          "opt_1": 11,
+          "opt_2": 6
+        },
+        "B": {
+          "opt_1": 9,
+          "opt_2": 5
+        }
+      },
+      "audience": {
+        "site": 75,
+        "blocks": {
+          "A": 38,
+          "B": 37
+        }
+      },
+      "expect": {
+        "shown": true,
+        "total": 31,
+        "options": {
+          "opt_1": 20,
+          "opt_2": 11
+        },
+        "blocks": {
+          "A": 17,
+          "B": 14
+        }
+      }
     },
     {
       "name": "a tenant may raise the thresholds (never lower): 5 answers under a threshold of 6 show nothing",
-      "threshold": { "minCount": 6, "minAudience": 5 },
-      "tally": { "A": { "opt_1": 3, "opt_2": 2 } },
-      "audience": { "site": 40, "blocks": { "A": 40 } },
-      "expect": { "shown": false, "reason": "below_threshold" }
+      "threshold": {
+        "minCount": 6,
+        "minAudience": 5
+      },
+      "tally": {
+        "A": {
+          "opt_1": 3,
+          "opt_2": 2
+        }
+      },
+      "audience": {
+        "site": 40,
+        "blocks": {
+          "A": 40
+        }
+      },
+      "expect": {
+        "shown": false,
+        "reason": "below_threshold"
+      }
     },
     {
       "name": "a raised threshold applies to options too: 8 answers split 4–4 under a threshold of 5 are turnout only",
-      "threshold": { "minCount": 5, "minAudience": 5 },
-      "tally": { "A": { "opt_1": 4, "opt_2": 4 } },
-      "audience": { "site": 40, "blocks": { "A": 40 } },
-      "expect": { "shown": true, "total": 8, "options": null, "blocks": {} }
+      "threshold": {
+        "minCount": 5,
+        "minAudience": 5
+      },
+      "tally": {
+        "A": {
+          "opt_1": 4,
+          "opt_2": 4
+        }
+      },
+      "audience": {
+        "site": 40,
+        "blocks": {
+          "A": 40
+        }
+      },
+      "expect": {
+        "shown": true,
+        "total": 8,
+        "options": null,
+        "blocks": {}
+      }
+    },
+    {
+      "name": "Issue #10 counterexample: 33 blocks of 20 households, 32 at 3–3 and X at 2–1; site 98–97; X must not be computable as site − the other 32",
+      "generate": [
+        {
+          "count": 32,
+          "prefix": "B",
+          "tally": {
+            "opt_1": 3,
+            "opt_2": 3
+          },
+          "households": 20
+        },
+        {
+          "code": "X",
+          "tally": {
+            "opt_1": 2,
+            "opt_2": 1
+          },
+          "households": 20
+        }
+      ],
+      "expect": {
+        "shown": true,
+        "total": 195,
+        "options": {
+          "opt_1": 98,
+          "opt_2": 97
+        },
+        "blocksShown": 31,
+        "hidden": [
+          "X",
+          "B001"
+        ],
+        "maxMs": 250
+      }
+    },
+    {
+      "name": "20 blocks: 19 at 3–3 and X at 2–1; X stays hidden inside a safe remainder (X plus one 3–3 block), 18 blocks shown",
+      "generate": [
+        {
+          "count": 19,
+          "prefix": "B",
+          "tally": {
+            "opt_1": 3,
+            "opt_2": 3
+          },
+          "households": 20
+        },
+        {
+          "code": "X",
+          "tally": {
+            "opt_1": 2,
+            "opt_2": 1
+          },
+          "households": 20
+        }
+      ],
+      "expect": {
+        "shown": true,
+        "total": 117,
+        "options": {
+          "opt_1": 59,
+          "opt_2": 58
+        },
+        "blocksShown": 18,
+        "hidden": [
+          "X",
+          "B001"
+        ],
+        "maxMs": 250
+      }
+    },
+    {
+      "name": "30 blocks: 29 at 3–3 and X at 2–1; X stays hidden inside a safe remainder (X plus one 3–3 block), 28 blocks shown",
+      "generate": [
+        {
+          "count": 29,
+          "prefix": "B",
+          "tally": {
+            "opt_1": 3,
+            "opt_2": 3
+          },
+          "households": 20
+        },
+        {
+          "code": "X",
+          "tally": {
+            "opt_1": 2,
+            "opt_2": 1
+          },
+          "households": 20
+        }
+      ],
+      "expect": {
+        "shown": true,
+        "total": 177,
+        "options": {
+          "opt_1": 89,
+          "opt_2": 88
+        },
+        "blocksShown": 28,
+        "hidden": [
+          "X",
+          "B001"
+        ],
+        "maxMs": 250
+      }
+    },
+    {
+      "name": "31 blocks: 30 at 3–3 and X at 2–1; X stays hidden inside a safe remainder (X plus one 3–3 block), 29 blocks shown",
+      "generate": [
+        {
+          "count": 30,
+          "prefix": "B",
+          "tally": {
+            "opt_1": 3,
+            "opt_2": 3
+          },
+          "households": 20
+        },
+        {
+          "code": "X",
+          "tally": {
+            "opt_1": 2,
+            "opt_2": 1
+          },
+          "households": 20
+        }
+      ],
+      "expect": {
+        "shown": true,
+        "total": 183,
+        "options": {
+          "opt_1": 92,
+          "opt_2": 91
+        },
+        "blocksShown": 29,
+        "hidden": [
+          "X",
+          "B001"
+        ],
+        "maxMs": 250
+      }
+    },
+    {
+      "name": "32 blocks: 31 at 3–3 and X at 2–1; X stays hidden inside a safe remainder (X plus one 3–3 block), 30 blocks shown",
+      "generate": [
+        {
+          "count": 31,
+          "prefix": "B",
+          "tally": {
+            "opt_1": 3,
+            "opt_2": 3
+          },
+          "households": 20
+        },
+        {
+          "code": "X",
+          "tally": {
+            "opt_1": 2,
+            "opt_2": 1
+          },
+          "households": 20
+        }
+      ],
+      "expect": {
+        "shown": true,
+        "total": 189,
+        "options": {
+          "opt_1": 95,
+          "opt_2": 94
+        },
+        "blocksShown": 30,
+        "hidden": [
+          "X",
+          "B001"
+        ],
+        "maxMs": 250
+      }
+    },
+    {
+      "name": "64 blocks: 63 at 3–3 and X at 2–1; X stays hidden inside a safe remainder (X plus one 3–3 block), 62 blocks shown",
+      "generate": [
+        {
+          "count": 63,
+          "prefix": "B",
+          "tally": {
+            "opt_1": 3,
+            "opt_2": 3
+          },
+          "households": 20
+        },
+        {
+          "code": "X",
+          "tally": {
+            "opt_1": 2,
+            "opt_2": 1
+          },
+          "households": 20
+        }
+      ],
+      "expect": {
+        "shown": true,
+        "total": 381,
+        "options": {
+          "opt_1": 191,
+          "opt_2": 190
+        },
+        "blocksShown": 62,
+        "hidden": [
+          "X",
+          "B001"
+        ],
+        "maxMs": 250
+      }
+    },
+    {
+      "name": "128 blocks: 127 at 3–3 and X at 2–1; X stays hidden inside a safe remainder (X plus one 3–3 block), 126 blocks shown",
+      "generate": [
+        {
+          "count": 127,
+          "prefix": "B",
+          "tally": {
+            "opt_1": 3,
+            "opt_2": 3
+          },
+          "households": 20
+        },
+        {
+          "code": "X",
+          "tally": {
+            "opt_1": 2,
+            "opt_2": 1
+          },
+          "households": 20
+        }
+      ],
+      "expect": {
+        "shown": true,
+        "total": 765,
+        "options": {
+          "opt_1": 383,
+          "opt_2": 382
+        },
+        "blocksShown": 126,
+        "hidden": [
+          "X",
+          "B001"
+        ],
+        "maxMs": 250
+      }
+    },
+    {
+      "name": "120 blocks: 100 at 3–3, 10 at 2–1 and 10 with no answers (10 households each); the 20 hidden blocks together are safe (20–10), so all 100 safe blocks are shown",
+      "generate": [
+        {
+          "count": 100,
+          "prefix": "S",
+          "tally": {
+            "opt_1": 3,
+            "opt_2": 3
+          },
+          "households": 20
+        },
+        {
+          "count": 10,
+          "prefix": "U",
+          "tally": {
+            "opt_1": 2,
+            "opt_2": 1
+          },
+          "households": 20
+        },
+        {
+          "count": 10,
+          "prefix": "Z",
+          "tally": {},
+          "households": 10
+        }
+      ],
+      "expect": {
+        "shown": true,
+        "total": 630,
+        "options": {
+          "opt_1": 320,
+          "opt_2": 310
+        },
+        "blocksShown": 100,
+        "hidden": [
+          "U001",
+          "U010",
+          "Z001",
+          "Z010"
+        ],
+        "maxMs": 250
+      }
+    },
+    {
+      "name": "many returns, 63 blocks and 3 options: U at 1–1–1, 60 blocks at 3–0–0, Q at 0–3–0, R at 0–0–3; returning the block that clears the most small figures hides U, P001, Q and R and shows 59 (returning the smallest each time would hide every block)",
+      "options": [
+        {
+          "id": "opt_1",
+          "label": "Yes"
+        },
+        {
+          "id": "opt_2",
+          "label": "No"
+        },
+        {
+          "id": "opt_3",
+          "label": "No preference"
+        }
+      ],
+      "generate": [
+        {
+          "code": "U",
+          "tally": {
+            "opt_1": 1,
+            "opt_2": 1,
+            "opt_3": 1
+          },
+          "households": 20
+        },
+        {
+          "count": 60,
+          "prefix": "P",
+          "tally": {
+            "opt_1": 3
+          },
+          "households": 20
+        },
+        {
+          "code": "Q",
+          "tally": {
+            "opt_2": 3
+          },
+          "households": 20
+        },
+        {
+          "code": "R",
+          "tally": {
+            "opt_3": 3
+          },
+          "households": 20
+        }
+      ],
+      "expect": {
+        "shown": true,
+        "total": 189,
+        "options": {
+          "opt_1": 181,
+          "opt_2": 4,
+          "opt_3": 4
+        },
+        "blocksShown": 59,
+        "hidden": [
+          "U",
+          "P001",
+          "Q",
+          "R"
+        ],
+        "maxMs": 250
+      }
+    },
+    {
+      "name": "several hidden blocks whose sum is safe: A, B, E at 3–3 shown; C (2–1) and D (1–2) hidden together as 3–3",
+      "tally": {
+        "A": {
+          "opt_1": 3,
+          "opt_2": 3
+        },
+        "B": {
+          "opt_1": 3,
+          "opt_2": 3
+        },
+        "C": {
+          "opt_1": 2,
+          "opt_2": 1
+        },
+        "D": {
+          "opt_1": 1,
+          "opt_2": 2
+        },
+        "E": {
+          "opt_1": 3,
+          "opt_2": 3
+        }
+      },
+      "audience": {
+        "site": 100,
+        "blocks": {
+          "A": 20,
+          "B": 20,
+          "C": 20,
+          "D": 20,
+          "E": 20
+        }
+      },
+      "expect": {
+        "shown": true,
+        "total": 24,
+        "options": {
+          "opt_1": 12,
+          "opt_2": 12
+        },
+        "blocks": {
+          "A": 6,
+          "B": 6,
+          "E": 6
+        }
+      }
+    },
+    {
+      "name": "several hidden blocks whose sum is unsafe (C 2–1 and D 0–1 make 2–2): one 3–3 block goes back into the remainder (5–5)",
+      "tally": {
+        "A": {
+          "opt_1": 3,
+          "opt_2": 3
+        },
+        "B": {
+          "opt_1": 3,
+          "opt_2": 3
+        },
+        "C": {
+          "opt_1": 2,
+          "opt_2": 1
+        },
+        "D": {
+          "opt_2": 1
+        }
+      },
+      "audience": {
+        "site": 80,
+        "blocks": {
+          "A": 20,
+          "B": 20,
+          "C": 20,
+          "D": 20
+        }
+      },
+      "expect": {
+        "shown": true,
+        "total": 16,
+        "options": {
+          "opt_1": 8,
+          "opt_2": 8
+        },
+        "blocks": {
+          "B": 6
+        }
+      }
+    },
+    {
+      "name": "unanimous across two blocks (3–0 and 4–0): allowed, every count and complement is 0 or at least 3; both blocks shown",
+      "tally": {
+        "A": {
+          "opt_1": 3
+        },
+        "B": {
+          "opt_1": 4
+        }
+      },
+      "audience": {
+        "site": 40,
+        "blocks": {
+          "A": 20,
+          "B": 20
+        }
+      },
+      "expect": {
+        "shown": true,
+        "total": 7,
+        "options": {
+          "opt_1": 7,
+          "opt_2": 0
+        },
+        "blocks": {
+          "A": 3,
+          "B": 4
+        }
+      }
+    },
+    {
+      "name": "unanimous but only two answers: nothing shown",
+      "tally": {
+        "A": {
+          "opt_1": 2
+        }
+      },
+      "audience": {
+        "site": 20,
+        "blocks": {
+          "A": 20
+        }
+      },
+      "expect": {
+        "shown": false,
+        "reason": "below_threshold"
+      }
+    },
+    {
+      "name": "a block with no answers among 3 households would be the whole remainder (its non-participation shown): a safe block goes back with it",
+      "tally": {
+        "A": {
+          "opt_1": 3,
+          "opt_2": 3
+        },
+        "B": {
+          "opt_1": 3,
+          "opt_2": 3
+        }
+      },
+      "audience": {
+        "site": 43,
+        "blocks": {
+          "A": 20,
+          "B": 20,
+          "C": 3
+        }
+      },
+      "expect": {
+        "shown": true,
+        "total": 12,
+        "options": {
+          "opt_1": 6,
+          "opt_2": 6
+        },
+        "blocks": {
+          "B": 6
+        }
+      }
+    },
+    {
+      "name": "a block with no answers among 10 households is not left alone in the remainder (it would show that all 10 stayed silent): a safe block goes back with it",
+      "tally": {
+        "A": {
+          "opt_1": 3,
+          "opt_2": 3
+        },
+        "B": {
+          "opt_1": 3,
+          "opt_2": 3
+        }
+      },
+      "audience": {
+        "site": 50,
+        "blocks": {
+          "A": 20,
+          "B": 20,
+          "C": 10
+        }
+      },
+      "expect": {
+        "shown": true,
+        "total": 12,
+        "options": {
+          "opt_1": 6,
+          "opt_2": 6
+        },
+        "blocks": {
+          "B": 6
+        }
+      }
+    },
+    {
+      "name": "different audience sizes: A (3–3) has only 4 households, so it is hidden and not alone in the remainder",
+      "tally": {
+        "A": {
+          "opt_1": 3,
+          "opt_2": 3
+        },
+        "B": {
+          "opt_1": 4,
+          "opt_2": 4
+        },
+        "C": {
+          "opt_1": 3,
+          "opt_2": 3
+        }
+      },
+      "audience": {
+        "site": 44,
+        "blocks": {
+          "A": 4,
+          "B": 20,
+          "C": 20
+        }
+      },
+      "expect": {
+        "shown": true,
+        "total": 20,
+        "options": {
+          "opt_1": 10,
+          "opt_2": 10
+        },
+        "blocks": {
+          "B": 8
+        }
+      }
+    },
+    {
+      "name": "a raised threshold (4) for blocks: C at 3–4 is a small group, so it is hidden with one other block",
+      "threshold": {
+        "minCount": 4,
+        "minAudience": 5
+      },
+      "tally": {
+        "A": {
+          "opt_1": 4,
+          "opt_2": 4
+        },
+        "B": {
+          "opt_1": 4,
+          "opt_2": 4
+        },
+        "C": {
+          "opt_1": 3,
+          "opt_2": 4
+        }
+      },
+      "audience": {
+        "site": 60,
+        "blocks": {
+          "A": 20,
+          "B": 20,
+          "C": 20
+        }
+      },
+      "expect": {
+        "shown": true,
+        "total": 23,
+        "options": {
+          "opt_1": 11,
+          "opt_2": 12
+        },
+        "blocks": {
+          "B": 8
+        }
+      }
+    },
+    {
+      "name": "invalid data fails closed: a negative count",
+      "tally": {
+        "A": {
+          "opt_1": 5,
+          "opt_2": -1
+        }
+      },
+      "audience": {
+        "site": 20,
+        "blocks": {
+          "A": 20
+        }
+      },
+      "expect": {
+        "shown": false,
+        "reason": "unavailable"
+      }
+    },
+    {
+      "name": "invalid data fails closed: a fractional count",
+      "tally": {
+        "A": {
+          "opt_1": 3.5,
+          "opt_2": 3
+        }
+      },
+      "audience": {
+        "site": 20,
+        "blocks": {
+          "A": 20
+        }
+      },
+      "expect": {
+        "shown": false,
+        "reason": "unavailable"
+      }
+    },
+    {
+      "name": "invalid data fails closed: answers for an option the poll does not have",
+      "tally": {
+        "A": {
+          "opt_1": 3,
+          "opt_9": 3
+        }
+      },
+      "audience": {
+        "site": 20,
+        "blocks": {
+          "A": 20
+        }
+      },
+      "expect": {
+        "shown": false,
+        "reason": "unavailable"
+      }
+    },
+    {
+      "name": "invalid data fails closed: block households that add up to more than the audience",
+      "tally": {
+        "A": {
+          "opt_1": 3,
+          "opt_2": 3
+        },
+        "B": {
+          "opt_1": 3,
+          "opt_2": 3
+        }
+      },
+      "audience": {
+        "site": 30,
+        "blocks": {
+          "A": 20,
+          "B": 20
+        }
+      },
+      "expect": {
+        "shown": false,
+        "reason": "unavailable"
+      }
+    },
+    {
+      "name": "invalid data fails closed: an audience larger than its blocks (unknown households could pad the hidden remainder)",
+      "tally": {
+        "A": {
+          "opt_1": 3,
+          "opt_2": 3
+        },
+        "B": {
+          "opt_1": 3,
+          "opt_2": 3
+        },
+        "C": {
+          "opt_1": 3,
+          "opt_2": 3
+        }
+      },
+      "audience": {
+        "site": 64,
+        "blocks": {
+          "A": 20,
+          "B": 20,
+          "C": 20
+        }
+      },
+      "expect": {
+        "shown": false,
+        "reason": "unavailable"
+      }
     }
   ]
 }

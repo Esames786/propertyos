@@ -85,7 +85,7 @@ The owner's development handoff (2 November 2026) asked to stabilise GPT's D.3 c
 | 6.4 | Desktop, tablet, 390 and 320 px; EN/UR; 100–200 % text; no clipping or toast overlay | shared kit; `KeepWords`; D.2 toast policy | `d3.spec` (axe at 1440/768/390, layout at 320 × 700 at 100/150/200 %, keyboard walks) |
 | 6.5 | Dark mode, high contrast, reduced motion | design tokens only (no fixed colours), D.1 preferences | covered by tokens; manual check listed |
 | 6.6 | Register reconciled; BUILT only when complete and tested | 13 rows adopted, 2 changed; PARTIAL where tabs or actions are missing | `register.spec` (437 / 353) |
-| 6.7 | Screenshots, browser evidence, honest limitations | `screenshots/` (76), `video/` (2), `MANUAL_VERIFICATION.md` | evidence spec |
+| 6.7 | Screenshots, browser evidence, honest limitations | `screenshots/` (78), `video/` (2), `MANUAL_VERIFICATION.md` | evidence spec |
 
 ## 7. Issue #9 final closure
 
@@ -103,3 +103,18 @@ The owner's development handoff (2 November 2026) asked to stabilise GPT's D.3 c
 | 7.10 | Removed messages: marker inside the period, gone after | `viewOf`, `readable` | `api` |
 | 7.11 | Membership, move-out, tenant and site isolation preserved | unchanged | `api` (move-out with an open report; other site; other organisation) |
 | 7.12 | Complete combined regression with retries off; dark mode and high contrast where testable | — | `test-results.md` §Issue #9; `d3.spec` dark/high-contrast tests |
+
+## 8. Issue #10 security closure
+
+| # | Requirement | Where | Checked by |
+|---|---|---|---|
+| 8.1 | No 32-bit masks, no 2^n enumeration, no block limit | `polls.ts` `pollResults`: candidates, one undisclosed remainder, the returning step | `vectors` (20, 30, 31, 32, 33, 64, 128 blocks); large societies to 10,000 blocks |
+| 8.2 | Every shown block and the undisclosed remainder independently safe | `safeBreakdown`, `safeRemainder` (`smallFigures`) | every vector and random poll attacked: each shown block, the remainder and (small results) every set of shown blocks and the audience minus it |
+| 8.3 | The 33-block counterexample | — | vector; `community.test.ts` (audience − shown = 5–4, never 2–1); `api`; `f03`, `f04` |
+| 8.4 | Deterministic | ties by total then block code; output sorted by code | random polls with the input order reversed; repeated and varied API reads |
+| 8.5 | Negative, fractional, non-numeric or unknown-option counts, and households that do not add up, rejected | `validInputs` → `unavailable` | `vectors` (5); `api` (residents and office) |
+| 8.6 | API contracts preserved | `PollResults` gains only the reason `unavailable` (English and Urdu text) | typecheck; i18n parity |
+| 8.7 | 2–1, 5–1, unanimous, zero-vote options, site − block, adjacent blocks, several hidden blocks, audience sizes, raised thresholds | — | `vectors` (Issue #9's 15 unchanged; 22 new) |
+| 8.8 | Published results and repeated reads | recomputed on every read (`resultsOf`) | `api`: an old exact snapshot of all 32 blocks injected, other residents, unrelated and threshold-like query parameters |
+| 8.9 | Large-society performance | O(n log n + n·k²); at most 2k + 2 returns | vitest bounds; measured: 33 blocks 0.09 ms, 1,000 blocks 2.33 ms, 10,000 blocks 20.03 ms (medians) |
+| 8.10 | D.3 functionality preserved; unanimous results still shown when safe | unchanged elsewhere | complete combined run 360 / 360; `vectors` (unanimous 3–0 and 4–0 shown) |
