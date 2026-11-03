@@ -1,6 +1,6 @@
 import { PROVIDER_CATEGORIES, type CommunityHome, type CommunityTab, type PollResident, type ResidentStaffOnDuty, type PollResults, type ProviderCategory, type ResourceResident, type ServiceDirectoryResident, type ServiceProviderResident } from '@repo/contracts';
 import { Badge, Button, ChoiceCards, DirectionalIcon, Drawer, EmptyState, InlineAlert, KeepWords, Link, PlainCheckbox, PlainTextArea, PlainTextField, saveFile, SegmentedControl, SelectControl, useApiMutation, useApiQuery, useQueryParams, useQueryParam, useT, useToast } from '@repo/ui';
-import { BadgeCheck, ChevronRight, CircleDot, Clock3, Download, Flag, Info, Megaphone, MessagesSquare, Phone, ShieldCheck, ShieldOff, ThumbsUp, TriangleAlert, Undo2, Vote } from 'lucide-react';
+import { BadgeCheck, ChevronRight, CircleDashed, CircleDot, Clock3, Download, Flag, Info, Megaphone, MessagesSquare, Phone, ShieldCheck, ShieldOff, ThumbsUp, TriangleAlert, Undo2, Vote } from 'lucide-react';
 import { useState } from 'react';
 import { COMMUNITY, OPS } from '../../nav.config';
 import { PortalSkeleton, usePortalFormat, type PortalFormat } from '../portal/shared';
@@ -138,35 +138,78 @@ const isolated = (s: string) => String.fromCharCode(0x2068) + s + String.fromCha
 
 function StaffTab({ staff, fmt }: { staff: ResidentStaffOnDuty; fmt: PortalFormat }) {
   const { t } = useT();
+  const nobody = staff.confirmed.length === 0 && staff.expected.length === 0 && staff.unavailable === 0;
+  const role = (r: ResidentStaffOnDuty['confirmed'][number]['role']) => <KeepWords text={t(`hr:role.${r}`)} />;
   return (
-    <div className="space-y-4" data-testid="community-staff">
+    <div className="space-y-5" data-testid="community-staff" data-confirmed={staff.confirmed.length} data-expected={staff.expected.length} data-unavailable={staff.unavailable}>
       <p className="text-sm text-muted">{t('community:staff.asOf', { time: isolated(fmt.time(staff.at)) })}</p>
-      {staff.onDuty.length === 0 ? (
+      {nobody ? (
         <EmptyState title={t('community:staff.nobody')} body={t('community:staff.nobodyHint')} />
       ) : (
-        <ul className="grid gap-3 @2xl:grid-cols-2" data-testid="community-staff-list">
-          {staff.onDuty.map((s, i) => (
-            <li key={`${s.role}-${i}`} className="flex items-start gap-3 rounded-card border border-border bg-panel p-4" data-testid="community-staff-person" data-role={s.role}>
-              <span aria-hidden className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-soft text-sm font-semibold text-primary">
-                {s.initials ?? <ShieldCheck className="size-5" />}
-              </span>
-              <span className="min-w-0 flex-[1_1_10em]">
-                <span className="block font-semibold break-words text-text">
-                  <KeepWords text={t(`hr:role.${s.role}`)} />
-                </span>
-                {s.name && (
-                  <span className="block text-sm text-text">
-                    <bdi>{s.name}</bdi>
-                  </span>
-                )}
-                <span className="block text-xs text-muted">
-                  {s.post ? `${s.post} · ` : ''}
-                  {t('community:staff.until', { time: isolated(fmt.time(s.until)) })}
-                </span>
-              </span>
-            </li>
-          ))}
-        </ul>
+        <>
+          {/* Issue #12: recorded arrivals and planned staffing are separate lists, never one "on duty" list. */}
+          {staff.confirmed.length > 0 && (
+            <section aria-labelledby="staff-confirmed" className="space-y-2" data-testid="community-staff-confirmed">
+              <h3 id="staff-confirmed" className="flex items-center gap-2 font-semibold text-text">
+                <ShieldCheck aria-hidden className="size-4 shrink-0 text-success" />
+                {t('community:staff.confirmedTitle')}
+              </h3>
+              <p className="text-xs text-muted">{t('community:staff.confirmedHint')}</p>
+              <ul className="grid gap-3 @2xl:grid-cols-2">
+                {staff.confirmed.map((s, i) => (
+                  <li key={`${s.role}-${i}`} className="flex items-start gap-3 rounded-card border border-border bg-panel p-4" data-testid="community-staff-person" data-state="confirmed" data-role={s.role}>
+                    <span aria-hidden className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-soft text-sm font-semibold text-primary">
+                      {s.initials ?? <ShieldCheck className="size-5" />}
+                    </span>
+                    <span className="min-w-0 flex-[1_1_10em]">
+                      <span className="block font-semibold break-words text-text">{role(s.role)}</span>
+                      {s.name && (
+                        <span className="block text-sm text-text">
+                          <bdi>{s.name}</bdi>
+                        </span>
+                      )}
+                      <span className="block text-xs text-muted">
+                        {s.post ? `${s.post} · ` : ''}
+                        {t('community:staff.until', { time: isolated(fmt.time(s.until)) })}
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+          {staff.expected.length > 0 && (
+            <section aria-labelledby="staff-expected" className="space-y-2" data-testid="community-staff-expected">
+              <h3 id="staff-expected" className="flex items-center gap-2 font-semibold text-text">
+                <CircleDashed aria-hidden className="size-4 shrink-0 text-muted" />
+                {t('community:staff.expectedTitle')}
+              </h3>
+              <p className="text-xs text-muted">{t('community:staff.expectedHint')}</p>
+              <ul className="grid gap-3 @2xl:grid-cols-2">
+                {staff.expected.map((s, i) => (
+                  <li key={`${s.role}-${i}`} className="flex items-start gap-3 rounded-card border border-dashed border-border-control bg-panel p-4" data-testid="community-staff-person" data-state="expected" data-role={s.role}>
+                    <span aria-hidden className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-sunken text-muted">
+                      <CircleDashed className="size-5" />
+                    </span>
+                    <span className="min-w-0 flex-[1_1_10em]">
+                      <span className="block font-semibold break-words text-text">{role(s.role)}</span>
+                      <span className="block text-xs text-muted">
+                        {s.post ? `${s.post} · ` : ''}
+                        {t('community:staff.expectedUntil', { time: isolated(fmt.time(s.until)) })}
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+          {staff.unavailable > 0 && (
+            <p className="flex items-start gap-1.5 text-sm text-text" data-testid="community-staff-unavailable">
+              <Info aria-hidden className="mt-0.5 size-4 shrink-0 text-muted" />
+              {t('community:staff.unavailable', { count: staff.unavailable })}
+            </p>
+          )}
+        </>
       )}
       {staff.next.length > 0 && (
         <p className="flex items-start gap-1.5 text-sm text-text" data-testid="community-staff-next">

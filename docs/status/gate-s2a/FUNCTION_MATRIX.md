@@ -16,6 +16,7 @@ The owner's brief "PROPERTYOS — GATE S.2a SOCIETY STAFF OPERATIONS" and GitHub
 
 **Test names used below:**
 - `api` = `hr.api.test.ts` (20);
+- `closure` = `hr.closure.api.test.ts` (14, Issue #12; on the fictional multi-site organisation of `multisite.fixture.ts`);
 - `vectors` = `hr.test.ts` on `hr-roster.vectors.json` (52);
 - `s2a.spec` = `tests/e2e/s2a.spec.ts` (23, axe inside);
 - `smoke` = `tests/smoke/s2a.smoke.spec.ts` (4, Firefox and WebKit);
@@ -83,10 +84,10 @@ The owner's brief "PROPERTYOS — GATE S.2a SOCIETY STAFF OPERATIONS" and GitHub
 
 | # | Requirement | Status | Where | Checked by |
 |---|---|---|---|---|
-| 7.1 | Request, loan, approval states, outstanding, repayment schedule, evidence, audit | BUILT | request drawer (kind, amount, instalments, reason, evidence); states; planned schedule (last instalment takes the remainder); history | vectors (schedules); `api`, `s2a.spec` |
-| 7.2 | An approval or repayment instruction is never cash paid or received; only a matched, authorised settlement changes cash or reduces the obligation | BUILT | "Approved — not paid"; outstanding 0 until a posted voucher is linked; repayments only by posted receipts | `api` (real S.1 vouchers prepared, approved and posted); `s2a.spec`; evidence `e02`…`e05` |
-| 7.3 | Preserve S.1 accounting and reconciliation guarantees | BUILT | HR only reads posted vouchers and records a link; it never creates, posts or reverses one | full regression (S.1 specs) |
-| 7.4 | Payroll or banking needed → explicitly PARTIAL; no invented bank transactions | PARTIAL | HR-008: staff payment by bank and payroll deduction are S.2b; the screen says so | `s2a.spec` (`hr-settlement-partial`) |
+| 7.1 | Request, loan, approval states, outstanding, repayment schedule, evidence, audit | BUILT (outstanding: PARTIAL) | request drawer (kind, amount, instalments, reason, evidence); states; planned schedule (last instalment takes the remainder); history. Since Issue #12 nothing is "outstanding": no payment can be verified | vectors (schedules); `api`, `s2a.spec` |
+| 7.2 | An approval or repayment instruction is never cash paid or received; only a matched, authorised settlement changes cash or reduces the obligation | BUILT (closure) | "Approved — payment not verified". No paid, repaid or owed state exists; linking any voucher is refused (Issue #12, O8) | `closure` (9 voucher kinds posted through S.1, each refused); `api`; `s2a.spec`; evidence `e02`…`e05` |
+| 7.3 | Preserve S.1 accounting and reconciliation guarantees | BUILT | HR reads nothing from the cashbook and changes nothing in it | `closure` (vouchers unchanged after the attempts); full regression (S.1 specs) |
+| 7.4 | Payroll or banking needed → explicitly PARTIAL; no invented bank transactions | PARTIAL | HR-008 read only: verified payment evidence, staff payment by bank and payroll deduction are S.2b; the screen says so and lists what verification will need | `s2a.spec` (`hr-settlement-partial`, `hr-settlement-needs`, no link) |
 
 ## 8. Documents (HR-009)
 
@@ -100,9 +101,10 @@ The owner's brief "PROPERTYOS — GATE S.2a SOCIETY STAFF OPERATIONS" and GitHub
 
 | # | Requirement | Status | Where | Checked by |
 |---|---|---|---|---|
-| 9.1 | Duty role and approved public profile only; never salary, phone, CNIC, bank, loans, attendance, address or documents | BUILT | Community → Staff on duty | `api` (`not.toMatch`); `s2a.spec` |
-| 9.2 | Name or photo only with consent and society policy | BUILT | consent recorded by the office; "show name"; "show photo" shows initials (no photos stored) | `api`, `s2a.spec` |
-| 9.3 | Verified site membership; independent of Community Chat and Hub | BUILT | `residentOps` with `hr` + `hr.shifts` for the resident's site | `api`; `s2a.spec` (chat and hub withdrawn) |
+| 9.1 | Duty role and approved public profile only; never salary, phone, CNIC, bank, loans, attendance, address or documents | BUILT | Community → Staff on duty; no check-in time either | `api` (`not.toMatch`); `closure`; `s2a.spec` |
+| 9.2 | Name or photo only with consent and society policy | BUILT | consent recorded by the office; "show name"; "show photo" shows initials (no photos stored); names for confirmed staff only | `api`, `closure`, `s2a.spec` |
+| 9.3 | Verified site membership; independent of Community Chat and Hub | BUILT | `residentOps` with `hr` + `hr.shifts` for the resident's site; another site's staff never appear | `api`; `closure`; `s2a.spec` (chat and hub withdrawn) |
+| 9.4 | Issue #12: confirmed on duty, scheduled and unavailable kept apart; never describe an unconfirmed employee as on duty | BUILT | `confirmed` (arrival recorded), `expected` (role and post only), `unavailable` (a count); two labelled lists | `closure` (7); `api`; `s2a.spec`; smoke; evidence `f01`, `f02`, `g05`, `g06` |
 
 ## 10. Licensing and security
 
@@ -111,7 +113,7 @@ The owner's brief "PROPERTYOS — GATE S.2a SOCIETY STAFF OPERATIONS" and GitHub
 | 10.1 | One shared HR module; optional add-on for societies; payroll separate; `hr.shifts` | BUILT | GPT's catalogue entry, kept | `platform.test.ts` |
 | 10.2 | Other societies get no HR automatically; an explicit fictional Al-Noor amendment | BUILT | `tenant-directory.ts`, dated 2026-10-12 | `api`; `platform.test.ts` |
 | 10.3 | No change to general pricing or edition presets | BUILT (unchanged) | — | `platform.test.ts` (18,700 / 3,700) |
-| 10.4 | Tenant, legal-entity and site isolation; employee scoping; role permissions; effective dates; suspended tenants; direct route and API authorisation; sensitive documents | BUILT | [`SECURITY_FINDINGS.md`](SECURITY_FINDINGS.md) §2 | `api`, vectors, `s2a.spec` |
+| 10.4 | Tenant, legal-entity and site isolation; employee scoping; role permissions; effective dates; suspended tenants; direct route and API authorisation; sensitive documents | BUILT (record-level since Issue #12) | `scope.ts`; [`SECURITY_FINDINGS.md`](SECURITY_FINDINGS.md) §1a, §2 | `closure`, `api`, vectors, `s2a.spec` |
 | 10.5 | Guards, residents and unrelated roles cannot reach confidential HR | BUILT | the supervisor gets the roster and attendance only; residents get the public tab only; the technician gets nothing | `api`, `s2a.spec` |
 | 10.6 | Issue #11: separate `hr.manage`, `shifts.manage`, `attendance.record`, leave and financial scopes; `hr.view` is not a salary permission | BUILT | nine HR permissions | `api` |
 | 10.7 | Issue #11: maker and checker for adjustments | BUILT | corrections, leave, advances | `api` |
@@ -140,3 +142,18 @@ The owner's brief "PROPERTYOS — GATE S.2a SOCIETY STAFF OPERATIONS" and GitHub
 | 12.4 | Documents: report, matrix, results, security, manual checks, screenshots and video | done | `docs/status/gate-s2a/` | — |
 | 12.5 | S.2b excluded: PAY-001…007, payroll, disbursement, statutory, bank transfers, payroll accounting | not built (as instructed) | register rows unchanged | — |
 | 12.6 | No `main`, merge, VPS, Bingoo, Laravel, migrations, live payments, SOS, Rentals or Developer ERP | respected | — | `git diff --stat` touches only the frontend, fixtures, tests and docs |
+
+## 13. Issue #12 final security closure
+
+| # | Requirement | Status | Where | Checked by |
+|---|---|---|---|---|
+| 13.1 | P0: verify tenant, legal entity and site for each record; respect effective-dated site allocations | BUILT | `scope.ts` (`scopeOf` through the shared `decide`; `homeSites`; `employeeVisible`; `assignmentVisible`) | `closure` |
+| 13.2 | P0: filter records before lists, counts and summaries | BUILT | `visibleEmployees` and `visibleLive` in every list, count, KPI, candidate list and option list | `closure` (19 identifying strings absent from 11 responses; counts and department totals) |
+| 13.3 | P0: direct URLs to unauthorised records get a non-disclosing refusal | BUILT | `findEmployee`, `findAssignment`, `findLeave`, `findAdvance`, `correctionVisible`, `employeeIn`, `templateIn`; `?site=` | `closure` (14 path ids and 5 body ids answered exactly like never-issued ids) |
+| 13.4 | P0: revoked site access takes effect immediately | BUILT | scope worked out on every request | `closure` (site scope removed, permission removed, module withdrawn) |
+| 13.5 | P0: cross-site overlap still detected without exposing other sites | BUILT | `assignBlock` over the one HR state; refusal names only the employee | `closure`; vectors |
+| 13.6 | P0: multi-site administrators keep access; transfers and effective dates update access | BUILT | `all` and `legal_entity` scopes; dated allocations; `other_sites` for employment changes | `closure` |
+| 13.7 | P1: residents can tell verified staffing from scheduled staffing; consent, privacy, independence, Pay action, no emergency implication | BUILT | `resident.ts`, `CommunityHomePage.tsx` | `closure` (7), `api`, `s2a.spec` (incl. Pay at 390 px), smoke, 320 px / 200 % in both languages |
+| 13.8 | P1: no advance DISBURSED or REPAID without evidence identifying the employee and the advance | BUILT (option B) | linking refused; paid, repaid and owed states removed; HR-008 read only (PARTIAL) | `closure` (wrong employee, wrong advance, wrong entity and site, supplier payment, unrelated receipt, reused, reversed before and after, the right-looking voucher); `s2a.spec` |
+| 13.9 | P1: maker ≠ checker preserved | BUILT | `checker` | `closure`; `api` |
+| 13.10 | Complete combined regression on the final code, retries off; Firefox and WebKit; axe; 320 px / 200 % | done | — | [`test-results.md`](test-results.md) § Issue #12 closure |

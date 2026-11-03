@@ -18,10 +18,12 @@ These checks are **not a WCAG certification**. The checks below need a person. T
 | TalkBack, H5 and H8 in Urdu at 200 % | office app (supervisor) and resident app on Android | not performed | needs an Android phone |
 | VoiceOver (iOS), H8 | resident app on an iPhone | not performed | needs an iPhone |
 | Real phones at 320–360 px | On duty now (check-in, mark absent, bring in cover) with a thumb; the roster's day picker; the assign drawer with the soft keyboard | not performed (automated in Chromium, Firefox and WebKit) | needs devices |
-| Windows High Contrast (forced colours) | roster cells (short, leave requested, cover), duty and attendance badges, the "approved — not paid" state | not performed | needs a person |
-| Urdu wording by a native reader | `packages/i18n/locales/ur-PK/hr.json`; the residents' staff strings in `community.json` | not performed | needs a person |
+| Windows High Contrast (forced colours) | roster cells (short, leave requested, cover), duty and attendance badges, the "approved — payment not verified" state, and the residents' dashed "scheduled" cards next to the confirmed ones | not performed | needs a person |
+| Urdu wording by a native reader | `packages/i18n/locales/ur-PK/hr.json`; the residents' staff strings in `community.json` (including the Issue #12 wording: confirmed, scheduled, unavailable) | not performed | needs a person |
 | Urdu times with a reader | that a time range in Urdu reads start then end (start on the right), with NVDA and TalkBack | not performed | needs a person |
-| Money wording | "Approved — not paid", "nothing has been paid", and the settlement's PARTIAL note, read by the finance team | not performed | needs a person |
+| Money wording (Issue #12) | "Approved — payment not verified", "Payment: Not verified", and the read-only settlement page with its list of what verification will need, read by the finance team | not performed | needs a person |
+| Residents' staffing states (Issue #12) | with residents: whether "Confirmed on duty" and "Scheduled, not yet confirmed" are understood as recorded and planned, and that the note does not suggest an emergency service | not performed | needs residents |
+| Multi-site in the screens (Issue #12) | a second site exists only in the API tests; the site switcher on the roster and site-scoped people need a demo with two sites | not performed (automated at the API) | later stage |
 | Firefox and WebKit beyond the smoke | the rest of the S.2a screens | not performed (smoke: new guard and night shift; On duty now cover; a correction decided by someone else; 320 px / 200 % Urdu) | later stage |
 
 ## Set-up
@@ -49,5 +51,5 @@ The business date is Monday 26 October 2026; the time of day is the computer's.
 | H4 | The week | Duty roster (desktop) | The grid is a table with day headers and shift row headers. Each duty is a button naming the person and post. Warnings are a list. "Short: 1 of 2" is read. |
 | H5 | On duty now | Shahid: On duty now → mark absent → Bring in cover | Each person's state is read. The absent confirmation is an alert dialog. The candidates list explains why people cannot cover. The cover is announced. |
 | H6 | Corrections and leave | Imran: Leave & corrections | Blocked rows say why (own record). Approve and reject open alert dialogs; reject asks for a reason. The leave conflicts are read before approving. |
-| H7 | Advances | Ayesha: Advances → approve; Saba: Settlement → link | "Approved — not paid" is read as the state. The settlement's PARTIAL note is read first. Ineligible vouchers read their reason. |
-| H8 | Residents' staff on duty | Kamran: Community → Staff on duty, in Urdu at 200 % | Roles, posts and "until" times are read in order. Names are read only where consent was given. Nothing implies emergency help. |
+| H7 | Advances | Ayesha: Advances → approve; Saba: Settlement | "Approved — payment not verified" is read as the state, and "Payment: Not verified" in the drawer. The settlement page is read first as partly built and read only; its list of what verification will need is a list; there is no link control. |
+| H8 | Residents' staff on duty | Kamran: Community → Staff on duty, in Urdu at 200 % | "Confirmed on duty" and "Scheduled, not yet confirmed" are separate headed lists; each card reads role, post and "until". Names are read only for confirmed staff who agreed. The unavailable count and the note are read; nothing implies emergency help. |

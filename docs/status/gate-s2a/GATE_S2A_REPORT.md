@@ -1,8 +1,10 @@
 # Gate S.2a: Society staff operations (Al-Noor Residency)
 
-**Status: built, frontend only, on typed mock APIs; stopped for GPT and owner review.**
+**Status: built, frontend only, on typed mock APIs. The Issue #12 security closure is done; stopped for GPT and owner final review.**
 
-- **Branch:** `feature/gate-s2a-society-staff`. It continues GPT's foundation commit `311dfb5` (on the approved D.3 closure `c497942`, GitHub Issue #11). The S.2a commit sits directly on `311dfb5`.
+- **Branch:** `feature/gate-s2a-society-staff`. It continues GPT's foundation commit `311dfb5` (on the approved D.3 closure `c497942`, GitHub Issue #11).
+  - `95d70d0` is the S.2a gate, reviewed in Issue #12: functionality provisionally accepted.
+  - The closure commit makes the three Issue #12 corrections ([§11](#11-issue-12-final-security-closure)): HR records limited to the reader's sites and legal entities (P0), residents told confirmed staff from scheduled staff (P1), and no voucher able to make a staff advance paid (P1).
 - **Sources:**
   - the owner's brief "PROPERTYOS — GATE S.2a SOCIETY STAFF OPERATIONS" and Issue #11;
   - V3.2 at `0e57604` (`docs/blueprint/v3.2/*`): execution plan §S.2, matrix §5.2 (HR permissions), D-22 (HR as a society add-on) and D-26 (SOS parked), and the HR rows of the register delta.
@@ -16,7 +18,7 @@
 - **Data:** fictional. Al-Noor Residency and its people come from the fictional demo. Identity numbers are made up. Phone numbers are `+92 300 00002xx`. Files are simulated: name, type and size only; nothing is stored.
 - **Not claimed:**
   - WCAG conformance: automated checks pass; the manual screen-reader and device checks are open in [`MANUAL_VERIFICATION.md`](MANUAL_VERIFICATION.md);
-  - that HR-008 settles money: it links vouchers that S.1 already posted. Staff payment by bank and payroll deduction are S.2b ([§8](#8-partial-and-known-limitations)).
+  - that HR-008 settles money. It is read only: no voucher can be linked, and no advance is ever shown as paid, repaid or owed. Verified payment evidence, staff payment by bank and payroll deduction are S.2b ([§8](#8-partial-and-known-limitations), [§11.3](#113-p1-staff-advance-settlement-integrity)).
 
 Detail:
 - every check's result: [`test-results.md`](test-results.md);
@@ -37,8 +39,8 @@ Detail:
 | **Attendance** (`/backoffice/hr/attendance`) | Shahid; **Naveed Anjum** (maintenance supervisor) | Each supervisor records only his own departments. A correction is a request, never an edit. |
 | **Leave & corrections** (`/backoffice/hr/leave-attendance-adjustments`) | Imran, then **Rabia Hashmi** (committee secretary, administrator) | Imran decides Shahid's requests but not his own: those go to Rabia. Approving Karim's leave turns his nights into gaps on the roster. |
 | **Documents** (`/backoffice/hr/employee-documents`) | Imran | Missing, expired and expiring documents. Upload is simulated; numbers are masked. |
-| **Advances & loans** (`/backoffice/hr/employee-advances`) → **Settlement** | Imran raises; Ayesha approves ("Approved — not paid"); **Saba Javed** (accounts) links a posted cashbook voucher | Nothing is "paid" until a posted S.1 voucher of the exact amount is linked. |
-| Resident app → Community → **Staff on duty** | **Kamran Siddiqui** (A-101) | From the published roster: roles and posts, with names only where the staff member consented. No phone or personal detail. Works without chat and the hub. |
+| **Advances & loans** (`/backoffice/hr/employee-advances`) → **Settlement** | Imran raises; Ayesha approves ("Approved — payment not verified"); **Saba Javed** (accounts) opens Settlement | Settlement is read only: it explains what a verified payment will need. No voucher can be linked, so nothing is shown as paid, repaid or owed (Issue #12). |
+| Resident app → Community → **Staff on duty** | **Kamran Siddiqui** (A-101) | From the published roster, in three states (Issue #12): **confirmed** (the office recorded the arrival; a name only with consent), **scheduled, not yet confirmed** (role and post only), and a count of staff **unavailable**. No phone or personal detail. Works without chat and the hub. |
 
 ## 2. Review of GPT's foundation `311dfb5`
 
@@ -84,7 +86,7 @@ Every endpoint runs through the shared fail-closed checks:
 | Corrections | `POST /hr/corrections/:id/approve`, `…/reject` | `attendance.adjust`, never the requester or the person concerned |
 | Leave | `GET /hr/leave-adjustments`; `POST /hr/leave`, `…/approve`, `…/reject`, `…/cancel` | request `hr.manage` or `leave.manage`; decide `leave.manage`, never one's own |
 | Documents | `GET /hr/documents`, `POST /hr/documents` | read `hr.view` (files and history `hr.documents.manage` only); add `hr.documents.manage` |
-| Advances | `GET /hr/advances`; `POST /hr/advances`, `…/withdraw`, `…/link`, `GET …/candidates`; `POST …/approve`, `…/reject` | `hr.advances.manage`; decide `hr.advances.approve`, never the requester or the staff member |
+| Advances | `GET /hr/advances`; `POST /hr/advances`, `…/withdraw`; `POST …/approve`, `…/reject`; `POST …/link` (always refused since Issue #12; the candidates route is removed) | `hr.advances.manage`; decide `hr.advances.approve`, never the requester or the staff member |
 | Residents | `GET /portal/community/staff` (also in the Community home) | resident portal + `hr` with `hr.shifts` for the resident's site |
 
 **Rules worth knowing:**
@@ -98,7 +100,8 @@ Every endpoint runs through the shared fail-closed checks:
 - **Duties that have started cannot be changed.** A past week cannot be published.
 - **Effective dates.** Ending someone's employment removes their duties after the end date and keeps the ones before it. Rehiring starts a new period.
 - **Maker and checker.** Enforced by principal on corrections, leave and advances. Nobody decides their own request or a record about themselves (`maker_checker_required`, `own_record`).
-- **Advance states.** Submitted → approved ("approved — not paid") → disbursed → repaid, or rejected or withdrawn. Outstanding stays 0 until a disbursement is linked.
+- **Advance states.** Submitted → approved ("approved — payment not verified"), or rejected or withdrawn. Since Issue #12 there is no paid, repaid or owed state: payment evidence cannot be verified until S.2b ([§11.3](#113-p1-staff-advance-settlement-integrity)).
+- **Record scope.** Since Issue #12, every read and action is limited to the reader's HR sites and legal entities ([§11.1](#111-p0-multi-site-hr-record-isolation)).
 
 ### 3.2 Screens
 
@@ -113,7 +116,7 @@ All of them use the original registered addresses.
 | HR-005 | Attendance | `/backoffice/hr/attendance` | BUILT |
 | HR-006 | Leave and corrections | `/backoffice/hr/leave-attendance-adjustments` | BUILT |
 | HR-007 | Advances and loans | `/backoffice/hr/employee-advances` | BUILT |
-| HR-008 | Advance and loan settlement | `/backoffice/hr/employee-advance-settlement` | **PARTIAL** |
+| HR-008 | Advance and loan settlement (read only since Issue #12) | `/backoffice/hr/employee-advance-settlement` | **PARTIAL** |
 | HR-009 | Documents | `/backoffice/hr/employee-documents` | BUILT |
 | HR-010 | Duty roster (new) | `/backoffice/hr/roster` (`?week=`, `?site=`, `?tab=`) | BUILT |
 | HR-011 | On duty now (state of HR-010) | `/backoffice/hr/roster?tab=now` | BUILT |
@@ -136,7 +139,7 @@ All of them use the original registered addresses.
 | Administrator | all nine |
 | Manager | all except `hr.advances.approve` |
 | Treasurer | `hr.advances.approve` only |
-| Accounts officer (Al-Noor) | `hr.advances.manage` only (links vouchers) |
+| Accounts officer (Al-Noor) | `hr.advances.manage` only (raises and withdraws requests; linking vouchers is disabled since Issue #12) |
 | Security, Maintenance | `attendance.record` only, for the departments they supervise |
 | Technician, residents | none |
 
@@ -180,46 +183,51 @@ These are prototype choices, open to the owner:
    - other departments: CNIC and appointment letter.
    - "Expiring" means within 30 days.
 6. **Leave balances are not calculated.** Al-Noor has adopted no leave policy, so the screens say so and record days taken. There are no balances, entitlements or carry-over.
-7. **Advances and loans are settled only through S.1 cashbook vouchers.**
-   - Payment: a posted payment voucher of the exact amount, after approval.
-   - Repayments: posted receipts, each no more than what is still owed.
-   - All vouchers: same legal entity, not reversed, each used once.
-   - Until a staff-advance category is approved, the cashbook files them under its existing categories (miscellaneous expense / other income).
+7. **Advances and loans are never settled in S.2a** (Issue #12, owner decision O8).
+   - An approval is an instruction. Its payment is shown as "not verified", and nothing is shown as paid, received or owed.
+   - Linking a cashbook voucher is refused. A posted voucher of the same amount, date and legal entity does not identify this employee and this advance. Verification needs a staff-advance voucher subject and an approved category (S.2b). See [§11.3](#113-p1-staff-advance-settlement-integrity).
 8. **The residents' "Staff on duty"** needs `hr` + `hr.shifts` for the resident's site, never the hub or chat.
-   - It shows only published weeks: roles and posts.
-   - Names appear only with recorded consent and the "show name" choice; with the "show photo" choice, initials (no photos are stored).
-   - Absent staff are not shown on duty.
+   - It shows only published weeks, in three states kept apart ([§11.2](#112-p1-residents-staff-on-duty-accuracy)):
+     - **confirmed**: arrival recorded; a name only with recorded consent and the "show name" choice, initials with "show photo" (no photos are stored);
+     - **scheduled, not yet confirmed**: role and post only, never a name;
+     - **unavailable**: absent, on leave or no longer employed, and not replaced; a count only.
+   - It is not an emergency or security service, and it says so.
 9. **Shift templates are read-only** in S.2a (seeded per society).
-10. **One HR state per organisation.** HR is tenant-scoped, as in the catalogue. Employees belong to a legal entity and hold site allocations.
+10. **One HR state per organisation, with record-level scope.** HR is tenant-scoped, as in the catalogue, so double booking is checked across every site.
+    - Every record is limited to the reader's HR sites and legal entities ([§11.1](#111-p0-multi-site-hr-record-isolation)).
+    - Employees belong to a legal entity and hold dated site allocations.
 
-## 7. Owner decisions requested
+## 7. Owner rulings (confirmed in Issue #12)
 
-| # | Decision | Recommendation |
+| # | Ruling | Applied |
 |---|---|---|
-| O1 | Confirm the permissions: GPT's six (`hr.manage`, `shifts.manage`, `attendance.record`, `attendance.adjust`, `leave.manage`, `hr.documents.manage`) and S.2a's two (`hr.advances.manage`, `hr.advances.approve`). The V3.2 matrix lists only `hr.manage`, `shifts.manage` and `attendance.record` | Confirm; keep advances apart from `hr.view` |
-| O2 | Starter-role grants ([§3.3](#33-licensing-and-roles)), including `attendance.record` for the maintenance role (the matrix gives it to security only) and `hr.advances.manage` for Al-Noor's accounts officer | Confirm |
-| O3 | The supervisor's cover rule (decision 3) | Confirm, or require `shifts.manage` for all assignments |
-| O4 | Register permission changes: HR-004…009 move from `hr.view` to their real permissions; HR-010 adds `attendance.record`; HR-011 adds `shifts.manage` and `attendance.record`; HR-005 and HR-010/011 carry `hr.shifts`. The delta's HR-010 route `?week=&site=` is registered as the plain address with optional parameters | Accept the register as reconciled |
-| O5 | HR-007/008 are tagged F07 (payroll) in the delta. S.2a licenses them under `hr` with no payroll feature; loan deduction from pay (`payroll.loans`) stays S.2b | Confirm |
-| O6 | Grace period 15 minutes; required documents per department; 30-day expiry warning | Al-Noor to set its own values (all are society settings in the model) |
-| O7 | A leave policy (types, entitlements, carry-over) before balances are shown | Decide in S.2b or with the society |
-| O8 | A staff-advance category in the cashbook, so advances are not filed as expense or income | Approve the category with S.2b |
-| O9 | The Al-Noor amendment (HR from 12 October 2026, fictional) | Confirm as demo data |
-| O10 | The shared tab and select changes ([§5](#5-design-and-accessibility)) affect every screen that uses them | Accept. The full regression ran with them at 382 / 383; its one failure was a D.3 expectation that S.2a changes by design (the Staff tab), corrected and re-run 25 / 25 ([`test-results.md`](test-results.md)) |
-| O11 | Developer HR stays planned (Gate E) | Confirm |
+| O1 | Permissions approved: GPT's six, plus `hr.advances.manage` and `hr.advances.approve`, all mapped to HR. Advance management and approval stay separate; payroll permissions stay separate | as built |
+| O2 | Roles approved with department restrictions. A maintenance supervisor records attendance only for explicitly assigned maintenance and housekeeping departments, with no general security or financial access | supervisors record only for the departments they supervise **and only at the sites they are allocated to** (closure: the site restriction is new) |
+| O3 | Supervisor cover approved with audit: within their own department, for an active shift today or an overnight shift still in progress; no future scheduling or publishing | as built, now also limited to the supervisor's own site; every cover is in the duty's history ("Cover brought in") |
+| O4 | Register approved subject to access-verification tests. HR-008 stays PARTIAL; HR-011 is part of HR-010 | HR-008 PARTIAL (now read only); the access tests are in [§11.4](#114-tests-added) |
+| O5 | HR add-on may include the prototype advances workflow; payroll deductions remain S.2b | as built |
+| O6 | The 15-minute grace period, document requirements and 30-day expiry warning are fictional Al-Noor demo settings, not universal policies. Security documents must not imply NADRA or police integration | as built: settings in the model, no external check (the documents page records a reference only) |
+| O7 | No leave balances without an approved leave policy | as built |
+| O8 | Staff-specific classification and reliable evidence are mandatory before claiming cash settlement; otherwise read-only partial | HR-008 read only; linking disabled ([§11.3](#113-p1-staff-advance-settlement-integrity)) |
+| O9 | Al-Noor's fictional HR grant dated 12 October 2026 approved; no changes to other tenants or presets | unchanged |
+| O10 | Tabs and select wrapping accepted. Keep 320 px / 200 % usability. No unrelated shared date and time changes in this closure | kept; the shared `DateTime` is untouched |
+| O11 | Developer HR stays planned for Gate E | unchanged |
 
 ## 8. Partial and known limitations
 
-- **HR-008 is PARTIAL.**
-  - Paying staff by bank transfer and deducting instalments from pay need payroll and outgoing bank payments (S.2b, not authorised).
-  - Here a payment or repayment counts only when an already-posted S.1 voucher is linked. Nothing invents a bank transaction, and an approval never shows as paid.
+- **HR-008 is PARTIAL and read only.**
+  - Verified payment evidence needs a staff-advance voucher subject and an approved cashbook category.
+  - Paying staff by bank and deducting instalments from pay need payroll and outgoing bank payments.
+  - All of this is S.2b, not authorised. Nothing invents a bank transaction, and no advance is shown as paid, repaid or owed.
 - **No staff self-service.** A guard has no "My duty" page or app sign-in of their own. Attendance is recorded by the supervisor.
-- **One site in the demo.** Multi-site overlap is enforced by the server and covered by vectors (two sites, back to back, allocation ended); the demo has a single site.
+- **One site in the demo.** Multi-site isolation is enforced by the server and proven at the API with a fictional multi-site organisation (`multisite.fixture.ts`). The demo screens have a single site, so the browser tests cannot show a second one.
+- **No transfer screen.** Site allocations are dated records. The transfer tests edit them as a transfer would. A transfer workflow is not built.
+- **"Own record" depends on the employee–user link.** It relies on the employee record carrying the user's principal id ([`SECURITY_FINDINGS.md`](SECURITY_FINDINGS.md) §3).
 - **No editing of shift templates or minimum staffing** (seeded).
 - **Simulated documents:** no storage, download or virus scan.
-- **No real-time.** On duty now refreshes when opened or acted on. There is no live tracking, by design.
+- **No real-time.** On duty now and the residents' tab refresh when opened or acted on. There is no live tracking, by design.
 - **Leave balances are not calculated** (O7).
-- **Times inside sentences elsewhere in the app.** The shared `DateTime` still renders Urdu times without isolation; S.2a isolates its own uses.
+- **Times inside sentences elsewhere in the app.** The shared `DateTime` still renders Urdu times without isolation; S.2a isolates its own uses (O10: left for a separate change).
 - **Firefox and WebKit:** the smoke only (4 S.2a tests in each browser). Every other check runs in Chromium.
 
 ## 9. Register reconciliation
@@ -234,21 +242,171 @@ These are prototype choices, open to the owner:
 - **HR-010** added (BUILT) and **HR-011** added as a state of HR-010.
 - **PORTAL-036:** notes that the Staff on duty tab is built.
 - **Payroll** PAY-001…007 is unchanged (planned, S.2b).
+- **Closure (Issue #12):**
+  - every HR row's notes state the record scope and name the closure tests;
+  - HR-007's tabs and states drop "paid out" and "repaid";
+  - HR-008's actions, validation, states and mock API describe the read-only page;
+  - PORTAL-036 notes the three staffing states.
+  - No status changed.
 - **Result:** **439 rows, 354 distinct: 131 built, 36 partial, 187 planned.** D.3 had 437 / 353 (122 / 35 / 196).
-- `tests/e2e/register.spec.ts` checks the new counts and still opens every register address.
+- `tests/e2e/register.spec.ts` checks the counts and still opens every register address.
 
 ## 10. Evidence
 
-`docs/status/gate-s2a/screenshots/` holds 67 PNGs; `video/` holds two WebM recordings. They are produced by `tests/evidence/gates2a.evidence.spec.ts` on production builds.
+`docs/status/gate-s2a/screenshots/` holds PNGs and `video/` two WebM recordings, produced by `tests/evidence/gates2a.evidence.spec.ts` on production builds. All were recaptured on the closure code.
 
 | Prefix | Content |
 |---|---|
 | `a01`…`a16` | Every HR screen at 1440 px in English and 390 px in Urdu, plus the duty drawer with its leave warning |
 | `b`, `c`, `d` | Reference flows 1, 2 and 3, step by step |
-| `e` | A simulated document upload; a loan "approved — not paid"; settlement before and after a posted voucher |
-| `f01` | Residents' Staff on duty at 1440 px (English) and 390 px (Urdu) |
-| `g01`…`g05` | 320 × 700, Urdu, 200 % text: the roster, On duty now, Employee 360, leave, and the residents' tab (viewport captures) |
+| `e01` | A simulated document upload |
+| `e02`…`e05` | A loan "approved — payment not verified"; read-only settlement; settlement after a posted voucher of the exact amount (still unverified); the advances list |
+| `f01`, `f02` | Residents' Staff on duty at 1440 px (English) and 390 px (Urdu): scheduled only; then confirmed, scheduled and unavailable together |
+| `g01`…`g06` | 320 × 700, Urdu, 200 % text: the roster, On duty now, Employee 360, leave; the residents' confirmed and scheduled lists (viewport captures) |
 | `h01`, `h02` | Dark mode with high contrast, Urdu, 390 px |
 | `i01`…`i03` | Who sees what: the supervisor's roster-only menu; staff records refused; HR not in the plan |
 
 Each screenshot's width was read from the PNG and matches its viewport. Element captures (`b05`, `c01`, `d04`) are narrower by design.
+
+## 11. Issue #12 final security closure
+
+GitHub Issue #12 reviewed `95d70d0`. It accepted the functionality provisionally and held final sign-off for three corrections and a complete green combined regression on the final code. Nothing accepted was re-implemented.
+
+### 11.1 P0: multi-site HR record isolation
+
+**Root cause.**
+- The HR state is one per organisation (`hrState`, section `hr`). That is right for cross-site overlap.
+- But `hrOf()` authorised only the operations site record (`authorize(ctx, 'hr', siteRecord(site))`), and the handlers then read the whole state:
+  - `employeesList()` mapped every employee;
+  - `findEmployee()` accepted any id;
+  - documents, leave, corrections, advances, the dashboard and the candidates list read tenant-wide arrays.
+- A person scoped to site A could therefore read site B's staff records, CNICs included, and see them in counts.
+- The demo has one site, so no test could catch it.
+
+**Found while fixing it**, beyond the issue:
+- the duplicate-CNIC refusal named the other record (code and name), even across sites;
+- a supervisor could record attendance at any site for their department;
+- a single-site manager could end the employment of someone who also works at another site, cancelling that site's duties;
+- the settlement candidates list showed cashbook vouchers to HR managers who have no finance permission.
+
+All four are closed ([`SECURITY_FINDINGS.md`](SECURITY_FINDINGS.md) §1a).
+
+**The access model** (`packages/fixtures/src/hr/scope.ts`):
+- **HR sites in scope.** The organisation's HR sites (`HrState.sites`, each with its owning legal entity) are filtered per request through the shared rule `decide(access, { module: 'hr', record: { siteId, legalEntityId } })`. That checks the tenant lifecycle, the module licence for the site, and the person's data scope (`all`, `legal_entity` or `site`). It is worked out on every request, so a revoked or narrowed grant applies at once.
+- **Site-bound records** (duties, attendance, corrections, roster weeks, shift times) are visible when their site is in scope.
+- **Employee-bound records** (the employee, documents, leave, advances, history) follow the employee:
+  - the employee's sites are their dated allocations, in force or still to come;
+  - a leaver's sites are the ones they last worked at;
+  - the allocated site must belong to the employing legal entity, or nobody sees the record (fail closed).
+- **Applied first.** Every list, count, summary, KPI, detail, action and candidate list is filtered before anything is computed or returned.
+- **Non-disclosing refusals.**
+  - An out-of-scope id in a path is "not found", identical to an id never issued.
+  - In a request body it gives the same validation error as an unknown id.
+  - A duplicate CNIC elsewhere is refused without naming the record (`hr:errors.duplicateElsewhere`).
+- **Cross-site overlap still works.** Double booking is checked against the employee's duties at every site. The refusal names only the employee ("already on duty at that time (at any site)"), and another site's duty never appears in the reader's roster, Employee 360 or candidates.
+- **Cross-site management is preserved.**
+  - Organisation-wide HR (`all`) sees every site, and the roster has a site switcher (`?site=`).
+  - A legal-entity scope covers that entity's sites.
+  - Changing employment (end, suspend, rehire) needs a scope covering all of the employee's sites (`other_sites` otherwise), because it cancels duties everywhere.
+- **Supervisors (O2, O3)** record attendance and bring in cover only for the departments they supervise and only at sites they are allocated to that day.
+
+**Code:**
+- `scope.ts` (new): `scopeOf`, `homeSites`, `employeeVisible`, `assignmentVisible`, `allocatedOn`.
+- `state.ts`: `HrSite` and `HrState.sites`; the state version moves to 2, so existing demo sessions reseed.
+- `views.ts`: `Hr.scope`; `visibleLive` and `visibleEmployees`; scoped duty-now, directory row, leave conflicts and Employee 360; `recordsFor(h, department, siteId)`.
+- `handlers.ts`:
+  - `hrOf` computes the scope and the working site;
+  - `findEmployee`, `employeeIn`, `findAssignment`, `findLeave`, `findAdvance`, `templateIn` and `correctionVisible` give "not found";
+  - every list and count is scoped;
+  - hire validates the entity and site against the scope;
+  - the duplicate check is non-disclosing;
+  - status changes use `other_sites`.
+
+### 11.2 P1: residents' Staff on duty accuracy
+
+**Root cause.**
+- `residentStaff()` filtered out `absent` and `on_leave` but kept `not_checked_in`.
+- So scheduled people were listed, with consented names, under "on duty now", while the office board showed them as "Not in yet".
+
+**Correction.**
+- `ResidentStaffOnDuty` now has `confirmed`, `expected` and `unavailable` in place of `onDuty` (`contracts/src/hr.ts`, `fixtures/src/hr/resident.ts`):
+  - **Confirmed:** arrival recorded for a shift running now and no departure. Late arrivals are confirmed; lateness is never shown. A name only with consent.
+  - **Scheduled, not yet confirmed:** role and post only, never a name, even with consent. Whether a named person has arrived is their attendance.
+  - **Unavailable:** absent, on approved leave or no longer employed, and not replaced; a count only. A replacement appears on their own, scheduled until checked in.
+  - Checked-out staff are neither.
+- It is worked out on every read, so attendance, leave, cover and employment changes show at once.
+- The resident's own site only, from the published roster; independent of chat and the hub. Never a check-in time, attendance history, identity number, contact, pay or advance.
+- **UI** (`CommunityHomePage.tsx`): two labelled lists, a dashed card style for scheduled staff, and the unavailable count. The note says what "confirmed" means and that this is not an emergency service. The bottom bar's Pay action is unchanged.
+- **Office wording.** The office dashboard's "n on duty" for zero-minimum shifts now reads "n scheduled", since it counted people before arrival.
+
+### 11.3 P1: staff advance settlement integrity
+
+**Root cause.**
+- `settlementCandidates()` offered every posted, unreversed voucher of the legal entity.
+- `link()` checked only direction, date, amount (exact, or at most what was owed) and single use, never who or what the voucher was for.
+- An unrelated supplier payment of the same amount could therefore make an advance "disbursed", and an unrelated receipt could reduce what the employee "owed".
+
+**Decision: the conservative option** (Issue #12 option B; owner decision O8).
+- A safe staff-specific subject would need a new S.1 voucher subject and an unapproved accounting category. Both expand S.1 and touch S.2b.
+- Instead:
+  - **Linking is disabled.** `POST /hr/advances/:id/link` is refused for every request (`409 settlement_unverifiable`) after the scope check, and the route stays so that a direct call is refused, never silently accepted. The voucher candidates route is removed, since it also exposed finance records to HR.
+  - **No paid states.** `AdvanceState` is `submitted | approved | rejected | withdrawn`: `disbursed` and `repaid` are gone from the contract, with the link records and "outstanding". The instalment plan is always "planned".
+  - **Truthful wording.** An approved advance reads "Approved — payment not verified", with a "Payment: Not verified" line. The list totals "Approved, payment not verified" and counts nothing as owed.
+  - **HR-008 is read only and stays PARTIAL.** It lists approved advances and what a verified payment will need:
+    - a voucher made for this advance, naming it and the employee;
+    - an approved staff-advance category;
+    - the employing legal entity and site;
+    - the direction;
+    - the exact amount and posting date;
+    - posted, unreversed and used once, with a later reversal undoing it;
+    - an approver other than the preparer.
+- **S.1 is untouched.** HR reads nothing from the cashbook, and its accounting and reconciliation guarantees are unchanged.
+
+### 11.4 Tests added
+
+The tests are in `packages/fixtures/src/hr/hr.closure.api.test.ts` (14 tests). The fictional multi-site organisation (`multisite.fixture.ts`) has:
+- the main site;
+- **Al-Noor Annexe (Demo)**, owned by another legal entity, with staff, duties, a correction, leave, a document and an advance;
+- **Al-Noor Block C (Demo)**, owned by Al-Noor, with a guard who works at both.
+
+Principals are narrowed per test through the access override.
+
+| Area | Tests |
+|---|---|
+| P0 isolation | <ul><li>Organisation-wide sees both sites; a main-site manager sees none of the annexe in the directory, counts, department totals, dashboard KPIs, documents, leave and corrections, attendance, roster, On duty now, advances, options or Employee 360. Nineteen identifying strings are checked absent from every response.</li><li>Fourteen direct-id requests (Employee 360, edit, status, profile, leave approve and cancel, correction approve, unassign, advance withdraw, approve and link, check-in, `?site=`) get exactly the answer of a never-issued id.</li><li>Five body ids get the same answer as an unknown id.</li><li>Hiring for another site or entity is refused; a duplicate CNIC elsewhere is refused without naming it.</li></ul> |
+| P0 cross-site management | <ul><li>Each site's own manager sees only theirs.</li><li>Organisation-wide sees all, with the site switcher.</li><li>A legal-entity scope covers its sites.</li></ul> |
+| P0 effective dates and revocation | <ul><li>A transfer today, then a future transfer, change access at once.</li><li>A single-site manager may not end a multi-site employee's employment.</li><li>A leaver stays with the sites they last worked at.</li><li>Revoking access refuses at once: no site in scope, then the `hr.view` permission removed, then the module withdrawn.</li></ul> |
+| P0 overlap | <ul><li>Double booking across sites is still refused, disclosing nothing of the other site.</li><li>Candidates show the person as blocked, and no other site's staff.</li><li>A supervisor cannot record at a site they do not work at.</li></ul> |
+| P1 residents | <ul><li>Scheduled but not checked in.</li><li>Checked in on time and late.</li><li>Absent, unavailable until replaced; the replacement scheduled, then confirmed.</li><li>Approved leave against pending leave.</li><li>Overnight (last night's shift at 05:00).</li><li>Employment ended.</li><li>Missing consent.</li><li>Another site.</li><li>HR not licensed.</li><li>Chat and hub withdrawn.</li></ul> |
+| P1 settlement | Every voucher is posted through S.1 itself (prepared, approved, posted, and reversed where needed). Each is refused, and the advance stays approved and unverified:<ul><li>the right amount, payee and reference;</li><li>a wrong employee;</li><li>a wrong advance;</li><li>a supplier payment;</li><li>an unrelated receipt as a repayment;</li><li>another legal entity and site;</li><li>reversed before linking;</li><li>reused;</li><li>reversed after the attempt.</li></ul>HR changed none of S.1's vouchers. The candidates route is gone. A maker may not approve their own request. |
+
+**Checked against the broken behaviour.** The new tests were run against deliberately broken code:
+- with the employee scope disabled, all 5 P0 tests failed;
+- with the site-bound scope disabled, 3 failed;
+- with "not checked in" treated as confirmed, 7 resident tests failed.
+
+The code was then restored, and the suite passes.
+
+**Updated tests:**
+- `hr.api.test.ts`: the advance and resident tests use the new contract;
+- `s2a.spec.ts`:
+  - the advance flow shows read-only settlement, even after a posted voucher of the exact amount;
+  - residents see scheduled staff, then a confirmed arrival, with Pay still in the phone bar;
+  - the 320 px checks cover both lists;
+- `s2a.smoke.spec.ts`: the scheduled list in Firefox and WebKit;
+- `gates2a.evidence.spec.ts`: the new captures above.
+
+### 11.5 Results
+
+On the final code, with retries off:
+
+| Check | Result |
+|---|---|
+| Typecheck, lint, i18n parity | clean (9,854 keys per locale) |
+| Unit and API | **1,431 / 1,431** |
+| Complete combined E2E with evidence | **383 / 383** in 37.6 minutes: e2e 370 / 370, evidence 13 / 13 |
+| Axe | 1,292 scans, 0 violations |
+| Firefox and WebKit smoke | **36 / 36** |
+| Evidence | 70 screenshots and 2 videos, recaptured |
+
+Earlier runs on the way, including a WebKit test that failed 4 times in 5 and how it was made reliable, are reported as they happened in [`test-results.md`](test-results.md#issue-12-closure-results-final-code).

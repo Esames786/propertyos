@@ -302,7 +302,7 @@ test.describe('S.2a documents, advances and loans', () => {
     expect(consoleErrors).toEqual([]);
   });
 
-  test('an advance is requested with evidence, approved by the treasurer as "not paid", and paid out only by linking a posted cashbook voucher', async ({ page, consoleErrors }, testInfo) => {
+  test('an advance is requested with evidence and approved by the treasurer; its payment stays unverified and settlement stays read only, even after a posted voucher of the exact amount (Issue #12)', async ({ page, consoleErrors }, testInfo) => {
     test.setTimeout(180_000);
     await at(page, '11:00');
     await seedSociety(page, { staff: 'alnoor_manager' });
@@ -328,14 +328,15 @@ test.describe('S.2a documents, advances and loans', () => {
     await page.getByTestId('hr-advance-row').filter({ hasText: 'Rukhsana Bibi' }).click();
     await page.getByTestId('hr-advance-approve').click();
     await confirm(page, /Approve request/);
-    await expect(page.getByTestId('hr-advance-drawer').getByTestId('hr-advance-not-paid')).toContainText('nothing has been paid');
-    await expect(page.getByTestId('hr-advance-drawer').getByTestId('advance-state')).toContainText('Approved — not paid');
+    const advanceDrawer = page.getByTestId('hr-advance-drawer');
+    await expect(advanceDrawer.getByTestId('hr-advance-unverified')).toContainText('cannot be verified yet');
+    await expect(advanceDrawer.getByTestId('advance-state')).toContainText('Approved — payment not verified');
+    await expect(advanceDrawer.getByTestId('hr-advance-payment')).toHaveAttribute('data-payment', 'unverified');
     await axe(page, testInfo, 'hr-advance-drawer-1440-en');
-    // Settlement: nothing to link until the accounts office posts the payment voucher (S.1, maker-checker).
+    // Settlement (HR-008, Issue #12) is read only: even a posted S.1 voucher of the exact amount, made
+    // out to her, is no proof that this employee received this advance. No voucher list, no link.
     await office(page, 'alnoor_accounts', '/backoffice/hr/employee-advance-settlement', 'hr-settlement');
     await expect(page.getByTestId('hr-settlement-partial')).toContainText('not built (S.2b)');
-    await page.getByTestId('hr-settlement-advance').filter({ hasText: 'Rukhsana Bibi' }).click();
-    await expect(page.locator('[data-testid="hr-settlement-voucher"][data-eligible="true"]')).toHaveCount(0);
     const voucher = await api<{ voucher: { id: string; ref: string; approvalId: string } }>(page, '/finance/vouchers', 'POST', { accountId: 'cac_anr_office', direction: 'payment', category: 'misc_expense', amount: '8000', onDate: '2026-10-26', purpose: 'Advance to Rukhsana Bibi (HR request)', counterparty: 'Rukhsana Bibi (staff)', evidence: { name: 'advance-slip.pdf', kind: 'receipt', size: 1000 }, submit: true });
     expect(voucher.ok).toBe(true);
     const v = voucher.ok ? voucher.res.voucher : null;
@@ -347,11 +348,17 @@ test.describe('S.2a documents, advances and loans', () => {
     await office(page, 'alnoor_accounts', '/backoffice/hr/employee-advance-settlement', 'hr-settlement');
     expect((await api(page, `/finance/vouchers/${v!.id}/post`, 'POST')).ok).toBe(true);
     await page.reload();
-    await page.getByTestId('hr-settlement-advance').filter({ hasText: 'Rukhsana Bibi' }).click();
-    const posted = page.locator(`[data-testid="hr-settlement-voucher"][data-ref="${v!.ref}"]`);
-    await expect(posted).toHaveAttribute('data-eligible', 'true');
-    await posted.getByTestId('hr-settlement-link').click();
-    await expect(page.getByTestId('hr-settlement-advance').filter({ hasText: 'Rukhsana Bibi' }).getByTestId('advance-state')).toHaveAttribute('data-state', 'disbursed');
+    const settle = page.getByTestId('hr-settlement-advance').filter({ hasText: 'Rukhsana Bibi' });
+    await expect(settle).toHaveAttribute('data-payment', 'unverified');
+    await expect(settle.getByTestId('advance-state')).toHaveAttribute('data-state', 'approved');
+    await expect(page.getByTestId('hr-settlement-needs')).toContainText('naming it and the employee');
+    await expect(page.getByTestId('hr-settlement-voucher')).toHaveCount(0);
+    await expect(page.getByTestId('hr-settlement-link')).toHaveCount(0);
+    const list = await api<{ items: Array<{ id: string; employeeName: string; state: string }> }>(page, '/hr/advances');
+    const advance = list.ok ? list.res.items.find((x) => x.employeeName === 'Rukhsana Bibi')! : null;
+    expect(await api(page, `/hr/advances/${advance!.id}/link`, 'POST', { purpose: 'disbursement', voucherId: v!.id })).toMatchObject({ ok: false, code: 'settlement_unverifiable' });
+    await page.reload();
+    await expect(page.getByTestId('hr-settlement-advance').filter({ hasText: 'Rukhsana Bibi' }).getByTestId('advance-state')).toHaveAttribute('data-state', 'approved');
     await axe(page, testInfo, 'hr-settlement-1440-en');
     expect(consoleErrors).toEqual([]);
   });
@@ -399,19 +406,36 @@ test.describe('S.2a who sees what', () => {
     expect(consoleErrors).toEqual([]);
   });
 
-  test('residents see who is on duty from the published roster: roles, names only with consent, nothing personal; the hub and chat play no part', async ({ page, consoleErrors }, testInfo) => {
+  test('residents tell confirmed staff from scheduled staff (Issue #12): names only with consent and an arrival, nothing personal; the hub and chat play no part', async ({ page, consoleErrors }, testInfo) => {
     await page.addInitScript(() => sessionStorage.setItem('demo:withdrawn-modules', JSON.stringify(['community_chat', 'community_hub'])));
     await at(page, '15:30');
-    await seedSociety(page, {});
+    await seedSociety(page, { staff: 'alnoor_manager' });
     await resident(page, 'alnoor_resident_a101', '/customer/portal/community?tab=staff', 'community-staff');
     await expect(page.getByTestId('community-home')).toHaveAttribute('data-tabs', 'notices,staff');
-    const people = page.getByTestId('community-staff-person');
-    await expect(people.first()).toContainText('Security guard');
-    await expect(page.getByTestId('community-staff-list')).toContainText('Naveed Anjum');
-    await expect(page.getByTestId('community-staff-list')).not.toContainText(/Faisal|Nadeem|\+92|35202/);
+    // Nobody has been checked in yet: everyone is scheduled, nobody is "on duty", and no name shows.
+    await expect(page.getByTestId('community-staff')).toHaveAttribute('data-confirmed', '0');
+    await expect(page.getByTestId('community-staff-confirmed')).toHaveCount(0);
+    const expected = page.getByTestId('community-staff-expected');
+    await expect(expected).toContainText('Scheduled, not yet confirmed');
+    await expect(expected.locator('[data-testid="community-staff-person"][data-state="expected"]').first()).toContainText('scheduled until');
+    await expect(page.getByTestId('community-staff')).not.toContainText(/Naveed|Imran|Faisal|Nadeem|\+92|35202/);
+    // The office records Naveed's arrival: he is confirmed, with his name (he agreed to show it).
+    await office(page, 'alnoor_manager', '/backoffice/hr/attendance', 'hr-attendance-rows');
+    await page.locator('[data-testid="hr-attendance-row"][data-name="Naveed Anjum"]').getByTestId('hr-check-in').click();
+    await expect(page.locator('[data-testid="hr-attendance-row"][data-name="Naveed Anjum"]').getByTestId('hr-check-out')).toBeVisible();
+    await resident(page, 'alnoor_resident_a101', '/customer/portal/community?tab=staff', 'community-staff');
+    const confirmed = page.getByTestId('community-staff-confirmed');
+    await expect(confirmed).toContainText('Confirmed on duty');
+    await expect(confirmed).toContainText('Naveed Anjum');
+    await expect(page.getByTestId('community-staff')).toHaveAttribute('data-confirmed', '1');
+    await expect(expected).not.toContainText('Naveed');
     await expect(page.getByTestId('community-staff-next')).toContainText('Security guard × 2');
-    await expect(page.getByTestId('community-staff-privacy')).toContainText('never shown');
+    await expect(page.getByTestId('community-staff-privacy')).toContainText('not an emergency service');
     await axe(page, testInfo, 'portal-staff-on-duty-1440-en');
+    // On a phone the bottom bar's Pay action is still there.
+    await page.setViewportSize(VIEWPORTS.phone);
+    await expect(page.getByTestId('portal-centre-action')).toBeVisible();
+    await axe(page, testInfo, 'portal-staff-on-duty-390-en');
     expect(consoleErrors).toEqual([]);
   });
 });
@@ -481,9 +505,14 @@ for (const locale of ['en-PK', 'ur-PK'] as const) {
       await page.getByTestId('hr-360-assign').click();
       await expect(page.getByTestId('hr-assign-drawer')).toBeVisible();
       expect(await layoutProblems(page.getByTestId('hr-assign-drawer')), `assign drawer ${lang(locale)} ${scale * 100} %`).toEqual([]);
+      // One arrival recorded, so the residents' tab shows both lists (confirmed and scheduled).
+      const day = await api<{ rows: Array<{ assignmentId: string; employeeName: string }> }>(page, '/hr/attendance');
+      const naveed = day.ok ? day.res.rows.find((r) => r.employeeName === 'Naveed Anjum')! : null;
+      expect((await api(page, `/hr/attendance/${naveed!.assignmentId}/check-in`, 'POST')).ok).toBe(true);
       await become(page, 'customer', 'alnoor_resident_a101');
       await page.goto(`${CU}/customer/portal/community?tab=staff`);
-      await expect(page.getByTestId('community-staff')).toBeVisible();
+      await expect(page.getByTestId('community-staff-confirmed')).toBeVisible();
+      await expect(page.getByTestId('community-staff-expected')).toBeVisible();
       expect(await layoutProblems(page), `staff tab ${lang(locale)} ${scale * 100} %`).toEqual([]);
       expect(consoleErrors).toEqual([]);
     });

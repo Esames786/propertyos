@@ -308,8 +308,8 @@
     "noMinimum": "No minimum",
     "covered": "Covered · {{available}}",
     "shortBy": "Short: {{available}} of {{required}}",
-    "onDutyCount_one": "{{count}} on duty",
-    "onDutyCount_other": "{{count}} on duty",
+    "onDutyCount_one": "{{count}} scheduled",
+    "onDutyCount_other": "{{count}} scheduled",
     "notScheduled": "Not scheduled"
   },
   "board": {
@@ -561,18 +561,13 @@
     "new": "New request",
     "newSubtitle": "A request needs a reason, a repayment plan and supporting evidence.",
     "ruleTitle": "An approval is not a payment",
-    "neverPaid": "Approving a request pays nothing and nothing is owed. Money moves only when a payment voucher already posted in the cashbook is linked as evidence; only posted receipts reduce what is owed.",
-    "approvedNotPaid": "Approved, not paid",
-    "approvedNotPaidNote": "Instructions only: nothing has left the cash box or the bank.",
-    "owed": "Owed by staff",
-    "owedNote": "Only evidenced payments, less evidenced repayments.",
-    "toSettlement": "Open settlement",
+    "neverPaid": "Approving a request is an instruction, not a payment. PropertyOS cannot yet verify that a staff advance was paid or repaid, so nothing here is shown as paid, received or owed.",
+    "toSettlement": "Why payments are not verified",
     "show": "Show",
     "view": {
       "open": "Open",
       "submitted": "Waiting",
-      "approved": "Approved, not paid",
-      "disbursed": "Paid out",
+      "approved": "Approved",
       "closed": "Closed",
       "all": "All"
     },
@@ -589,9 +584,7 @@
     },
     "state": {
       "submitted": "Waiting for a decision",
-      "approved": "Approved — not paid",
-      "disbursed": "Paid out (evidenced)",
-      "repaid": "Repaid",
+      "approved": "Approved — payment not verified",
       "rejected": "Rejected",
       "withdrawn": "Withdrawn"
     },
@@ -599,25 +592,16 @@
     "instalments_other": "{{count}} instalments",
     "instalment": "Instalment {{n}}",
     "instalmentState": {
-      "planned": "planned",
-      "received": "received"
+      "planned": "planned"
     },
-    "owes": "Owes",
     "approve": "Approve request",
     "withdraw": "Withdraw",
-    "recordPayment": "Record the payment",
-    "recordRepayment": "Record a repayment",
-    "approvedExplain": "Approved as an instruction: nothing has been paid and nothing is owed yet. The payment is recorded only by linking a posted cashbook voucher.",
+    "approvedExplain": "Approved as an instruction. A payment of this advance cannot be verified yet: nothing is recorded as paid, and nothing is owed.",
     "requested": "Requested",
     "decided": "Decided",
     "evidence": "Evidence",
     "plan": "Repayment plan",
-    "planNote": "A plan, not a deduction: an instalment shows as received only when a posted receipt is linked.",
-    "settledBy": "Evidence linked",
-    "link": {
-      "disbursement": "Paid out by",
-      "repayment": "Repaid by"
-    },
+    "planNote": "A plan, not a deduction: no instalment is recorded as received (repayment evidence needs S.2b).",
     "employee": "Staff member",
     "amount": "Amount (PKR)",
     "instalmentsLabel": "Instalments",
@@ -637,50 +621,37 @@
       "withdraw": "Withdraw {{ref}}?"
     },
     "effect": {
-      "approve": "This is an instruction only. Nothing is paid to {{name}} until a posted payment voucher is linked.",
+      "approve": "This is an instruction only. Nothing is recorded as paid to {{name}}.",
       "reject": "The request for {{name}} is closed with your reason.",
       "withdraw": "The request for {{name}} is withdrawn; nothing is paid."
     },
     "done": {
-      "approve": "{{ref}} approved — not paid.",
+      "approve": "{{ref}} approved — payment not verified.",
       "reject": "{{ref}} rejected.",
       "withdraw": "{{ref}} withdrawn."
-    }
+    },
+    "approvedUnverified": "Approved, payment not verified",
+    "approvedUnverifiedNote": "Approved instructions. Whether any of this was paid cannot be verified yet, so nothing is counted as owed.",
+    "payment": "Payment",
+    "paymentUnverified": "Not verified"
   },
   "settlement": {
     "title": "Advance and loan settlement",
-    "intro": "Link the cashbook vouchers that evidence each payment and repayment. Nothing here moves money.",
-    "partialTitle": "Partly built",
-    "partial": "Paying staff by bank transfer and deducting instalments from pay need payroll and outgoing bank payments, which are not built (S.2b). Here, a payment or repayment counts only when a voucher already posted in the cashbook (S.1) is linked. The cashbook files such vouchers as expense or other income until a category for staff advances is approved.",
-    "toSettle": "To settle",
-    "empty": "No approved or paid-out advances to settle.",
-    "purpose": {
-      "disbursement": "Payment of {{ref}}",
-      "repayment": "Repayment of {{ref}}"
-    },
-    "purposeNote": {
-      "disbursement": "A posted payment voucher of exactly the approved amount, dated on or after the approval.",
-      "repayment": "A posted receipt voucher of at most what is still owed, dated on or after the payment."
-    },
-    "expected": "Expected:",
-    "readOnly": "You can see this but not link evidence.",
-    "noVouchers": "No posted voucher to link.",
-    "noVouchersHint": {
-      "disbursement": "The accounts office prepares the payment voucher in the cashbook; once it is approved and posted it appears here.",
-      "repayment": "The accounts office records the repayment as a receipt voucher; once it is approved and posted it appears here."
-    },
-    "why": {
-      "amount": "Amount does not match",
-      "date": "Dated before the step it would evidence",
-      "used": "Already linked to another advance",
-      "direction": "Wrong direction"
-    },
-    "link": "Link as evidence",
-    "linked": {
-      "disbursement": "{{ref}} linked as the payment.",
-      "repayment": "{{ref}} linked as a repayment."
-    },
-    "cashbookNote": "Vouchers are prepared, approved and posted in the cashbook by the finance team, one person preparing and another approving; this page only links them."
+    "intro": "Why the payment of an approved advance or loan is not verified yet, and what verification will need. Nothing here moves money.",
+    "partialTitle": "Partly built: read only",
+    "partial": "Paying staff by bank and deducting instalments from pay need payroll and outgoing bank payments, which are not built (S.2b). A cashbook voucher of the same amount does not prove that this employee received this advance, so vouchers cannot be linked here and no advance is shown as paid or repaid.",
+    "approved": "Approved, payment not verified",
+    "empty": "No approved advances or loans.",
+    "needsTitle": "A verified payment will need",
+    "needs": {
+      "subject": "A cashbook voucher made for this advance or loan, naming it and the employee",
+      "category": "An approved category for staff advances, not ordinary expense or income",
+      "entity": "The employing legal entity and the site",
+      "direction": "A payment out for the advance; receipts in for repayments",
+      "amount": "The exact amount and the posting date",
+      "posted": "Posted, not reversed, and used once; a later reversal undoes it",
+      "approval": "Approved by someone other than whoever prepared it"
+    }
   },
   "history": {
     "hired": "Employed as {{role}}",
@@ -712,12 +683,9 @@
     "document_added": "Document added",
     "document_replaced": "Document replaced by a new version",
     "advance_requested": "Requested",
-    "advance_approved": "Approved — not paid",
+    "advance_approved": "Approved — payment not verified",
     "advance_rejected": "Rejected",
-    "advance_withdrawn": "Withdrawn",
-    "disbursement_linked": "Payment evidenced by {{ref}}",
-    "repayment_linked": "Repayment evidenced by {{ref}}",
-    "advance_repaid": "Repaid in full"
+    "advance_withdrawn": "Withdrawn"
   },
   "errors": {
     "minLength": "At least {{min}} characters.",
@@ -768,7 +736,8 @@
     "instalmentTooSmall": "Each instalment must be at least PKR 1.",
     "firstMonth": "Choose a month from this month up to a year ahead.",
     "evidenceRequired": "Attach supporting evidence.",
-    "voucherUnknown": "That voucher is not a posted voucher of this society."
+    "voucherUnknown": "That voucher is not a posted voucher of this society.",
+    "duplicateElsewhere": "This identity number is already on an employee record at another of the organisation's sites. Ask the HR office that manages that site."
   },
   "problems": {
     "duplicate": "This person is already on record.",
@@ -805,6 +774,7 @@
     "ownRecord": "This is about you, so someone else must decide it.",
     "leaveOverlap": "Leave already covers some of these days.",
     "leaveOverlapDetail": "Overlaps request {{ref}}.",
-    "voucherNotEligible": "That voucher cannot evidence this step."
+    "otherSites": "This employee also works at a site you do not manage. Their employment can be changed only by someone responsible for all of their sites.",
+    "settlementUnverifiable": "Payments of staff advances cannot be verified yet. Nothing was linked and nothing changed."
   }
 }

@@ -684,6 +684,13 @@
     "nobodyHint": "The roster for this time is not published, or no shift is running.",
     "until": "on duty until {{time}}",
     "next": "Next shift at {{time}}: {{list}}.",
-    "privacy": "You see each person's duty role. A name appears only when that staff member has agreed. Staff phone numbers and personal details are never shown. For anything urgent, contact the society office."
+    "privacy": "Confirmed means the office has recorded the person's arrival; scheduled means they are on the roster but not yet recorded. A name appears only when that staff member has agreed. Staff phone numbers, arrival times and personal details are never shown. This is not an emergency service: for anything urgent, contact the society office.",
+    "confirmedTitle": "Confirmed on duty",
+    "confirmedHint": "The office has recorded their arrival.",
+    "expectedTitle": "Scheduled, not yet confirmed",
+    "expectedHint": "On the roster, but their arrival has not been recorded yet.",
+    "expectedUntil": "scheduled until {{time}}",
+    "unavailable_one": "{{count}} scheduled staff member is not available (absent or on leave) and not yet replaced.",
+    "unavailable_other": "{{count}} scheduled staff members are not available (absent or on leave) and not yet replaced."
   }
 }

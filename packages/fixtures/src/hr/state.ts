@@ -1,9 +1,10 @@
-import type { AdvanceKind, AdvanceState, CorrectionValues, EmployeePersonal, EmploymentPeriod, EmploymentStatus, EmploymentType, HrDepartment, HrDocumentKind, HrEvent, HrRole, LeaveState, LeaveType, Money, PublicProfile, SettlementLink, ShiftKey, ShiftTemplate } from '@repo/contracts';
+import type { AdvanceKind, AdvanceState, CorrectionValues, EmployeePersonal, EmploymentPeriod, EmploymentStatus, EmploymentType, HrDepartment, HrDocumentKind, HrEvent, HrRole, LeaveState, LeaveType, Money, PublicProfile, ShiftKey, ShiftTemplate } from '@repo/contracts';
 import { ROLE_DEPARTMENT } from '@repo/contracts';
 import type { HandlerContext } from '../handler-types';
 import type { OpsSite } from '../operations/site';
 import { opsStamp } from '../operations/state';
 import { pad } from '../seed';
+import { directoryTenant } from '../tenant-directory';
 import { shiftWindow, weekDays } from './rules';
 
 /**
@@ -12,8 +13,8 @@ import { shiftWindow, weekDays } from './rules';
  * weeks (last week with attendance, this week published, next week a draft) and every warning the
  * screens explain. History stops at yesterday: today is recorded live, at the time it is used.
  */
-// 1: Gate S.2a.
-export const HR_STATE_VERSION = 1;
+// 1: Gate S.2a. 2: Gate S.2a closure (Issue #12): the HR sites list; advances carry no payment links.
+export const HR_STATE_VERSION = 2;
 export const HR_SECTION = 'hr';
 export const HR_TODAY = '2026-10-26';
 
@@ -141,8 +142,6 @@ export interface StoredAdvance {
   decidedAt?: string;
   decisionNote?: string;
   evidence: Array<{ name: string; type: string; sizeBytes: number }>;
-  disbursement?: SettlementLink;
-  repayments: SettlementLink[];
   history: HrEvent[];
 }
 
@@ -156,9 +155,25 @@ export interface RosterWeekState {
   changesSincePublish: number;
 }
 
+/**
+ * A site the organisation's HR works at, with the legal entity that owns it. Every record is bound
+ * either to one of these (duties, attendance, corrections, roster weeks, shift times) or to an
+ * employee, whose dated allocations to these sites decide who may see them (see `scope.ts`).
+ */
+export interface HrSite {
+  siteId: string;
+  legalEntityId: string;
+  legalEntityName: string;
+  name: string;
+  /** Short code used in references (ANR-E-001). */
+  code: string;
+}
+
 export interface HrState {
   version: typeof HR_STATE_VERSION;
   counters: Record<string, number>;
+  /** The organisation's HR sites (one HR state per organisation, so double booking is seen across all). */
+  sites: HrSite[];
   /** Minutes after a shift starts before a check-in counts as late (a society setting). */
   graceMinutes: number;
   templates: ShiftTemplate[];
@@ -239,7 +254,7 @@ const PEOPLE: Person[] = [
 ];
 
 /** Shift templates of Al-Noor's site (the society's own times and minimums). */
-function templatesFor(siteId: string, code: string): ShiftTemplate[] {
+export function templatesFor(siteId: string, code: string): ShiftTemplate[] {
   const id = (k: string) => `sht_${code.toLowerCase()}_${k}`;
   // Security runs every day; the day shifts Monday to Saturday.
   const all = [0, 1, 2, 3, 4, 5, 6];
@@ -258,8 +273,11 @@ const LAST_WEEK = '2026-10-19';
 const THIS_WEEK = '2026-10-26';
 const NEXT_WEEK = '2026-11-02';
 
+/** The operations site as an HR site (the employing legal entity is the organisation's association). */
+export const siteOf = (site: OpsSite): HrSite => ({ siteId: site.siteId, legalEntityId: site.legalEntityId, legalEntityName: directoryTenant(site.tenantId)?.legalName ?? site.name, name: site.name, code: site.code });
+
 export function seedHr(site: OpsSite): HrState {
-  const state: HrState = { version: HR_STATE_VERSION, counters: {}, graceMinutes: 15, templates: [], employees: [], assignments: [], attendance: [], corrections: [], leave: [], documents: [], advances: [], weeks: [] };
+  const state: HrState = { version: HR_STATE_VERSION, counters: {}, sites: [siteOf(site)], graceMinutes: 15, templates: [], employees: [], assignments: [], attendance: [], corrections: [], leave: [], documents: [], advances: [], weeks: [] };
   // Only Al-Noor's staff are known to the demo; another society starts with no staff.
   if (site.code !== 'ANR') return state;
   const code = site.code;
@@ -472,7 +490,6 @@ export function seedHr(site: OpsSite): HrState {
       requestedAt: at,
       ...(decided ? { decidedBy: AYESHA.by, decidedByName: AYESHA.byName, decidedAt: decided.at, ...(decided.note ? { decisionNote: decided.note } : {}) } : {}),
       evidence: [{ name: `${kind}-request-${name.toLowerCase().replace(/\s+/g, '-')}.pdf`, type: 'application/pdf', sizeBytes: 96_400 }],
-      repayments: [],
       history: [ev(IMRAN, at, 'advance_requested'), ...(decided ? [ev(AYESHA, decided.at, `advance_${decided.state}`, decided.note ? { note: decided.note } : {})] : [])],
     });
   };

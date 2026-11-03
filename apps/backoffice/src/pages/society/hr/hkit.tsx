@@ -1,6 +1,6 @@
 import { ApiError, type AccessTarget, type AdvanceState, type AttendanceState, type DocumentStatus, type DutyState, type EmploymentView, type HrRole, type LeaveState, type ShiftKey } from '@repo/contracts';
 import { Badge, buttonClass, cn, DateTime, dynamicT, Link, useSession, useT, useToast, type StatusTone } from '@repo/ui';
-import { AlarmClock, BadgeCheck, Ban, CalendarClock, CalendarOff, CheckCircle2, CircleDashed, CircleDot, Clock3, FileWarning, Hourglass, Moon, PauseCircle, Search, ShieldAlert, Undo2, UserCheck, UserX, XCircle, type LucideIcon } from 'lucide-react';
+import { AlarmClock, BadgeCheck, Ban, CalendarClock, CalendarOff, CheckCircle2, CircleDashed, Clock3, FileWarning, Hourglass, Moon, PauseCircle, Search, ShieldAlert, Undo2, UserCheck, UserX, XCircle, type LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import { ComboBox, Input, Label, ListBox, ListBoxItem, Popover } from 'react-aria-components';
 import { HR } from '../../../nav.config';
@@ -156,9 +156,9 @@ export function DocumentBadge({ status }: { status: DocumentStatus }) {
   );
 }
 
-const ADVANCE: Record<AdvanceState, [StatusTone, LucideIcon]> = { submitted: ['info', Hourglass], approved: ['warning', ShieldAlert], disbursed: ['info', CircleDot], repaid: ['success', CheckCircle2], rejected: ['neutral', XCircle], withdrawn: ['neutral', Undo2] };
+const ADVANCE: Record<AdvanceState, [StatusTone, LucideIcon]> = { submitted: ['info', Hourglass], approved: ['warning', ShieldAlert], rejected: ['neutral', XCircle], withdrawn: ['neutral', Undo2] };
 
-/** "Approved — not paid" is spelled out: an approval never reads as money moved. */
+/** "Approved — payment not verified" is spelled out: an approval never reads as money moved. */
 export function AdvanceBadge({ state }: { state: AdvanceState }) {
   const { t } = useT();
   const [tone, icon] = ADVANCE[state];

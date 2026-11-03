@@ -494,21 +494,13 @@ export const ADVANCE_KINDS = ['advance', 'loan'] as const;
 export type AdvanceKind = (typeof ADVANCE_KINDS)[number];
 
 /**
- * `approved` is an approved instruction: nothing has been paid. Only a posted S.1 payment voucher
- * linked as evidence makes it `disbursed`; only posted receipts linked as evidence reduce what is
- * owed, until `repaid`. Payroll deduction does not exist (S.2b).
+ * `approved` is an approved instruction, never a payment. Gate S.2a closure (Issue #12, owner
+ * decision O8): a payment or repayment of a staff advance cannot be verified yet. The cashbook has
+ * no staff-advance voucher subject or category, and an ordinary posted voucher with the same amount
+ * proves nothing about this employee or this advance. So no state here says paid, received or owed;
+ * those states and their evidence arrive with S.2b.
  */
-export type AdvanceState = 'submitted' | 'approved' | 'disbursed' | 'repaid' | 'rejected' | 'withdrawn';
-
-export interface SettlementLink {
-  voucherId: string;
-  voucherRef: string;
-  accountName: string;
-  postedOn: string;
-  amount: Money;
-  linkedByName: string;
-  linkedAt: string;
-}
+export type AdvanceState = 'submitted' | 'approved' | 'rejected' | 'withdrawn';
 
 export interface StaffAdvanceView {
   id: string;
@@ -520,7 +512,7 @@ export interface StaffAdvanceView {
   reason: string;
   instalments: number;
   /** A planned repayment schedule: an instruction, never a deduction or a receipt. */
-  schedule: Array<{ n: number; month: string; amount: Money; state: 'planned' | 'received' }>;
+  schedule: Array<{ n: number; month: string; amount: Money; state: 'planned' }>;
   state: AdvanceState;
   requestedByName: string;
   requestedAt: string;
@@ -528,19 +520,18 @@ export interface StaffAdvanceView {
   decidedAt?: string;
   decisionNote?: string;
   evidence: Array<{ name: string; type: string; sizeBytes: number }>;
-  disbursement?: SettlementLink;
-  repayments: SettlementLink[];
-  /** What the staff member owes now: zero until a disbursement is evidenced. */
-  outstanding: Money;
+  /** Payment evidence: never verifiable in S.2a (see `AdvanceState`). */
+  payment: 'unverified';
   blocked?: 'own_request' | 'own_record';
-  actions: { approve: boolean; reject: boolean; withdraw: boolean; linkDisbursement: boolean; linkRepayment: boolean };
+  actions: { approve: boolean; reject: boolean; withdraw: boolean };
   history: HrEvent[];
 }
 
 export interface AdvancesList {
   items: StaffAdvanceView[];
   counts: Record<AdvanceState, number>;
-  totals: { approvedNotPaid: Money; outstanding: Money };
+  /** Approved instructions whose payment is not verified (never "paid" or "owed"). */
+  totals: { approvedUnverified: Money };
   canRequest: boolean;
   canApprove: boolean;
   /** Active staff to raise a request for (names and roles only), when the reader may request. */
@@ -556,14 +547,6 @@ export interface AdvanceInput {
   instalments: number;
   firstMonth: string;
   evidence: Array<{ name: string; type: string; sizeBytes: number }>;
-}
-
-/** Posted S.1 vouchers that could evidence a disbursement (payments) or a repayment (receipts). */
-export interface SettlementCandidates {
-  advanceId: string;
-  purpose: 'disbursement' | 'repayment';
-  expected: Money;
-  vouchers: Array<{ id: string; ref: string; accountName: string; postedOn: string; amount: Money; description: string; eligible: boolean; reason?: 'amount' | 'date' | 'used' | 'direction' }>;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -596,13 +579,23 @@ export interface HrDashboard {
 // ---------------------------------------------------------------------------------------------
 
 /**
- * What a resident may see: the duty role, the post, and until when; a name or initials only where
- * the staff member consented and the society publishes profiles. Never a phone number, identity
- * details, pay, advances, attendance history, address or documents.
+ * What a resident may see for the shifts running now, from the published roster of their own site.
+ * Gate S.2a closure (Issue #12) keeps three states apart, so a scheduled person is never presented
+ * as present:
+ * - `confirmed`: the office has recorded their arrival for this shift (and no departure). A name or
+ *   initials only where the staff member consented and chose to show them.
+ * - `expected`: on the roster but not checked in. Role and post only, never a name (whether a named
+ *   person has arrived is their attendance, which residents do not see).
+ * - `unavailable`: scheduled but absent, on leave or no longer employed, and not replaced. A count
+ *   only.
+ * Never a check-in time, attendance history, phone number, identity details, pay, advances, address
+ * or documents.
  */
 export interface ResidentStaffOnDuty {
   siteName: string;
   at: string;
-  onDuty: Array<{ role: HrRole; post?: string; until: string; name?: string; initials?: string }>;
+  confirmed: Array<{ role: HrRole; post?: string; until: string; name?: string; initials?: string }>;
+  expected: Array<{ role: HrRole; post?: string; until: string }>;
+  unavailable: number;
   next: Array<{ role: HrRole; startsAt: string; count: number }>;
 }

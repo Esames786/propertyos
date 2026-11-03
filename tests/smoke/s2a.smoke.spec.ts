@@ -34,9 +34,19 @@ async function choose(page: Page, scope: Page | Locator, testId: string, name: R
   await page.getByRole('option', { name }).first().click();
 }
 
-async function pick(page: Page, scope: Page | Locator, testId: string, typed: string, option: RegExp | string) {
-  await scope.getByTestId(testId).locator('input').fill(typed);
-  await page.getByRole('option', { name: option }).first().click();
+/**
+ * A searchable list: type, choose the option, and check the choice was taken (the field shows the
+ * option, the list closed). WebKit under load sometimes drops a click that lands while the list is
+ * still filtering; the check makes that visible at the step where it happens.
+ */
+async function pick(page: Page, scope: Page | Locator, testId: string, typed: string, option: RegExp) {
+  const input = scope.getByTestId(testId).locator('input');
+  await input.fill(typed);
+  const choice = page.getByRole('option', { name: option }).first();
+  await expect(choice).toBeVisible();
+  await choice.click();
+  await expect(page.getByRole('listbox')).toHaveCount(0);
+  await expect(input).toHaveValue(option);
 }
 
 test('a new guard: validated, refused as a duplicate, saved, given tonight\'s night shift and on the roster', async ({ page, consoleErrors }) => {
@@ -123,6 +133,9 @@ test('320 px, 200 %, Urdu: the roster, On duty now and the residents\' staff on 
   await go(page, BO, '/backoffice/hr/roster?tab=now', 'hr-on-duty');
   expect(await layoutProblems(page)).toEqual([]);
   await as(page, 'customer', 'alnoor_resident_a101', '/customer/portal/community?tab=staff', 'community-staff');
+  // Nobody checked in yet: scheduled, never "on duty" (Issue #12).
+  await expect(page.getByTestId('community-staff-expected')).toBeVisible();
+  await expect(page.getByTestId('community-staff-confirmed')).toHaveCount(0);
   expect(await layoutProblems(page)).toEqual([]);
   expect(appErrors(consoleErrors)).toEqual([]);
 });

@@ -1,21 +1,25 @@
 import type { AssignmentView, AttendanceRow, AttendanceState, DocumentStatus, DutyNow, Employee360, EmployeeRow, EmploymentView, HrDepartment, HrDocumentKind, HrDocumentView, LeaveRequestView, LeaveType, OnDutyBoard, OnDutyShift, OnDutyStaff, Permission, RosterWeek, RosterWarning, ShiftTemplate, StaffAdvanceView, AttendanceCorrectionView } from '@repo/contracts';
 import { HR_DOCUMENT_KINDS, LEAVE_TYPES } from '@repo/contracts';
 import { can, type HandlerContext } from '../handler-types';
-import type { OpsSite } from '../operations/site';
-import { money, paisa, sum } from '../society/finance/model';
-import { directoryTenant } from '../tenant-directory';
+import { money, paisa } from '../society/finance/model';
 import { addDays, coverage, documentStatus, initialsOf, instalmentPlan, lateBy, maskCnic, ms, REQUIRED_DOCUMENTS, shiftWindow, weekDays, weekStartOf, type Window } from './rules';
-import { hrStamp, type HrState, type StoredAdvance, type StoredAssignment, type StoredCorrection, type StoredDocument, type StoredEmployee, type StoredLeave } from './state';
+import { allocatedOn, assignmentVisible, employeeVisible, type HrScope } from './scope';
+import { hrStamp, type HrSite, type HrState, type StoredAdvance, type StoredAssignment, type StoredCorrection, type StoredDocument, type StoredEmployee, type StoredLeave } from './state';
 
 /**
  * Gate S.2a read models: what each screen shows, derived on every read from the stored records (an
- * attendance state, a duty "now", coverage, document status and what is owed are never stored).
- * Each view carries only what the reader's permissions allow: personal details with `hr.manage`,
- * document files with `hr.documents.manage`, money with an advances permission.
+ * attendance state, a duty "now", coverage and document status are never stored). Each view carries
+ * only what the reader's permissions allow: personal details with `hr.manage`, document files with
+ * `hr.documents.manage`, money with an advances permission; and only records in the reader's HR
+ * scope (`scope.ts`, Issue #12): callers filter lists, and the views leave out anything bound to a
+ * site the reader cannot see.
  */
 
 export interface Hr {
-  site: OpsSite;
+  /** The HR site the screen is working on (the roster, attendance and On duty now). */
+  site: HrSite;
+  /** Everything the reader may see. */
+  scope: HrScope;
   state: HrState;
   today: string;
   /** Now, as an instant with the organisation's offset. */
@@ -25,12 +29,18 @@ export interface Hr {
 }
 
 export const hrNow = (ctx: HandlerContext) => hrStamp(ctx);
-/** The employing legal entity's name (the organisation's one association in the demo). */
-export const legalEntityName = (h: Pick<Hr, 'site'>) => directoryTenant(h.site.tenantId)?.legalName ?? h.site.name;
+/** A legal entity's name, from the organisation's HR sites. */
+export const legalEntityName = (h: Pick<Hr, 'state'>, legalEntityId: string) => h.state.sites.find((s) => s.legalEntityId === legalEntityId)?.legalEntityName ?? '';
+export const siteName = (h: Pick<Hr, 'state'>, siteId: string) => h.state.sites.find((s) => s.siteId === siteId)?.name ?? '';
 export const templateOf = (state: HrState, id: string) => state.templates.find((t) => t.id === id)!;
 export const windowOf = (state: HrState, a: Pick<StoredAssignment, 'templateId' | 'date'>): Window => shiftWindow(templateOf(state, a.templateId), a.date);
 export const employeeOf = (state: HrState, id: string) => state.employees.find((e) => e.id === id);
 export const live = (state: HrState) => state.assignments.filter((a) => a.state === 'planned');
+/** Live duties the reader may see (their sites only). */
+export const visibleLive = (h: Pick<Hr, 'state' | 'scope'>) => live(h.state).filter((a) => assignmentVisible(h.scope, a));
+/** Employees the reader may see. */
+export const visibleEmployees = (h: Pick<Hr, 'state' | 'scope' | 'today'>) => h.state.employees.filter((e) => employeeVisible(h.state, h.scope, e, h.today));
+export const sees = (h: Pick<Hr, 'state' | 'scope' | 'today'>, e: StoredEmployee) => employeeVisible(h.state, h.scope, e, h.today);
 
 /** The leave that covers a date for an employee (approved first, then pending). */
 export function leaveOn(state: HrState, employeeId: string, date: string): StoredLeave | undefined {
@@ -51,11 +61,20 @@ export const employmentView = (e: StoredEmployee, today: string): EmploymentView
 /** Whether a person holds a permission that is licensed (never just the role). */
 export const holds = (h: Hr, permission: Permission) => can(h.ctx, permission);
 
-/** The reader's own employee record (a supervisor's departments, maker-checker on their own records). */
+/** The reader's own employee record, wherever it is (a supervisor's departments; nobody deciding their own records). */
 export const myEmployee = (h: Hr) => h.state.employees.find((e) => e.principalId === h.me.principalId);
 
-/** Records attendance for this department: the permission, and HR management or supervising it. */
-export const recordsFor = (h: Hr, department: HrDepartment) => holds(h, 'attendance.record') && (holds(h, 'hr.manage') || (myEmployee(h)?.supervises ?? []).includes(department));
+/**
+ * Records attendance for this department at this site: the permission, a site in the reader's scope,
+ * and either HR management or supervising the department while allocated to that site (owner
+ * decision O2: a supervisor records only for the departments explicitly assigned to them).
+ */
+export const recordsFor = (h: Hr, department: HrDepartment, siteId: string) => {
+  if (!holds(h, 'attendance.record') || !h.scope.has(siteId)) return false;
+  if (holds(h, 'hr.manage')) return true;
+  const me = myEmployee(h);
+  return !!me && me.supervises.includes(department) && allocatedOn(me, siteId, h.today);
+};
 
 export function assignmentView(state: HrState, a: StoredAssignment, now: string): AssignmentView {
   const e = employeeOf(state, a.employeeId)!;
@@ -85,7 +104,7 @@ export function assignmentView(state: HrState, a: StoredAssignment, now: string)
 /** Where a staff member's duty stands at `now` (the current shift, else today's). */
 export function dutyNow(h: Hr, employeeId: string): DutyNow {
   const { state, now, today } = h;
-  const mine = live(state).filter((a) => a.employeeId === employeeId && (a.date === today || a.date === addDays(today, -1)));
+  const mine = visibleLive(h).filter((a) => a.employeeId === employeeId && (a.date === today || a.date === addDays(today, -1)));
   const at = ms(now);
   const current = mine.find((a) => {
     const w = windowOf(state, a);
@@ -164,7 +183,7 @@ export function employeeRow(h: Hr, e: StoredEmployee): EmployeeRow {
     department: e.department,
     status: employmentView(e, h.today),
     employmentType: e.employmentType,
-    sites: e.sites.filter((s) => !s.to || s.to >= h.today).map(() => h.site.name),
+    sites: [...new Set(e.sites.filter((s) => (!s.to || s.to >= h.today) && h.scope.has(s.siteId)).map((s) => siteName(h, s.siteId)))],
     startDate: e.startDate,
     ...(e.endDate ? { endDate: e.endDate } : {}),
     today: e.status === 'active' ? dutyNow(h, e.id) : { state: 'off' },
@@ -178,7 +197,7 @@ export function leaveView(h: Hr, l: StoredLeave): LeaveRequestView {
   const ownRequest = l.requestedBy === h.me.principalId;
   const pending = l.state === 'pending';
   const may = holds(h, 'leave.manage') && pending;
-  const conflicts = live(h.state)
+  const conflicts = visibleLive(h)
     .filter((a) => a.employeeId === l.employeeId && l.from <= a.date && a.date <= l.to)
     .map((a) => ({ assignmentId: a.id, date: a.date, shiftKey: templateOf(h.state, a.templateId).key }));
   return {
@@ -231,13 +250,6 @@ export function correctionView(h: Hr, c: StoredCorrection): AttendanceCorrection
   };
 }
 
-/** What is owed: the evidenced disbursement less the evidenced repayments (zero before a disbursement). */
-export function outstandingOf(a: StoredAdvance): bigint {
-  if (!a.disbursement) return 0n;
-  const left = paisa(a.disbursement.amount) - sum(a.repayments.map((r) => paisa(r.amount)));
-  return left > 0n ? left : 0n;
-}
-
 export function advanceView(h: Hr, a: StoredAdvance): StaffAdvanceView {
   const e = employeeOf(h.state, a.employeeId)!;
   const own = e.principalId === h.me.principalId;
@@ -245,13 +257,8 @@ export function advanceView(h: Hr, a: StoredAdvance): StaffAdvanceView {
   const submitted = a.state === 'submitted';
   const may = holds(h, 'hr.advances.approve') && submitted && !own && !ownRequest;
   const manage = holds(h, 'hr.advances.manage');
-  // The plan is an instruction; an instalment shows as received only once evidenced receipts cover it.
-  let received = sum(a.repayments.map((r) => paisa(r.amount)));
-  const schedule = instalmentPlan(paisa(a.amount), a.instalments, a.firstMonth).map((i) => {
-    const covered = received >= i.paisa;
-    if (covered) received -= i.paisa;
-    return { n: i.n, month: i.month, amount: money(i.paisa), state: covered ? ('received' as const) : ('planned' as const) };
-  });
+  // The plan is an instruction: no instalment is ever shown as received (payment evidence is S.2b).
+  const schedule = instalmentPlan(paisa(a.amount), a.instalments, a.firstMonth).map((i) => ({ n: i.n, month: i.month, amount: money(i.paisa), state: 'planned' as const }));
   return {
     id: a.id,
     ref: a.ref,
@@ -268,16 +275,12 @@ export function advanceView(h: Hr, a: StoredAdvance): StaffAdvanceView {
     ...(a.decidedByName ? { decidedByName: a.decidedByName, decidedAt: a.decidedAt! } : {}),
     ...(a.decisionNote ? { decisionNote: a.decisionNote } : {}),
     evidence: a.evidence,
-    ...(a.disbursement ? { disbursement: a.disbursement } : {}),
-    repayments: a.repayments,
-    outstanding: money(outstandingOf(a)),
+    payment: 'unverified',
     ...(submitted && own ? { blocked: 'own_record' as const } : submitted && ownRequest ? { blocked: 'own_request' as const } : {}),
     actions: {
       approve: may,
       reject: may,
       withdraw: manage && (a.state === 'submitted' || a.state === 'approved'),
-      linkDisbursement: manage && a.state === 'approved',
-      linkRepayment: manage && a.state === 'disbursed',
     },
     history: a.history,
   };
@@ -293,7 +296,7 @@ export function attendanceRow(h: Hr, a: StoredAssignment): AttendanceRow {
   const r = recordOf(state, a.id);
   const s = attendanceState(state, a);
   const at = ms(h.now);
-  const mayRecord = recordsFor(h, t.department) && s !== 'on_leave';
+  const mayRecord = recordsFor(h, t.department, a.siteId) && s !== 'on_leave';
   const started = at >= ms(w.start) - 60 * 60_000;
   const pending = state.corrections.some((c) => c.assignmentId === a.id && c.state === 'pending');
   return {
@@ -329,7 +332,7 @@ export function employee360(h: Hr, e: StoredEmployee): Employee360 {
   const { state, today } = h;
   const manage = holds(h, 'hr.manage');
   const docsManage = holds(h, 'hr.documents.manage');
-  const mine = live(state).filter((a) => a.employeeId === e.id);
+  const mine = visibleLive(h).filter((a) => a.employeeId === e.id);
   const byStart = (x: StoredAssignment, y: StoredAssignment) => ms(windowOf(state, x).start) - ms(windowOf(state, y).start);
   const upcoming = mine.filter((a) => a.date >= today && a.date <= addDays(today, 7)).sort(byStart);
   const past = mine.filter((a) => a.date < today && a.date >= addDays(today, -14)).sort(byStart).reverse();
@@ -356,11 +359,11 @@ export function employee360(h: Hr, e: StoredEmployee): Employee360 {
     department: e.department,
     status: employmentView(e, today),
     employmentType: e.employmentType,
-    legalEntity: { id: e.legalEntityId, name: legalEntityName(h) },
+    legalEntity: { id: e.legalEntityId, name: legalEntityName(h, e.legalEntityId) },
     startDate: e.startDate,
     ...(e.endDate ? { endDate: e.endDate } : {}),
     periods: e.periods,
-    sites: e.sites.map((s) => ({ siteId: s.siteId, siteName: h.site.name, from: s.from, ...(s.to ? { to: s.to } : {}) })),
+    sites: e.sites.filter((s) => h.scope.has(s.siteId)).map((s) => ({ siteId: s.siteId, siteName: siteName(h, s.siteId), from: s.from, ...(s.to ? { to: s.to } : {}) })),
     cnicMasked: maskCnic(e.personal.cnic),
     ...(manage ? { personal: e.personal } : {}),
     hasSignIn: !!e.principalId,
@@ -383,7 +386,7 @@ export function employee360(h: Hr, e: StoredEmployee): Employee360 {
       edit: manage && e.status !== 'ended',
       changeStatus: manage,
       assign: holds(h, 'shifts.manage') && active && !!h.ctx.access?.features.includes('hr.shifts'),
-      recordAttendance: recordsFor(h, e.department) && active,
+      recordAttendance: active && e.sites.some((s) => allocatedOn(e, s.siteId, today) && recordsFor(h, e.department, s.siteId)),
       requestLeave: (manage || holds(h, 'leave.manage')) && active,
       manageDocuments: docsManage,
       viewAdvances: viewsAdvances(h),
@@ -438,7 +441,7 @@ export function rosterWeek(h: Hr, weekStart: string): RosterWeek {
     changesSincePublish: week?.changesSincePublish ?? 0,
     warnings,
     templates,
-    sites: [{ id: site.siteId, name: site.name }],
+    sites: h.scope.sites.map((s) => ({ id: s.siteId, name: s.name })),
     actions: { edit, publish: edit && (week?.state !== 'published' || (week?.changesSincePublish ?? 0) > 0) },
   };
 }

@@ -1,9 +1,7 @@
-import { ApiError, type AdvancesList, type AttendanceCorrectionView, type AttendanceDay, type AttendanceRow, type Candidate, type CommunityHome, type DocumentsOverview, type EffectiveAccess, type Employee360, type EmployeesList, type HrDashboard, type LeaveAndCorrections, type LeaveRequestView, type ModuleKey, type OnDutyBoard, type Persona, type ResidentStaffOnDuty, type RosterWeek, type SettlementCandidates, type StaffAdvanceView, type AssignmentView, type VoucherDetail } from '@repo/contracts';
+import type { AdvancesList, AttendanceCorrectionView, AttendanceDay, AttendanceRow, Candidate, CommunityHome, DocumentsOverview, Employee360, EmployeesList, HrDashboard, LeaveAndCorrections, LeaveRequestView, OnDutyBoard, ResidentStaffOnDuty, RosterWeek, StaffAdvanceView, AssignmentView } from '@repo/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DemoStore } from '../demo-store';
-import { MockTransport } from '../mock-transport';
 import { effectiveAccessFor } from '../tenant-directory';
-import { HR_SECTION, type HrState } from './state';
+import { at, emp, refusal, session, without } from './api-test-kit';
 
 /**
  * Gate S.2a through the fail-closed mock API: the three reference flows (new employee to duty, the
@@ -13,49 +11,6 @@ import { HR_SECTION, type HrState } from './state';
  * organisations, residents seeing roles only (names with consent), and advances that are never paid
  * by an approval. The demo's business date is Monday 26 October 2026; the wall clock is set per test.
  */
-const memory = () => {
-  const data = new Map<string, string>();
-  return { getItem: (k: string) => data.get(k) ?? null, setItem: (k: string, v: string) => void data.set(k, v), removeItem: (k: string) => void data.delete(k) };
-};
-
-const without = (...modules: ModuleKey[]) => (p: Persona): EffectiveAccess | null => {
-  const a = effectiveAccessFor(p);
-  return a ? { ...a, grants: a.grants.filter((g) => !modules.includes(g.module)) } : null;
-};
-
-function session(options: { accessFor?: (p: Persona) => EffectiveAccess | null } = {}) {
-  const demo = new DemoStore(memory());
-  let personaId: string | null = 'alnoor_manager';
-  const t = new MockTransport({ getContext: () => ({ personaId, projectId: 'all' }), getMode: () => 'fast', demo, ...(options.accessFor ? { accessFor: options.accessFor } : {}) });
-  const ready = new MockTransport({ getContext: () => ({ personaId: 'alnoor_manager', projectId: 'all' }), getMode: () => 'fast', demo }).request({ method: 'POST', path: '/society/demo', body: { mode: 'collecting' } });
-  const api = {
-    as(id: string | null) {
-      personaId = id;
-      return api;
-    },
-    get: async <T>(path: string, query?: Record<string, string>) => (await ready, t.request<T>({ method: 'GET', path, ...(query ? { query } : {}) })),
-    post: async <T>(path: string, body: unknown = {}) => (await ready, t.request<T>({ method: 'POST', path, body })),
-    patch: async <T>(path: string, body: unknown = {}) => (await ready, t.request<T>({ method: 'PATCH', path, body })),
-    /** The HR state of Al-Noor in this demo session (to check what is stored, or set up an edge case). */
-    hr: () => demo.partition('tnt_alnoor').section<HrState>(HR_SECTION, () => {
-      throw new Error('HR state not created yet');
-    }),
-  };
-  return api;
-}
-
-const refusal = async (p: Promise<unknown>) => {
-  try {
-    await p;
-  } catch (e) {
-    if (e instanceof ApiError) return { status: e.problem.status, code: e.problem.code, fields: Object.keys(e.problem.errors ?? {}) };
-    throw e;
-  }
-  throw new Error('expected a refusal');
-};
-
-/** The wall clock in Pakistan on the demo's business date (the mock server reads it for "now"). */
-const at = (time: string, date = '2026-10-26') => vi.setSystemTime(new Date(`${date}T${time}:00+05:00`));
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] });
@@ -63,7 +18,6 @@ beforeEach(() => {
 });
 afterEach(() => vi.useRealTimers());
 
-const emp = async (api: ReturnType<typeof session>, name: string) => (await api.as('alnoor_manager').get<EmployeesList>('/hr/employees', { status: 'all' })).items.find((e) => e.name === name)!;
 const roster = (api: ReturnType<typeof session>, week = '2026-10-26') => api.get<RosterWeek>('/hr/roster', { week });
 const shiftOf = (w: RosterWeek, date: string, key: string, dept = 'security') => w.days.find((d) => d.date === date)!.shifts.find((s) => s.shiftKey === key && s.department === dept)!;
 const tpl = (key: string) => `sht_anr_${key}`;
@@ -350,14 +304,7 @@ describe('documents (fictional files, access-scoped)', () => {
 });
 
 describe('advances and loans: an approval is an instruction, never a payment', () => {
-  const voucher = async (api: ReturnType<typeof session>, direction: 'payment' | 'receipt', amount: string, purpose: string) => {
-    const v = await api.as('alnoor_accounts').post<VoucherDetail>('/finance/vouchers', { accountId: 'cac_anr_office', direction, category: direction === 'payment' ? 'misc_expense' : 'other_income', amount, onDate: '2026-10-26', purpose, counterparty: 'Rukhsana Bibi (staff)', evidence: { name: 'slip.pdf', kind: 'receipt', size: 1000 }, submit: true });
-    await api.as('alnoor_treasurer').post(`/approvals/${v.voucher.approvalId}/decide`, { decision: 'approve', reason: 'Checked against the HR request' });
-    await api.as('alnoor_accounts').post(`/finance/vouchers/${v.voucher.id}/post`);
-    return v.voucher.id;
-  };
-
-  it('request, maker ≠ checker, approved not paid, disbursed and repaid only by posted vouchers (each used once)', async () => {
+  it('request, maker ≠ checker, approved with its payment not verified; no voucher can be linked (Issue #12)', async () => {
     const api = session();
     const rukhsana = await emp(api, 'Rukhsana Bibi');
     const input = { employeeId: rukhsana.id, kind: 'advance', amount: '8000', reason: 'School fees for her two children', instalments: 2, firstMonth: '2026-11', evidence: [{ name: 'fee-challan.pdf', type: 'application/pdf', sizeBytes: 50_000 }] };
@@ -365,28 +312,17 @@ describe('advances and loans: an approval is an instruction, never a payment', (
     expect((await refusal(api.post('/hr/advances', { ...input, amount: '-5' }))).fields).toContain('amount');
     expect((await refusal(api.post('/hr/advances', { ...input, instalments: 12 }))).fields).toContain('instalments');
     const a = await api.post<StaffAdvanceView>('/hr/advances', input);
-    expect(a).toMatchObject({ state: 'submitted', outstanding: { amount: '0.00' }, schedule: [{ amount: { amount: '4000.00' }, state: 'planned' }, { amount: { amount: '4000.00' }, state: 'planned' }] });
+    expect(a).toMatchObject({ state: 'submitted', payment: 'unverified', schedule: [{ amount: { amount: '4000.00' }, state: 'planned' }, { amount: { amount: '4000.00' }, state: 'planned' }] });
     // The manager raised it: he holds no approval permission; the treasurer decides.
     expect((await refusal(api.post(`/hr/advances/${a.id}/approve`))).status).toBe(403);
     const approved = await api.as('alnoor_treasurer').post<StaffAdvanceView>(`/hr/advances/${a.id}/approve`);
-    expect(approved).toMatchObject({ state: 'approved', outstanding: { amount: '0.00' } });
-    expect(JSON.stringify(approved)).not.toMatch(/"paid"|disbursement/);
-    // No posted voucher of the amount yet: nothing to link.
-    api.as('alnoor_manager');
-    let c = await api.get<SettlementCandidates>(`/hr/advances/${a.id}/candidates`, { purpose: 'disbursement' });
-    expect(c.vouchers.filter((v) => v.eligible)).toEqual([]);
-    const paid = await voucher(api, 'payment', '8000', 'Advance to Rukhsana Bibi (HR request)');
-    c = await api.as('alnoor_manager').get<SettlementCandidates>(`/hr/advances/${a.id}/candidates`, { purpose: 'disbursement' });
-    expect(c.vouchers.find((v) => v.id === paid)).toMatchObject({ eligible: true });
-    const disbursed = await api.post<StaffAdvanceView>(`/hr/advances/${a.id}/link`, { purpose: 'disbursement', voucherId: paid });
-    expect(disbursed).toMatchObject({ state: 'disbursed', outstanding: { amount: '8000.00' }, disbursement: { amount: { amount: '8000.00' } } });
-    // Repaid in part, then in full; the same voucher cannot count twice.
-    const part = await voucher(api, 'receipt', '4000', 'First instalment from Rukhsana Bibi');
-    const half = await api.as('alnoor_manager').post<StaffAdvanceView>(`/hr/advances/${a.id}/link`, { purpose: 'repayment', voucherId: part });
-    expect(half).toMatchObject({ state: 'disbursed', outstanding: { amount: '4000.00' }, schedule: [{ state: 'received' }, { state: 'planned' }] });
-    expect((await refusal(api.post(`/hr/advances/${a.id}/link`, { purpose: 'repayment', voucherId: part }))).code).toBe('voucher_not_eligible');
-    const rest = await voucher(api, 'receipt', '4000', 'Second instalment from Rukhsana Bibi');
-    expect((await api.as('alnoor_manager').post<StaffAdvanceView>(`/hr/advances/${a.id}/link`, { purpose: 'repayment', voucherId: rest })).state).toBe('repaid');
+    expect(approved).toMatchObject({ state: 'approved', payment: 'unverified', actions: { approve: false, reject: false, withdraw: false } });
+    expect(JSON.stringify(approved)).not.toMatch(/"paid"|disburs|outstanding|received/);
+    // Settlement is read only: any link is refused (the full voucher matrix is in hr.closure.api.test.ts).
+    expect((await refusal(api.as('alnoor_manager').post(`/hr/advances/${a.id}/link`, { purpose: 'disbursement', voucherId: 'cvh_any' }))).code).toBe('settlement_unverifiable');
+    const list = await api.get<AdvancesList>('/hr/advances');
+    expect(list.items.find((x) => x.id === a.id)!.state).toBe('approved');
+    expect(list.counts).toEqual({ submitted: 1, approved: 2, rejected: 1, withdrawn: 0 });
   });
 
   it('nobody approves an advance for themselves, even holding the approval permission', async () => {
@@ -402,22 +338,30 @@ describe('advances and loans: an approval is an instruction, never a payment', (
 });
 
 describe('residents: staff on duty from the published roster, roles only unless consented', () => {
-  it('names only with consent, never personal details; independent of the hub and chat', async () => {
+  it('names only with consent, never personal details; scheduled staff are expected, not on duty; independent of the hub and chat', async () => {
     const api = session({ accessFor: without('community_hub', 'community_chat') });
     at('15:30');
+    const board = await api.as('alnoor_guard').get<OnDutyBoard>('/hr/roster/now');
+    const evening = board.current.find((s) => s.shiftKey === 'evening')!;
+    for (const name of ['Faisal Iqbal', 'Nadeem Abbas']) await api.post(`/hr/attendance/${evening.staff.find((p) => p.name === name)!.assignmentId}/check-in`);
+    const imran = (await api.as('alnoor_manager').get<AttendanceDay>('/hr/attendance')).rows.find((r) => r.employeeName === 'Imran Qureshi')!;
+    await api.as('alnoor_admin').post(`/hr/attendance/${imran.assignmentId}/check-in`);
     const staff = await api.as('alnoor_resident_a101').get<ResidentStaffOnDuty>('/portal/community/staff');
-    expect(staff.onDuty.map((s) => [s.role, s.post, s.name ?? null])).toEqual([
+    expect(staff.confirmed.map((s) => [s.role, s.post, s.name ?? null])).toEqual([
       ['security_guard', 'Main gate', null], // Faisal: no consent
       ['security_guard', 'Patrol', null], // Nadeem: consented to his role only
-      ['maintenance_supervisor', 'On call', 'Naveed Anjum'],
-      ['electrician', 'Plant room', null],
-      ['plumber', 'On call', null],
-      ['cleaner', 'Lobbies', null],
-      ['gardener', 'Garden', null],
       ['building_manager', 'Office', 'Imran Qureshi'],
-      ['accounts_officer', 'Office', null],
     ]);
-    expect(JSON.stringify(staff)).not.toMatch(/\+92|35202|House|PKR|absent|late|attendance|employeeId|assignmentId|Javed Akhtar/);
+    // Not checked in yet: role and post only, even for Naveed, who agreed to show his name.
+    expect(staff.expected.map((s) => [s.role, s.post])).toEqual([
+      ['maintenance_supervisor', 'On call'],
+      ['electrician', 'Plant room'],
+      ['plumber', 'On call'],
+      ['cleaner', 'Lobbies'],
+      ['gardener', 'Garden'],
+      ['accounts_officer', 'Office'],
+    ]);
+    expect(JSON.stringify(staff)).not.toMatch(/\+92|35202|House|PKR|absent|late|attendance|checkIn|employeeId|assignmentId|Javed Akhtar|Naveed/);
     expect(staff.next).toEqual([{ role: 'security_guard', startsAt: '2026-10-26T23:00:00+05:00', count: 2 }]);
   });
 
@@ -428,9 +372,11 @@ describe('residents: staff on duty from the published roster, roles only unless 
     const faisal = board.current.find((s) => s.shiftKey === 'evening')!.staff.find((s) => s.name === 'Faisal Iqbal')!;
     await api.post(`/hr/attendance/${faisal.assignmentId}/absent`);
     const staff = await api.as('alnoor_resident_a101').get<ResidentStaffOnDuty>('/portal/community/staff');
-    expect(staff.onDuty.filter((s) => s.role === 'security_guard')).toHaveLength(1);
+    expect([...staff.confirmed, ...staff.expected].filter((s) => s.role === 'security_guard')).toHaveLength(1);
+    expect(staff.unavailable).toBe(1);
     api.hr().weeks.find((w) => w.weekStart === '2026-10-26')!.state = 'draft';
-    expect((await api.get<ResidentStaffOnDuty>('/portal/community/staff')).onDuty).toEqual([]);
+    const draft = await api.get<ResidentStaffOnDuty>('/portal/community/staff');
+    expect([draft.confirmed, draft.expected, draft.unavailable]).toEqual([[], [], 0]);
     // The office board still shows the draft week's duties (flagged as not published).
     expect((await api.as('alnoor_guard').get<OnDutyBoard>('/hr/roster/now')).published).toBe(false);
   });

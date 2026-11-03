@@ -55,6 +55,22 @@ const shot = (page: Page, name: string, full = true) => page.screenshot({ path: 
 const CHROME_HIDDEN = '[data-testid="app-header"], [data-testid="bottom-nav"], [data-testid="portal-header"], [data-testid="portal-bottom-nav"] { visibility: hidden !important; }';
 const shotOf = (locator: Locator, name: string) => locator.screenshot({ path: `${DIR}/${name}.png`, style: CHROME_HIDDEN });
 
+/** Today's duty of a person at the main site (the page must be an office page). */
+async function rowOf(page: Page, name: string) {
+  const day = await societyApi<{ rows: Array<{ assignmentId: string; employeeName: string }> }>(page, '/hr/attendance');
+  const row = day.ok ? day.res.rows.find((r) => r.employeeName === name) : undefined;
+  if (!row) throw new Error(`no duty for ${name}`);
+  return row.assignmentId;
+}
+
+/** Records arrivals through the mock API, as the office persona of the open page. */
+async function checkInAll(page: Page, names: string[]) {
+  for (const name of names) {
+    const done = await societyApi(page, `/hr/attendance/${await rowOf(page, name)}/check-in`, 'POST');
+    if (!done.ok) throw new Error(`check-in ${name}: ${JSON.stringify(done)}`);
+  }
+}
+
 /** Scrolls the content into view below the sticky header (the page's own scroll padding applies). */
 async function toContent(page: Page, testId: string) {
   await page.getByTestId(testId).first().evaluate((el) => el.scrollIntoView({ block: 'start' }));
@@ -123,10 +139,18 @@ for (const locale of ['en-PK', 'ur-PK'] as Locale[]) {
     await page.context().close();
   });
 
-  test(`residents: staff on duty (${w}, ${l})`, async ({ browser }) => {
-    const page = await context(browser, VIEWPORTS[vp], { locale }, '15:30');
+  test(`residents: staff on duty, confirmed and scheduled apart (${w}, ${l})`, async ({ browser }) => {
+    const page = await context(browser, VIEWPORTS[vp], { locale, staff: 'alnoor_manager' }, '15:30');
     await resident(page, 'alnoor_resident_a101', '/customer/portal/community?tab=staff', 'community-staff');
-    await shot(page, `f01-resident-staff-on-duty-${w}-${l}`);
+    await shot(page, `f01-resident-staff-scheduled-only-${w}-${l}`);
+    // The office records two arrivals (Naveed agreed to show his name; Nadeem only his role) and marks
+    // Faisal absent: confirmed, scheduled and unavailable then show apart (Issue #12).
+    await as(page, 'alnoor_manager', '/backoffice/hr/attendance', 'hr-attendance-rows');
+    await checkInAll(page, ['Naveed Anjum', 'Nadeem Abbas']);
+    const faisal = await rowOf(page, 'Faisal Iqbal');
+    await societyApi(page, `/hr/attendance/${faisal}/absent`, 'POST');
+    await resident(page, 'alnoor_resident_a101', '/customer/portal/community?tab=staff', 'community-staff-confirmed');
+    await shot(page, `f02-resident-staff-confirmed-scheduled-unavailable-${w}-${l}`);
     await page.context().close();
   });
 }
@@ -267,12 +291,14 @@ test('documents and the money rule: an approval is not a payment (1440, en)', as
   await page.getByTestId('hr-advance-row').filter({ hasText: 'Asif Mehmood' }).click();
   await page.getByTestId('hr-advance-approve').click();
   await page.getByRole('alertdialog').getByRole('button', { name: /Approve request/ }).click();
-  await page.getByTestId('hr-advance-not-paid').waitFor();
+  await page.getByTestId('hr-advance-unverified').waitFor();
   await settle(page, 300);
-  await shot(page, 'e02-loan-approved-not-paid-1440-en', false);
+  await shot(page, 'e02-loan-approved-payment-not-verified-1440-en', false);
   await page.keyboard.press('Escape');
   await as(page, 'alnoor_accounts', '/backoffice/hr/employee-advance-settlement', 'hr-settlement');
-  await shot(page, 'e03-settlement-partial-no-voucher-1440-en');
+  await shot(page, 'e03-settlement-read-only-1440-en');
+  // Issue #12: a posted S.1 voucher of the exact amount, made out to the employee, still proves
+  // nothing about this advance. The page stays read only and the advance stays unverified.
   const created = await societyApi<{ voucher: { id: string; approvalId: string } }>(page, '/finance/vouchers', 'POST', { accountId: 'cac_anr_office', direction: 'payment', category: 'misc_expense', amount: '15000', onDate: '2026-10-26', purpose: 'Advance to Ghulam Rasool (HR request ANR-AD-0002)', counterparty: 'Ghulam Rasool (staff)', evidence: { name: 'advance-slip.pdf', kind: 'receipt', size: 1000 }, submit: true });
   const v = created.ok ? created.res.voucher : null;
   // 15,000 is over the society's 10,000 limit: the treasurer and the general secretary both sign (S.1).
@@ -285,12 +311,13 @@ test('documents and the money rule: an approval is not a payment (1440, en)', as
   await as(page, 'alnoor_accounts', '/backoffice/hr/employee-advance-settlement', 'hr-settlement');
   const posted = await societyApi(page, `/finance/vouchers/${v!.id}/post`, 'POST');
   if (!posted.ok) throw new Error(`post: ${JSON.stringify(posted)}`);
-  await open(page, BO, '/backoffice/hr/employee-advance-settlement?advance=adv_anr_0002', 'hr-settlement-vouchers');
-  await shot(page, 'e04-settlement-posted-voucher-eligible-1440-en');
-  await page.locator('[data-testid="hr-settlement-voucher"][data-eligible="true"]').first().getByTestId('hr-settlement-link').click();
-  await page.getByTestId('hr-settlement-advance').filter({ hasText: 'Ghulam Rasool' }).locator('[data-state="disbursed"]').waitFor();
-  await settle(page, 300);
-  await shot(page, 'e05-settlement-paid-out-evidenced-1440-en');
+  const linked = await societyApi(page, '/hr/advances/adv_anr_0002/link', 'POST', { purpose: 'disbursement', voucherId: v!.id });
+  if (linked.ok || linked.code !== 'settlement_unverifiable') throw new Error(`link: ${JSON.stringify(linked)}`);
+  await open(page, BO, '/backoffice/hr/employee-advance-settlement', 'hr-settlement-needs');
+  await page.locator('[data-testid="hr-settlement-advance"][data-payment="unverified"]').filter({ hasText: 'Ghulam Rasool' }).waitFor();
+  await shot(page, 'e04-settlement-posted-voucher-still-unverified-1440-en');
+  await open(page, BO, '/backoffice/hr/employee-advances', 'hr-advances-unverified');
+  await shot(page, 'e05-advances-approved-payment-not-verified-1440-en');
   await page.context().close();
 });
 
@@ -309,9 +336,13 @@ test('320 × 700, Urdu, 200 % text: roster, On duty now, Employee 360 and staff 
     await toContent(page, ready);
     await shot(page, `${name}-320x700-200pct-ur`, false);
   }
-  await resident(page, 'alnoor_resident_a101', '/customer/portal/community?tab=staff', 'community-staff');
-  await toContent(page, 'community-staff');
-  await shot(page, 'g05-resident-staff-on-duty-320x700-200pct-ur', false);
+  await as(page, 'alnoor_manager', '/backoffice/hr/attendance', 'hr-attendance-rows');
+  await checkInAll(page, ['Naveed Anjum']);
+  await resident(page, 'alnoor_resident_a101', '/customer/portal/community?tab=staff', 'community-staff-confirmed');
+  await toContent(page, 'community-staff-confirmed');
+  await shot(page, 'g05-resident-staff-confirmed-320x700-200pct-ur', false);
+  await toContent(page, 'community-staff-expected');
+  await shot(page, 'g06-resident-staff-scheduled-320x700-200pct-ur', false);
   await page.context().close();
 });
 

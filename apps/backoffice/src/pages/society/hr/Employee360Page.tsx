@@ -372,11 +372,6 @@ export default function Employee360Page({ employeeId }: { employeeId: string }) 
                             · {t(`hr:advances.kind.${x.kind}`)} · <Money value={x.amount} />
                           </span>
                           <span className="flex items-center gap-2">
-                            {x.state === 'disbursed' && (
-                              <span className="text-xs text-muted">
-                                {t('hr:advances.owes')} <Money value={x.outstanding} />
-                              </span>
-                            )}
                             <AdvanceBadge state={x.state} />
                           </span>
                         </Link>
