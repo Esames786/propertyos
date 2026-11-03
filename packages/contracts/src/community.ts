@@ -1,3 +1,4 @@
+import type { ResidentStaffOnDuty } from './hr';
 import type { AudienceRole, OpsEvent, OpsFile } from './operations';
 
 /**
@@ -371,7 +372,7 @@ export interface ResourceResident {
 // Community home (PORTAL-036)
 // ---------------------------------------------------------------------------------------------
 
-export type CommunityTab = 'notices' | 'polls' | 'services' | 'resources';
+export type CommunityTab = 'notices' | 'polls' | 'services' | 'resources' | 'staff';
 
 export interface CommunityHome {
   siteName: string;
@@ -386,4 +387,9 @@ export interface CommunityHome {
   polls: { open: number; toAnswer: number } | null;
   services: { listed: number } | null;
   resources: { count: number; latest?: { id: string; title: string } } | null;
+  /**
+   * Gate S.2a: staff on duty from the published roster. Needs `hr` with `hr.shifts` for the site
+   * (never the chat or hub add-ons); null when not in the plan.
+   */
+  staff: ResidentStaffOnDuty | null;
 }

@@ -48,6 +48,9 @@ const STARTER_PERMISSIONS: Record<StarterRoleKey, readonly Permission[]> = {
     'maintenance.manage', 'issues.view', 'issues.manage', 'issues.moderate', 'visitors.view', 'parking.view', 'vehicles.approve', 'amenities.manage', 'notices.publish', 'messages.send', 'merchant.manage',
     // D.3 opt-in modules: licence still required even for administrators.
     'chat.use', 'chat.groups.manage', 'chat.moderate', 'directory.manage', 'polls.manage', 'resources.publish',
+    // Gate S.2a (V3.2 matrix §5.2): the optional HR add-on, licence still required. Recording attendance
+    // and approving a correction are separate permissions, and nobody decides their own request.
+    'hr.view', 'hr.manage', 'shifts.manage', 'attendance.record', 'attendance.adjust', 'leave.manage', 'hr.documents.manage', 'hr.advances.manage', 'hr.advances.approve',
   ],
   manager: [
     'quickcreate.use', 'customer.view', 'residents.view', 'operations.view', 'workorder.update', 'visitors.manage', 'invoice.view', 'reports.view',
@@ -60,6 +63,9 @@ const STARTER_PERMISSIONS: Record<StarterRoleKey, readonly Permission[]> = {
     // Gate D.2: runs the building day to day: requests, issues, the gate, vehicles, bookings and notices.
     'maintenance.manage', 'issues.view', 'issues.manage', 'issues.moderate', 'visitors.view', 'parking.view', 'vehicles.approve', 'amenities.manage', 'notices.publish', 'messages.send',
     'chat.use', 'chat.groups.manage', 'chat.moderate', 'directory.manage', 'polls.manage', 'resources.publish',
+    // Gate S.2a: runs the staff day to day (employees, roster, attendance, leave, documents) and raises
+    // advance requests; he never approves an advance (finance does).
+    'hr.view', 'hr.manage', 'shifts.manage', 'attendance.record', 'attendance.adjust', 'leave.manage', 'hr.documents.manage', 'hr.advances.manage',
   ],
   treasurer: [
     'quickcreate.use', 'customer.view', 'invoice.view', 'payment.receive', 'finance.evidence.review', 'residents.view', 'reports.view',
@@ -72,12 +78,16 @@ const STARTER_PERMISSIONS: Record<StarterRoleKey, readonly Permission[]> = {
     'committee.view', 'approval.view', 'approval.decide', 'cashbook.view', 'cash_voucher.approve', 'funds_transfer.approve', 'settlement_exception.approve', 'payment.batch.confirm', 'period.close', 'transfer.approve', 'clearance.issue',
     // Gate D.2: the online gateway's sandbox settings (BILL-011) sit with payment methods.
     'merchant.manage',
+    // Gate S.2a: the checker of staff advances and loans (never staff records, attendance or documents).
+    'hr.advances.approve',
   ],
   // Gate D.2: the maintenance supervisor triages, assigns and closes; technicians move only their own
   // work orders (the server filters them); security runs the gate and checks vehicles at it.
-  maintenance: ['quickcreate.use', 'operations.view', 'workorder.update', 'residents.view', 'maintenance.manage', 'issues.view', 'issues.manage'],
+  // Gate S.2a: both supervisors record attendance for their own department's duties only (the server
+  // filters by department); neither sees staff records, documents or money.
+  maintenance: ['quickcreate.use', 'operations.view', 'workorder.update', 'residents.view', 'maintenance.manage', 'issues.view', 'issues.manage', 'attendance.record'],
   technician: ['operations.view', 'workorder.update'],
-  security: ['visitors.manage', 'residents.view', 'visitors.view', 'parking.view', 'vehicles.approve'],
+  security: ['visitors.manage', 'residents.view', 'visitors.view', 'parking.view', 'vehicles.approve', 'attendance.record'],
 };
 
 /** Which starter set a kind of organisation begins with. */
@@ -126,6 +136,8 @@ const ALNOOR_ACCOUNTS_OFFICER: TenantRoleTemplate = {
     'site.view', 'billing_run.view', 'billing_run.post', 'collections.view', 'bank.view', 'bank.reconcile', 'beneficiary.manage',
     // Gate S.1: the maker of vouchers, cheques and reminders; matches statement lines to legs and cheques.
     'approval.view', 'cashbook.view', 'cash_voucher.prepare', 'cheque.manage', 'funds_transfer.create', 'reminders.manage', 'reminders.send', 'transfer.review',
+    // Gate S.2a: links posted vouchers to staff advances as evidence (HR-008); never approves them.
+    'hr.advances.manage',
   ],
   holders: ['alnoor_accounts'],
 };

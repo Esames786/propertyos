@@ -1,6 +1,6 @@
 import { decideTarget, MODULE_KEYS, type AccessDecision, type AccessTarget, type EffectiveAccess, type ModuleKey, type SuspensionClass } from '@repo/contracts';
 import { findScreenByRegisterRoute } from '@repo/contracts/screens';
-import { ArrowRightLeft, BadgeCheck, Banknote, BarChart3, Briefcase, Building, Building2, Car, ClipboardCheck, Compass, Contact, DatabaseZap, DoorOpen, FileText, FlaskConical, HandCoins, Coins, Home, Landmark, Megaphone, MessagesSquare, MonitorSmartphone, ReceiptText, Settings2, ShieldCheck, ShoppingCart, Smartphone, Users, UsersRound, Vote, Wallet, Wrench } from 'lucide-react';
+import { ArrowRightLeft, BadgeCheck, Banknote, BarChart3, Briefcase, Building, Building2, CalendarClock, Car, ClipboardCheck, Compass, Contact, DatabaseZap, DoorOpen, FileText, FlaskConical, HandCoins, Coins, Home, Landmark, Megaphone, MessagesSquare, MonitorSmartphone, ReceiptText, Settings2, ShieldCheck, ShoppingCart, Smartphone, Users, UsersRound, Vote, Wallet, Wrench } from 'lucide-react';
 import { LIVE, PLANNED } from '../shell/QuickCreateMenu';
 import type { NavItem } from '../shell/types';
 
@@ -36,6 +36,12 @@ export const TENANT_NAV: NavItem[] = [
   { id: 'finance', labelKey: 'nav:items.finance', href: '/backoffice/fin/invoices-list', icon: Landmark, permission: 'invoice.view', match: '/backoffice/fin', group: 'workspace', bottomBar: true, suspension: 'history_read' },
   { id: 'procurement', labelKey: 'nav:items.procurement', href: '/backoffice/proc/procurement-overview', icon: ShoppingCart, permission: 'procurement.view', match: '/backoffice/proc', group: 'operations' },
   { id: 'hr', labelKey: 'nav:items.hr', href: '/backoffice/hr/hr-dashboard', icon: UsersRound, permission: 'hr.view', match: '/backoffice/hr', group: 'operations' },
+  // Gate S.2a (society HR add-on): the roster and attendance are open to supervisors who record
+  // attendance (without staff records), advances to finance (without staff records either).
+  { id: 'duty-roster', labelKey: 'nav:items.dutyRoster', href: '/backoffice/hr/roster', icon: CalendarClock, anyOf: ['shifts.manage', 'hr.view', 'attendance.record'], module: 'hr', feature: 'hr.shifts', match: '/backoffice/hr/roster', group: 'operations' },
+  { id: 'hr-attendance', labelKey: 'nav:pages.attendance', href: '/backoffice/hr/attendance', icon: CalendarClock, anyOf: ['hr.view', 'attendance.record'], module: 'hr', feature: 'hr.shifts', match: '/backoffice/hr/attendance', group: 'operations', menu: false, hub: 'hr' },
+  { id: 'hr-leave', labelKey: 'nav:pages.leaveAdjustments', href: '/backoffice/hr/leave-attendance-adjustments', icon: CalendarClock, anyOf: ['hr.view', 'leave.manage', 'attendance.adjust', 'attendance.record'], module: 'hr', match: '/backoffice/hr/leave-attendance-adjustments', group: 'operations', menu: false, hub: 'hr' },
+  { id: 'staff-advances', labelKey: 'nav:items.staffAdvances', href: '/backoffice/hr/employee-advances', icon: HandCoins, anyOf: ['hr.advances.manage', 'hr.advances.approve'], module: 'hr', match: '/backoffice/hr/employee-advance', group: 'operations' },
   { id: 'operations', labelKey: 'nav:items.operations', href: '/backoffice/mnt/maintenance-dashboard', icon: Wrench, permission: 'operations.view', match: '/backoffice/mnt', group: 'operations', bottomBar: true },
   { id: 'residents', labelKey: 'nav:items.residents', href: '/backoffice/res/resident-dashboard', icon: Users, permission: 'residents.view', match: '/backoffice/res/', group: 'operations' },
   // Gate D.2: the gate and visitors, vehicles, and official notices (with the quick broadcast under them).

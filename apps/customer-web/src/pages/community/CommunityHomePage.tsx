@@ -1,6 +1,6 @@
-import { PROVIDER_CATEGORIES, type CommunityHome, type CommunityTab, type PollResident, type PollResults, type ProviderCategory, type ResourceResident, type ServiceDirectoryResident, type ServiceProviderResident } from '@repo/contracts';
+import { PROVIDER_CATEGORIES, type CommunityHome, type CommunityTab, type PollResident, type ResidentStaffOnDuty, type PollResults, type ProviderCategory, type ResourceResident, type ServiceDirectoryResident, type ServiceProviderResident } from '@repo/contracts';
 import { Badge, Button, ChoiceCards, DirectionalIcon, Drawer, EmptyState, InlineAlert, KeepWords, Link, PlainCheckbox, PlainTextArea, PlainTextField, saveFile, SegmentedControl, SelectControl, useApiMutation, useApiQuery, useQueryParams, useQueryParam, useT, useToast } from '@repo/ui';
-import { BadgeCheck, ChevronRight, CircleDot, Download, Flag, Info, Megaphone, MessagesSquare, Phone, ShieldOff, ThumbsUp, TriangleAlert, Undo2, Vote } from 'lucide-react';
+import { BadgeCheck, ChevronRight, CircleDot, Clock3, Download, Flag, Info, Megaphone, MessagesSquare, Phone, ShieldCheck, ShieldOff, ThumbsUp, TriangleAlert, Undo2, Vote } from 'lucide-react';
 import { useState } from 'react';
 import { COMMUNITY, OPS } from '../../nav.config';
 import { PortalSkeleton, usePortalFormat, type PortalFormat } from '../portal/shared';
@@ -14,7 +14,7 @@ import { DEMO_TODAY } from '../operations/rkit';
  * resources tabs each appear only when the community hub and that feature are in the plan for the
  * resident's site (the server decides; a tab it does not list is not shown). Everything is fictional.
  */
-const TAB_ICON = { notices: Megaphone, polls: Vote, services: BadgeCheck, resources: Download } as const;
+const TAB_ICON = { notices: Megaphone, polls: Vote, services: BadgeCheck, resources: Download, staff: ShieldCheck } as const;
 
 export default function CommunityHomePage() {
   const { t } = useT();
@@ -57,6 +57,7 @@ export default function CommunityHomePage() {
         {tab === 'polls' && <PollsTab fmt={fmt} />}
         {tab === 'services' && <ServicesTab />}
         {tab === 'resources' && <ResourcesTab fmt={fmt} />}
+        {tab === 'staff' && home.staff && <StaffTab staff={home.staff} fmt={fmt} />}
       </section>
       <p className="flex items-start gap-1.5 text-xs text-muted" data-testid="community-simulated">
         <Info aria-hidden className="mt-0.5 size-3.5 shrink-0" />
@@ -124,6 +125,58 @@ function NoticesSummary({ home, fmt }: { home: CommunityHome; fmt: PortalFormat 
         )}
       </div>
       <p className="text-xs text-muted">{t('community:home.noticesOneWay')}</p>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------------------------
+// Staff on duty (Gate S.2a): from the published roster; roles only, names with consent
+// ---------------------------------------------------------------------------------------------
+
+/** A time ("11:00 PM") isolated inside an Urdu sentence, so its Latin parts are not reordered. */
+const isolated = (s: string) => String.fromCharCode(0x2068) + s + String.fromCharCode(0x2069);
+
+function StaffTab({ staff, fmt }: { staff: ResidentStaffOnDuty; fmt: PortalFormat }) {
+  const { t } = useT();
+  return (
+    <div className="space-y-4" data-testid="community-staff">
+      <p className="text-sm text-muted">{t('community:staff.asOf', { time: isolated(fmt.time(staff.at)) })}</p>
+      {staff.onDuty.length === 0 ? (
+        <EmptyState title={t('community:staff.nobody')} body={t('community:staff.nobodyHint')} />
+      ) : (
+        <ul className="grid gap-3 @2xl:grid-cols-2" data-testid="community-staff-list">
+          {staff.onDuty.map((s, i) => (
+            <li key={`${s.role}-${i}`} className="flex items-start gap-3 rounded-card border border-border bg-panel p-4" data-testid="community-staff-person" data-role={s.role}>
+              <span aria-hidden className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-soft text-sm font-semibold text-primary">
+                {s.initials ?? <ShieldCheck className="size-5" />}
+              </span>
+              <span className="min-w-0 flex-[1_1_10em]">
+                <span className="block font-semibold break-words text-text">
+                  <KeepWords text={t(`hr:role.${s.role}`)} />
+                </span>
+                {s.name && (
+                  <span className="block text-sm text-text">
+                    <bdi>{s.name}</bdi>
+                  </span>
+                )}
+                <span className="block text-xs text-muted">
+                  {s.post ? `${s.post} · ` : ''}
+                  {t('community:staff.until', { time: isolated(fmt.time(s.until)) })}
+                </span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {staff.next.length > 0 && (
+        <p className="flex items-start gap-1.5 text-sm text-text" data-testid="community-staff-next">
+          <Clock3 aria-hidden className="mt-0.5 size-4 shrink-0 text-muted" />
+          {t('community:staff.next', { time: isolated(fmt.time(staff.next[0]!.startsAt)), list: staff.next.map((n) => `${t(`hr:role.${n.role}`)} × ${fmt.count(n.count)}`).join(', ') })}
+        </p>
+      )}
+      <InlineAlert tone="info" data-testid="community-staff-privacy">
+        {t('community:staff.privacy')}
+      </InlineAlert>
     </div>
   );
 }

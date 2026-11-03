@@ -192,6 +192,17 @@ const PollsPage = lazy(() => import('../pages/society/community/PollsPages').the
 const PollById = lazy(() => import('../pages/society/community/PollsPages').then((m) => ({ default: ({ id }: { id: string }) => <m.PollDetailPage pollId={id} /> })));
 const ChatGroupById = lazy(() => import('../pages/society/community/ChatInboxPage').then((m) => ({ default: ({ id }: { id: string }) => <m.default groupId={id} /> })));
 const ResourcesPage = lazy(() => import('../pages/society/community/ResourcesPage'));
+// Gate S.2a: society HR (HR-001…010; HR-011 is the roster's "On duty now" tab).
+const HrDashboard = lazy(() => import('../pages/society/hr/HrDashboardPage'));
+const HrEmployees = lazy(() => import('../pages/society/hr/EmployeesPage'));
+const HrNewEmployee = lazy(() => import('../pages/society/hr/NewEmployeePage'));
+const HrEmployeeById = lazy(() => import('../pages/society/hr/Employee360Page').then((m) => ({ default: ({ id }: { id: string }) => <m.default employeeId={id} /> })));
+const HrRoster = lazy(() => import('../pages/society/hr/RosterPage'));
+const HrAttendance = lazy(() => import('../pages/society/hr/AttendancePage'));
+const HrLeave = lazy(() => import('../pages/society/hr/LeaveAdjustmentsPage'));
+const HrDocuments = lazy(() => import('../pages/society/hr/DocumentsPage'));
+const HrAdvances = lazy(() => import('../pages/society/hr/AdvancesPages').then((m) => ({ default: m.AdvancesPage })));
+const HrSettlement = lazy(() => import('../pages/society/hr/AdvancesPages').then((m) => ({ default: m.SettlementPage })));
 const NoticesOffice = lazy(() => import('../pages/society/operations/NoticesOffice'));
 const SendMessagePage = ops(() => import('../pages/society/operations/NoticesOffice'), 'SendMessagePage');
 const VehiclesOffice = lazy(() => import('../pages/society/operations/VehiclesOffice'));
@@ -211,6 +222,12 @@ const MESSAGES: AccessTarget = { module: 'communications', permission: 'messages
 const MAINT: AccessTarget = { module: 'maintenance', permission: 'operations.view' };
 const MAINT_MANAGE: AccessTarget = { module: 'maintenance', permission: 'maintenance.manage' };
 const MAINT_ISSUES: AccessTarget = { module: 'maintenance', feature: 'maintenance.community_issues', permission: 'issues.view' };
+const HR_VIEW: AccessTarget = { module: 'hr', permission: 'hr.view' };
+const HR_MANAGE: AccessTarget = { module: 'hr', permission: 'hr.manage' };
+const HR_ROSTER: AccessTarget = { module: 'hr', feature: 'hr.shifts', anyOf: ['shifts.manage', 'hr.view', 'attendance.record'] };
+const HR_ATTENDANCE: AccessTarget = { module: 'hr', feature: 'hr.shifts', anyOf: ['hr.view', 'attendance.record'] };
+const HR_LEAVE: AccessTarget = { module: 'hr', anyOf: ['hr.view', 'leave.manage', 'attendance.adjust', 'attendance.record'] };
+const HR_ADVANCES: AccessTarget = { module: 'hr', anyOf: ['hr.advances.manage', 'hr.advances.approve'] };
 
 function useOpsSite() {
   const { access } = useSession();
@@ -493,6 +510,18 @@ const shellChildren: RouteObject[] = [
   { path: 'community/polls/:id', loader: registerLoader, element: <OpsParam page={PollById} target={POLLS} />, handle: h({ title: (t) => t('community:polls.detailTitle') }) },
   { path: 'doc/document-center', loader: registerLoader, element: <OpsScreen page={ResourcesPage} target={RESOURCES} />, handle: h({ title: (t) => t('community:resources.officeTitle') }) },
   { path: 'not/send-message', loader: registerLoader, element: <OpsScreen page={SendMessagePage} target={MESSAGES} />, handle: h({ title: (t) => t('nav:pages.sendMessage') }) },
+  // Gate S.2a: society HR at the register's addresses (a developer's HR stays planned: Gate E).
+  { path: 'hr/hr-dashboard', loader: registerLoader, element: <OpsScreen page={HrDashboard} target={HR_VIEW} />, handle: h({ title: (t) => t('hr:dashboard.title') }) },
+  { path: 'hr/employees-list', loader: registerLoader, element: <OpsScreen page={HrEmployees} target={HR_VIEW} />, handle: h({ title: (t) => t('hr:employees.title') }) },
+  { path: 'hr/new-employee', loader: registerLoader, element: <OpsScreen page={HrNewEmployee} target={HR_MANAGE} />, handle: h({ title: (t) => t('hr:newEmployee.title') }) },
+  { path: 'hr/employee-360-workspace', element: <Navigate to="/backoffice/hr/employees-list" replace /> },
+  { path: 'hr/employee-360-workspace/:id', loader: registerLoader, element: <OpsParam page={HrEmployeeById} target={HR_VIEW} />, handle: h({ title: (t) => t('hr:e360.title') }) },
+  { path: 'hr/roster', loader: registerLoader, element: <OpsScreen page={HrRoster} target={HR_ROSTER} />, handle: h({ title: (t) => t('hr:roster.title') }) },
+  { path: 'hr/attendance', loader: registerLoader, element: <OpsScreen page={HrAttendance} target={HR_ATTENDANCE} />, handle: h({ title: (t) => t('hr:attendance.title') }) },
+  { path: 'hr/leave-attendance-adjustments', loader: registerLoader, element: <OpsScreen page={HrLeave} target={HR_LEAVE} />, handle: h({ title: (t) => t('hr:leave.title') }) },
+  { path: 'hr/employee-documents', loader: registerLoader, element: <OpsScreen page={HrDocuments} target={HR_VIEW} />, handle: h({ title: (t) => t('hr:documents.title') }) },
+  { path: 'hr/employee-advances', loader: registerLoader, element: <OpsScreen page={HrAdvances} target={HR_ADVANCES} />, handle: h({ title: (t) => t('hr:advances.title') }) },
+  { path: 'hr/employee-advance-settlement', loader: registerLoader, element: <OpsScreen page={HrSettlement} target={HR_ADVANCES} />, handle: h({ title: (t) => t('hr:settlement.title') }) },
   { path: 'park/vehicle-registry', loader: registerLoader, element: <OpsScreen page={VehiclesOffice} target={PARKING} />, handle: h({ title: (t) => t('nav:pages.vehicles') }) },
   { path: 'res/resident-dashboard', loader: registerLoader, element: <OpsScreen page={ResidentsOffice} target={RESIDENTS} />, handle: h({ title: (t) => t('nav:pages.residents') }) },
   { path: 'residents/portal-access', loader: registerLoader, element: <SocietyPermitted page={PortalAccessPage} permission="portal_access.view" />, handle: h({ title: (t) => t('nav:pages.portalAccess') }) },

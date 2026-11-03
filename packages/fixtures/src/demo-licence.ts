@@ -9,7 +9,8 @@ import { effectiveAccessFor } from './tenant-directory';
  * sessionStorage; nothing else reads it.
  */
 export const DEMO_WITHDRAWN_KEY = 'demo:withdrawn-modules';
-const WITHDRAWABLE: readonly ModuleKey[] = ['community_chat', 'community_hub'];
+// Gate S.2a: the optional HR add-on too (shows "not in your plan" and the residents' tab going away).
+const WITHDRAWABLE: readonly ModuleKey[] = ['community_chat', 'community_hub', 'hr'];
 
 function withdrawn(): ModuleKey[] {
   try {

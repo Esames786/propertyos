@@ -28,6 +28,10 @@ export const PERMISSIONS = [
   'attendance.adjust',
   'leave.manage',
   'hr.documents.manage',
+  // Staff advances and loans (HR-007/008): a financial scope apart from hr.view. Requesting and
+  // approving are separate so maker-checker can be held by different people.
+  'hr.advances.manage',
+  'hr.advances.approve',
   'operations.view',
   'residents.view',
   'reports.view',

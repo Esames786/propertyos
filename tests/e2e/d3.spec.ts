@@ -548,7 +548,9 @@ test.describe('D.3 without the add-ons (both withdrawn for the site)', () => {
     await page.addInitScript(() => sessionStorage.setItem('demo:withdrawn-modules', JSON.stringify(['community_chat', 'community_hub'])));
     await seedSociety(page, { staff: 'alnoor_manager' });
     await resident(page, 'alnoor_resident_a101', '/customer/portal/community', 'community-home');
-    await expect(page.getByTestId('community-home')).toHaveAttribute('data-tabs', 'notices');
+    // Gate S.2a: Al-Noor also holds the separate HR add-on, whose "Staff on duty" tab needs neither the
+    // hub nor chat; every hub tab (polls, services, resources) is still gone.
+    await expect(page.getByTestId('community-home')).toHaveAttribute('data-tabs', 'notices,staff');
     await expect(page.getByTestId('community-chat-card')).toHaveCount(0);
     await expect(page.getByTestId('community-notice').first()).toBeVisible();
     await page.getByTestId('community-all-notices').click();

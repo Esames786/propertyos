@@ -65,6 +65,7 @@ export function AppHeader({ tenantName }: { tenantName: string }) {
   return (
     <header
       aria-label={t('a11y:landmarks.header')}
+      data-testid="app-header"
       data-scrolled={scrolled || undefined}
       className={cn(
         'sticky z-30 flex items-center gap-2 transition-[border-color,box-shadow,background-color] duration-[var(--motion-regular)]',

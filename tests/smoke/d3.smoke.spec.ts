@@ -72,7 +72,8 @@ test('without the add-ons: the Community home keeps notices and notices open', a
   await page.addInitScript(() => sessionStorage.setItem('demo:withdrawn-modules', JSON.stringify(['community_chat', 'community_hub'])));
   await seedSociety(page, { staff: 'alnoor_manager' });
   await as(page, 'customer', 'alnoor_resident_a101', '/customer/portal/community', 'community-home');
-  await expect(page.getByTestId('community-home')).toHaveAttribute('data-tabs', 'notices');
+  // Gate S.2a: the separate HR add-on's "Staff on duty" tab stays (it needs neither the hub nor chat).
+  await expect(page.getByTestId('community-home')).toHaveAttribute('data-tabs', 'notices,staff');
   await page.getByTestId('community-all-notices').click();
   await expect(page.getByTestId('notice-list')).toBeVisible();
   await go(page, CU, '/customer/portal/chat', 'chat-unavailable');

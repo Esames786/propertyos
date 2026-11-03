@@ -51,13 +51,15 @@ export function UrlTabs({
   return (
     <AriaTabs selectedKey={selected} onSelectionChange={(key) => setTab(String(key) === fallback ? null : String(key))}>
       <div className="flex items-end gap-1 border-b border-border">
-        <TabList aria-label={label} className="flex min-w-0 gap-1 overflow-x-auto">
+        {/* Tabs that do not fit wrap to a second row, and a label longer than the row wraps at its spaces
+            (320 px with 200 % text), rather than scrolling out of sight. */}
+        <TabList aria-label={label} className="flex min-w-0 flex-wrap gap-1">
           {visible.map((item) => (
             <Tab
               key={item.id}
               id={item.id}
               className={cn(
-                'relative cursor-default rounded-t-control px-3 py-2.5 text-sm whitespace-nowrap text-muted outline-none',
+                'relative max-w-full cursor-default rounded-t-control px-3 py-2.5 text-sm text-muted outline-none',
                 'data-hovered:text-text data-selected:font-semibold data-selected:text-primary pointer-coarse:py-3',
                 'after:absolute after:inset-x-2 after:-bottom-px after:h-0.5 after:rounded-pill data-selected:after:bg-primary',
                 'data-focus-visible:outline-2 data-focus-visible:outline-focus',

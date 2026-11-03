@@ -33,7 +33,9 @@
     "chatSettings": "چیٹ گروپ اور رپورٹس",
     "localServices": "مقامی خدمات",
     "polls": "رائے شماری",
-    "residentDocuments": "رہائشیوں کے لیے دستاویزات"
+    "residentDocuments": "رہائشیوں کے لیے دستاویزات",
+    "dutyRoster": "ڈیوٹی روسٹر",
+    "staffAdvances": "عملے کے ایڈوانس"
   },
   "header": {
     "search": "تلاش",
@@ -166,7 +168,9 @@
     "vehicleRegistry": "گاڑیوں کا رجسٹر",
     "residentsDashboard": "رہائشی",
     "vehicles": "گاڑیاں",
-    "residents": "رہائشی"
+    "residents": "رہائشی",
+    "attendance": "حاضری",
+    "leaveAdjustments": "چھٹی اور تصحیح"
   },
   "groups": {
     "workspace": "کاروبار",

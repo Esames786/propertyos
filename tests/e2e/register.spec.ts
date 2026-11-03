@@ -37,11 +37,13 @@ test.describe('Screen register coverage (V3.1)', () => {
     // Gate D.3 adopts its V3.2 rows only: CHAT-001, CHAT-003, PORTAL-031, PORTAL-036, CMTY-001, CMTY-002
     // and CMTY-003 (planned until D-31), and the states CHAT-002, CHAT-004, PORTAL-032, CMTY-004,
     // PORTAL-038 (planned) and PORTAL-039.
-    expect(SCREENS.length).toBe(437);
+    // Gate S.2a adopts its V3.2 rows only: HR-001…009 (edition and gate changed, society slice built)
+    // and the new HR-010 with its state HR-011. Payroll (PAY-001…007, S.2b) is unchanged.
+    expect(SCREENS.length).toBe(439);
     for (const prefix of ['GLOBAL', 'AUTH', 'SAAS', 'CRM', 'PORTAL', 'WEB', 'HQ', 'SITE', 'BILL', 'ENTRY']) {
       expect([...ids].some((id) => id.startsWith(`${prefix}-`)), prefix).toBe(true);
     }
-    expect(SCREENS.filter((s) => s.canonicalId === s.id)).toHaveLength(353);
+    expect(SCREENS.filter((s) => s.canonicalId === s.id)).toHaveLength(354);
   });
 
   for (const [i, group] of chunks(OPENABLE, 25).entries()) {

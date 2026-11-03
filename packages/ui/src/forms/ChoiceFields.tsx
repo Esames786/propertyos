@@ -199,7 +199,8 @@ export function SelectControl({
       <FieldLabel label={label} optional={optional} />
       <AriaButton className={inputClass('flex items-center justify-between gap-2 text-start data-invalid:border-2 data-invalid:border-error')}>
         {/* The trigger repeats the option's content; its check mark (an svg, display: block) would add a second line. */}
-        <SelectValue className="truncate data-placeholder:text-subtle [&>svg]:hidden" />
+        {/* A long value wraps (min-w-0) instead of running past the field on a narrow screen with large text. */}
+        <SelectValue className="min-w-0 break-words data-placeholder:text-subtle [&>svg]:hidden" />
         <ChevronDown aria-hidden className="size-4 shrink-0 text-muted" />
       </AriaButton>
       <FieldDescription>{description}</FieldDescription>

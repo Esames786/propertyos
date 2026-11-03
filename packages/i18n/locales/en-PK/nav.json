@@ -33,7 +33,9 @@
     "chatSettings": "Chat groups & reports",
     "localServices": "Local services",
     "polls": "Polls",
-    "residentDocuments": "Documents for residents"
+    "residentDocuments": "Documents for residents",
+    "dutyRoster": "Duty roster",
+    "staffAdvances": "Staff advances"
   },
   "header": {
     "search": "Search",
@@ -166,7 +168,9 @@
     "vehicleRegistry": "Vehicle registry",
     "residentsDashboard": "Residents",
     "vehicles": "Vehicles",
-    "residents": "Residents"
+    "residents": "Residents",
+    "attendance": "Attendance",
+    "leaveAdjustments": "Leave and corrections"
   },
   "groups": {
     "workspace": "Workspace",

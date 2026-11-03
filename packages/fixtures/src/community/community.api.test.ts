@@ -316,7 +316,8 @@ describe('Community home (PORTAL-036): notices need no add-on', () => {
   it('with both add-ons: notices, chat, polls, services and resources', async () => {
     const api = session();
     const home = await api.as('alnoor_resident_a101').get<CommunityHome>('/portal/community/home');
-    expect(home.tabs).toEqual(['notices', 'polls', 'services', 'resources']);
+    // Gate S.2a: Al-Noor also has the HR add-on, so staff on duty is the last tab.
+    expect(home.tabs).toEqual(['notices', 'polls', 'services', 'resources', 'staff']);
     expect(home.notices.latest.length).toBeGreaterThan(0);
     expect(home.chat).toMatchObject({ available: true });
     expect(home.chat!.unread).toBeGreaterThan(0);
@@ -327,7 +328,9 @@ describe('Community home (PORTAL-036): notices need no add-on', () => {
   it('without community_hub and community_chat the home keeps notices; notices themselves still work', async () => {
     const api = session({ accessFor: without('community_hub', 'community_chat') });
     const home = await api.as('alnoor_resident_a101').get<CommunityHome>('/portal/community/home');
-    expect(home).toMatchObject({ tabs: ['notices'], chat: null, polls: null, services: null, resources: null });
+    // Staff on duty depends on HR and its roster, never on the hub or chat (Gate S.2a), so it stays.
+    expect(home).toMatchObject({ tabs: ['notices', 'staff'], chat: null, polls: null, services: null, resources: null });
+    expect(home.staff).not.toBeNull();
     expect(home.notices.latest.length).toBeGreaterThan(0);
     const notices = await api.get<ResidentNotices>('/portal/notices');
     expect(notices.items.length).toBeGreaterThan(0);
@@ -345,7 +348,7 @@ describe('Community home (PORTAL-036): notices need no add-on', () => {
       },
     });
     const home = await api.as('alnoor_resident_a101').get<CommunityHome>('/portal/community/home');
-    expect(home.tabs).toEqual(['notices', 'services', 'resources']);
+    expect(home.tabs).toEqual(['notices', 'services', 'resources', 'staff']);
     expect((await refusal(api.get('/portal/community/polls'))).code).toBe('feature_not_licensed');
     expect((await refusal(api.as('alnoor_manager').get('/ops/community/polls'))).code).toBe('feature_not_licensed');
   });

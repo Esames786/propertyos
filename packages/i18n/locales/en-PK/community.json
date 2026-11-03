@@ -148,13 +148,15 @@
       "pollsCount_one": "Polls ({{count}} to answer)",
       "pollsCount_other": "Polls ({{count}} to answer)",
       "services": "Local services",
-      "resources": "Resources"
+      "resources": "Resources",
+      "staff": "Staff on duty"
     },
     "heading": {
       "notices": "Latest notices",
       "polls": "Polls and surveys",
       "services": "Local services",
-      "resources": "Resources from the society"
+      "resources": "Resources from the society",
+      "staff": "Staff on duty now"
     },
     "chatTitle": "Community chat",
     "chatUnread_one": "{{count}} unread message in your groups",
@@ -675,5 +677,13 @@
     "fileType": "Choose a PDF file.",
     "fileSize": "The file must be {{max}} MB or smaller.",
     "namedConsent": "This poll is named: confirm that you understand the office will see your name and answer."
+  },
+  "staff": {
+    "asOf": "From the published duty roster, as of {{time}}.",
+    "nobody": "Nobody is on duty right now.",
+    "nobodyHint": "The roster for this time is not published, or no shift is running.",
+    "until": "on duty until {{time}}",
+    "next": "Next shift at {{time}}: {{list}}.",
+    "privacy": "You see each person's duty role. A name appears only when that staff member has agreed. Staff phone numbers and personal details are never shown. For anything urgent, contact the society office."
   }
 }

@@ -158,3 +158,20 @@ export const COMMUNITY = {
   poll: (id: string) => `/backoffice/community/polls/${id}`,
   resources: '/backoffice/doc/document-center',
 } as const;
+
+/**
+ * Gate S.2a society staff (HR-001…011). Addresses follow the screen register; the roster's week,
+ * site and "On duty now" tab (HR-011) and each list's filter are optional parameters.
+ */
+export const HR = {
+  dashboard: '/backoffice/hr/hr-dashboard',
+  employees: (params: Record<string, string | undefined> = {}) => `/backoffice/hr/employees-list${q(params)}`,
+  employee: (id: string, tab?: string) => `/backoffice/hr/employee-360-workspace/${id}${q({ tab })}`,
+  newEmployee: '/backoffice/hr/new-employee',
+  roster: (params: { week?: string; tab?: string; site?: string } = {}) => `/backoffice/hr/roster${q(params)}`,
+  attendance: (date?: string) => `/backoffice/hr/attendance${q({ date })}`,
+  leave: (tab?: string) => `/backoffice/hr/leave-attendance-adjustments${q({ tab })}`,
+  documents: (status?: string) => `/backoffice/hr/employee-documents${q({ status })}`,
+  advances: (status?: string) => `/backoffice/hr/employee-advances${q({ status })}`,
+  settlement: (advance?: string) => `/backoffice/hr/employee-advance-settlement${q({ advance })}`,
+} as const;

@@ -5,6 +5,7 @@ import { invalid, notify, opsOf } from '../operations/common';
 import { residentNoticeList } from '../operations/notices-handlers';
 import { opsSite, residentOps, serviceAllows, siteRecord, type OpsSite, type ResidentOps } from '../operations/site';
 import { problem } from '../society/handlers';
+import { residentSeesStaff, residentStaff } from '../hr/resident';
 import { readAudience, residentChatSummary } from './chat-handlers';
 import { audienceCodes } from './groups';
 import { pollResults } from './polls';
@@ -652,6 +653,12 @@ const HOME: Handler = {
       const list = state.resources.filter((r) => r.state === 'published' && inAudience(res.site, r.audience, res.partyId, ctx.at)).sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
       resources = { count: list.length, ...(list[0] ? { latest: { id: list[0].id, title: list[0].title } } : {}) };
     }
+    // Gate S.2a: staff on duty needs HR with its roster for the resident's site, not the hub.
+    let staff: CommunityHome['staff'] = null;
+    if (residentSeesStaff(ctx, res)) {
+      tabs.push('staff');
+      staff = residentStaff(ctx, res);
+    }
     let chat: CommunityHome['chat'] = null;
     if (allows('community_chat')) {
       try {
@@ -676,6 +683,7 @@ const HOME: Handler = {
       polls,
       services,
       resources,
+      staff,
     };
   },
 };

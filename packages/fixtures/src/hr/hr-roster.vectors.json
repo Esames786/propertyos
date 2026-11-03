@@ -1,0 +1,82 @@
+{
+  "about": "Gate S.2a roster and attendance vectors (V3.2 execution plan §4: hr-roster.vectors.json). Templates by key: morning 07:00-15:00, evening 15:00-23:00, night 23:00-07:00 (crosses midnight), day 09:00-17:00, late22 22:00-06:00 (crosses midnight), early05 05:00-13:00. Instants carry Pakistan's offset (+05:00); a shift belongs to the date it starts. Leave is by that date. Two sites (site_a, site_b) stand for a multi-site society: double booking is checked across sites.",
+  "today": "2026-10-26",
+  "templates": {
+    "morning": { "start": "07:00", "end": "15:00", "crossesMidnight": false },
+    "evening": { "start": "15:00", "end": "23:00", "crossesMidnight": false },
+    "night": { "start": "23:00", "end": "07:00", "crossesMidnight": true },
+    "day": { "start": "09:00", "end": "17:00", "crossesMidnight": false },
+    "late22": { "start": "22:00", "end": "06:00", "crossesMidnight": true },
+    "early05": { "start": "05:00", "end": "13:00", "crossesMidnight": false }
+  },
+  "windows": [
+    { "name": "a night shift ends the next morning", "template": "night", "date": "2026-10-26", "start": "2026-10-26T23:00:00+05:00", "end": "2026-10-27T07:00:00+05:00" },
+    { "name": "a morning shift stays on its date", "template": "morning", "date": "2026-10-26", "start": "2026-10-26T07:00:00+05:00", "end": "2026-10-26T15:00:00+05:00" },
+    { "name": "a night shift across the end of a month", "template": "night", "date": "2026-10-31", "start": "2026-10-31T23:00:00+05:00", "end": "2026-11-01T07:00:00+05:00" },
+    { "name": "a night shift across the end of a year", "template": "night", "date": "2026-12-31", "start": "2026-12-31T23:00:00+05:00", "end": "2027-01-01T07:00:00+05:00" }
+  ],
+  "overlaps": [
+    { "name": "night then the next morning: back to back, no overlap", "a": ["night", "2026-10-26"], "b": ["morning", "2026-10-27"], "overlap": false },
+    { "name": "evening then night: back to back, no overlap", "a": ["evening", "2026-10-26"], "b": ["night", "2026-10-26"], "overlap": false },
+    { "name": "yesterday's night and this morning: back to back", "a": ["night", "2026-10-25"], "b": ["morning", "2026-10-26"], "overlap": false },
+    { "name": "day and morning on the same date overlap", "a": ["day", "2026-10-26"], "b": ["morning", "2026-10-26"], "overlap": true },
+    { "name": "a 22:00 overnight and the next 05:00 start overlap after midnight", "a": ["late22", "2026-10-26"], "b": ["early05", "2026-10-27"], "overlap": true },
+    { "name": "two nights in a row do not overlap", "a": ["night", "2026-10-26"], "b": ["night", "2026-10-27"], "overlap": false },
+    { "name": "a 22:00 overnight overlaps the evening's last hour", "a": ["late22", "2026-10-26"], "b": ["evening", "2026-10-26"], "overlap": true }
+  ],
+  "lateness": [
+    { "name": "ten minutes after the start is within the grace period", "start": "2026-10-26T07:00:00+05:00", "checkIn": "2026-10-26T07:10:00+05:00", "grace": 15, "late": 0 },
+    { "name": "exactly the grace period is still on time", "start": "2026-10-26T07:00:00+05:00", "checkIn": "2026-10-26T07:15:00+05:00", "grace": 15, "late": 0 },
+    { "name": "one minute beyond the grace period is late by sixteen minutes", "start": "2026-10-26T07:00:00+05:00", "checkIn": "2026-10-26T07:16:00+05:00", "grace": 15, "late": 16 },
+    { "name": "early is on time", "start": "2026-10-26T07:00:00+05:00", "checkIn": "2026-10-26T06:50:00+05:00", "grace": 15, "late": 0 },
+    { "name": "a night shift checked in at 23:40", "start": "2026-10-26T23:00:00+05:00", "checkIn": "2026-10-26T23:40:00+05:00", "grace": 15, "late": 40 },
+    { "name": "a night shift checked in after midnight", "start": "2026-10-26T23:00:00+05:00", "checkIn": "2026-10-27T00:05:00+05:00", "grace": 15, "late": 65 },
+    { "name": "times written in UTC are compared as instants", "start": "2026-10-26T23:00:00+05:00", "checkIn": "2026-10-26T18:20:00Z", "grace": 15, "late": 20 }
+  ],
+  "assign": [
+    { "name": "double booking across two sites is refused", "duties": [["night", "2026-10-26", "site_a"]], "duty": ["late22", "2026-10-26", "site_b"], "block": "overlap" },
+    { "name": "back to back at another site is allowed", "duties": [["evening", "2026-10-26", "site_a"]], "duty": ["night", "2026-10-26", "site_b"], "block": null },
+    { "name": "not allocated to that site yet", "sites": [["site_a", "2024-01-01"], ["site_b", "2026-11-01"]], "duty": ["morning", "2026-10-26", "site_b"], "block": "not_at_site" },
+    { "name": "allocation to a site that ended", "sites": [["site_a", "2024-01-01", "2026-10-25"], ["site_b", "2026-10-01"]], "duty": ["morning", "2026-10-26", "site_a"], "block": "not_at_site" },
+    { "name": "approved leave blocks the duty", "leave": [["2026-10-26", "2026-10-28", "approved"]], "duty": ["morning", "2026-10-27", "site_a"], "block": "on_leave" },
+    { "name": "pending leave does not block (the roster warns)", "leave": [["2026-10-30", "2026-10-31", "pending"]], "duty": ["night", "2026-10-31", "site_a"], "block": null, "pendingLeave": true },
+    { "name": "leave is by the shift's date: leave on the 31st does not cover the night of the 30th", "leave": [["2026-10-31", "2026-10-31", "approved"]], "duty": ["night", "2026-10-30", "site_a"], "block": null },
+    { "name": "employment ended", "employment": { "status": "ended", "startDate": "2023-05-01", "endDate": "2026-09-30" }, "duty": ["morning", "2026-10-26", "site_a"], "block": "not_employed" },
+    { "name": "a future end date still allows duties up to it", "employment": { "status": "active", "startDate": "2024-01-01", "endDate": "2026-10-31" }, "duty": ["morning", "2026-10-31", "site_a"], "block": null },
+    { "name": "no duty after a future end date", "employment": { "status": "active", "startDate": "2024-01-01", "endDate": "2026-10-31" }, "duty": ["morning", "2026-11-01", "site_a"], "block": "not_employed" },
+    { "name": "employment starts later", "employment": { "status": "active", "startDate": "2026-11-01" }, "duty": ["morning", "2026-10-26", "site_a"], "block": "not_employed" },
+    { "name": "suspended staff take no duty", "employment": { "status": "suspended", "startDate": "2024-01-01" }, "duty": ["morning", "2026-10-26", "site_a"], "block": "not_employed" },
+    { "name": "another department's shift", "department": "maintenance", "duty": ["morning", "2026-10-26", "site_a"], "block": "other_department" },
+    { "name": "a swap ignores the two duties being exchanged", "duties": [["morning", "2026-10-27", "site_a", "x"]], "duty": ["morning", "2026-10-27", "site_a"], "ignore": ["x"], "block": null }
+  ],
+  "coverage": [
+    { "name": "one of two absent: short", "min": 2, "states": ["present", "absent"], "available": 1, "short": true },
+    { "name": "not yet checked in still counts as expected", "min": 2, "states": ["present", "planned"], "available": 2, "short": false },
+    { "name": "on leave does not count; a late arrival does", "min": 2, "states": ["on_leave", "present", "late"], "available": 2, "short": false },
+    { "name": "no minimum, nobody assigned", "min": 0, "states": [], "available": 0, "short": false }
+  ],
+  "documents": [
+    { "name": "expired yesterday", "expiresOn": "2026-10-25", "status": "expired" },
+    { "name": "expires today: expiring, not yet expired", "expiresOn": "2026-10-26", "status": "expiring" },
+    { "name": "expires in exactly 30 days", "expiresOn": "2026-11-25", "status": "expiring" },
+    { "name": "expires in 31 days", "expiresOn": "2026-11-26", "status": "valid" },
+    { "name": "no expiry", "status": "valid" }
+  ],
+  "instalments": [
+    { "name": "a 60,000 loan in six months", "amount": "60000.00", "count": 6, "firstMonth": "2026-12", "plan": ["10000.00", "10000.00", "10000.00", "10000.00", "10000.00", "10000.00"], "months": ["2026-12", "2027-01", "2027-02", "2027-03", "2027-04", "2027-05"] },
+    { "name": "the last instalment takes the remainder", "amount": "50000.00", "count": 3, "firstMonth": "2026-11", "plan": ["16666.66", "16666.66", "16666.68"], "months": ["2026-11", "2026-12", "2027-01"] },
+    { "name": "an advance in one instalment", "amount": "15000.00", "count": 1, "firstMonth": "2026-11", "plan": ["15000.00"], "months": ["2026-11"] }
+  ],
+  "cnic": [
+    { "raw": "3520244102311", "normal": "35202-4410231-1", "masked": "35202-•••••••-1" },
+    { "raw": "35202-4410231-1", "normal": "35202-4410231-1", "masked": "35202-•••••••-1" },
+    { "raw": "35202 4410231 1", "normal": "35202-4410231-1", "masked": "35202-•••••••-1" },
+    { "raw": "3520244102", "normal": null }
+  ],
+  "phone": [
+    { "raw": "03000000201", "normal": "+92 300 0000201" },
+    { "raw": "+92 300 0000201", "normal": "+92 300 0000201" },
+    { "raw": "00923000000201", "normal": "+92 300 0000201" },
+    { "raw": "0423000000", "normal": null }
+  ]
+}
