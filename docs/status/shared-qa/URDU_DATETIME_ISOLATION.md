@@ -1,9 +1,16 @@
-# Shared DateTime bidi isolation — independent QA branch
+# Parallel frontend QA — Urdu DateTime and ranges
 
-This is an **unmerged, untested code checkpoint**, deliberately separated from Claude's active `feature/gate-s2a-society-staff` Issue #12 closure work.
+Independent branch: `feature/qa-urdu-datetime-isolation` (branched from S.2a `95d70d0`, **not** merged). S.2a Issue #12 remains Claude's responsibility.
 
-- Target: `packages/ui/src/data/DateTime.tsx` only. Wrap rendered formatted calendar, absolute, and relative output in semantic `<bdi dir="auto">` within existing `<time>`; the original timestamp, calendar formatting, accessible value, title and text size remain unchanged.
-- Rationale: in Urdu RTL pages, isolated embedded English-style time tokens (e.g. `7:00 AM`) should not reorder around their surrounding Urdu punctuation. Unlike using `dir=auto` on interactive **input fields**, a read-only `<bdi>` has no caret-placement issue.
-- Added React DOM tests for timestamp preservation and isolation. **Tests not executed** (GitHub connector source write only, repository cannot be fetched into the local runtime).
-- This does not guarantee composed multi-time ranges: independently isolated times still require directional punctuation/range layout as appropriate; explicitly test in Urdu browser screenshots before merge.
-- No edits to production, shared live preview, Bingoo, HR API, financial system, payroll, main or integration branches.
+## Changes
+- Read-only DateTime output now uses an isolated `<bdi dir="auto">` inside semantic `<time>`. This does **not** touch editable fields, so the previously documented empty-Urdu-input caret regression is avoided.
+- New `DateTimeRange` takes start and end ISO instants; displays two isolated semantic times and a separately labelled separator in their intended reading order. `inline-flex flex-wrap max-w-full` permits long labels to reflow at mobile/200% scaling.
+- React DOM regression vectors verify valid `datetime` attributes, isolation and reflow classes. Existing DateTime tests cover absolute, calendar and relative timestamps.
+
+**Verification status:** committed source and test cases only. No workspace checkout, typecheck, Vitest, axe or real Urdu screenshot execution in this session. Treat as QA candidate requiring explicit manual 320px/200% EN/UR visual checks, cross-browser smoke and full regression prior to *any* merge. Do not cherry-pick into Claude's S.2a closure without separate review.
+
+### Critical requirement
+This is a renderer primitive, not an automatic whole-app correction. Existing screens containing plain concatenated date strings still require a usage audit and explicit integration. It does not alter backend or financial/staff workflows.
+
+## No-touch
+`main`, integration, live preview, VPS, Bingoo, Laravel and databases unchanged. No payroll or Rentals implementation.
