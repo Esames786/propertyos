@@ -38,7 +38,8 @@ export const MODULES: readonly ModuleCatalogEntry[] = [
   m('accounting', 'finance', 'tenant', ['core'], ['receivables', 'payables', 'payroll', 'banking'], DEV, COMM),
   m('payables', 'finance', 'tenant', ['core'], ['accounting', 'procurement', 'maintenance'], DEV, COMM),
   m('procurement', 'finance', 'tenant', ['payables'], ['projects'], DEV),
-  m('hr', 'people', 'tenant', ['core'], ['payroll'], DEV),
+  // S.2a: society HR is an OPTIONAL add-on, not part of the community preset.
+  m('hr', 'people', 'tenant', ['core'], ['payroll'], DEV, COMM, ['hr.shifts']),
   m('payroll', 'people', 'tenant', ['hr'], ['accounting'], DEV),
   m('maintenance', 'community', 'site', ['core'], ['residents', 'resident_portal', 'payables', 'dues'], BOTH, [], ['maintenance.community_issues']),
   m('visitors', 'community', 'site', ['residents'], ['resident_portal'], BOTH, [], ['visitors.live_queue']),

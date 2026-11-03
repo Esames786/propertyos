@@ -30,6 +30,21 @@ describe('module catalogue', () => {
     expect(checkDependencies([sel('community_hub', ['site_a']), sel('resident_portal', ['site_b']), sel('residents', ['site_a']), sel('communications')]).issues.some(i => i.kind === 'site_gap')).toBe(true);
   });
 
+  it('S.2a offers HR only as an optional community/portfolio add-on; payroll remains separate', () => {
+    const hr = MODULES.find(m => m.key === 'hr')!;
+    const payroll = MODULES.find(m => m.key === 'payroll')!;
+    expect(hr.scope).toBe('tenant');
+    expect(hr.requires).toEqual(['core']);
+    expect(hr.features).toContain('hr.shifts');
+    expect(hr.addonFor).toEqual(expect.arrayContaining(['community','portfolio']));
+    expect(hr.includedIn).not.toContain('community');
+    expect(hr.includedIn).not.toContain('portfolio');
+    expect(payroll.requires).toContain('hr');
+    expect(PRESETS.find(p=>p.key==='community')!.modules).not.toContain('hr');
+    expect(PRESETS.find(p=>p.key==='community')!.modules).not.toContain('payroll');
+    expect(checkDependencies([sel('hr'),sel('core')]).ok).toBe(true);
+  });
+
   it('every edition preset passes its own dependency check', () => {
     for (const p of PRESETS) expect(checkDependencies(p.modules.map((m) => sel(m))).ok, p.key).toBe(true);
   });

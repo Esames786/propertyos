@@ -21,6 +21,13 @@ export const PERMISSIONS = [
   'supplier.view',
   'procurement.view',
   'hr.view',
+  // Gate S.2a: distinct staff-data, attendance and roster actions (no payroll permission).
+  'hr.manage',
+  'shifts.manage',
+  'attendance.record',
+  'attendance.adjust',
+  'leave.manage',
+  'hr.documents.manage',
   'operations.view',
   'residents.view',
   'reports.view',
