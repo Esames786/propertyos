@@ -16,14 +16,14 @@ export function DateTime({
   if (style === 'calendar') {
     return (
       <time dateTime={value} className={className}>
-        {formatCalendarDate(value, locale)}
+        <bdi dir="auto">{formatCalendarDate(value, locale)}</bdi>
       </time>
     );
   }
   const absolute = formatInstant(value, locale, style === 'date' && relative ? 'dateTime' : style);
   return (
     <time dateTime={value} title={relative ? absolute : undefined} className={className}>
-      {relative ? formatRelative(value, locale) : absolute}
+      <bdi dir="auto">{relative ? formatRelative(value, locale) : absolute}</bdi>
     </time>
   );
 }
