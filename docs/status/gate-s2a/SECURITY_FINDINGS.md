@@ -7,7 +7,7 @@ This file records what was checked, what was found and what enforces each rule.
 **Abbreviations used below:**
 - "API" = `packages/fixtures/src/hr/hr.api.test.ts` (20 tests through the fail-closed mock server);
 - "closure tests" = `packages/fixtures/src/hr/hr.closure.api.test.ts` (14 tests for Issue #12, on the fictional multi-site organisation of `multisite.fixture.ts`);
-- "Issue #14 tests" = `packages/fixtures/src/hr/hr.issue14.api.test.ts` (12 tests, same organisation);
+- "Issue #14 tests" = `packages/fixtures/src/hr/hr.issue14.api.test.ts` (14 tests, same organisation; 2 from the follow-up review of `31bb0ed`);
 - "vectors" = `hr.test.ts` over `hr-roster.vectors.json` (52 cases);
 - "E2E" = `tests/e2e/s2a.spec.ts` (27 tests on production builds, 4 of them for Issue #14);
 - "smoke" = `tests/smoke/s2a.smoke.spec.ts` (Firefox and WebKit).
@@ -50,8 +50,10 @@ H9 and H12 are the issue's two findings. The others were found while fixing them
 | H15 | Candidates listed same-department staff of other sites, marked "not at this site", and accepted any date | other sites' staff, and future availability, to a supervisor | candidates for a supervisor hold only that department's staff allocated to that site on that date, for today or last night. Issue #14 tests |
 | H16 | Leave clashes listed every visible duty of the employee, including duties at sites where the supervisor does not work | another site's duty dates to a supervisor | clashes for a supervisor are limited to their own departments and sites. Issue #14 tests |
 | H17 | The board, attendance, leave and corrections linked every name to Employee 360 | a link that ends in "permission missing" for supervisors (no data shown) | `PersonName`: a link only with `hr.view`, plain text otherwise. E2E (no Employee 360 links on a supervisor's board or attendance; the manager keeps them) |
+| H18 (P1, follow-up review of `31bb0ed`) | `assign()` looked up `employeeId` before checking whether the caller may plan or bring in cover. A real employee id got `403 permission_missing`; an id never issued got the `employeeId` validation error | a maintenance supervisor could tell real security or office employee ids from invented ones by calling the API | authority first: planning needs `shifts.manage`; otherwise only a supervisor's cover in their own department and site, today or last night. Then a supervisor's cover from outside their staffing view gets the unknown-id answer. Issue #14 tests: identical refusals for a real guard's, a real office employee's and a never-issued id, with no cover, cover on the guards' shift and permitted cover; HR state unchanged; Shahid's cover and the manager's planning still work |
+| H19 (fail closed, follow-up review of `31bb0ed`) | `staffingOf()` fell back to the first HR site when a supervisor had no staffing site (allocation ended, or no department supervised) | the roster showed that site's name, publication state and metadata to someone with no staffing authority there | no staffing site gives "not found", identical to `?site=` of a site that does not exist, on the roster, On duty now and attendance. Issue #14 tests (allocation ended; no department; restored, the default site returns) |
 
-**Mutation checks.** Each of these rules was broken on purpose, one at a time. Every break made at least one test fail, and the restored code passes. The table is in the [report, §12.4](GATE_S2A_REPORT.md#124-tests-added).
+**Mutation checks.** Each of these rules was broken on purpose, one at a time. Every break made at least one test fail, and the restored code passes. The tables are in the report: [§12.4](GATE_S2A_REPORT.md#124-tests-added) and, for H18 and H19, [§12.6](GATE_S2A_REPORT.md#126-follow-up-review-of-31bb0ed). Putting back the handlers file of `31bb0ed` as reviewed fails exactly the two new tests.
 
 ## 2. Access rules and where they are enforced
 

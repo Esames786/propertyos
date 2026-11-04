@@ -8,6 +8,9 @@
   - `d7cb324`, the Issue #14 closure on `0e14895`, makes two more corrections ([§12](#12-issue-14-final-closure)). The commit after it only records this SHA in the documents:
     - a manager who sees a multi-site employee through one site can no longer change what all of the employee's sites share (P0);
     - supervisors see only their own departments' staffing (P1).
+  - The follow-up commit closes the two residual edges from GPT's review of `31bb0ed` ([§12.6](#126-follow-up-review-of-31bb0ed)):
+    - a refused assignment no longer shows whether an employee id exists;
+    - a supervisor with no staffing site gets "not found" rather than a default site.
 - **Sources:**
   - the owner's brief "PROPERTYOS — GATE S.2a SOCIETY STAFF OPERATIONS" and Issue #11;
   - V3.2 at `0e57604` (`docs/blueprint/v3.2/*`): execution plan §S.2, matrix §5.2 (HR permissions), D-22 (HR as a society add-on) and D-26 (SOS parked), and the HR rows of the register delta.
@@ -582,3 +585,44 @@ On the final code, with retries off:
 | Register | 439 rows, 354 distinct (131 / 36 / 187), statuses unchanged |
 
 Every run, including any failure on the way, is in [`test-results.md`](test-results.md#issue-14-closure-results-final-code).
+
+### 12.6 Follow-up review of `31bb0ed`
+
+GPT's follow-up comment on Issue #14 accepted both corrections at source level. It held sign-off for one P1 residual and one related fail-closed edge. Both are closed here, with no other change.
+
+**Residual 1: an employee-id oracle in `POST /hr/roster/assignments`.**
+- **Cause.** `assign()` looked up `employeeId` (HR-site visibility only) before it checked whether the caller may plan or bring in cover. A maintenance supervisor sending a real security or office employee id got `403 permission_missing`, while an id never issued got the `employeeId` validation error. Together they told real ids from invented ones.
+- **Correction.** Authority comes first, before the employee or the covered duty is read:
+  - planning needs `shifts.manage`;
+  - otherwise only a supervisor's cover is allowed: their own department and site, for today or last night (O3).
+- Then, for a supervisor's permitted cover, anyone outside their staffing view gets the unknown-id answer: another department, another site, or no such person.
+- Full HR planners are unchanged.
+
+**Residual 2: a fallback site without staffing authority.**
+- **Cause.** `staffingOf()` fell back to the first HR site when a supervisor had no staffing site at all (allocation ended, or no department supervised). The roster then showed that site's name, publication state and metadata, though no staff.
+- **Correction.** No staffing site gives "not found", the same answer as `?site=` of a site that does not exist, on the roster, On duty now and attendance. Valid supervisors keep their default site.
+
+**Tests** (2 more in `hr.issue14.api.test.ts`, now 14):
+- **Naveed and staff ids.** Naveed cannot tell a real security guard's or office employee's id from `emp_none_999`. The answers are identical in each case, the HR state is byte-identical, and no name or site appears:
+  - (a) planning without cover, on the guards', his own and the office's shifts (`403 permission_missing`);
+  - (b) cover on the guards' shift (`403`);
+  - (c) permitted cover in his own department (the unknown-id answer, `422`).
+- Shahid's same-department cover still succeeds, and the manager still plans.
+- **No staffing site.** With Naveed's allocation ended, and again with no department supervised:
+  - the roster, On duty now and attendance answer exactly like `?site=` of a site that does not exist (404), naming nothing;
+  - restored, his default site is back, and Shahid's default is unchanged.
+
+**Mutation checks** (scripted, on the final code; HR API tests, 48):
+
+| Rule broken | Tests failing |
+|---|---|
+| Employee looked up before authority (the `31bb0ed` order) | 1 (the new oracle test) |
+| Fallback site without staffing authority (the `31bb0ed` fallback) | 1 (the new no-site test) |
+| The handlers file of `31bb0ed`, as reviewed | 2: exactly the two new tests |
+| The supervisor's authority check removed | 3 |
+| Cover from outside the staffing view | 3 |
+| No supervisor working-site rule | 2 |
+| The 13 other scripted breaks of §12.4 | each still caught (the handlers of `0e14895` now fail 10 tests, the 2 new ones included) |
+| Restored | 0 of 48 |
+
+**Results:** in [`test-results.md`](test-results.md#issue-14-follow-up-results-final-code). The follow-up changes no screen, string or register row.

@@ -17,7 +17,7 @@ The owner's brief "PROPERTYOS — GATE S.2a SOCIETY STAFF OPERATIONS" and GitHub
 **Test names used below:**
 - `api` = `hr.api.test.ts` (20);
 - `closure` = `hr.closure.api.test.ts` (14, Issue #12; on the fictional multi-site organisation of `multisite.fixture.ts`);
-- `i14` = `hr.issue14.api.test.ts` (12, Issue #14; same organisation);
+- `i14` = `hr.issue14.api.test.ts` (14, Issue #14 and its follow-up; same organisation);
 - `vectors` = `hr.test.ts` on `hr-roster.vectors.json` (52);
 - `s2a.spec` = `tests/e2e/s2a.spec.ts` (27, axe inside; 4 for Issue #14);
 - `smoke` = `tests/smoke/s2a.smoke.spec.ts` (4, Firefox and WebKit);
@@ -176,4 +176,6 @@ The owner's brief "PROPERTYOS — GATE S.2a SOCIETY STAFF OPERATIONS" and GitHub
 | 14.11 | P1: direct API access, UI navigation and deep links | BUILT | `?site=` of another site is "not found"; cover outside the view gets the unknown-id answer, checked before the covered duty is read; `PersonName` (no Employee 360 links for supervisors) | `i14`; `s2a.spec` (staff record refused; no Employee 360 links; `?site=` and candidates refused from the browser) |
 | 14.12 | P1: authorised attendance and emergency-cover workflows preserved; no SOS | BUILT | recording and cover unchanged within department, site and the O3 window | `i14`; `api`; `s2a.spec`; smoke; video |
 | 14.13 | Mutation checks of the new tests | done | — | report §12.4: 17 breaks, one at a time (16 scripted, including the handlers of `0e14895`, plus the cover order by hand); each caught |
-| 14.14 | Complete combined regression on the final code, retries off; Firefox and WebKit; axe; 320 / 390 / 768 / 1440 px; EN and UR at 200 %; dark, high contrast, keyboard | done | — | [`test-results.md`](test-results.md) § Issue #14 closure |
+| 14.14 | Complete combined regression on the final code, retries off; Firefox and WebKit; axe; 320 / 390 / 768 / 1440 px; EN and UR at 200 %; dark, high contrast, keyboard | done | — | [`test-results.md`](test-results.md) § Issue #14 closure, then § Issue #14 follow-up |
+| 14.15 | Follow-up (review of `31bb0ed`): a refused assignment does not show whether an employee id exists; authority is checked before the employee or the covered duty is read | BUILT | `assign` (planner or permitted cover first, then `employeeIn`, then `coverable`) | `i14` (identical refusals for a real guard's, a real office employee's and a never-issued id, with no cover, cover on another department's shift and permitted cover; state unchanged); mutation-checked |
+| 14.16 | Follow-up: a supervisor with no staffing site gets a non-disclosing refusal | BUILT | `staffingOf` (no staffing site → "not found") | `i14` (allocation ended; no department; restored defaults); mutation-checked |

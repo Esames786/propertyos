@@ -139,13 +139,18 @@ function wholeEmployee(h: Hr, e: StoredEmployee): StoredEmployee {
  * attendance). HR viewers and planners keep `hrOf`'s choice. A supervisor works only on sites where
  * they record for a department: the first of them by default. Any other `?site=` is "not found", like
  * a site that does not exist.
+ *
+ * Issue #14 follow-up: a supervisor with no such site at all gets "not found" too. That covers no
+ * department supervised, or no site allocation in force. Nothing of any HR site is shown: not its
+ * name, its publication or its metadata.
  */
 function staffingOf(ctx: HandlerContext): Hr {
   const h = hrOf(ctx, { shifts: true });
   if (seesAllStaffing(h)) return h;
   const sites = staffingSites(h);
+  if (!sites.length) notFound(ctx);
   const wanted = q(ctx, 'site');
-  const site = wanted ? sites.find((s) => s.siteId === wanted) : (sites[0] ?? h.site);
+  const site = wanted ? sites.find((s) => s.siteId === wanted) : sites[0];
   if (!site) notFound(ctx);
   return { ...h, site };
 }
@@ -462,27 +467,27 @@ function assign(h: Hr) {
   const t = templateIn(h, b.templateId);
   const site = h.scope.sites.find((s) => s.siteId === t.siteId)!;
   const on = date(ctx, 'date', b.date);
+  // Authority before any lookup (Issue #14 and its follow-up). Planning needs shifts.manage. Without it,
+  // only a supervisor's cover within their own department and site, for a shift of today or last night's
+  // still running (owner decision O3). This is checked before the employee or the covered duty is read,
+  // so the answer never depends on whether an id exists or what another department's attendance is.
+  const planner = holds(h, 'shifts.manage');
+  if (!planner && !(b.coverFor && recordsFor(h, t.department, t.siteId) && on >= addDays(h.today, -1) && on <= h.today)) problem(ctx, 403, 'permission_missing', 'errors:access.permission_missing');
   const e = employeeIn(h, b.employeeId);
+  // A supervisor's cover comes from their own staffing view: anyone else (another department, another
+  // site, or no such person) gets the answer of an unknown id, never a refusal that names them.
+  if (!planner && !coverable(e, t, on)) invalid(ctx, 'employeeId', 'forms:errors.required');
   const post = str(b.post);
   if (post && !t.posts.includes(post)) invalid(ctx, 'post', 'hr:errors.post');
   const w = shiftWindow(t, on);
   let covered: StoredAssignment | undefined;
   if (b.coverFor) {
-    if (!holds(h, 'shifts.manage')) {
-      // Owner decision O3: a supervisor may bring in cover within their own department and site, for a
-      // shift of today or last night's that is still running; planning is the manager's.
-      if (!(recordsFor(h, t.department, t.siteId) && on >= addDays(h.today, -1) && on <= h.today)) problem(ctx, 403, 'permission_missing', 'errors:access.permission_missing');
-      // Issue #14 (P1): the cover comes from the supervisor's own staffing view, so anyone else gets the
-      // answer of an unknown id, not a refusal that names them. Both are checked before anything about
-      // the covered duty is read, so another department's attendance is never revealed either.
-      if (!coverable(e, t, on)) invalid(ctx, 'employeeId', 'forms:errors.required');
-    }
     covered = live(state).find((x) => x.id === str(b.coverFor) && x.templateId === t.id && x.date === on);
     if (!covered) invalid(ctx, 'coverFor', 'hr:errors.coverNotFound');
     const s = attendanceState(state, covered);
     if (s !== 'absent' && s !== 'on_leave') refuse(ctx, 409, 'cover_not_needed', 'coverNotNeeded');
     if (live(state).some((x) => x.coverFor === covered!.id)) refuse(ctx, 409, 'already_covered', 'alreadyCovered');
-  } else if (!holds(h, 'shifts.manage')) problem(ctx, 403, 'permission_missing', 'errors:access.permission_missing');
+  }
   if (ms(w.end) <= ms(h.now)) refuse(ctx, 409, 'duty_ended', 'dutyEnded');
   // Double booking is checked against the employee's duties at every site (the one HR state); the
   // refusal names only the employee, never another site's duty.

@@ -2,9 +2,10 @@
 
 **Run date:** 2026-11-03. Only tests that were actually executed are reported.
 
-**Issue #14 closure (the current code, `d7cb324`):** the results on the final code are in [§ Issue #14 closure results](#issue-14-closure-results-final-code) at the end.
+**Issue #14 follow-up (the current code):** the results on the final code are in [§ Issue #14 follow-up results](#issue-14-follow-up-results-final-code) at the end.
 
 **Earlier runs:**
+- **Issue #14 closure** (`d7cb324`): [§ Issue #14 closure results](#issue-14-closure-results-final-code).
 - **Issue #12 closure** (`0e14895`): [§ Issue #12 closure results](#issue-12-closure-results-final-code).
 - **The gate** (`95d70d0`): the sections before both.
 
@@ -199,3 +200,55 @@ After these fixes, the whole S.2a spec plus a diagnostic over every S.2a screen 
 | 10 | Another site | <ul><li>The site list is the supervisor's own.</li><li>`?site=` Block C on the roster, board and attendance answers like a site that does not exist.</li><li>Block C's template is refused.</li><li>No other site's staff among the candidates, and no "not at site".</li><li>Omer as cover gets the unknown-id answer.</li><li>Organisation-wide HR keeps Block C.</li></ul> |
 | 11 | Leave clashes | Shahid sees a guard's clashes; Naveed does not see the request |
 | 12 | Shared guard's leave | Shahid sees the main-site clash only; organisation-wide HR sees both |
+
+## Issue #14 follow-up results (final code)
+
+**Run date:** 2026-11-04.
+- **Scope.** GPT's follow-up review of `31bb0ed` asked for two small corrections: the assignment employee-id oracle (H18) and the empty-site fallback (H19). Only `packages/fixtures/src/hr/handlers.ts` and its tests changed: no screen, string, register row or other gate.
+- **Environment:** as above. Production builds on `E2E_PORT_OFFSET=400`, served on 127.0.0.1 and ::1; retries off; 3 workers.
+- **Final build:** made after the last code change. Every browser result below ran on that build.
+
+### Summary (final code)
+
+| Check | Command | Result |
+|---|---|---|
+| Typecheck | `npx tsc -p tsconfig.json --noEmit` | clean |
+| Lint (ESLint, logical-CSS RTL guard, i18n parity) | `npm run lint` | clean; 9,856 keys per locale (unchanged) |
+| Unit and API | `npx vitest run` | **1,449 / 1,449** in 49 files, in **four** complete runs one after another (35.6, 41.5, 25.8 and 28.0 seconds), none failing |
+| Follow-up negative tests | inside the unit run (`hr.issue14.api.test.ts`, now 14) | **2 / 2**:<ul><li>identical refusals for a real security guard's, a real office employee's and a never-issued id, with no cover, cover on the guards' shift and permitted cover; HR state unchanged; Shahid's cover and the manager's planning still work;</li><li>no staffing site (allocation ended; no department) answers "not found" on the roster, On duty now and attendance, like a site that does not exist; restored defaults</li></ul> |
+| Mutation checks | scratch script, one break at a time, restored and compared byte for byte | **20 scripted breaks, each caught**, including:<ul><li>the `31bb0ed` assignment order (1 test fails);</li><li>the `31bb0ed` fallback (1 fails);</li><li>the whole handlers file of `31bb0ed`, as reviewed (exactly the 2 new tests fail).</li></ul>Restored: 0 of 48 HR API tests fail |
+| **Complete combined regression** | `E2E_PORT_OFFSET=400 npx playwright test --project=e2e --project=evidence tests/e2e tests/evidence/gates2a.evidence.spec.ts --workers=3 --retries=0` | **388 / 388** in one 34.1-minute run: e2e **374 / 374** and evidence **14 / 14**. No retries, no test excluded, no assertion weakened |
+| Accessibility (inside E2E) | axe | **1,299 scans, 35,889 rule passes, 0 violations** (`s2a.spec` 119) |
+| 1440 / 768 / 390 px, 320 × 700 at 100–200 %, English and Urdu; dark with high contrast; keyboard | `s2a.spec` (inside the full run) | all pass |
+| Evidence | inside the full run | **79 screenshots** and 2 videos recaptured; every width matches its viewport. `b06`, `e01` and `j03` differ from the previous capture by a few bytes at the same size (rendering), since no screen changed |
+| Firefox and WebKit smoke | `E2E_PORT_OFFSET=400 npx playwright test tests/smoke --project=firefox-smoke --project=webkit-smoke --workers=3 --retries=0` | **36 / 36** |
+| Manual screen reader, devices, forced colours | [`MANUAL_VERIFICATION.md`](MANUAL_VERIFICATION.md) | **not performed** |
+
+### Runs before the final ones, as they happened
+
+- **The first follow-up test run:** 99 / 100 HR tests. The failure was my new test: the manager's control assignment (Saba, office, 27 October) clashed with her own duty that day, and was correctly refused as double booking. The test now plans an exception day (Sunday 1 November). The rule under test was not touched.
+
+### Unit-test timeouts: the record so far (open, not blocking)
+
+The unit suite's node tests use Vitest's default 5-second limit per test. Two tests have gone over it on this shared machine:
+- S.1's "bulk office collection" reference test;
+- D.3's "5,000 random small polls".
+
+Every complete run on the Issue #14 code, in order:
+
+| When | Code | Result |
+|---|---|---|
+| Closure, before the browser runs | `d7cb324` | 1 timeout (S.1 test, 5.9 s) |
+| Closure | `d7cb324` | 2 timeouts (D.3 polls 6.0 s; S.1 test 6.9 s) |
+| Closure | `d7cb324` | 1 timeout (S.1 test, 5.5 s) |
+| Closure, `--maxWorkers=6` | `d7cb324` | no progress for 12 minutes; stopped |
+| Closure | `d7cb324` | 1 timeout (S.1 test, 11.4 s) |
+| Closure, after the browser runs | `d7cb324` | 1,447 / 1,447 |
+| Follow-up, four runs one after another | final | 1,449 / 1,449 each |
+
+- Each test that timed out passed when its file ran alone.
+- None of them is in code that Issue #14 changed.
+- No limit or test was changed to make a run pass.
+- The cause is not established. Other work was running on this machine at the time (other sessions' PHP and MySQL, Windows Defender), but I did not measure the per-test times in the passing runs, so the margin under 5 seconds is unknown.
+
+**Suggested follow-up, outside S.2a and not done:** give the slow S.1 and D.3 tests an explicit limit, or make their set-up lighter. That is a test-reliability change for its own review.

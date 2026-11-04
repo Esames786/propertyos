@@ -349,3 +349,74 @@ describe('Issue #14 P1: supervisors see only the staffing of their own departmen
     expect(shown.conflicts.map((c) => c.assignmentId)).toEqual([main.id]);
   });
 });
+
+// ---------------------------------------------------------------------------------------------
+// Issue #14 follow-up (GPT review of 31bb0ed): no employee-id oracle on assignments; no fallback site
+// ---------------------------------------------------------------------------------------------
+
+describe('Issue #14 follow-up: a supervisor learns nothing from a refused assignment, and gets no site without staffing authority', () => {
+  it('Naveed cannot tell a real security or office employee id from an id never issued, with or without cover; nothing changes', async () => {
+    const api = session();
+    const faisal = await emp(api, 'Faisal Iqbal'); // security guard
+    const saba = await emp(api, 'Saba Javed'); // accounts officer (office)
+    const evening = (await api.as('alnoor_guard').get<OnDutyBoard>('/hr/roster/now')).current.find((s) => s.shiftKey === 'evening')!;
+    const faisalDuty = evening.staff.find((p) => p.name === 'Faisal Iqbal')!.assignmentId;
+    const maintenance = (await api.as('alnoor_maintenance').get<AttendanceDay>('/hr/attendance')).rows.find((r) => r.department === 'maintenance' && r.employeeName === 'Bilal Khan')!;
+    await api.post(`/hr/attendance/${maintenance.assignmentId}/absent`);
+    const before = snapshot(api);
+    const post = (body: Record<string, unknown>) => refusal(api.as('alnoor_maintenance').post('/hr/roster/assignments', body));
+    const pairs: Array<[string, Record<string, unknown>]> = [
+      // (a) no cover: planning, which Naveed may not do, on any shift.
+      ['plan a guard shift', { templateId: 'sht_anr_evening', date: '2026-10-27' }],
+      ['plan his own department', { templateId: 'sht_anr_maintenance', date: '2026-10-27' }],
+      ['plan the office', { templateId: 'sht_anr_office', date: '2026-10-27' }],
+      // (b) cover on the guards' evening shift, a department he does not supervise.
+      ['cover a guard', { templateId: 'sht_anr_evening', date: '2026-10-26', coverFor: faisalDuty }],
+      // (c) permitted cover (his own department today), with someone outside his staffing view.
+      ['cover his own department', { templateId: 'sht_anr_maintenance', date: '2026-10-26', coverFor: maintenance.assignmentId }],
+    ];
+    for (const [what, body] of pairs) {
+      const unknown = await post({ ...body, employeeId: 'emp_none_999' });
+      for (const id of [faisal.id, saba.id]) expect(await post({ ...body, employeeId: id }), `${what}: ${id}`).toEqual(unknown);
+      expect(JSON.stringify(unknown)).not.toMatch(/Faisal|Saba|Al-Noor|security|office/);
+      expect(unknown.status, what).toBe(what.startsWith('cover his own') ? 422 : 403);
+    }
+    expect(snapshot(api)).toBe(before);
+    // Shahid's permitted cover in his own department still works.
+    api.as('alnoor_guard');
+    await api.post(`/hr/attendance/${faisalDuty}/absent`);
+    const pick = (await api.get<Candidate[]>('/hr/roster/candidates', { templateId: 'sht_anr_evening', date: '2026-10-26' })).find((c) => !c.blocked)!;
+    await api.post('/hr/roster/assignments', { employeeId: pick.employeeId, templateId: 'sht_anr_evening', date: '2026-10-26', coverFor: faisalDuty });
+    expect((await api.get<OnDutyBoard>('/hr/roster/now')).current.find((s) => s.shiftKey === 'evening')!.staff.find((p) => p.name === 'Faisal Iqbal')!.coveredBy).toBe(pick.name);
+    // The manager still plans: Saba on Sunday's office shift (an exception day, when she has no duty).
+    expect((await api.as('alnoor_manager').post<{ employeeId: string }>('/hr/roster/assignments', { employeeId: saba.id, templateId: 'sht_anr_office', date: '2026-11-01' })).employeeId).toBe(saba.id);
+  });
+
+  it('a supervisor with no staffing site (allocation ended, or no department) gets "not found" with no site named; valid supervisors keep their default site', async () => {
+    const api = session();
+    const main = (await api.as('alnoor_manager').get<RosterWeek>('/hr/roster')).siteId;
+    const naveed = api.hr().employees.find((e) => e.name === 'Naveed Anjum')!;
+    const kept = { sites: structuredClone(naveed.sites), supervises: [...naveed.supervises] };
+    const paths = ['/hr/roster', '/hr/roster/now', '/hr/attendance'];
+    const refused = async () => {
+      api.as('alnoor_maintenance');
+      for (const path of paths) {
+        const a = await refusal(api.get(path));
+        expect(a, path).toEqual(await refusal(api.get(path, { site: 'site_none' })));
+        expect(a.status, path).toBe(404);
+        expect(JSON.stringify(a)).not.toMatch(/Al-Noor|site_|published/i);
+      }
+    };
+    // His allocation ended yesterday.
+    naveed.sites = naveed.sites.map((s) => ({ ...s, to: '2026-10-25' }));
+    await refused();
+    // Allocated again, but supervising no department.
+    naveed.sites = structuredClone(kept.sites);
+    naveed.supervises = [];
+    await refused();
+    // Restored: his default site and departments are back; Shahid's default is unchanged.
+    naveed.supervises = kept.supervises;
+    expect((await api.as('alnoor_maintenance').get<RosterWeek>('/hr/roster')).siteId).toBe(main);
+    expect((await api.as('alnoor_guard').get<RosterWeek>('/hr/roster')).siteId).toBe(main);
+  });
+});
