@@ -5,7 +5,7 @@
 - **Branch:** `feature/gate-s2a-society-staff`. It continues GPT's foundation commit `311dfb5` (on the approved D.3 closure `c497942`, GitHub Issue #11).
   - `95d70d0` is the S.2a gate, reviewed in Issue #12: functionality provisionally accepted.
   - `0e14895` makes the three Issue #12 corrections ([§11](#11-issue-12-final-security-closure)): HR records limited to the reader's sites and legal entities (P0), residents told confirmed staff from scheduled staff (P1), and no voucher able to make a staff advance paid (P1).
-  - The Issue #14 closure, on `0e14895`, makes two more corrections ([§12](#12-issue-14-final-closure)):
+  - `d7cb324`, the Issue #14 closure on `0e14895`, makes two more corrections ([§12](#12-issue-14-final-closure)). The commit after it only records this SHA in the documents:
     - a manager who sees a multi-site employee through one site can no longer change what all of the employee's sites share (P0);
     - supervisors see only their own departments' staffing (P1).
 - **Sources:**

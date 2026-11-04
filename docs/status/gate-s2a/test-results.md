@@ -2,7 +2,7 @@
 
 **Run date:** 2026-11-03. Only tests that were actually executed are reported.
 
-**Issue #14 closure (the current code):** the results on the final code are in [§ Issue #14 closure results](#issue-14-closure-results-final-code) at the end.
+**Issue #14 closure (the current code, `d7cb324`):** the results on the final code are in [§ Issue #14 closure results](#issue-14-closure-results-final-code) at the end.
 
 **Earlier runs:**
 - **Issue #12 closure** (`0e14895`): [§ Issue #12 closure results](#issue-12-closure-results-final-code).
