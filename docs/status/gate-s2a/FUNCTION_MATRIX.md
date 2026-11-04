@@ -17,8 +17,9 @@ The owner's brief "PROPERTYOS — GATE S.2a SOCIETY STAFF OPERATIONS" and GitHub
 **Test names used below:**
 - `api` = `hr.api.test.ts` (20);
 - `closure` = `hr.closure.api.test.ts` (14, Issue #12; on the fictional multi-site organisation of `multisite.fixture.ts`);
+- `i14` = `hr.issue14.api.test.ts` (12, Issue #14; same organisation);
 - `vectors` = `hr.test.ts` on `hr-roster.vectors.json` (52);
-- `s2a.spec` = `tests/e2e/s2a.spec.ts` (23, axe inside);
+- `s2a.spec` = `tests/e2e/s2a.spec.ts` (27, axe inside; 4 for Issue #14);
 - `smoke` = `tests/smoke/s2a.smoke.spec.ts` (4, Firefox and WebKit);
 - `evidence` = `tests/evidence/gates2a.evidence.spec.ts`.
 
@@ -157,3 +158,22 @@ The owner's brief "PROPERTYOS — GATE S.2a SOCIETY STAFF OPERATIONS" and GitHub
 | 13.8 | P1: no advance DISBURSED or REPAID without evidence identifying the employee and the advance | BUILT (option B) | linking refused; paid, repaid and owed states removed; HR-008 read only (PARTIAL) | `closure` (wrong employee, wrong advance, wrong entity and site, supplier payment, unrelated receipt, reused, reversed before and after, the right-looking voucher); `s2a.spec` |
 | 13.9 | P1: maker ≠ checker preserved | BUILT | `checker` | `closure`; `api` |
 | 13.10 | Complete combined regression on the final code, retries off; Firefox and WebKit; axe; 320 px / 200 % | done | — | [`test-results.md`](test-results.md) § Issue #12 closure |
+
+## 14. Issue #14 final closure
+
+| # | Requirement | Status | Where | Checked by |
+|---|---|---|---|---|
+| 14.1 | P0: a site-only manager cannot change a shared multi-site employee's details, role or contacts | BUILT | `employeeGoverned` (`scope.ts`), `wholeEmployee` before anything else in `edit` | `i14` (6 refused requests; state byte-identical; no Block C in the answers) |
+| 14.2 | P0: nor the resident-facing profile and consent | BUILT | `wholeEmployee` in `profile` | `i14`; `s2a.spec` (server refusal from the browser) |
+| 14.3 | P0: nor replace or add shared documents | BUILT | `wholeEmployee` in `addDocument` | `i14` (state unchanged; organisation-wide HR replaces, version 2) |
+| 14.4 | P0: nor submit, approve, reject or cancel leave affecting another site | BUILT | `wholeEmployee` in `requestLeave` and `findLeave`; `leaveView` actions and `blocked: 'other_sites'` | `i14` (state and both sites' published rosters unchanged; organisation-wide approval then makes Block C's duty "on leave") |
+| 14.5 | P0: employment and other employee-wide records (advances) follow the same rule | BUILT | `changeStatus` (now the shared rule); `requestAdvance`, `findAdvance` (decide, withdraw); `advanceView`; the request list | `i14`; `closure` (`other_sites` on ending a shared employment) |
+| 14.6 | P0: a rejected request leaves every affected record unchanged | BUILT | every check before any change; `edit` validates all fields first | `i14` (whole HR state compared byte for byte after every refusal) |
+| 14.7 | P0: organisation-wide HR and single-site workflows preserved | BUILT | `all` and `legal_entity` scopes covering every site; single-site employees unaffected; site-bound work unchanged | `i14`; `api`; `closure`; full regression |
+| 14.8 | P0: the UI offers no impossible action; hidden site names not leaked | BUILT | `allSitesInScope`; Employee 360 note; pickers; `blocked: 'other_sites'` | `i14`; `s2a.spec` (read-only Employee 360, pickers, 320 px / 200 % EN and UR); evidence `j01`, `j02` |
+| 14.9 | P1: supervisors see only their departments' staffing at their sites: roster, On duty now, names and availability | BUILT | `staffingShown`, `staffingSites`, `staffingOf`; `rosterWeek`, `onDutyBoard`, `attendanceDay`, leave clashes | `i14`; `s2a.spec`; smoke; evidence `j03`–`j05` |
+| 14.10 | P1: candidate search limited server-side before anything is read | BUILT | `candidates` (`not_your_department`, `permission_missing`, `coverable`) | `i14` |
+| 14.11 | P1: direct API access, UI navigation and deep links | BUILT | `?site=` of another site is "not found"; cover outside the view gets the unknown-id answer, checked before the covered duty is read; `PersonName` (no Employee 360 links for supervisors) | `i14`; `s2a.spec` (staff record refused; no Employee 360 links; `?site=` and candidates refused from the browser) |
+| 14.12 | P1: authorised attendance and emergency-cover workflows preserved; no SOS | BUILT | recording and cover unchanged within department, site and the O3 window | `i14`; `api`; `s2a.spec`; smoke; video |
+| 14.13 | Mutation checks of the new tests | done | — | report §12.4: 17 breaks, one at a time (16 scripted, including the handlers of `0e14895`, plus the cover order by hand); each caught |
+| 14.14 | Complete combined regression on the final code, retries off; Firefox and WebKit; axe; 320 / 390 / 768 / 1440 px; EN and UR at 200 %; dark, high contrast, keyboard | done | — | [`test-results.md`](test-results.md) § Issue #14 closure |

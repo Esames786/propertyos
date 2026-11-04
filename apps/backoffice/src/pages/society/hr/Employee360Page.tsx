@@ -83,6 +83,12 @@ export default function Employee360Page({ employeeId }: { employeeId: string }) 
         }
       />
       <HrNav current="employees" />
+      {!e.allSitesInScope && (
+        <InlineAlert tone="info" data-testid="hr-360-other-sites">
+          <Lock aria-hidden className="me-1 inline size-4" />
+          {t('hr:e360.otherSitesNote', { name: e.name })}
+        </InlineAlert>
+      )}
       <div className="flex flex-wrap items-center gap-4 rounded-card border border-border/70 bg-panel p-4 shadow-card" data-testid="hr-360-today">
         <Initials text={e.initials} className="size-12 text-base" />
         <div className="min-w-0 flex-1 basis-[min(100%,14rem)]">

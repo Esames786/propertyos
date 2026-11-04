@@ -1,10 +1,10 @@
 import type { AssignmentView, AttendanceRow, OnDutyBoard, OnDutyShift, RosterShift, RosterWeek } from '@repo/contracts';
-import { Badge, Button, ConfirmDialog, DateTime, Drawer, EmptyState, ErrorState, IconButton, InlineAlert, Link, PageHeader, Panel, SelectControl, SegmentedControl, UrlTabs, useApiMutation, useApiQuery, useIsDesktop, useQueryParam, useQueryParams, useT, useToast } from '@repo/ui';
+import { Badge, Button, ConfirmDialog, DateTime, Drawer, EmptyState, ErrorState, IconButton, InlineAlert, Link, PageHeader, Panel, SelectControl, SegmentedControl, UrlTabs, useApiMutation, useApiQuery, useCan, useIsDesktop, useQueryParam, useQueryParams, useT, useToast } from '@repo/ui';
 import { ArrowLeftRight, BadgeCheck, CalendarDays, ChevronLeft, ChevronRight, CircleDashed, LogIn, Plus, Send, TriangleAlert, UserMinus, UserX } from 'lucide-react';
 import { useState } from 'react';
 import { HR } from '../../../nav.config';
 import { Loading, ScrollRegion, useSocietyFormat } from '../kit';
-import { addDays, AttendanceBadge, HrNav, ShiftTime, Time, useProblemToast, useRole, useShiftName, weekStartOf } from './hkit';
+import { addDays, AttendanceBadge, HrNav, PersonName, ShiftTime, Time, useProblemToast, useRole, useShiftName, weekStartOf } from './hkit';
 import { AssignShiftDrawer } from './HrDrawers';
 
 /**
@@ -229,6 +229,7 @@ function DutyDrawer({ duty, week, onClose }: { duty: AssignmentView; week: Roste
   const shiftName = useShiftName();
   const role = useRole();
   const act = useApiMutation<unknown>();
+  const can = useCan();
   const [swapWith, setSwapWith] = useState<string | null>(null);
   const [removing, setRemoving] = useState(false);
   const department = week.templates.find((x) => x.id === duty.templateId)?.department;
@@ -270,9 +271,12 @@ function DutyDrawer({ duty, week, onClose }: { duty: AssignmentView; week: Roste
           </InlineAlert>
         )}
         {duty.coverFor && <p className="text-sm text-muted">{t('hr:roster.coverFor', { name: duty.coverFor.employeeName })}</p>}
-        <p>
-          <Link href={HR.employee(duty.employeeId, 'duty')}>{t('hr:roster.openPerson', { name: duty.employeeName })}</Link>
-        </p>
+        {/* Employee 360 only for those who may open it (Issue #14): no link to "permission missing". */}
+        {can('hr.view') && (
+          <p>
+            <Link href={HR.employee(duty.employeeId, 'duty')}>{t('hr:roster.openPerson', { name: duty.employeeName })}</Link>
+          </p>
+        )}
         {week.actions.edit && !started && (
           <>
             <section className="space-y-2" aria-labelledby="hr-swap-title">
@@ -407,9 +411,7 @@ function OnDutyNow() {
                     return (
                       <li key={p.assignmentId} className="flex flex-wrap items-center justify-between gap-2 rounded-tile border border-border px-3 py-2" data-testid="hr-board-person" data-name={p.name} data-state={p.state}>
                         <span className="min-w-0 flex-1 basis-[min(100%,12rem)] text-sm">
-                          <Link href={HR.employee(p.employeeId)} className="font-medium">
-                            <bdi>{p.name}</bdi>
-                          </Link>
+                          <PersonName id={p.employeeId} name={p.name} className="font-medium" />
                           <span className="block text-xs text-muted">
                             {role(p.role)}
                             {p.post ? ` · ${p.post}` : ''}

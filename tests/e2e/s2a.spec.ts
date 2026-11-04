@@ -2,7 +2,7 @@ import type { Locator, Page, TestInfo } from '@playwright/test';
 import { scanA11y } from '../support/axe';
 import { BO, CU, expect, test, type Locale, type PersonaId } from '../support/fixtures';
 import { focusWalk, layoutProblems } from '../support/layout';
-import { become, seedSociety, societyApi } from '../support/society';
+import { addSharedGuard, become, seedSociety, SHARED_GUARD, societyApi } from '../support/society';
 import { VIEWPORTS } from '../support/viewports';
 
 /**
@@ -436,6 +436,115 @@ test.describe('S.2a who sees what', () => {
     await page.setViewportSize(VIEWPORTS.phone);
     await expect(page.getByTestId('portal-centre-action')).toBeVisible();
     await axe(page, testInfo, 'portal-staff-on-duty-390-en');
+    expect(consoleErrors).toEqual([]);
+  });
+});
+
+test.describe('S.2a Issue #14: shared staff across sites, and supervisors\' own departments', () => {
+  /** Opens HR once as the manager (so the HR state exists), adds the shared guard, narrows the manager to the main site. */
+  async function singleSiteManager(page: Page) {
+    await office(page, 'alnoor_manager', '/backoffice/hr/hr-dashboard', 'hr-dashboard');
+    const main = await addSharedGuard(page, ['alnoor_manager']);
+    await page.reload();
+    await expect(page.getByTestId('hr-dashboard')).toBeVisible();
+    return main;
+  }
+
+  test('a main-site manager sees a guard who also works at Block C read only: no employee-wide change is offered, the server refuses it, and the note says why without naming the site', async ({ page, consoleErrors }, testInfo) => {
+    await at(page, '15:20');
+    await seedSociety(page, { staff: 'alnoor_manager' });
+    await singleSiteManager(page);
+    await page.goto(`${BO}/backoffice/hr/employee-360-workspace/${SHARED_GUARD.id}`);
+    const note = page.getByTestId('hr-360-other-sites');
+    await expect(note).toBeVisible();
+    await expect(note).toContainText('also works at a site you do not manage');
+    for (const id of ['hr-360-request-leave', 'hr-360-document', 'hr-360-status', 'hr-360-profile']) await expect(page.getByTestId(id), id).toHaveCount(0);
+    // Duties at the main site are the main site's own: planning stays available.
+    await expect(page.getByTestId('hr-360-assign')).toBeVisible();
+    await expect(page.getByTestId('hr-employee-360')).not.toContainText(/Block C|ANC|site_anc/);
+    await axe(page, testInfo, 'i14-shared-guard-360-1440-en');
+    // The server refuses the change all the same, and nothing of Block C is in the answer.
+    expect(await api(page, `/hr/employees/${SHARED_GUARD.id}`, 'PATCH', { phone: '0300 0000999' })).toEqual({ ok: false, code: 'other_sites', status: 403 });
+    expect(await api(page, `/hr/employees/${SHARED_GUARD.id}/profile`, 'POST', { consent: true, showName: true })).toEqual({ ok: false, code: 'other_sites', status: 403 });
+    // A colleague who works at the main site only keeps every action, and no note.
+    await page.goto(`${BO}/backoffice/hr/employee-360-workspace/emp_anr_002`);
+    await expect(page.getByTestId('hr-360-request-leave')).toBeVisible();
+    await expect(page.getByTestId('hr-360-other-sites')).toHaveCount(0);
+    // The leave and document pickers do not offer the shared guard (other staff remain).
+    for (const [path, open, picker] of [
+      ['/backoffice/hr/leave-attendance-adjustments', 'hr-leave-new', 'hr-leave-employee'],
+      ['/backoffice/hr/employee-documents', 'hr-document-add', 'hr-document-employee'],
+    ] as const) {
+      await page.goto(`${BO}${path}`);
+      await page.getByTestId(open).click();
+      const input = page.getByTestId(picker).locator('input');
+      await input.fill('Rashid');
+      await expect(page.getByRole('option', { name: /Rashid Latif/ })).toHaveCount(0);
+      await input.fill('Asif');
+      await expect(page.getByRole('option', { name: /Asif Mehmood/ }).first()).toBeVisible();
+      await page.keyboard.press('Escape');
+      await page.keyboard.press('Escape');
+    }
+    expect(consoleErrors).toEqual([]);
+  });
+
+  for (const locale of ['en-PK', 'ur-PK'] as const) {
+    const l = locale === 'ur-PK' ? 'ur' : 'en';
+    test(`320 × 700, ${l}, 200 %: the read-only note and Employee 360 of the shared guard are not clipped or broken`, async ({ page, consoleErrors }, testInfo) => {
+      await at(page, '15:20');
+      await page.setViewportSize(PHONE);
+      await seedSociety(page, { staff: 'alnoor_manager', locale, textScale: 2 });
+      await page.addInitScript(({ key }) => localStorage.setItem(key, JSON.stringify({ version: 2, textScale: 2, chosenAt: '2026-10-26T00:00:00Z', updatedAt: '2026-10-26T00:00:00Z' })), { key: OFFICE_DISPLAY.alnoor_manager! });
+      await singleSiteManager(page);
+      await page.goto(`${BO}/backoffice/hr/employee-360-workspace/${SHARED_GUARD.id}`);
+      await expect(page.getByTestId('hr-360-other-sites')).toBeVisible();
+      expect(await layoutProblems(page), `shared guard 360 ${l}`).toEqual([]);
+      expect(await overflowOf(page)).toBeLessThanOrEqual(0);
+      await axe(page, testInfo, `i14-shared-guard-360-320-200-${l}`);
+      expect(consoleErrors).toEqual([]);
+    });
+  }
+
+  test('supervisors see their own departments only on the roster and On duty now (Naveed: maintenance and housekeeping; Shahid: security); direct addresses give nothing more', async ({ page, consoleErrors }, testInfo) => {
+    await at(page, '09:30');
+    await page.setViewportSize(VIEWPORTS.desktop);
+    await seedSociety(page, { staff: 'alnoor_manager' });
+    // Who is on the board now, by department, as full HR sees it.
+    await office(page, 'alnoor_manager', '/backoffice/hr/roster?tab=now', 'hr-board-current');
+    // Full HR keeps the links to Employee 360.
+    await expect(page.locator('[data-testid="hr-on-duty"] a[href*="employee-360"]').first()).toBeVisible();
+    const all = await api<{ current: Array<{ department: string; staff: Array<{ name: string }> }> }>(page, '/hr/roster/now');
+    const byDept = (keep: string[]) => (all.ok ? all.res.current.filter((s) => !keep.includes(s.department)).flatMap((s) => s.staff.map((p) => p.name)) : []);
+    expect(all.ok && new Set(all.res.current.map((s) => s.department)).size).toBe(4);
+    await addSharedGuard(page);
+    const departments = (testId: string) => page.getByTestId(testId).evaluateAll((els) => [...new Set(els.map((e) => e.getAttribute('data-department')))].sort());
+    for (const [persona, mine] of [
+      ['alnoor_maintenance', ['housekeeping', 'maintenance']],
+      ['alnoor_guard', ['security']],
+    ] as const) {
+      await office(page, persona, '/backoffice/hr/roster', 'hr-roster-grid');
+      expect(await departments('hr-roster-cell'), persona).toEqual(mine);
+      await axe(page, testInfo, `i14-roster-${persona}-1440-en`);
+      await page.goto(`${BO}/backoffice/hr/roster?tab=now`);
+      await expect(page.getByTestId('hr-board-current')).toBeVisible();
+      expect(await departments('hr-board-shift'), persona).toEqual(mine);
+      for (const name of byDept([...mine])) await expect(page.getByTestId('hr-on-duty'), `${persona} ${name}`).not.toContainText(name);
+      // Names are plain text for a supervisor: no link that would end in "permission missing".
+      await expect(page.locator('[data-testid="hr-on-duty"] a[href*="employee-360"]')).toHaveCount(0);
+      await axe(page, testInfo, `i14-board-${persona}-1440-en`);
+      await page.goto(`${BO}/backoffice/hr/attendance`);
+      await expect(page.getByTestId('hr-attendance-rows').first()).toBeVisible();
+      await expect(page.locator('[data-testid="hr-attendance-row"]').first()).toBeVisible();
+      await expect(page.locator('[data-testid="hr-attendance-rows"] a[href*="employee-360"]')).toHaveCount(0);
+      // Direct addresses: staff records stay refused; another site or another department's candidates give nothing.
+      await page.goto(`${BO}/backoffice/hr/employee-360-workspace/emp_anr_002`);
+      await expect(page.getByTestId('access-outcome')).toHaveAttribute('data-reason', 'permission_missing');
+      await page.goto(`${BO}/backoffice/hr/roster`);
+      await expect(page.getByTestId('hr-roster-grid')).toBeVisible();
+      expect(await api(page, '/hr/roster', 'GET', {}, { site: SHARED_GUARD.blockC })).toEqual(await api(page, '/hr/roster', 'GET', {}, { site: 'site_none' }));
+      const other = persona === 'alnoor_guard' ? 'sht_anr_maintenance' : 'sht_anr_morning';
+      expect(await api(page, '/hr/roster/candidates', 'GET', {}, { templateId: other, date: '2026-10-26' })).toEqual({ ok: false, code: 'not_your_department', status: 403 });
+    }
     expect(consoleErrors).toEqual([]);
   });
 });

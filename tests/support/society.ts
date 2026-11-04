@@ -138,6 +138,57 @@ export async function societyApi<T = unknown>(
   );
 }
 
+/** The shared guard of the browser's multi-site case (Issue #14): main site and Block C. */
+export const SHARED_GUARD = { id: 'emp_anr_901', name: 'Rashid Latif', blockC: 'site_anc_demo' } as const;
+
+/**
+ * Gate S.2a closure (Issue #14): the fictional multi-site case in this browser's demo, as in
+ * `multisite.fixture.ts` for the API tests. The demo itself has one site.
+ * - **Block C (Demo)**, owned by Al-Noor's own association, is added to the HR state.
+ * - **Rashid Latif**, a guard employed by the association, works at the main site and at Block C.
+ * - With `narrow`, the persona's organisation-wide scope is narrowed to the main site in this tab
+ *   (the demo-only, narrow-only `demo:site-scope`). That makes a single-site manager.
+ *
+ * The page must be an office page whose HR state exists (any HR screen opened once). Returns the main site.
+ */
+export async function addSharedGuard(page: Page, narrow: string[] = []): Promise<string> {
+  const main = await page.evaluate((g) => {
+    type Site = { siteId: string; legalEntityId: string; legalEntityName: string; name: string; code: string };
+    const part = window.__prototype!.transport.demo.partition('tnt_alnoor');
+    const hr = part.section<{ sites: Site[]; employees: Array<{ id: string }> }>('hr', () => {
+      throw new Error('HR state not created yet');
+    });
+    const first = hr.sites[0]!;
+    if (!hr.sites.some((s) => s.siteId === g.blockC)) {
+      hr.sites.push({ ...first, siteId: g.blockC, name: 'Al-Noor Block C (Demo)', code: 'ANC' });
+      hr.employees.push({
+        id: g.id,
+        code: 'ANR-E-901',
+        name: g.name,
+        role: 'security_guard',
+        department: 'security',
+        employmentType: 'permanent',
+        legalEntityId: first.legalEntityId,
+        status: 'active',
+        startDate: '2025-01-01',
+        periods: [{ from: '2025-01-01', type: 'permanent' }],
+        sites: [
+          { siteId: first.siteId, from: '2025-01-01' },
+          { siteId: g.blockC, from: '2025-01-01' },
+        ],
+        personal: { cnic: '35202-9000003-3', phone: '+92 300 0000903', address: 'House 9, Rashid Latif Street, Lahore (Demo)' },
+        supervises: [],
+        profile: { consent: false, showName: false, showPhoto: false },
+        history: [],
+      } as { id: string });
+      part.save();
+    }
+    return first.siteId;
+  }, SHARED_GUARD);
+  if (narrow.length) await page.evaluate(({ personas, site }) => sessionStorage.setItem('demo:site-scope', JSON.stringify(Object.fromEntries(personas.map((p) => [p, [site]])))), { personas: narrow, site: main });
+  return main;
+}
+
 export const textScaleOf = (page: Page) =>
   page.evaluate(() =>
     getComputedStyle(document.documentElement).getPropertyValue('--text-scale').trim(),

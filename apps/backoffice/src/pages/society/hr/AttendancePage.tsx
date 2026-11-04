@@ -1,10 +1,9 @@
 import type { AttendanceCorrectionView, AttendanceDay, AttendanceRow } from '@repo/contracts';
-import { Button, ConfirmDialog, Drawer, EmptyState, ErrorState, IconButton, InlineAlert, Link, PageHeader, PlainTextArea, SegmentedControl, useApiMutation, useApiQuery, useQueryParam, useQueryParams, useT, useToast } from '@repo/ui';
+import { Button, ConfirmDialog, Drawer, EmptyState, ErrorState, IconButton, InlineAlert, PageHeader, PlainTextArea, SegmentedControl, useApiMutation, useApiQuery, useQueryParam, useQueryParams, useT, useToast } from '@repo/ui';
 import { ChevronLeft, ChevronRight, ClipboardPen, Hourglass, LogIn, LogOut, UserX } from 'lucide-react';
 import { useState } from 'react';
-import { HR } from '../../../nav.config';
 import { Loading, ProblemAlert, useSocietyFormat } from '../kit';
-import { addDays, AttendanceBadge, DateInput, HrNav, ShiftTime, Time, useProblemToast, useRole, useShiftName } from './hkit';
+import { addDays, AttendanceBadge, DateInput, HrNav, PersonName, ShiftTime, Time, useProblemToast, useRole, useShiftName } from './hkit';
 
 /**
  * HR-005 attendance: the day's duties by shift (a night shift belongs to the day it starts) with
@@ -80,9 +79,7 @@ export default function AttendancePage() {
                     return (
                       <li key={r.assignmentId} className="grid gap-2 rounded-tile border border-border/70 bg-panel p-3 shadow-card @3xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_auto] @3xl:items-center" data-testid="hr-attendance-row" data-name={r.employeeName} data-state={r.state}>
                         <span className="min-w-0">
-                          <Link href={HR.employee(r.employeeId, 'attendance')} className="font-medium">
-                            <bdi>{r.employeeName}</bdi>
-                          </Link>
+                          <PersonName id={r.employeeId} name={r.employeeName} tab="attendance" className="font-medium" />
                           <span className="block text-xs text-muted">
                             {role(r.role)}
                             {r.post ? ` · ${r.post}` : ''}

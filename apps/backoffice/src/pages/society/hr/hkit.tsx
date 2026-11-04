@@ -1,5 +1,5 @@
 import { ApiError, type AccessTarget, type AdvanceState, type AttendanceState, type DocumentStatus, type DutyState, type EmploymentView, type HrRole, type LeaveState, type ShiftKey } from '@repo/contracts';
-import { Badge, buttonClass, cn, DateTime, dynamicT, Link, useSession, useT, useToast, type StatusTone } from '@repo/ui';
+import { Badge, buttonClass, cn, DateTime, dynamicT, Link, useCan, useSession, useT, useToast, type StatusTone } from '@repo/ui';
 import { AlarmClock, BadgeCheck, Ban, CalendarClock, CalendarOff, CheckCircle2, CircleDashed, Clock3, FileWarning, Hourglass, Moon, PauseCircle, Search, ShieldAlert, Undo2, UserCheck, UserX, XCircle, type LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import { ComboBox, Input, Label, ListBox, ListBoxItem, Popover } from 'react-aria-components';
@@ -216,6 +216,20 @@ export const useRole = () => {
   const { t } = useT();
   return (role: HrRole) => t(`hr:role.${role}`);
 };
+
+/**
+ * A staff member's name. It links to Employee 360 only for someone who may open it (`hr.view`).
+ * A supervisor sees plain text, so no link leads to "permission missing" (Issue #14).
+ */
+export function PersonName({ id, name, tab, className }: { id: string; name: string; tab?: string; className?: string }) {
+  const can = useCan();
+  if (!can('hr.view')) return <span className={className}><bdi>{name}</bdi></span>;
+  return (
+    <Link href={HR.employee(id, tab)} className={className}>
+      <bdi>{name}</bdi>
+    </Link>
+  );
+}
 
 /** Initials in a circle: never a photo of a real person. */
 export function Initials({ text, className }: { text: string; className?: string }) {

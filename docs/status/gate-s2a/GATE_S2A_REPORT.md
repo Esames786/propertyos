@@ -1,10 +1,13 @@
 # Gate S.2a: Society staff operations (Al-Noor Residency)
 
-**Status: built, frontend only, on typed mock APIs. The Issue #12 security closure is done; stopped for GPT and owner final review.**
+**Status: built, frontend only, on typed mock APIs. The Issue #12 and Issue #14 closures are done; stopped for GPT and owner final review.**
 
 - **Branch:** `feature/gate-s2a-society-staff`. It continues GPT's foundation commit `311dfb5` (on the approved D.3 closure `c497942`, GitHub Issue #11).
   - `95d70d0` is the S.2a gate, reviewed in Issue #12: functionality provisionally accepted.
-  - The closure commit makes the three Issue #12 corrections ([§11](#11-issue-12-final-security-closure)): HR records limited to the reader's sites and legal entities (P0), residents told confirmed staff from scheduled staff (P1), and no voucher able to make a staff advance paid (P1).
+  - `0e14895` makes the three Issue #12 corrections ([§11](#11-issue-12-final-security-closure)): HR records limited to the reader's sites and legal entities (P0), residents told confirmed staff from scheduled staff (P1), and no voucher able to make a staff advance paid (P1).
+  - The Issue #14 closure, on `0e14895`, makes two more corrections ([§12](#12-issue-14-final-closure)):
+    - a manager who sees a multi-site employee through one site can no longer change what all of the employee's sites share (P0);
+    - supervisors see only their own departments' staffing (P1).
 - **Sources:**
   - the owner's brief "PROPERTYOS — GATE S.2a SOCIETY STAFF OPERATIONS" and Issue #11;
   - V3.2 at `0e57604` (`docs/blueprint/v3.2/*`): execution plan §S.2, matrix §5.2 (HR permissions), D-22 (HR as a society add-on) and D-26 (SOS parked), and the HR rows of the register delta.
@@ -35,8 +38,8 @@ Detail:
 | HR → **Employees** → **New employee** | Imran | Validation (CNIC, mobile, age, start date). Asif's CNIC is refused as a duplicate, naming his record. The legal entity and site are chosen explicitly. After saving, Employee 360 opens. |
 | **Employee 360** (`/backoffice/hr/employee-360-workspace/emp_anr_001`) | Imran; then **Ayesha Malik** (treasurer) | Tabs:<br>• Overview, Employment (effective-dated status changes), Duty, Attendance, Leave, Documents, Activity;<br>• **Advances** only with an advances permission.<br>The full identity number, phone and address appear only with `hr.manage` (others see the number masked). Also: the resident-facing profile and consent. |
 | **Duty roster** (`/backoffice/hr/roster`) | Imran | The guards' week: morning, evening and the overnight night shift. Warnings for short staffing and leave. Assign, swap or remove (with a reason). Publish, or open next week's draft. |
-| Roster → **On duty now** | **Shahid Hussain**, security supervisor | Who is in, late or absent. Mark the absent guard; **Bring in cover** suggests people and says why the others cannot. Shows the next shift. |
-| **Attendance** (`/backoffice/hr/attendance`) | Shahid; **Naveed Anjum** (maintenance supervisor) | Each supervisor records only his own departments. A correction is a request, never an edit. |
+| Roster → **On duty now** | **Shahid Hussain**, security supervisor | Who is in, late or absent. Mark the absent guard; **Bring in cover** suggests people and says why the others cannot. Shows the next shift. Since Issue #14 a supervisor's roster and board show **only his own departments**; names are plain text, since he cannot open staff records. |
+| **Attendance** (`/backoffice/hr/attendance`) | Shahid; **Naveed Anjum** (maintenance supervisor) | Each supervisor sees and records only his own departments: Naveed has maintenance and housekeeping, also on the roster and board. A correction is a request, never an edit. |
 | **Leave & corrections** (`/backoffice/hr/leave-attendance-adjustments`) | Imran, then **Rabia Hashmi** (committee secretary, administrator) | Imran decides Shahid's requests but not his own: those go to Rabia. Approving Karim's leave turns his nights into gaps on the roster. |
 | **Documents** (`/backoffice/hr/employee-documents`) | Imran | Missing, expired and expiring documents. Upload is simulated; numbers are masked. |
 | **Advances & loans** (`/backoffice/hr/employee-advances`) → **Settlement** | Imran raises; Ayesha approves ("Approved — payment not verified"); **Saba Javed** (accounts) opens Settlement | Settlement is read only: it explains what a verified payment will need. No voucher can be linked, so nothing is shown as paid, repaid or owed (Issue #12). |
@@ -220,7 +223,10 @@ These are prototype choices, open to the owner:
   - Paying staff by bank and deducting instalments from pay need payroll and outgoing bank payments.
   - All of this is S.2b, not authorised. Nothing invents a bank transaction, and no advance is shown as paid, repaid or owed.
 - **No staff self-service.** A guard has no "My duty" page or app sign-in of their own. Attendance is recorded by the supervisor.
-- **One site in the demo.** Multi-site isolation is enforced by the server and proven at the API with a fictional multi-site organisation (`multisite.fixture.ts`). The demo screens have a single site, so the browser tests cannot show a second one.
+- **One site in the demo.** Multi-site isolation is enforced by the server and proven at the API with a fictional multi-site organisation (`multisite.fixture.ts`). The demo itself has a single site.
+  - Since Issue #14 the browser tests and evidence add a shared guard and a second site in the tab, and narrow the manager to the main site with a demo-only, narrow-only hook (`demo:site-scope`).
+  - That shows the read-only Employee 360. It is test set-up, not a demo feature.
+- **No routing of shared employees' requests (Issue #14).** A single-site manager cannot change a multi-site employee's shared record, and nothing passes the request on to someone responsible for all of the sites; they must make the change. A routing or approval contract would need its own owner-approved design ([§12.3](#123-decisions-made-in-this-closure-open-to-the-owner)).
 - **No transfer screen.** Site allocations are dated records. The transfer tests edit them as a transfer would. A transfer workflow is not built.
 - **"Own record" depends on the employee–user link.** It relies on the employee record carrying the user's principal id ([`SECURITY_FINDINGS.md`](SECURITY_FINDINGS.md) §3).
 - **No editing of shift templates or minimum staffing** (seeded).
@@ -248,6 +254,11 @@ These are prototype choices, open to the owner:
   - HR-008's actions, validation, states and mock API describe the read-only page;
   - PORTAL-036 notes the three staffing states.
   - No status changed.
+- **Closure (Issue #14):**
+  - the notes of HR-003, HR-006, HR-007 and HR-009 state the employee-wide rule;
+  - the notes of HR-005, HR-010 and HR-011 state the supervisors' department rule;
+  - those rows also name `hr.issue14.api.test.ts`.
+  - No status changed.
 - **Result:** **439 rows, 354 distinct: 131 built, 36 partial, 187 planned.** D.3 had 437 / 353 (122 / 35 / 196).
 - `tests/e2e/register.spec.ts` checks the counts and still opens every register address.
 
@@ -265,6 +276,9 @@ These are prototype choices, open to the owner:
 | `g01`…`g06` | 320 × 700, Urdu, 200 % text: the roster, On duty now, Employee 360, leave; the residents' confirmed and scheduled lists (viewport captures) |
 | `h01`, `h02` | Dark mode with high contrast, Urdu, 390 px |
 | `i01`…`i03` | Who sees what: the supervisor's roster-only menu; staff records refused; HR not in the plan |
+| `j01`…`j05` (Issue #14) | <ul><li>The shared guard's Employee 360, read only for a main-site manager, at 1440 px (English), 390 px (Urdu), and 320 × 700 at 200 % in Urdu (`j02`).</li><li>The maintenance supervisor's roster and On duty now with his own departments only.</li><li>The security supervisor's board with security only.</li></ul> |
+
+Since Issue #14, `c05`–`c07` and `i01` (the security supervisor's board) show security shifts only; nothing else in them changed.
 
 Each screenshot's width was read from the PNG and matches its viewport. Element captures (`b05`, `c01`, `d04`) are narrower by design.
 
@@ -410,3 +424,161 @@ On the final code, with retries off:
 | Evidence | 70 screenshots and 2 videos, recaptured |
 
 Earlier runs on the way, including a WebKit test that failed 4 times in 5 and how it was made reliable, are reported as they happened in [`test-results.md`](test-results.md#issue-12-closure-results-final-code).
+
+## 12. Issue #14 final closure
+
+GitHub Issue #14 reviewed the Issue #12 closure `0e14895`. It accepted the three Issue #12 corrections and held the final S.2a sign-off for two authorisation defects found in the source. Both are closed here, with related defects found while fixing them. Nothing accepted was re-implemented, and no status, price, preset or other gate changed.
+
+### 12.1 P0: changes to a shared multi-site employee
+
+**Root cause.**
+- Issue #12 gave HR one rule for employee-bound records: visible when **any** of the employee's sites is in the reader's scope (`employeeVisible`).
+- `findEmployee`, `employeeIn`, `findLeave` and `findAdvance` used that same rule for changes.
+- Only `changeStatus` had a stricter check, added as a special case (`other_sites`) rather than as a rule.
+- So a manager scoped to the main site who could see Rashid (main site and Block C) could:
+  - edit his role and personal and emergency contacts;
+  - change his resident-facing consent;
+  - add or replace his documents;
+  - submit, approve, reject or cancel his leave;
+  - raise, decide or withdraw his advances.
+- Each of these applies at every site the person works at. Approved leave, for example, turns his Block C duty into a gap (`leaveOn` → `attendanceState`).
+
+**Found while fixing it.**
+- **Partial edits.** `edit()` applied the phone and address before it checked the role and the duties to reassign. The demo keeps the state in memory between requests, so a refused PATCH could leave part of its change in place for the next save.
+- **Impossible actions on screen.** Employee 360, the leave and advance lists, and the leave and document pickers offered changes the server must refuse.
+
+**The rule** (`scope.ts` `employeeGoverned`; `views.ts` `governs`; `handlers.ts` `wholeEmployee`):
+- **Seeing** an employee needs one of their sites in scope (unchanged since Issue #12).
+- **Changing what all of their sites share** needs every one of them, each belonging to the employing legal entity. No site at all means nobody (fail closed). This covers:
+  - details, role and personal and emergency contacts (`PATCH /hr/employees/:id`);
+  - the resident-facing profile and consent (`/profile`);
+  - employment: end, suspend, reinstate, rehire (`/status`);
+  - documents: adding a kind, or replacing the current version (`POST /hr/documents`);
+  - leave: request, approve, reject, cancel;
+  - advances: request, approve, reject, withdraw.
+- **Checked first.** The check runs before any validation or change, so a refused request changes nothing. The refusal is `403 other_sites`: it says the person also works elsewhere and never names the site.
+- **Out of scope stays "not found".** An employee of another site is still answered exactly like an id never issued. `other_sites` is only for someone the reader can see.
+- **Site-bound work is unchanged.** At the reader's own site, a manager still plans, swaps, removes and publishes duties, records attendance and decides corrections, for shared staff too. Those records belong to the site. Double booking is still checked across every site.
+- **Organisation-wide HR keeps everything**, and so does a legal-entity scope covering all of the person's sites. Single-site employees are unaffected.
+- **Linking an advance to a voucher** stays refused for everyone (Issue #12).
+
+**On screen.**
+- `EmployeeRow` and `Employee360` carry `allSitesInScope`. When it is false, every employee-wide action is false and Employee 360 shows a note ("Read only for you: … also works at a site you do not manage …"), without naming the site.
+- Leave and advance requests show `blocked: 'other_sites'` with the reason, and no decision buttons.
+- The leave and document pickers, and the advance request list, leave the person out.
+
+**Edit is atomic.** `edit()` checks every field (phone, address, emergency contact, role, duties to reassign) before it changes any.
+
+### 12.2 P1: supervisors' staffing view
+
+**Root cause.**
+- `GET /hr/roster`, `/hr/roster/now` and `/hr/roster/candidates` accept `attendance.record`, the supervisors' permission (owner decision O2).
+- `rosterWeek()` and `onDutyBoard()` listed every department's shifts, names, coverage and warnings.
+- `candidates()` searched every visible employee for any shift template in scope, without checking the department.
+- `attendanceDay()` already filtered by department; nothing else followed it.
+
+**Found while fixing it**, all reachable by a direct API call:
+- **Another site's roster.** A supervisor with an organisation-wide data scope could open `?site=` of a site where they do not work, and see all its departments.
+- **Names in refusals.** Bringing in cover with any employee id answered with that person's name ("another department", "not working at this site").
+- **Attendance from refusals.** A cover request read the covered duty first: "cover not needed" or "already covered" came before the supervisor's own permission check. A maintenance supervisor could therefore learn whether a guard had been marked absent.
+- **Other sites' staff as candidates.** Candidates included same-department staff of other sites, marked "not at this site".
+- **Leave clashes.** Leave clashes listed duties at sites where the supervisor does not work.
+- **Dead-end links.** The board, attendance, leave and corrections linked every name to Employee 360, which supervisors may not open ("permission missing").
+
+**The rule** (`views.ts` `seesAllStaffing`, `staffingShown`, `staffingSites`; `handlers.ts` `staffingOf`, `coverable`):
+- **HR viewers and planners** (`hr.view` or `shifts.manage`) see every department at their HR sites, as before.
+- **Supervisors** (only `attendance.record`) see a department's staffing only where they record for it: their assigned departments, at the sites they are allocated to today. This applies, server-side and before anything is listed or counted, to:
+  - the roster week: shifts, names, coverage, warnings and shift times;
+  - On duty now, current and next;
+  - attendance;
+  - leave clashes;
+  - the site list.
+- **Their working site** is the first site where they record. Any other `?site=` answers like a site that does not exist.
+- **Candidates** exist for a supervisor only for the cover they may bring in (O3): their own department and site, for a shift of today or last night.
+  - Another department's shift gives `403 not_your_department`, before any staff is read.
+  - Another date gives `403 permission_missing`.
+  - The list holds only that department's staff allocated to that site on that date.
+- **Cover** with anyone outside that view gets the answer of an unknown id, naming no one. The supervisor's permission and this check both run before the covered duty is read, so the answer is the same whatever that duty's attendance.
+- **On screen.** Names are plain text for anyone without `hr.view`.
+
+**Preserved.**
+- Supervisors still record their own departments' attendance.
+- They still bring in permitted cover from On duty now, today or last night.
+- Full HR sees the combined roster and board.
+- The residents' "Staff on duty" (Issue #12) is unchanged: it never used the office rule.
+- No SOS or emergency function was added.
+
+### 12.3 Decisions made in this closure (open to the owner)
+
+1. **Advances follow the employee-wide rule.** Leave and advances are both employee-bound records, not site records. A main-site treasurer cannot decide an advance of a shared employee; organisation-wide finance can.
+2. **Rejecting or cancelling leave counts as a change**, like approving it. A pending request already shows as a warning on every site's roster.
+3. **No routing in S.2a.** A single-site principal is refused (`other_sites`); there is no site-scoped routing that would pass the request to someone responsible for all sites. This is the safest fail-closed answer. A routing or approval contract would be a separate, owner-approved design.
+4. **A supervisor's candidates** are limited to the cover window of O3 (today or last night's shift). Planning other dates is the manager's.
+5. **The browser case uses a test hook** (`demo:site-scope`, demo only). It narrows an organisation-wide scope to named sites, never widens one, and is unit-tested. It shows the read-only Employee 360 in the browser, since the demo itself has one site.
+
+### 12.4 Tests added
+
+The new tests are in `packages/fixtures/src/hr/hr.issue14.api.test.ts` (12 tests: 6 for P0, 6 for P1), on the fictional multi-site organisation.
+
+| Area | Tests |
+|---|---|
+| P0 details, role, contacts, consent | <ul><li>A main-site manager sees Rashid read only: `allSitesInScope` false, every employee-wide action false, nothing of Block C.</li><li>Six refused requests: role; phone, emergency contact and address; an invalid phone; consent withdrawn; consent changed; suspension.</li><li>Each answers `403 other_sites` with nothing of Block C, and the **whole stored HR state is byte-identical** afterwards.</li><li>A legal-entity scope covering both sites, and organisation-wide HR, may.</li><li>A main-site-only employee is still edited by the main-site manager.</li></ul> |
+| P0 atomic edit | A refused PATCH (valid phone with an invalid role, address or emergency contact) leaves the state byte-identical |
+| P0 documents | Replacing his appointment letter and adding a police verification are refused, state unchanged. HR for both sites replaces it (version 2) |
+| P0 leave touching Block C | <ul><li>Submit, approve, reject and cancel (pending and approved future) are all refused, with `blocked: 'other_sites'` and no actions in the list.</li><li>The state is unchanged, and the published rosters of **both** sites are identical to before.</li><li>When organisation-wide HR approves, Block C's night duty becomes "on leave", the reason for the rule.</li></ul> |
+| P0 advances | <ul><li>A main-site manager's request list leaves Rashid out.</li><li>Raising, withdrawing, approving (main-site treasurer) and rejecting are refused, state unchanged.</li><li>Linking is still `settlement_unverifiable`.</li><li>Organisation-wide finance approves.</li></ul> |
+| P0 non-disclosure | Another site's employee is still answered exactly like a never-issued id (404), never `other_sites` |
+| P1 roster, board, attendance | <ul><li>Shahid: security only. Naveed: maintenance and housekeeping only. This holds for this week, next week, On duty now and attendance: departments, shifts, templates and warnings, and no name of another department.</li><li>The manager still sees all four departments.</li></ul> |
+| P1 candidates | <ul><li>Naveed asking for the guards' shift, or Shahid for maintenance or housekeeping: `not_your_department`.</li><li>Next week: `permission_missing`.</li><li>Shahid's own shift today: guards only.</li><li>The manager plans any shift and date.</li></ul> |
+| P1 cover | <ul><li>Naveed's cover on a guard's duty gets the same `permission_missing` before and after the guard is marked absent.</li><li>Shahid naming the electrician gets exactly the unknown-id answer, without the name, and nothing changes.</li><li>Permitted cover still works, and recording goes on.</li></ul> |
+| P1 another site | <ul><li>Shahid's roster lists his site only.</li><li>`?site=` Block C on the roster, board and attendance answers exactly like a site that does not exist.</li><li>Block C's template: `not_your_department`.</li><li>Main-site night candidates exclude Block C and the annexe, with no "not at site".</li><li>Omer as cover gets the unknown-id answer.</li><li>Organisation-wide HR keeps Block C.</li></ul> |
+| P1 leave clashes | <ul><li>A guard's leave shows Shahid his own department's clashes, and Naveed nothing.</li><li>For the shared guard, Shahid sees the main-site clash only. Organisation-wide HR sees both.</li></ul> |
+
+Also:
+- `demo-licence.test.ts` (4 tests): the site-scope hook narrows only, and withdrawal still removes only optional add-ons.
+- `s2a.spec.ts` (4 new tests):
+  - the read-only Employee 360 of the shared guard, the server's refusals and the pickers;
+  - the same at 320 × 700 with 200 % text in English and Urdu;
+  - Naveed and Shahid seeing only their departments on the roster and board, with no Employee 360 links, the staff record refused, and `?site=` and another department's candidates refused.
+- `s2a.smoke.spec.ts`: the security supervisor's board shows security only, in Firefox and WebKit.
+- `gates2a.evidence.spec.ts`: captures `j01`–`j05`.
+
+**Checked against the broken behaviour (mutation checks).** Each rule was broken on purpose, one at a time. The HR API tests (`hr.issue14`, `hr.closure`, `hr.api`) were run, then the code was restored and compared byte for byte:
+
+| Rule broken | Tests failing |
+|---|---|
+| No employee-wide guard | 5 |
+| Back to the any-site rule for changes (`.some`) | 5 |
+| The handlers of `0e14895` (edit applied field by field; no supervisor rules) | 8, including "a refused edit changes nothing" |
+| No department filter | 2 |
+| No supervisor working-site rule | 1 |
+| Candidates not limited to the site and department | 1 |
+| Another department's candidates not refused | 2 |
+| Cover from outside the staffing view | 2 |
+| The supervisor's cover checks removed | 2 |
+| The supervisor's cover checks moved back after the covered duty is read | 1 ("the same `permission_missing` before and after the guard is marked absent") |
+| Leave clashes unfiltered | 1 |
+| Leave actions ignore the rule | 1 |
+| Employee 360 actions ignore the rule | 1 |
+| Advance request list unfiltered | 1 |
+| Roster site list unfiltered | 1 |
+| Board unfiltered | 1 |
+| Attendance unfiltered | 2 |
+| Restored | 0 of 46 |
+
+### 12.5 Results
+
+On the final code, with retries off:
+
+| Check | Result |
+|---|---|
+| Typecheck, lint, logical CSS, i18n parity | clean (9,856 keys per locale; two new strings and one reworded refusal, in English and Urdu) |
+| Unit and API | **1,447 / 1,447** (16 new: 12 for Issue #14, 4 for the demo hook). Four earlier complete runs on the same code each failed one or two tests this closure does not touch, on the 5-second timeout; each passed alone ([`test-results.md`](test-results.md#runs-before-the-final-ones-as-they-happened)) |
+| Mutation checks | 17 breaks, each caught |
+| Complete combined E2E with evidence | **388 / 388** in 49.5 minutes: e2e 374 / 374 (every gate, B to S.2a; 4 new), evidence 14 / 14 |
+| Axe | 1,299 scans, 35,889 rule passes, 0 violations; `s2a.spec` 119 of them |
+| Firefox and WebKit smoke | **36 / 36** |
+| Evidence | 79 screenshots (9 new) and 2 videos, recaptured; every width matches its viewport |
+| Register | 439 rows, 354 distinct (131 / 36 / 187), statuses unchanged |
+
+Every run, including any failure on the way, is in [`test-results.md`](test-results.md#issue-14-closure-results-final-code).

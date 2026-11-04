@@ -2,7 +2,11 @@
 
 **Run date:** 2026-11-03. Only tests that were actually executed are reported.
 
-**Issue #12 closure:** the results on the final code are in [§ Issue #12 closure results](#issue-12-closure-results-final-code) at the end. The sections before it are the `95d70d0` run.
+**Issue #14 closure (the current code):** the results on the final code are in [§ Issue #14 closure results](#issue-14-closure-results-final-code) at the end.
+
+**Earlier runs:**
+- **Issue #12 closure** (`0e14895`): [§ Issue #12 closure results](#issue-12-closure-results-final-code).
+- **The gate** (`95d70d0`): the sections before both.
 
 **Environment:**
 - **Builds and ports.** Production builds of all three apps on isolated ports: `E2E_PORT_OFFSET=400` (office 5573, resident 5574, HQ 5575). Built with `VITE_OFFICE_ORIGIN` / `VITE_CUSTOMER_ORIGIN`, and served on both 127.0.0.1 and ::1.
@@ -131,3 +135,67 @@ After these fixes, the whole S.2a spec plus a diagnostic over every S.2a screen 
 | 6–12 | Residents | scheduled; checked in and late; absent, replaced, confirmed; approved and pending leave; overnight; employment ended; another site, no HR, and no chat or hub |
 | 13 | Settlement integrity | the right-looking voucher, a wrong employee, a wrong advance, a supplier payment, an unrelated receipt, another entity and site, reversed before, reused, and reversed after: all refused (`settlement_unverifiable`). The advance stays approved and unverified with only its two history entries. Nothing reads as paid, repaid, received or owed. S.1's vouchers are unchanged, and the candidates route is gone |
 | 14 | Maker ≠ checker | the requester holding the approval permission is refused (`maker_checker_required`); the treasurer approves |
+
+## Issue #14 closure results (final code)
+
+**Run date:** 2026-11-04.
+- **Environment:** the same as above. Production builds on `E2E_PORT_OFFSET=400`, served on 127.0.0.1 and ::1; retries off; 3 workers.
+- **Shared machine:** other sessions' PHP and MySQL work, Windows Defender scanning, about 4 GB of 32 GB memory free. I did not touch any of it.
+- **Final build:** made after the last code change (the order of the supervisor's cover checks). Every browser result in the first table ran on that build. Only test files and documents changed after it. The register edit changed notes and tests only, and the generated register module stayed byte-identical.
+
+### Summary (final code)
+
+| Check | Command | Result |
+|---|---|---|
+| Typecheck | `npx tsc -p tsconfig.json --noEmit` | clean |
+| Lint (ESLint, logical-CSS RTL guard, i18n parity) | `npm run lint` | clean. 2 locales × 25 namespaces, **9,856 keys** each (two new: `decision.blocked.other_sites`, `e360.otherSitesNote`; `problems.otherSites` reworded) |
+| Unit and API | `npx vitest run` | **1,447 / 1,447** in 49 files (before: 1,431 in 47). New: `hr.issue14.api.test.ts` (12) and `demo-licence.test.ts` (4) |
+| Issue #14 negative tests | inside the unit run | **12 / 12**: 6 for P0 (every refused request leaves the whole HR state byte-identical), 6 for P1 |
+| Mutation checks | scratch script; each rule broken on purpose, one at a time, then restored and compared byte for byte | **17 breaks, each caught** (16 scripted, including the handlers of `0e14895`, plus the cover-check order by hand); restored: 0 of 46 HR API tests fail. Detail in the [report, §12.4](GATE_S2A_REPORT.md#124-tests-added) |
+| Register | `node scripts/sync-screen-register.mjs` | 439 rows, 354 distinct: 131 built, 36 partial, 187 planned (no status changed); `register.spec` 16 / 16 on the edited register |
+| **Complete combined regression** | `E2E_PORT_OFFSET=400 npx playwright test --project=e2e --project=evidence tests/e2e tests/evidence/gates2a.evidence.spec.ts --workers=3 --retries=0` | **388 / 388** in one 49.5-minute run: e2e **374 / 374** (every gate, B to S.2a) and evidence **14 / 14**. No retries, no test excluded, no assertion weakened |
+| S.2a end-to-end | `tests/e2e/s2a.spec.ts` (inside the full run) | **27 / 27** (4 new: the shared guard read only; the same at 320 × 700 with 200 % text in English and Urdu; supervisors' own departments with direct addresses) |
+| Accessibility (inside E2E) | axe in every spec that scans | **1,299 axe scans, 35,889 rule passes, 0 violations**; `s2a.spec` had 119 of them (7 new) |
+| 1440, 768, 390 px, both languages | `s2a.spec` (inside the full run) | axe and no sideways scroll on every S.2a screen |
+| 320 × 700 at 100, 150 and 200 % text, English and Urdu | `s2a.spec` (inside the full run) | **8 / 8**: every S.2a screen, the assign drawer, the residents' tab, and the shared guard's read-only Employee 360 |
+| Dark mode with high contrast; keyboard at 320 px / 200 % | `s2a.spec` (inside the full run) | **4 / 4** |
+| Evidence | `tests/evidence/gates2a.evidence.spec.ts` (inside the full run) | **14 / 14**: **79 screenshots** (9 new, `j01`–`j05`) and 2 videos, all recaptured. Every screenshot's width matches its viewport. Changed as intended: `b06`, `c05`–`c07`, `d01` and `i01` (the security supervisor sees security only, and names without links) |
+| Firefox and WebKit smoke | `E2E_PORT_OFFSET=400 npx playwright test tests/smoke --project=firefox-smoke --project=webkit-smoke --workers=3 --retries=0` | **36 / 36** (the guard's board shows security only, in both browsers) |
+| Manual screen reader, devices, forced colours | [`MANUAL_VERIFICATION.md`](MANUAL_VERIFICATION.md) | **not performed** (H9 and H10 added) |
+
+### Runs before the final ones, as they happened
+
+1. **First build of the closure.**
+   - `s2a.spec`: **27 / 27**.
+   - S.2a evidence: **14 / 14**.
+   - Reviewing those captures found the supervisors' names linked to Employee 360, which they cannot open. Now `PersonName`.
+2. **Second build.**
+   - `s2a.spec`: **26 / 27**. The failure was my new test: the attendance page has one list per department, and the locator matched two. Fixed with `.first()`; the Issue #14 tests then passed **4 / 4**.
+3. **The first complete combined run** was stopped part-way, by me. Reviewing the code during it, I found the cover-order leak, and the run was then on outdated code.
+   - The leak: a supervisor's cover request read the covered duty before checking the supervisor's own permission. A maintenance supervisor could learn whether a guard had been marked absent.
+   - The checks were reordered and a test added (mutation-checked), then everything was rebuilt.
+   - The stopped run's partial results are not counted.
+4. **Unit and API, complete runs on the final code.** Four complete runs each failed one or two tests, on a 5-second timeout, in tests this closure does not touch:
+   - S.1's "bulk office collection" reference test: 5.9, 6.9, 5.5 and 11.4 seconds;
+   - once also D.3's "5,000 random small polls": 6.0 seconds.
+
+   One more run, with 6 workers, made no progress for 12 minutes and was stopped. Each of those files passed when run alone (`finance.api.test.ts` 17 / 17).
+
+   Those runs took 60 to 93 seconds, with other work on the machine. I did not establish a cause beyond timing: the same tests had passed in the complete runs earlier the same day (1,443, then 1,447). After the browser runs, the complete suite passed **1,447 / 1,447** with default settings (the table above). No test or timeout was changed.
+
+### Issue #14 tests (`packages/fixtures/src/hr/hr.issue14.api.test.ts`)
+
+| # | Test | What it proves |
+|---|---|---|
+| 1 | Details, role, contacts, consent | <ul><li>A main-site manager sees the shared guard read only.</li><li>Six changes are refused with `other_sites` and nothing of Block C.</li><li>The whole HR state is unchanged.</li><li>A legal-entity scope covering both sites, and organisation-wide HR, may.</li><li>A single-site employee is still edited.</li></ul> |
+| 2 | Atomic edit | A PATCH with a valid phone and an invalid role, address or emergency contact changes nothing |
+| 3 | Documents | Replacing and adding a shared document are refused, state unchanged; organisation-wide HR replaces it |
+| 4 | Leave touching Block C | <ul><li>Submit, approve, reject and cancel (pending and approved future) are refused.</li><li>The state and both sites' published rosters are unchanged.</li><li>Organisation-wide approval then makes Block C's duty "on leave".</li></ul> |
+| 5 | Advances | <ul><li>Raise, withdraw, approve (main-site treasurer) and reject are refused, state unchanged.</li><li>The person is not in the request list.</li><li>Linking is still `settlement_unverifiable`.</li><li>Organisation-wide finance approves.</li></ul> |
+| 6 | Non-disclosure | Another site's employee is answered like a never-issued id (404), never `other_sites` |
+| 7 | Roster, board, attendance | <ul><li>Shahid: security only; Naveed: maintenance and housekeeping only. This holds this week and next, on the board and in attendance, with no other department's names.</li><li>The manager sees all four departments.</li></ul> |
+| 8 | Candidates | <ul><li>Another department's shift: `not_your_department`.</li><li>Next week: `permission_missing`.</li><li>Own shift today: own department only.</li><li>The manager plans any shift and date.</li></ul> |
+| 9 | Cover | <ul><li>The same `permission_missing` for Naveed before and after a guard is marked absent.</li><li>Naming the electrician gets the unknown-id answer, state unchanged.</li><li>Permitted cover and recording still work.</li></ul> |
+| 10 | Another site | <ul><li>The site list is the supervisor's own.</li><li>`?site=` Block C on the roster, board and attendance answers like a site that does not exist.</li><li>Block C's template is refused.</li><li>No other site's staff among the candidates, and no "not at site".</li><li>Omer as cover gets the unknown-id answer.</li><li>Organisation-wide HR keeps Block C.</li></ul> |
+| 11 | Leave clashes | Shahid sees a guard's clashes; Naveed does not see the request |
+| 12 | Shared guard's leave | Shahid sees the main-site clash only; organisation-wide HR sees both |

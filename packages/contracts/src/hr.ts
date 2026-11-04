@@ -81,6 +81,12 @@ export interface EmployeeRow {
   today: DutyNow;
   /** Required documents missing, expired or expiring within 30 days (a count, no detail). */
   documentsAttention: number;
+  /**
+   * Issue #14: whether every site the person works at is in the reader's HR scope.
+   * When false, their employee-wide record (details, profile, documents, leave, advances, employment)
+   * is read only for this reader. The other sites are never named.
+   */
+  allSitesInScope: boolean;
 }
 
 export interface EmployeesList {
@@ -146,6 +152,8 @@ export interface Employee360 {
   /** Only with an advances permission. */
   advances?: StaffAdvanceView[];
   history: HrEvent[];
+  /** As on `EmployeeRow` (Issue #14): false makes every employee-wide action below false. */
+  allSitesInScope: boolean;
   actions: {
     edit: boolean;
     changeStatus: boolean;
@@ -419,9 +427,15 @@ export interface LeaveRequestView {
   decidedByName?: string;
   decidedAt?: string;
   decisionNote?: string;
-  /** Duties on the roster inside the leave dates. */
+  /** Duties on the roster inside the leave dates that the reader may see (supervisors: their own departments). */
   conflicts: Array<{ assignmentId: string; date: string; shiftKey: ShiftKey }>;
-  blocked?: 'own_request' | 'own_record';
+  /**
+   * Why the reader may not decide it:
+   * - their own request, or their own leave;
+   * - `other_sites` (Issue #14): the employee also works at a site outside the reader's HR scope.
+   *   Leave applies at every site the person works at, so it is decided by someone responsible for all of them.
+   */
+  blocked?: 'own_request' | 'own_record' | 'other_sites';
   actions: { approve: boolean; reject: boolean; cancel: boolean };
   history: HrEvent[];
 }
@@ -522,7 +536,8 @@ export interface StaffAdvanceView {
   evidence: Array<{ name: string; type: string; sizeBytes: number }>;
   /** Payment evidence: never verifiable in S.2a (see `AdvanceState`). */
   payment: 'unverified';
-  blocked?: 'own_request' | 'own_record';
+  /** As for leave: own request, own advance, or `other_sites` (Issue #14). */
+  blocked?: 'own_request' | 'own_record' | 'other_sites';
   actions: { approve: boolean; reject: boolean; withdraw: boolean };
   history: HrEvent[];
 }

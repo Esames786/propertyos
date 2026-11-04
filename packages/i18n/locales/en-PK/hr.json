@@ -204,7 +204,8 @@
     "allDocuments": "All employees' documents",
     "advancesTitle": "Advances and loans",
     "activity": "History",
-    "editNote": "Changes to this record are kept in its history."
+    "editNote": "Changes to this record are kept in its history.",
+    "otherSitesNote": "Read only for you: {{name}} also works at a site you do not manage. Their details, resident profile, documents, leave, advances and employment can be changed only by someone responsible for all of their sites. Duties and attendance at your own sites are not affected."
   },
   "assign": {
     "title": "Assign a shift",
@@ -407,7 +408,8 @@
     "reason": "Reason (shown in the history)",
     "blocked": {
       "own_request": "You asked for this, so someone else decides it.",
-      "own_record": "This is about you, so someone else decides it."
+      "own_record": "This is about you, so someone else decides it.",
+      "other_sites": "This person also works at a site you do not manage, so someone responsible for all of their sites decides it."
     }
   },
   "leave": {
@@ -774,7 +776,7 @@
     "ownRecord": "This is about you, so someone else must decide it.",
     "leaveOverlap": "Leave already covers some of these days.",
     "leaveOverlapDetail": "Overlaps request {{ref}}.",
-    "otherSites": "This employee also works at a site you do not manage. Their employment can be changed only by someone responsible for all of their sites.",
+    "otherSites": "This employee also works at a site you do not manage. Their record (details, role, resident profile, documents, leave, advances and employment) can be changed only by someone responsible for all of their sites. Nothing was changed.",
     "settlementUnverifiable": "Payments of staff advances cannot be verified yet. Nothing was linked and nothing changed."
   }
 }

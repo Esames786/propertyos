@@ -14,7 +14,7 @@ These checks are **not a WCAG certification**. The checks below need a person. T
 
 | Item | Scope | Status | Owner |
 |------|-------|--------|-------|
-| NVDA, flows H1–H8 (below) | office app | not performed | needs a person running NVDA |
+| NVDA, flows H1–H10 (below) | office app | not performed | needs a person running NVDA |
 | TalkBack, H5 and H8 in Urdu at 200 % | office app (supervisor) and resident app on Android | not performed | needs an Android phone |
 | VoiceOver (iOS), H8 | resident app on an iPhone | not performed | needs an iPhone |
 | Real phones at 320–360 px | On duty now (check-in, mark absent, bring in cover) with a thumb; the roster's day picker; the assign drawer with the soft keyboard | not performed (automated in Chromium, Firefox and WebKit) | needs devices |
@@ -24,6 +24,8 @@ These checks are **not a WCAG certification**. The checks below need a person. T
 | Money wording (Issue #12) | "Approved — payment not verified", "Payment: Not verified", and the read-only settlement page with its list of what verification will need, read by the finance team | not performed | needs a person |
 | Residents' staffing states (Issue #12) | with residents: whether "Confirmed on duty" and "Scheduled, not yet confirmed" are understood as recorded and planned, and that the note does not suggest an emergency service | not performed | needs residents |
 | Multi-site in the screens (Issue #12) | a second site exists only in the API tests; the site switcher on the roster and site-scoped people need a demo with two sites | not performed (automated at the API) | later stage |
+| Shared employee, read only (Issue #14) | the read-only note on Employee 360, read by a manager who works at one site: is "Read only for you … someone responsible for all of their sites" clear, and is it read before the tabs? | not performed (automated in the browser with the test hook, EN and UR at 320 px / 200 %) | needs a person |
+| Supervisors' view (Issue #14) | with Shahid and Naveed: whether a board showing only their own departments is enough for their work, and whether names without links are clear | not performed | needs the supervisors |
 | Firefox and WebKit beyond the smoke | the rest of the S.2a screens | not performed (smoke: new guard and night shift; On duty now cover; a correction decided by someone else; 320 px / 200 % Urdu) | later stage |
 
 ## Set-up
@@ -53,3 +55,5 @@ The business date is Monday 26 October 2026; the time of day is the computer's.
 | H6 | Corrections and leave | Imran: Leave & corrections | Blocked rows say why (own record). Approve and reject open alert dialogs; reject asks for a reason. The leave conflicts are read before approving. |
 | H7 | Advances | Ayesha: Advances → approve; Saba: Settlement | "Approved — payment not verified" is read as the state, and "Payment: Not verified" in the drawer. The settlement page is read first as partly built and read only; its list of what verification will need is a list; there is no link control. |
 | H8 | Residents' staff on duty | Kamran: Community → Staff on duty, in Urdu at 200 % | "Confirmed on duty" and "Scheduled, not yet confirmed" are separate headed lists; each card reads role, post and "until". Names are read only for confirmed staff who agreed. The unavailable count and the note are read; nothing implies emergency help. |
+| H9 | Shared employee (Issue #14) | Set-up as in `tests/support/society.ts` `addSharedGuard` (a second site and Rashid Latif; the manager narrowed to the main site); Imran opens Rashid's Employee 360 | The note is read as information, with its lock icon silent. No change action is offered: only "Assign a shift". The Leave and Documents tabs read their content without buttons. |
+| H10 | Supervisor's board (Issue #14) | Naveed: Duty roster → On duty now | Only maintenance and housekeeping shifts are read. Names are read as text, not as links. Check in, Mark absent and Bring in cover work as before. |

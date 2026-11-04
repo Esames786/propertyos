@@ -1,7 +1,7 @@
 export { FIXTURE_NOW, createRandom } from './seed';
 export { TENANT, SHALIMAR, CRESCENT_BAY, CEDAR_HILLS, AL_NOOR, BACKOFFICE_TENANTS, CUSTOMER_TENANTS, ALNOOR_RESIDENTS, PARTIES, PERSONAS, ALL_PERSONAS, INVITED_RESIDENT_PERSONAS, demoSignInNumbers, findPersona, CITIES } from './people';
 export { TENANT_DIRECTORY, directoryTenant, effectiveAccessFor, grantsOf, ACCESS_TODAY, type DirectoryTenant } from './tenant-directory';
-export { demoAccessFor, DEMO_WITHDRAWN_KEY } from './demo-licence';
+export { demoAccessFor, DEMO_SITE_SCOPE_KEY, DEMO_WITHDRAWN_KEY } from './demo-licence';
 export { PROJECTS, TOWERS, FLOORS, UNITS, GARDEN_BLOCKS } from './inventory';
 export { LEADS, INVOICES, NOTIFICATIONS, LEAD_ACTIVITY, DEMO_COLLECTION_ACCOUNT } from './records';
 export { MockTransport, MOCK_MODES, decideEndpoint, type MockMode, type MockContext, type MutationLogEntry } from './mock-transport';

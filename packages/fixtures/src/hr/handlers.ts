@@ -6,7 +6,7 @@ import { opsSite, siteRecord } from '../operations/site';
 import { AMOUNT, money, paisa } from '../society/finance/model';
 import { problem } from '../society/handlers';
 import { addDays, assignBlock, DATE, lateBy, ms, normaliseCnic, normalisePhone, pendingLeaveOn, restHours, shiftWindow, weekDays, weekStartOf, type DutyFacts } from './rules';
-import { assignmentVisible, homeSites, scopeOf } from './scope';
+import { allocatedOn, assignmentVisible, homeSites, scopeOf } from './scope';
 import { hrState, nextHr, type StoredAdvance, type StoredAssignment, type StoredEmployee } from './state';
 import {
   advanceView,
@@ -21,6 +21,7 @@ import {
   employeeOf,
   employeeRow,
   employmentView,
+  governs,
   holds,
   hrNow,
   leaveView,
@@ -31,6 +32,9 @@ import {
   recordsFor,
   rosterWeek,
   sees,
+  seesAllStaffing,
+  staffingShown,
+  staffingSites,
   templateOf,
   viewsAdvances,
   visibleEmployees,
@@ -52,6 +56,13 @@ import {
  * Gate S.2a closure (Issue #12): every list, count, summary, detail and action is limited to the
  * reader's HR scope (`scope.ts`) before anything is returned, and an id outside it is "not found".
  * Linking cashbook vouchers to staff advances is disabled (no state change can come from a voucher).
+ *
+ * Gate S.2a closure (Issue #14):
+ * - **P0.** Seeing an employee needs one of their sites. Changing their employee-wide record needs
+ *   all of them (`wholeEmployee`): details, role, resident-facing profile, documents, leave, advances
+ *   and employment. The check runs before anything changes.
+ * - **P1.** Staffing screens (roster, On duty now, attendance, cover candidates) show a supervisor
+ *   only the departments they record for, at the sites they work at (`staffingShown`).
  */
 
 const HR = 'hr' as const;
@@ -107,6 +118,36 @@ function findEmployee(h: Hr, id: string | undefined): StoredEmployee {
   const e = id ? employeeOf(h.state, id) : undefined;
   if (!e || !sees(h, e)) notFound(h.ctx);
   return e;
+}
+
+/**
+ * Gate S.2a closure (Issue #14, P0): authority over the employee-wide record. Seeing an employee needs
+ * one of their sites; changing what all of their sites share needs every one of them (`governs`).
+ * That covers their details, role, resident-facing profile and consent, documents, leave, advances and
+ * employment.
+ *
+ * The check runs before any other check or change, so a refused request changes nothing. The refusal
+ * says only that the person also works elsewhere; it never names the other site.
+ */
+function wholeEmployee(h: Hr, e: StoredEmployee): StoredEmployee {
+  if (!governs(h, e)) refuse(h.ctx, 403, 'other_sites', 'otherSites');
+  return e;
+}
+
+/**
+ * Gate S.2a closure (Issue #14, P1): the working site of a staffing screen (roster, On duty now,
+ * attendance). HR viewers and planners keep `hrOf`'s choice. A supervisor works only on sites where
+ * they record for a department: the first of them by default. Any other `?site=` is "not found", like
+ * a site that does not exist.
+ */
+function staffingOf(ctx: HandlerContext): Hr {
+  const h = hrOf(ctx, { shifts: true });
+  if (seesAllStaffing(h)) return h;
+  const sites = staffingSites(h);
+  const wanted = q(ctx, 'site');
+  const site = wanted ? sites.find((s) => s.siteId === wanted) : (sites[0] ?? h.site);
+  if (!site) notFound(ctx);
+  return { ...h, site };
 }
 
 /** An employee named in a request body, in scope; otherwise the same answer as an unknown id. */
@@ -280,37 +321,46 @@ function hire(h: Hr): Employee360 {
 
 function edit(h: Hr): Employee360 {
   const { ctx } = h;
-  const e = findEmployee(h, ctx.params.id);
+  const e = wholeEmployee(h, findEmployee(h, ctx.params.id));
   if (e.status === 'ended') refuse(ctx, 409, 'employment_ended', 'employmentEnded');
   const b = body<EmployeeInput>(ctx);
-  const changed: string[] = [];
+  // Every field is checked before anything changes (Issue #14): a refused request leaves the record
+  // exactly as it was, even when its other fields were valid.
+  let phone: string | undefined;
   if (b.phone !== undefined) {
-    const phone = normalisePhone(str(b.phone));
-    if (!phone) invalid(ctx, 'phone', 'hr:errors.phone');
-    if (phone !== e.personal.phone) {
-      e.personal.phone = phone;
-      changed.push('phone');
-    }
+    const v = normalisePhone(str(b.phone));
+    if (!v) invalid(ctx, 'phone', 'hr:errors.phone');
+    phone = v;
   }
-  if (b.address !== undefined) {
-    const address = text(ctx, 'address', b.address, 5, 200);
-    if (address !== e.personal.address) {
-      e.personal.address = address;
-      changed.push('address');
-    }
-  }
+  const address = b.address !== undefined ? text(ctx, 'address', b.address, 5, 200) : undefined;
+  let emergency: string | undefined;
   if (b.emergencyContact !== undefined) {
     const v = str(b.emergencyContact) ? normalisePhone(str(b.emergencyContact)) : '';
     if (v === null) invalid(ctx, 'emergencyContact', 'hr:errors.phone');
-    if (v) e.personal.emergencyContact = v;
-    else delete e.personal.emergencyContact;
-    changed.push('emergencyContact');
+    emergency = v;
   }
+  let role: (typeof HR_ROLES)[number] | undefined;
   if (b.role !== undefined && b.role !== e.role) {
-    const role = str(b.role) as (typeof HR_ROLES)[number];
+    role = str(b.role) as (typeof HR_ROLES)[number];
     if (!HR_ROLES.includes(role)) invalid(ctx, 'role', 'hr:errors.role');
     // A move to another department first needs its duties there reassigned.
     if (ROLE_DEPARTMENT[role] !== e.department && live(h.state).some((a) => a.employeeId === e.id && ms(windowOf(h.state, a).end) > ms(h.now))) refuse(ctx, 409, 'reassign_first', 'reassignFirst');
+  }
+  const changed: string[] = [];
+  if (phone !== undefined && phone !== e.personal.phone) {
+    e.personal.phone = phone;
+    changed.push('phone');
+  }
+  if (address !== undefined && address !== e.personal.address) {
+    e.personal.address = address;
+    changed.push('address');
+  }
+  if (emergency !== undefined) {
+    if (emergency) e.personal.emergencyContact = emergency;
+    else delete e.personal.emergencyContact;
+    changed.push('emergencyContact');
+  }
+  if (role) {
     e.history.push(ev(h, 'role_changed', { values: { from: e.role, to: role } }));
     e.role = role;
     e.department = ROLE_DEPARTMENT[role];
@@ -323,15 +373,15 @@ function edit(h: Hr): Employee360 {
 /** Effective-dated status: suspend from today, end from a date (future duties cancelled), reinstate or rehire. */
 function changeStatus(h: Hr): Employee360 {
   const { ctx, state } = h;
-  const e = findEmployee(h, ctx.params.id);
+  // Employment is organisation-wide (it cancels duties at every site the person works at), so it is
+  // changed only by someone whose scope covers all of the employee's sites (Issue #12; since Issue
+  // #14 the same shared rule as every other employee-wide change, checked first).
+  const e = wholeEmployee(h, findEmployee(h, ctx.params.id));
   const b = body<{ status: string; on: string; reason: string }>(ctx);
   const to = str(b.status);
   if (!['active', 'suspended', 'ended'].includes(to)) invalid(ctx, 'status', 'hr:errors.status');
   const on = date(ctx, 'on', b.on);
   const reason = text(ctx, 'reason', b.reason, 5, 300);
-  // Employment is organisation-wide (it cancels duties at every site the person works at), so it is
-  // changed only by someone whose scope covers all of the employee's sites.
-  if (homeSites(e, h.today).some((id) => !h.scope.has(id))) refuse(ctx, 403, 'other_sites', 'otherSites');
   const cancelFrom = (from: string, why: string) => {
     for (const a of live(state).filter((x) => x.employeeId === e.id && x.date >= from && !recordOf(state, x.id))) {
       a.state = 'cancelled';
@@ -376,7 +426,9 @@ function changeStatus(h: Hr): Employee360 {
 
 function profile(h: Hr): Employee360 {
   const { ctx } = h;
-  const e = findEmployee(h, ctx.params.id);
+  // Residents of every site the person works at see this profile, so consent is recorded only by
+  // someone responsible for all of them (Issue #14).
+  const e = wholeEmployee(h, findEmployee(h, ctx.params.id));
   const b = body<{ consent: boolean; showName: boolean; showPhoto: boolean }>(ctx);
   const consent = b.consent === true;
   const was = e.profile.consent;
@@ -416,14 +468,20 @@ function assign(h: Hr) {
   const w = shiftWindow(t, on);
   let covered: StoredAssignment | undefined;
   if (b.coverFor) {
+    if (!holds(h, 'shifts.manage')) {
+      // Owner decision O3: a supervisor may bring in cover within their own department and site, for a
+      // shift of today or last night's that is still running; planning is the manager's.
+      if (!(recordsFor(h, t.department, t.siteId) && on >= addDays(h.today, -1) && on <= h.today)) problem(ctx, 403, 'permission_missing', 'errors:access.permission_missing');
+      // Issue #14 (P1): the cover comes from the supervisor's own staffing view, so anyone else gets the
+      // answer of an unknown id, not a refusal that names them. Both are checked before anything about
+      // the covered duty is read, so another department's attendance is never revealed either.
+      if (!coverable(e, t, on)) invalid(ctx, 'employeeId', 'forms:errors.required');
+    }
     covered = live(state).find((x) => x.id === str(b.coverFor) && x.templateId === t.id && x.date === on);
     if (!covered) invalid(ctx, 'coverFor', 'hr:errors.coverNotFound');
     const s = attendanceState(state, covered);
     if (s !== 'absent' && s !== 'on_leave') refuse(ctx, 409, 'cover_not_needed', 'coverNotNeeded');
     if (live(state).some((x) => x.coverFor === covered!.id)) refuse(ctx, 409, 'already_covered', 'alreadyCovered');
-    // Owner decision O3: a supervisor may bring in cover within their own department and site, for a
-    // shift of today or last night's that is still running; planning is the manager's.
-    if (!holds(h, 'shifts.manage') && !(recordsFor(h, t.department, t.siteId) && on >= addDays(h.today, -1) && on <= h.today)) problem(ctx, 403, 'permission_missing', 'errors:access.permission_missing');
   } else if (!holds(h, 'shifts.manage')) problem(ctx, 403, 'permission_missing', 'errors:access.permission_missing');
   if (ms(w.end) <= ms(h.now)) refuse(ctx, 409, 'duty_ended', 'dutyEnded');
   // Double booking is checked against the employee's duties at every site (the one HR state); the
@@ -483,14 +541,27 @@ function swap(h: Hr) {
   return { first: assignmentView(state, a, h.now), second: assignmentView(state, other, h.now) };
 }
 
+/** A supervisor's cover (owner decision O3, Issue #14): the shift's department, allocated to its site on that date. */
+const coverable = (e: StoredEmployee, t: { department: HrDepartment; siteId: string }, on: string) => e.department === t.department && allocatedOn(e, t.siteId, on);
+
 function candidates(h: Hr): Candidate[] {
   const { ctx } = h;
   const t = templateIn(h, q(ctx, 'templateId'));
   const on = q(ctx, 'date');
   if (!DATE.test(on)) invalid(ctx, 'date', 'hr:errors.date');
+  const planner = holds(h, 'shifts.manage');
+  // Issue #14 (P1). Without roster planning, candidates exist only for the cover a supervisor may
+  // bring in (owner decision O3): their own department and site, a shift of today or last night.
+  // Anything else is refused before any staff is read.
+  if (!planner) {
+    if (!recordsFor(h, t.department, t.siteId)) refuse(ctx, 403, 'not_your_department', 'notYourDepartment');
+    if (on < addDays(h.today, -1) || on > h.today) problem(ctx, 403, 'permission_missing', 'errors:access.permission_missing');
+  }
   const w = shiftWindow(t, on);
-  // Only people the reader may see are offered; their duties elsewhere still count for overlap.
+  // Only people the reader may see are offered; their duties elsewhere still count for overlap. A
+  // supervisor is offered only staff of that department allocated to that site on that date.
   return visibleEmployees(h)
+    .filter((e) => planner || coverable(e, t, on))
     .filter((e) => e.status !== 'ended' || (e.endDate ?? '') >= on)
     .map((e): Candidate => {
       const facts = factsOf(h, e);
@@ -522,10 +593,11 @@ function publish(h: Hr): RosterWeek {
 function attendanceDay(h: Hr): AttendanceDay {
   const raw = q(h.ctx, 'date');
   const on = raw ? date(h.ctx, 'date', raw) : h.today;
-  const all = holds(h, 'hr.view');
+  // The shared staffing rule (Issue #14): HR viewers and planners see every department; a supervisor
+  // sees the departments they record for at that site.
   const rows = visibleLive(h)
     .filter((a) => a.siteId === h.site.siteId && a.date === on)
-    .filter((a) => all || recordsFor(h, templateOf(h.state, a.templateId).department, a.siteId))
+    .filter((a) => staffingShown(h, templateOf(h.state, a.templateId).department, a.siteId))
     .sort((a, b) => ms(windowOf(h.state, a).start) - ms(windowOf(h.state, b).start) || employeeOf(h.state, a.employeeId)!.name.localeCompare(employeeOf(h.state, b.employeeId)!.name))
     .map((a) => attendanceRow(h, a));
   const summary = { planned: 0, present: 0, late: 0, absent: 0, on_leave: 0 } as Record<AttendanceState, number>;
@@ -669,7 +741,9 @@ function leaveAndCorrections(h: Hr): LeaveAndCorrections {
 function requestLeave(h: Hr) {
   const { ctx, state } = h;
   const b = body<LeaveInput>(ctx);
-  const e = employeeIn(h, b.employeeId);
+  // Leave applies at every site the person works at (approved leave makes their duties there gaps),
+  // so it is requested by someone responsible for all of them (Issue #14).
+  const e = wholeEmployee(h, employeeIn(h, b.employeeId));
   if (employmentView(e, h.today) !== 'active') refuse(ctx, 409, 'not_employed', 'notEmployed', { name: e.name });
   const type = str(b.type) as (typeof LEAVE_TYPES)[number];
   if (!LEAVE_TYPES.includes(type)) invalid(ctx, 'type', 'hr:errors.leaveType');
@@ -703,11 +777,16 @@ function decideLeave(h: Hr, approve: boolean) {
   return leaveView(h, l);
 }
 
-/** A leave request of an employee in the reader's scope. */
+/**
+ * A leave request of an employee in the reader's scope, for a decision or a cancellation. Both
+ * change leave that applies at every one of the person's sites, so they also need all of them
+ * (Issue #14).
+ */
 function findLeave(h: Hr) {
   const l = h.state.leave.find((x) => x.id === h.ctx.params.id);
   const e = l ? employeeOf(h.state, l.employeeId) : undefined;
   if (!l || !e || !sees(h, e)) notFound(h.ctx);
+  wholeEmployee(h, e);
   return l;
 }
 
@@ -750,7 +829,9 @@ function documentsOverview(h: Hr): DocumentsOverview {
 function addDocument(h: Hr) {
   const { ctx, state } = h;
   const b = body<DocumentInput>(ctx);
-  const e = employeeIn(h, b.employeeId);
+  // An employee's documents serve every site they work at (a new version replaces the current one
+  // for all of them), so they are changed by someone responsible for all of those sites (Issue #14).
+  const e = wholeEmployee(h, employeeIn(h, b.employeeId));
   const kind = str(b.kind) as (typeof HR_DOCUMENT_KINDS)[number];
   if (!HR_DOCUMENT_KINDS.includes(kind)) invalid(ctx, 'kind', 'hr:errors.documentKind');
   const file = (b.file ?? {}) as Partial<DocumentInput['file']>;
@@ -800,22 +881,28 @@ function advancesList(h: Hr): AdvancesList {
   const items = all.filter((a) => !status || status === 'all' || a.state === status).sort((a, b) => ms(b.requestedAt) - ms(a.requestedAt));
   const approved = own.filter((a) => a.state === 'approved').reduce((n, a) => n + paisa(a.amount), 0n);
   const canRequest = holds(h, 'hr.advances.manage');
-  const staff = canRequest ? mine.filter((e) => employmentView(e, h.today) === 'active').map((e) => ({ id: e.id, name: e.name, role: e.role })) : [];
+  // Only staff whose whole record the reader may change can have an advance raised (Issue #14).
+  const staff = canRequest ? mine.filter((e) => employmentView(e, h.today) === 'active' && governs(h, e)).map((e) => ({ id: e.id, name: e.name, role: e.role })) : [];
   return { items, counts, totals: { approvedUnverified: money(approved) }, canRequest, canApprove: holds(h, 'hr.advances.approve'), staff, today: h.today };
 }
 
-/** An advance of an employee in the reader's scope. */
-function findAdvance(h: Hr): StoredAdvance {
+/**
+ * An advance of an employee in the reader's scope. With `whole`, also the authority to change it:
+ * an advance belongs to the employee, not to one site, so deciding or withdrawing it needs all of
+ * their sites (Issue #14).
+ */
+function findAdvance(h: Hr, whole = true): StoredAdvance {
   const a = h.state.advances.find((x) => x.id === h.ctx.params.id);
   const e = a ? employeeOf(h.state, a.employeeId) : undefined;
   if (!a || !e || !sees(h, e)) notFound(h.ctx);
+  if (whole) wholeEmployee(h, e);
   return a;
 }
 
 function requestAdvance(h: Hr): StaffAdvanceView {
   const { ctx, state } = h;
   const b = body<AdvanceInput>(ctx);
-  const e = employeeIn(h, b.employeeId);
+  const e = wholeEmployee(h, employeeIn(h, b.employeeId));
   if (employmentView(e, h.today) !== 'active') refuse(ctx, 409, 'not_employed', 'notEmployed', { name: e.name });
   const kind = str(b.kind) as (typeof ADVANCE_KINDS)[number];
   if (!ADVANCE_KINDS.includes(kind)) invalid(ctx, 'kind', 'hr:errors.advanceKind');
@@ -873,7 +960,9 @@ function withdrawAdvance(h: Hr): StaffAdvanceView {
  * The route stays so that a direct call is refused, never silently accepted.
  */
 function link(h: Hr): never {
-  findAdvance(h);
+  // Unchanged since Issue #12: the advance is looked up (out of scope is "not found"), then every
+  // request is refused, whoever asks, so no voucher can change it.
+  findAdvance(h, false);
   refuse(h.ctx, 409, 'settlement_unverifiable', 'settlementUnverifiable');
 }
 // ---------------------------------------------------------------------------------------------
@@ -908,18 +997,18 @@ export const HR_HANDLERS: Handler[] = [
     pattern: /^\/hr\/roster$/,
     access: read(ROSTER_READERS, SHIFTS),
     handle: (ctx): RosterWeek => {
-      const h = hrOf(ctx, { shifts: true });
+      const h = staffingOf(ctx);
       return rosterWeek(h, weekParam(h));
     },
   },
-  { method: 'GET', pattern: /^\/hr\/roster\/now$/, access: read(ROSTER_READERS, SHIFTS), handle: (ctx): OnDutyBoard => onDutyBoard(hrOf(ctx, { shifts: true })) },
+  { method: 'GET', pattern: /^\/hr\/roster\/now$/, access: read(ROSTER_READERS, SHIFTS), handle: (ctx): OnDutyBoard => onDutyBoard(staffingOf(ctx)) },
   { method: 'GET', pattern: /^\/hr\/roster\/candidates$/, access: read(['shifts.manage', 'attendance.record'], SHIFTS), handle: (ctx): Candidate[] => candidates(hrOf(ctx, { shifts: true })) },
   { method: 'POST', pattern: /^\/hr\/roster\/assignments$/, access: change(['shifts.manage', 'attendance.record'], SHIFTS), handle: (ctx) => assign(hrOf(ctx, { shifts: true })) },
   { method: 'POST', pattern: /^\/hr\/roster\/assignments\/(?<id>[\w-]+)\/unassign$/, access: change('shifts.manage', SHIFTS), handle: (ctx) => unassign(hrOf(ctx, { shifts: true })) },
   { method: 'POST', pattern: /^\/hr\/roster\/assignments\/(?<id>[\w-]+)\/swap$/, access: change('shifts.manage', SHIFTS), handle: (ctx) => swap(hrOf(ctx, { shifts: true })) },
   { method: 'POST', pattern: /^\/hr\/roster\/publish$/, access: change('shifts.manage', SHIFTS), handle: (ctx) => publish(hrOf(ctx, { shifts: true })) },
 
-  { method: 'GET', pattern: /^\/hr\/attendance$/, access: read(['hr.view', 'attendance.record'], SHIFTS), handle: (ctx): AttendanceDay => attendanceDay(hrOf(ctx, { shifts: true })) },
+  { method: 'GET', pattern: /^\/hr\/attendance$/, access: read(['hr.view', 'attendance.record'], SHIFTS), handle: (ctx): AttendanceDay => attendanceDay(staffingOf(ctx)) },
   { method: 'POST', pattern: /^\/hr\/attendance\/(?<id>[\w-]+)\/check-in$/, access: change('attendance.record', SHIFTS), handle: (ctx) => checkIn(hrOf(ctx, { shifts: true })) },
   { method: 'POST', pattern: /^\/hr\/attendance\/(?<id>[\w-]+)\/check-out$/, access: change('attendance.record', SHIFTS), handle: (ctx) => checkOut(hrOf(ctx, { shifts: true })) },
   { method: 'POST', pattern: /^\/hr\/attendance\/(?<id>[\w-]+)\/absent$/, access: change('attendance.record', SHIFTS), handle: (ctx) => markAbsent(hrOf(ctx, { shifts: true })) },

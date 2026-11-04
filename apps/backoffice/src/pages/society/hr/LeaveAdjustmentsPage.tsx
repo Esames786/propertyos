@@ -4,7 +4,7 @@ import { ArrowRight, CalendarPlus, Check, Info, X } from 'lucide-react';
 import { useState } from 'react';
 import { HR } from '../../../nav.config';
 import { Loading, useSocietyFormat } from '../kit';
-import { AttendanceBadge, DecisionBadge, HrNav, Time, useProblemToast, useShiftName, weekStartOf } from './hkit';
+import { AttendanceBadge, DecisionBadge, HrNav, PersonName, Time, useProblemToast, useShiftName, weekStartOf } from './hkit';
 import { LeaveDrawer } from './HrDrawers';
 
 /**
@@ -44,7 +44,7 @@ export default function LeaveAdjustmentsPage() {
       <UrlTabs label={t('hr:leave.tabsLabel')} items={tabs} phoneLimit={2}>
         {(tab) => <div className="pt-4">{tab === 'corrections' ? <Corrections list={d.corrections} /> : <Leave list={d.leave} />}</div>}
       </UrlTabs>
-      {staff.data && <LeaveDrawer key={String(requesting)} open={requesting} onClose={() => setRequesting(false)} staff={staff.data.items.filter((e) => e.status === 'active').map((e) => ({ id: e.id, name: e.name, role: e.role }))} today={d.today} />}
+      {staff.data && <LeaveDrawer key={String(requesting)} open={requesting} onClose={() => setRequesting(false)} staff={staff.data.items.filter((e) => e.status === 'active' && e.allSitesInScope).map((e) => ({ id: e.id, name: e.name, role: e.role }))} today={d.today} />}
     </div>
   );
 }
@@ -77,9 +77,7 @@ function Leave({ list }: { list: LeaveRequestView[] }) {
             <li key={l.id} className="space-y-2 rounded-tile border border-border/70 bg-panel p-4 shadow-card" data-testid="hr-leave-row" data-name={l.employeeName} data-state={l.state}>
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0 flex-1 basis-[min(100%,18rem)]">
-                  <Link href={HR.employee(l.employeeId, 'leave')} className="inline-flex min-h-6 items-center font-semibold">
-                    <bdi>{l.employeeName}</bdi>
-                  </Link>
+                  <PersonName id={l.employeeId} name={l.employeeName} tab="leave" className="inline-flex min-h-6 items-center font-semibold" />
                   <p className="text-sm text-text">
                     {t(`hr:leave.types.${l.type}`)} · {fmt.date(l.from)}
                     {l.to !== l.from ? ` – ${fmt.date(l.to)}` : ''} · {t('hr:leave.days', { count: l.days })}
@@ -174,9 +172,7 @@ function Corrections({ list }: { list: AttendanceCorrectionView[] }) {
           <li key={c.id} className="space-y-2 rounded-tile border border-border/70 bg-panel p-4 shadow-card" data-testid="hr-correction-row" data-name={c.employeeName} data-state={c.state}>
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div className="min-w-0 flex-1 basis-[min(100%,18rem)]">
-                <Link href={HR.employee(c.employeeId, 'attendance')} className="inline-flex min-h-6 items-center font-semibold">
-                  <bdi>{c.employeeName}</bdi>
-                </Link>
+                <PersonName id={c.employeeId} name={c.employeeName} tab="attendance" className="inline-flex min-h-6 items-center font-semibold" />
                 <p className="text-sm text-text">
                   {/* Stacked under the name link: 24 px tall so the two never crowd each other (target size). */}
                   <Link href={HR.attendance(c.date)} className="inline-flex min-h-6 items-center">

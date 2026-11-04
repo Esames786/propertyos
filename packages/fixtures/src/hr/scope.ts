@@ -20,6 +20,12 @@ import type { HrSite, HrState, StoredAssignment, StoredEmployee } from './state'
  *
  * Anything outside this is treated as not existing. Lists and counts leave it out, and a direct id
  * gets the same "not found" as an id that was never issued.
+ *
+ * Gate S.2a closure (Issue #14) adds two rules on top:
+ * - **Changing** an employee-bound record needs all of the employee's sites (`employeeGoverned`).
+ *   Seeing it needs only one.
+ * - **Staffing by department** (`views.ts`): someone without `hr.view` or `shifts.manage` sees only
+ *   the departments they supervise, at the sites they are allocated to.
  */
 export interface HrScope {
   /** Visible HR sites, the organisation's first site first. */
@@ -53,6 +59,22 @@ export function homeSites(e: StoredEmployee, today: string): string[] {
 /** Whether the person may see this employee and everything bound to them. */
 export function employeeVisible(state: HrState, scope: HrScope, e: StoredEmployee, today: string): boolean {
   return homeSites(e, today).some((id) => scope.has(id) && state.sites.find((s) => s.siteId === id)?.legalEntityId === e.legalEntityId);
+}
+
+/**
+ * Gate S.2a closure (GitHub Issue #14, P0): whether the person may change what all of the employee's
+ * sites share. Seeing an employee needs one of their sites in scope (`employeeVisible`). Changing the
+ * employee-wide record needs **every** one of them, because the change applies at each site the
+ * person works at:
+ * - their details and role, and the resident-facing profile and consent;
+ * - their documents, leave, advances and employment.
+ *
+ * Each site must belong to the employing legal entity. No site at all means nobody (fail closed).
+ * Site-bound records (a duty, its attendance and corrections) follow their own site instead.
+ */
+export function employeeGoverned(state: HrState, scope: HrScope, e: StoredEmployee, today: string): boolean {
+  const homes = homeSites(e, today);
+  return homes.length > 0 && homes.every((id) => scope.has(id) && state.sites.find((s) => s.siteId === id)?.legalEntityId === e.legalEntityId);
 }
 
 /** Whether the person may see this duty (and its attendance and corrections). */

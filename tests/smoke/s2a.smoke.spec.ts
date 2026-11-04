@@ -82,6 +82,9 @@ test('On duty now: the absent guard is marked and covered; the shift is no longe
   await at(page, '15:20');
   await seedSociety(page, { staff: 'alnoor_guard' });
   await as(page, 'backoffice', 'alnoor_guard', '/backoffice/hr/roster?tab=now', 'hr-on-duty');
+  // Issue #14: the security supervisor's board shows security shifts only.
+  await expect(page.getByTestId('hr-board-shift').first()).toBeVisible();
+  expect(await page.getByTestId('hr-board-shift').evaluateAll((els) => [...new Set(els.map((e) => e.getAttribute('data-department')))])).toEqual(['security']);
   const evening = page.locator('[data-testid="hr-board-shift"][data-shift="evening"]');
   await evening.locator('[data-name="Faisal Iqbal"]').getByTestId('hr-board-absent').click();
   const dialog = page.getByRole('alertdialog');

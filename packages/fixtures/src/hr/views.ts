@@ -1,9 +1,9 @@
 import type { AssignmentView, AttendanceRow, AttendanceState, DocumentStatus, DutyNow, Employee360, EmployeeRow, EmploymentView, HrDepartment, HrDocumentKind, HrDocumentView, LeaveRequestView, LeaveType, OnDutyBoard, OnDutyShift, OnDutyStaff, Permission, RosterWeek, RosterWarning, ShiftTemplate, StaffAdvanceView, AttendanceCorrectionView } from '@repo/contracts';
-import { HR_DOCUMENT_KINDS, LEAVE_TYPES } from '@repo/contracts';
+import { HR_DEPARTMENTS, HR_DOCUMENT_KINDS, LEAVE_TYPES } from '@repo/contracts';
 import { can, type HandlerContext } from '../handler-types';
 import { money, paisa } from '../society/finance/model';
 import { addDays, coverage, documentStatus, initialsOf, instalmentPlan, lateBy, maskCnic, ms, REQUIRED_DOCUMENTS, shiftWindow, weekDays, weekStartOf, type Window } from './rules';
-import { allocatedOn, assignmentVisible, employeeVisible, type HrScope } from './scope';
+import { allocatedOn, assignmentVisible, employeeGoverned, employeeVisible, type HrScope } from './scope';
 import { hrStamp, type HrSite, type HrState, type StoredAdvance, type StoredAssignment, type StoredCorrection, type StoredDocument, type StoredEmployee, type StoredLeave } from './state';
 
 /**
@@ -41,6 +41,8 @@ export const visibleLive = (h: Pick<Hr, 'state' | 'scope'>) => live(h.state).fil
 /** Employees the reader may see. */
 export const visibleEmployees = (h: Pick<Hr, 'state' | 'scope' | 'today'>) => h.state.employees.filter((e) => employeeVisible(h.state, h.scope, e, h.today));
 export const sees = (h: Pick<Hr, 'state' | 'scope' | 'today'>, e: StoredEmployee) => employeeVisible(h.state, h.scope, e, h.today);
+/** Issue #14 (P0): the reader may change this employee's employee-wide record (every one of their sites is in scope). */
+export const governs = (h: Pick<Hr, 'state' | 'scope' | 'today'>, e: StoredEmployee) => employeeGoverned(h.state, h.scope, e, h.today);
 
 /** The leave that covers a date for an employee (approved first, then pending). */
 export function leaveOn(state: HrState, employeeId: string, date: string): StoredLeave | undefined {
@@ -75,6 +77,23 @@ export const recordsFor = (h: Hr, department: HrDepartment, siteId: string) => {
   const me = myEmployee(h);
   return !!me && me.supervises.includes(department) && allocatedOn(me, siteId, h.today);
 };
+
+/**
+ * Gate S.2a closure (GitHub Issue #14, P1): who sees which staffing.
+ *
+ * HR viewers (`hr.view`) and roster planners (`shifts.manage`) see every department at their HR sites.
+ * Anyone else reaches staffing screens through `attendance.record` alone: a supervisor. A supervisor
+ * sees a department's duties, names and availability only where they record for it (`recordsFor`):
+ * - the departments explicitly assigned to them (owner decision O2);
+ * - at the sites they are allocated to today.
+ *
+ * The server applies this to the roster, On duty now, attendance, the cover candidates and leave
+ * conflicts, before anything is listed or counted.
+ */
+export const seesAllStaffing = (h: Hr) => holds(h, 'hr.view') || holds(h, 'shifts.manage');
+export const staffingShown = (h: Hr, department: HrDepartment, siteId: string) => h.scope.has(siteId) && (seesAllStaffing(h) || recordsFor(h, department, siteId));
+/** The sites whose staffing the reader may see: all their HR sites, or a supervisor's own. */
+export const staffingSites = (h: Hr) => (seesAllStaffing(h) ? h.scope.sites : h.scope.sites.filter((s) => HR_DEPARTMENTS.some((d) => recordsFor(h, d, s.siteId))));
 
 export function assignmentView(state: HrState, a: StoredAssignment, now: string): AssignmentView {
   const e = employeeOf(state, a.employeeId)!;
@@ -188,6 +207,7 @@ export function employeeRow(h: Hr, e: StoredEmployee): EmployeeRow {
     ...(e.endDate ? { endDate: e.endDate } : {}),
     today: e.status === 'active' ? dutyNow(h, e.id) : { state: 'off' },
     documentsAttention: documentsAttention(h.state, e, h.today),
+    allSitesInScope: governs(h, e),
   };
 }
 
@@ -196,9 +216,15 @@ export function leaveView(h: Hr, l: StoredLeave): LeaveRequestView {
   const own = e.principalId === h.me.principalId;
   const ownRequest = l.requestedBy === h.me.principalId;
   const pending = l.state === 'pending';
-  const may = holds(h, 'leave.manage') && pending;
+  // Leave applies at every site the person works at, so only someone responsible for all of them
+  // decides or cancels it (Issue #14, P0).
+  const whole = governs(h, e);
+  const may = holds(h, 'leave.manage') && pending && whole;
+  // A supervisor sees the clashing duties of their own departments and sites only (Issue #14, P1).
+  const allDuties = seesAllStaffing(h) || holds(h, 'leave.manage');
   const conflicts = visibleLive(h)
     .filter((a) => a.employeeId === l.employeeId && l.from <= a.date && a.date <= l.to)
+    .filter((a) => allDuties || recordsFor(h, templateOf(h.state, a.templateId).department, a.siteId))
     .map((a) => ({ assignmentId: a.id, date: a.date, shiftKey: templateOf(h.state, a.templateId).key }));
   return {
     id: l.id,
@@ -216,8 +242,8 @@ export function leaveView(h: Hr, l: StoredLeave): LeaveRequestView {
     ...(l.decidedByName ? { decidedByName: l.decidedByName, decidedAt: l.decidedAt! } : {}),
     ...(l.decisionNote ? { decisionNote: l.decisionNote } : {}),
     conflicts,
-    ...(pending && own ? { blocked: 'own_record' as const } : pending && ownRequest ? { blocked: 'own_request' as const } : {}),
-    actions: { approve: may && !own && !ownRequest, reject: may && !own && !ownRequest, cancel: (l.state === 'pending' || (l.state === 'approved' && l.from > h.today)) && (ownRequest || holds(h, 'leave.manage')) },
+    ...(pending && own ? { blocked: 'own_record' as const } : pending && ownRequest ? { blocked: 'own_request' as const } : pending && !whole && holds(h, 'leave.manage') ? { blocked: 'other_sites' as const } : {}),
+    actions: { approve: may && !own && !ownRequest, reject: may && !own && !ownRequest, cancel: whole && (l.state === 'pending' || (l.state === 'approved' && l.from > h.today)) && (ownRequest || holds(h, 'leave.manage')) },
     history: l.history,
   };
 }
@@ -255,8 +281,11 @@ export function advanceView(h: Hr, a: StoredAdvance): StaffAdvanceView {
   const own = e.principalId === h.me.principalId;
   const ownRequest = a.requestedBy === h.me.principalId;
   const submitted = a.state === 'submitted';
-  const may = holds(h, 'hr.advances.approve') && submitted && !own && !ownRequest;
-  const manage = holds(h, 'hr.advances.manage');
+  // An advance belongs to the employee, not to one site: deciding or withdrawing it needs all of
+  // their sites (Issue #14, P0), as for leave.
+  const whole = governs(h, e);
+  const may = holds(h, 'hr.advances.approve') && submitted && !own && !ownRequest && whole;
+  const manage = holds(h, 'hr.advances.manage') && whole;
   // The plan is an instruction: no instalment is ever shown as received (payment evidence is S.2b).
   const schedule = instalmentPlan(paisa(a.amount), a.instalments, a.firstMonth).map((i) => ({ n: i.n, month: i.month, amount: money(i.paisa), state: 'planned' as const }));
   return {
@@ -276,7 +305,7 @@ export function advanceView(h: Hr, a: StoredAdvance): StaffAdvanceView {
     ...(a.decisionNote ? { decisionNote: a.decisionNote } : {}),
     evidence: a.evidence,
     payment: 'unverified',
-    ...(submitted && own ? { blocked: 'own_record' as const } : submitted && ownRequest ? { blocked: 'own_request' as const } : {}),
+    ...(submitted && own ? { blocked: 'own_record' as const } : submitted && ownRequest ? { blocked: 'own_request' as const } : submitted && !whole && holds(h, 'hr.advances.approve') ? { blocked: 'other_sites' as const } : {}),
     actions: {
       approve: may,
       reject: may,
@@ -349,6 +378,7 @@ export function employee360(h: Hr, e: StoredEmployee): Employee360 {
   for (const l of state.leave.filter((x) => x.employeeId === e.id && x.state === 'approved' && x.from.startsWith(year))) taken[l.type] += Math.round((Date.parse(`${l.to}T00:00:00Z`) - Date.parse(`${l.from}T00:00:00Z`)) / 86_400_000) + 1;
   const docs = documentStatuses(state, e, today);
   const active = e.status === 'active';
+  const whole = governs(h, e);
   const advances = viewsAdvances(h) ? state.advances.filter((a) => a.employeeId === e.id).map((a) => advanceView(h, a)) : undefined;
   return {
     id: e.id,
@@ -382,15 +412,18 @@ export function employee360(h: Hr, e: StoredEmployee): Employee360 {
     },
     ...(advances ? { advances } : {}),
     history: [...e.history].sort((a, b) => ms(b.at) - ms(a.at)),
+    allSitesInScope: whole,
     actions: {
-      edit: manage && e.status !== 'ended',
-      changeStatus: manage,
+      // Employee-wide changes need every one of the person's sites (Issue #14, P0). Duties and
+      // attendance are site-bound, so planning and recording at the reader's own sites stay available.
+      edit: manage && whole && e.status !== 'ended',
+      changeStatus: manage && whole,
       assign: holds(h, 'shifts.manage') && active && !!h.ctx.access?.features.includes('hr.shifts'),
       recordAttendance: active && e.sites.some((s) => allocatedOn(e, s.siteId, today) && recordsFor(h, e.department, s.siteId)),
-      requestLeave: (manage || holds(h, 'leave.manage')) && active,
-      manageDocuments: docsManage,
+      requestLeave: (manage || holds(h, 'leave.manage')) && whole && active,
+      manageDocuments: docsManage && whole,
       viewAdvances: viewsAdvances(h),
-      requestAdvance: holds(h, 'hr.advances.manage') && active,
+      requestAdvance: holds(h, 'hr.advances.manage') && whole && active,
     },
   };
 }
@@ -409,7 +442,9 @@ export function weekStateOf(state: HrState, siteId: string, weekStart: string) {
 
 export function rosterWeek(h: Hr, weekStart: string): RosterWeek {
   const { state, site } = h;
-  const templates = orderedTemplates(state, site.siteId);
+  // Only the departments whose staffing the reader may see (Issue #14, P1): nothing of another
+  // department's shifts, names, coverage or warnings is listed or counted for a supervisor.
+  const templates = orderedTemplates(state, site.siteId).filter((t) => staffingShown(h, t.department, t.siteId));
   const warnings: RosterWarning[] = [];
   const days = weekDays(weekStart).map((date, i) => ({
     date,
@@ -441,18 +476,23 @@ export function rosterWeek(h: Hr, weekStart: string): RosterWeek {
     changesSincePublish: week?.changesSincePublish ?? 0,
     warnings,
     templates,
-    sites: h.scope.sites.map((s) => ({ id: s.siteId, name: s.name })),
+    sites: staffingSites(h).map((s) => ({ id: s.siteId, name: s.name })),
     actions: { edit, publish: edit && (week?.state !== 'published' || (week?.changesSincePublish ?? 0) > 0) },
   };
 }
 
-/** The shifts running at `now` (yesterday's night included) and the next ones to start. */
-export function onDutyShifts(h: Hr, opts: { publishedOnly: boolean }): { current: OnDutyShift[]; next: OnDutyShift[] } {
+/**
+ * The shifts running at `now` (yesterday's night included) and the next ones to start. `shows` limits
+ * the departments (the office board passes the reader's staffing rule; residents see role-only
+ * summaries of every department, built in `resident.ts`).
+ */
+export function onDutyShifts(h: Hr, opts: { publishedOnly: boolean; shows?: (t: ShiftTemplate) => boolean }): { current: OnDutyShift[]; next: OnDutyShift[] } {
   const { state, site, today } = h;
   const at = ms(h.now);
   const published = (date: string) => weekStateOf(state, site.siteId, weekStartOf(date))?.state === 'published';
   const weekday = (date: string) => (new Date(`${date}T00:00:00Z`).getUTCDay() + 6) % 7;
-  const candidates = orderedTemplates(state, site.siteId).flatMap((t) =>
+  const shows = opts.shows ?? (() => true);
+  const candidates = orderedTemplates(state, site.siteId).filter(shows).flatMap((t) =>
     [addDays(today, -1), today, addDays(today, 1)]
       // A shift that does not run that day appears only if someone was put on it as an exception.
       .filter((date) => t.days.includes(weekday(date)) || live(state).some((a) => a.templateId === t.id && a.date === date))
@@ -490,7 +530,8 @@ export function onDutyShifts(h: Hr, opts: { publishedOnly: boolean }): { current
 }
 
 export function onDutyBoard(h: Hr): OnDutyBoard {
-  const { current, next } = onDutyShifts(h, { publishedOnly: false });
+  // A supervisor's board shows their own departments only (Issue #14, P1).
+  const { current, next } = onDutyShifts(h, { publishedOnly: false, shows: (t) => staffingShown(h, t.department, t.siteId) });
   return {
     siteId: h.site.siteId,
     siteName: h.site.name,

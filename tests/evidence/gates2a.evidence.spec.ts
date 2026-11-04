@@ -1,7 +1,7 @@
 import { copyFileSync, mkdirSync } from 'node:fs';
 import type { Browser, Locator, Page } from '@playwright/test';
 import { BO, CU, test, type Locale, type PersonaId } from '../support/fixtures';
-import { become, seedSociety, societyApi, type SocietySeed } from '../support/society';
+import { addSharedGuard, become, seedSociety, SHARED_GUARD, societyApi, type SocietySeed } from '../support/society';
 import { VIEWPORTS, type ViewportName } from '../support/viewports';
 
 /**
@@ -373,6 +373,46 @@ test('who sees what: the supervisor\'s menu, and HR not in the plan (1440, en)',
   await as(p2, 'alnoor_manager', '/backoffice/hr/hr-dashboard', 'access-outcome');
   await shot(p2, 'i03-hr-not-in-plan-1440-en', false);
   await ctx.close();
+});
+
+test('Issue #14: a shared guard read only for a main-site manager; supervisors see their own departments (1440 en, 390 ur, 320 ur 200 %)', async ({ browser }) => {
+  test.setTimeout(240_000);
+  // P0: Rashid works at the main site and at Block C; Imran is narrowed to the main site (demo-only).
+  for (const [w, l, viewport] of [
+    ['1440', 'en-PK', VIEWPORTS.desktop],
+    ['390', 'ur-PK', VIEWPORTS.phone],
+  ] as const) {
+    const page = await context(browser, viewport, { locale: l, staff: 'alnoor_manager' }, '15:20');
+    await as(page, 'alnoor_manager', '/backoffice/hr/hr-dashboard', 'hr-dashboard');
+    await addSharedGuard(page, ['alnoor_manager']);
+    await open(page, BO, `/backoffice/hr/employee-360-workspace/${SHARED_GUARD.id}`, 'hr-360-other-sites');
+    await shot(page, `j01-shared-guard-360-read-only-${w}-${lang(l)}`);
+    await page.context().close();
+  }
+  {
+    const page = await context(browser, { width: 320, height: 700 }, { locale: 'ur-PK', staff: 'alnoor_manager', textScale: 2 }, '15:20');
+    await page.addInitScript((key) => localStorage.setItem(key, JSON.stringify({ version: 2, textScale: 2, chosenAt: '2026-10-26T00:00:00Z', updatedAt: '2026-10-26T00:00:00Z' })), OFFICE_DISPLAY);
+    await as(page, 'alnoor_manager', '/backoffice/hr/hr-dashboard', 'hr-dashboard');
+    await addSharedGuard(page, ['alnoor_manager']);
+    await open(page, BO, `/backoffice/hr/employee-360-workspace/${SHARED_GUARD.id}`, 'hr-360-other-sites');
+    await toContent(page, 'hr-360-other-sites');
+    await shot(page, 'j02-shared-guard-360-note-320x700-200pct-ur', false);
+    await page.context().close();
+  }
+  // P1: Naveed (maintenance and housekeeping) and Shahid (security) at 09:30, when every department is on.
+  for (const [w, l, viewport] of [
+    ['1440', 'en-PK', VIEWPORTS.desktop],
+    ['390', 'ur-PK', VIEWPORTS.phone],
+  ] as const) {
+    const page = await context(browser, viewport, { locale: l, staff: 'alnoor_maintenance' }, '09:30');
+    await as(page, 'alnoor_maintenance', '/backoffice/hr/roster', 'hr-roster-week');
+    await shot(page, `j03-maintenance-supervisor-roster-own-departments-${w}-${lang(l)}`);
+    await open(page, BO, '/backoffice/hr/roster?tab=now', 'hr-board-current');
+    await shot(page, `j04-maintenance-supervisor-on-duty-own-departments-${w}-${lang(l)}`);
+    await as(page, 'alnoor_guard', '/backoffice/hr/roster?tab=now', 'hr-board-current');
+    await shot(page, `j05-security-supervisor-on-duty-security-only-${w}-${lang(l)}`);
+    await page.context().close();
+  }
 });
 
 test('video: a new guard to active duty (desktop, en)', async ({ browser }) => {

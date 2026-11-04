@@ -73,7 +73,7 @@ export default function DocumentsPage() {
           ))}
         </ul>
       )}
-      {staff.data && <DocumentDrawer key={String(adding)} open={adding} onClose={() => setAdding(false)} staff={staff.data.items.filter((e) => e.status !== 'ended').map((e) => ({ id: e.id, name: e.name, role: e.role }))} />}
+      {staff.data && <DocumentDrawer key={String(adding)} open={adding} onClose={() => setAdding(false)} staff={staff.data.items.filter((e) => e.status !== 'ended' && e.allSitesInScope).map((e) => ({ id: e.id, name: e.name, role: e.role }))} />}
     </div>
   );
 }
