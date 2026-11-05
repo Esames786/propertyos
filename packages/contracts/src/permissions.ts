@@ -32,6 +32,11 @@ export const PERMISSIONS = [
   // approving are separate so maker-checker can be held by different people.
   'hr.advances.manage',
   'hr.advances.approve',
+  // Gate S.2b: the optional payroll add-on (V3.2 matrix §5.2). Seeing pay is apart from hr.view;
+  // preparing (periods, runs, instructions) and approving are split so maker-checker holds.
+  'payroll.view',
+  'payroll.prepare',
+  'payroll.approve',
   'operations.view',
   'residents.view',
   'reports.view',

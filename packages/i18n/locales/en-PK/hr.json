@@ -641,7 +641,7 @@
     "title": "Advance and loan settlement",
     "intro": "Why the payment of an approved advance or loan is not verified yet, and what verification will need. Nothing here moves money.",
     "partialTitle": "Partly built: read only",
-    "partial": "Paying staff by bank and deducting instalments from pay need payroll and outgoing bank payments, which are not built (S.2b). A cashbook voucher of the same amount does not prove that this employee received this advance, so vouchers cannot be linked here and no advance is shown as paid or repaid.",
+    "partial": "Payroll (S.2b) lists advance and loan instalments but holds them: it never deducts one or marks it repaid. Verified payments to staff by bank are not built (S.2b): they need outgoing bank payments matched to statement lines. A cashbook voucher of the same amount does not prove that this employee received this advance, so vouchers cannot be linked here and no advance is shown as paid or repaid.",
     "approved": "Approved, payment not verified",
     "empty": "No approved advances or loans.",
     "needsTitle": "A verified payment will need",

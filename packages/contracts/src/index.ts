@@ -20,3 +20,4 @@ export * from './finance';
 export * from './operations';
 export * from './community';
 export * from './hr';
+export * from './payroll';

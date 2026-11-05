@@ -175,3 +175,17 @@ export const HR = {
   advances: (status?: string) => `/backoffice/hr/employee-advances${q({ status })}`,
   settlement: (advance?: string) => `/backoffice/hr/employee-advance-settlement${q({ advance })}`,
 } as const;
+
+/**
+ * Gate S.2b society payroll (PAY-001…007). Addresses follow the screen register; the run, the person
+ * and each list's filter are optional parameters.
+ */
+export const PAYROLL = {
+  dashboard: '/backoffice/pay/payroll-dashboard',
+  periods: (status?: string) => `/backoffice/pay/payroll-periods${q({ status })}`,
+  run: (run?: string, filter?: string) => `/backoffice/pay/payroll-run-workspace${q({ run, filter })}`,
+  breakdown: (params: { run?: string; employee: string; tab?: string }) => `/backoffice/pay/employee-pay-breakdown${q(params)}`,
+  finalisation: (run?: string) => `/backoffice/pay/payroll-finalization${q({ run })}`,
+  disbursement: (run?: string) => `/backoffice/pay/payroll-disbursement-status${q({ run })}`,
+  accounting: (run?: string) => `/backoffice/pay/payroll-accounting${q({ run })}`,
+} as const;

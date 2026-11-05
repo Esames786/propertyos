@@ -1,0 +1,152 @@
+{
+  "description": "Gate S.2b golden vectors for society payroll (fictional amounts, PKR as decimal strings). Proration is calendar days rounded half up to the paisa (a labelled demo rule). No deduction is ever applied: statutory deductions are placeholders, unpaid leave holds the line, absences are reported only, and advance or loan instalments are held because the advance's payment to the employee is not verified. An instruction never pays anything and nothing is ever settled.",
+  "prorate": [
+    { "name": "full period gives the amount exactly", "amount": "55000.00", "counted": 31, "of": 31, "expect": "55000.00" },
+    { "name": "joiner on the 15th of October (17 of 31 days)", "amount": "40000.00", "counted": 17, "of": 31, "expect": "21935.48" },
+    { "name": "leaver on the 20th of October (20 of 31 days)", "amount": "42000.00", "counted": 20, "of": 31, "expect": "27096.77" },
+    { "name": "allowance prorated the same way", "amount": "2000.00", "counted": 20, "of": 31, "expect": "1290.32" },
+    { "name": "exactly half a paisa rounds up", "amount": "1000.15", "counted": 15, "of": 30, "expect": "500.08" },
+    { "name": "below half a paisa rounds down", "amount": "1000.15", "counted": 1, "of": 30, "expect": "33.34" },
+    { "name": "February 2027 (28 days)", "amount": "41000.00", "counted": 14, "of": 28, "expect": "20500.00" },
+    { "name": "no days employed", "amount": "41000.00", "counted": 0, "of": 31, "expect": "0.00" },
+    { "name": "one paisa over two days rounds up", "amount": "0.01", "counted": 1, "of": 2, "expect": "0.01" }
+  ],
+  "lines": [
+    {
+      "name": "monthly, full month, with an allowance",
+      "period": { "month": "2026-10", "from": "2026-10-01", "to": "2026-10-31" },
+      "facts": { "terms": { "basis": "monthly", "rate": "55000.00", "allowances": [{ "key": "conveyance", "amount": "3000.00" }], "method": "bank", "accountVerified": true }, "status": "active", "startDate": "2023-03-01" },
+      "inputs": {},
+      "expect": { "employedDays": 31, "earnings": ["base 55000.00", "conveyance 3000.00"], "gross": "58000.00", "deductions": "0.00", "net": "58000.00", "held": [], "blockers": [], "warnings": [] }
+    },
+    {
+      "name": "joiner on 15 October: prorated base and allowance (demo rule)",
+      "period": { "month": "2026-10", "from": "2026-10-01", "to": "2026-10-31" },
+      "facts": { "terms": { "basis": "monthly", "rate": "40000.00", "allowances": [{ "key": "conveyance", "amount": "2000.00" }], "method": "cash", "accountVerified": false }, "status": "active", "startDate": "2026-10-15" },
+      "inputs": {},
+      "expect": { "employedDays": 17, "earnings": ["base 21935.48", "conveyance 1096.77"], "gross": "23032.25", "deductions": "0.00", "net": "23032.25", "held": [], "blockers": [], "warnings": ["partial_month"] }
+    },
+    {
+      "name": "leaver on 20 October",
+      "period": { "month": "2026-10", "from": "2026-10-01", "to": "2026-10-31" },
+      "facts": { "terms": { "basis": "monthly", "rate": "42000.00", "allowances": [{ "key": "conveyance", "amount": "2000.00" }], "method": "bank", "accountVerified": true }, "status": "ended", "startDate": "2022-11-01", "endDate": "2026-10-20" },
+      "inputs": {},
+      "expect": { "employedDays": 20, "earnings": ["base 27096.77", "conveyance 1290.32"], "gross": "28387.09", "deductions": "0.00", "net": "28387.09", "held": [], "blockers": [], "warnings": ["partial_month"] }
+    },
+    {
+      "name": "daily wage, days confirmed by the preparer",
+      "period": { "month": "2026-10", "from": "2026-10-01", "to": "2026-10-31" },
+      "facts": { "terms": { "basis": "daily", "rate": "1650.00", "allowances": [], "method": "cash", "accountVerified": false }, "status": "active", "startDate": "2025-07-01" },
+      "inputs": { "daysConfirmed": 23 },
+      "expect": { "employedDays": 31, "earnings": ["base 37950.00"], "gross": "37950.00", "deductions": "0.00", "net": "37950.00", "held": [], "blockers": [], "warnings": [] }
+    },
+    {
+      "name": "daily wage, days not confirmed: nothing calculated, the line is blocked",
+      "period": { "month": "2026-10", "from": "2026-10-01", "to": "2026-10-31" },
+      "facts": { "terms": { "basis": "daily", "rate": "1600.00", "allowances": [], "method": "cash", "accountVerified": false }, "status": "active", "startDate": "2024-02-01" },
+      "inputs": {},
+      "expect": { "employedDays": 31, "earnings": ["base 0.00"], "gross": "0.00", "deductions": "0.00", "net": "0.00", "held": [], "blockers": ["days_unconfirmed"], "warnings": [] }
+    },
+    {
+      "name": "daily wage never exceeds the days employed",
+      "period": { "month": "2026-10", "from": "2026-10-01", "to": "2026-10-31" },
+      "facts": { "terms": { "basis": "daily", "rate": "1600.00", "allowances": [], "method": "cash", "accountVerified": false }, "status": "active", "startDate": "2024-02-01" },
+      "inputs": { "daysConfirmed": 40 },
+      "expect": { "employedDays": 31, "earnings": ["base 49600.00"], "gross": "49600.00", "deductions": "0.00", "net": "49600.00", "held": [], "blockers": [], "warnings": [] }
+    },
+    {
+      "name": "no pay terms: blocked, nothing invented",
+      "period": { "month": "2026-10", "from": "2026-10-01", "to": "2026-10-31" },
+      "facts": { "terms": null, "status": "active", "startDate": "2026-10-20" },
+      "inputs": {},
+      "expect": { "employedDays": 12, "earnings": [], "gross": "0.00", "deductions": "0.00", "net": "0.00", "held": [], "blockers": ["missing_pay"], "warnings": [] }
+    },
+    {
+      "name": "approved unpaid leave: the line is held (no policy), nothing deducted",
+      "period": { "month": "2026-10", "from": "2026-10-01", "to": "2026-10-31" },
+      "facts": { "terms": { "basis": "monthly", "rate": "48000.00", "allowances": [{ "key": "conveyance", "amount": "2500.00" }], "method": "bank", "accountVerified": true }, "status": "active", "startDate": "2023-09-01", "unpaidLeaveDays": 2 },
+      "inputs": {},
+      "expect": { "employedDays": 31, "earnings": ["base 48000.00", "conveyance 2500.00"], "gross": "50500.00", "deductions": "0.00", "net": "50500.00", "held": [], "blockers": ["unpaid_leave_policy"], "warnings": [] }
+    },
+    {
+      "name": "pending unpaid leave: a warning only",
+      "period": { "month": "2026-10", "from": "2026-10-01", "to": "2026-10-31" },
+      "facts": { "terms": { "basis": "monthly", "rate": "48000.00", "allowances": [], "method": "bank", "accountVerified": true }, "status": "active", "startDate": "2023-09-01", "pendingUnpaidDays": 3 },
+      "inputs": {},
+      "expect": { "employedDays": 31, "earnings": ["base 48000.00"], "gross": "48000.00", "deductions": "0.00", "net": "48000.00", "held": [], "blockers": [], "warnings": ["leave_pending"] }
+    },
+    {
+      "name": "absences are reported, never deducted",
+      "period": { "month": "2026-10", "from": "2026-10-01", "to": "2026-10-31" },
+      "facts": { "terms": { "basis": "monthly", "rate": "40000.00", "allowances": [{ "key": "conveyance", "amount": "2000.00" }], "method": "cash", "accountVerified": false }, "status": "active", "startDate": "2024-01-10", "absences": 1 },
+      "inputs": {},
+      "expect": { "employedDays": 31, "earnings": ["base 40000.00", "conveyance 2000.00"], "gross": "42000.00", "deductions": "0.00", "net": "42000.00", "held": [], "blockers": [], "warnings": ["absences"] }
+    },
+    {
+      "name": "a loan instalment due this month is held, not deducted (payment to the employee not verified)",
+      "period": { "month": "2026-10", "from": "2026-10-01", "to": "2026-10-31" },
+      "facts": { "terms": { "basis": "monthly", "rate": "42000.00", "allowances": [{ "key": "conveyance", "amount": "2000.00" }], "method": "bank", "accountVerified": true }, "status": "active", "startDate": "2023-06-15", "advances": [{ "id": "adv_x_1", "ref": "ANR-AD-0009", "kind": "loan", "amount": "60000.00", "instalments": 6, "firstMonth": "2026-10" }, { "id": "adv_x_2", "ref": "ANR-AD-0010", "kind": "advance", "amount": "15000.00", "instalments": 1, "firstMonth": "2026-11" }] },
+      "inputs": {},
+      "expect": { "employedDays": 31, "earnings": ["base 42000.00", "conveyance 2000.00"], "gross": "44000.00", "deductions": "0.00", "net": "44000.00", "held": ["ANR-AD-0009 1/6 10000.00"], "blockers": [], "warnings": ["advance_held"] }
+    },
+    {
+      "name": "uneven instalments: the last one takes the remainder",
+      "period": { "month": "2027-01", "from": "2027-01-01", "to": "2027-01-31" },
+      "facts": { "terms": { "basis": "monthly", "rate": "42000.00", "allowances": [], "method": "bank", "accountVerified": true }, "status": "active", "startDate": "2023-06-15", "advances": [{ "id": "adv_x_3", "ref": "ANR-AD-0011", "kind": "loan", "amount": "10000.00", "instalments": 3, "firstMonth": "2026-11" }] },
+      "inputs": {},
+      "expect": { "employedDays": 31, "earnings": ["base 42000.00"], "gross": "42000.00", "deductions": "0.00", "net": "42000.00", "held": ["ANR-AD-0011 3/3 3333.34"], "blockers": [], "warnings": ["advance_held"] }
+    },
+    {
+      "name": "bonuses add to gross pay",
+      "period": { "month": "2026-10", "from": "2026-10-01", "to": "2026-10-31" },
+      "facts": { "terms": { "basis": "monthly", "rate": "55000.00", "allowances": [{ "key": "conveyance", "amount": "3000.00" }], "method": "bank", "accountVerified": true }, "status": "active", "startDate": "2023-03-01" },
+      "inputs": { "bonuses": ["5000.00", "2500.50"] },
+      "expect": { "employedDays": 31, "earnings": ["base 55000.00", "conveyance 3000.00"], "gross": "65500.50", "deductions": "0.00", "net": "65500.50", "held": [], "blockers": [], "warnings": [] }
+    },
+    {
+      "name": "suspended during the period: blocked (no policy for pay while suspended)",
+      "period": { "month": "2026-10", "from": "2026-10-01", "to": "2026-10-31" },
+      "facts": { "terms": { "basis": "monthly", "rate": "40000.00", "allowances": [], "method": "cash", "accountVerified": false }, "status": "suspended", "startDate": "2024-01-10" },
+      "inputs": {},
+      "expect": { "employedDays": 31, "earnings": ["base 40000.00"], "gross": "40000.00", "deductions": "0.00", "net": "40000.00", "held": [], "blockers": ["suspended_policy"], "warnings": [] }
+    },
+    {
+      "name": "bank account not verified: a warning (the instruction will hold it)",
+      "period": { "month": "2026-10", "from": "2026-10-01", "to": "2026-10-31" },
+      "facts": { "terms": { "basis": "monthly", "rate": "40000.00", "allowances": [{ "key": "conveyance", "amount": "2000.00" }], "method": "bank", "accountVerified": false }, "status": "active", "startDate": "2024-08-01" },
+      "inputs": {},
+      "expect": { "employedDays": 31, "earnings": ["base 40000.00", "conveyance 2000.00"], "gross": "42000.00", "deductions": "0.00", "net": "42000.00", "held": [], "blockers": [], "warnings": ["bank_unverified"] }
+    },
+    {
+      "name": "February 2027, joiner on the 15th",
+      "period": { "month": "2027-02", "from": "2027-02-01", "to": "2027-02-28" },
+      "facts": { "terms": { "basis": "monthly", "rate": "41000.00", "allowances": [], "method": "cash", "accountVerified": false }, "status": "active", "startDate": "2027-02-15" },
+      "inputs": {},
+      "expect": { "employedDays": 14, "earnings": ["base 20500.00"], "gross": "20500.00", "deductions": "0.00", "net": "20500.00", "held": [], "blockers": [], "warnings": ["partial_month"] }
+    }
+  ],
+  "instructions": [
+    {
+      "name": "cash and verified bank lines are instructed; an unverified account and a zero line are held",
+      "lines": [
+        { "employeeId": "e1", "method": "cash", "accountVerified": false, "net": "42000.00" },
+        { "employeeId": "e2", "method": "bank", "accountVerified": true, "net": "58000.00" },
+        { "employeeId": "e3", "method": "bank", "accountVerified": false, "net": "42000.00" },
+        { "employeeId": "e4", "method": "cash", "accountVerified": false, "net": "0.00" }
+      ],
+      "expect": { "pay": ["e1", "e2"], "held": ["e3 bank_unverified", "e4 zero_net"], "total": "100000.00" }
+    }
+  ],
+  "journal": [
+    { "name": "no deductions: the expense equals the payable", "gross": "650500.00", "net": "650500.00", "deductions": "0.00", "expect": { "lines": ["debit salaries_expense 650500.00", "credit salaries_payable 650500.00"], "balanced": true } }
+  ],
+  "boundary": [
+    { "state": "draft", "obligation": "prepared", "paid": false, "settled": false },
+    { "state": "submitted", "obligation": "prepared", "paid": false, "settled": false },
+    { "state": "approved", "obligation": "approved", "paid": false, "settled": false },
+    { "state": "approved + instruction prepared", "obligation": "approved", "paid": false, "settled": false },
+    { "state": "approved + instruction approved", "obligation": "approved", "paid": false, "settled": false },
+    { "state": "approved + instruction sent (simulated)", "obligation": "approved", "paid": false, "settled": false },
+    { "state": "reversed", "obligation": "none", "paid": false, "settled": false }
+  ]
+}

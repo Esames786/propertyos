@@ -138,6 +138,8 @@ const ALNOOR_ACCOUNTS_OFFICER: TenantRoleTemplate = {
     'approval.view', 'cashbook.view', 'cash_voucher.prepare', 'cheque.manage', 'funds_transfer.create', 'reminders.manage', 'reminders.send', 'transfer.review',
     // Gate S.2a: links posted vouchers to staff advances as evidence (HR-008); never approves them.
     'hr.advances.manage',
+    // Gate S.2b: prepares payroll (periods, runs and their inputs, disbursement instructions); never approves it.
+    'payroll.view', 'payroll.prepare',
   ],
   holders: ['alnoor_accounts'],
 };
@@ -151,6 +153,9 @@ const ALNOOR_ACCOUNTS_OFFICER: TenantRoleTemplate = {
 const ALNOOR_EXTRA: Readonly<Record<string, readonly Permission[]>> = {
   administrator: ['approval.decide', 'cash_voucher.approve', 'funds_transfer.approve'],
   manager: ['funds_transfer.create'],
+  // Gate S.2b (V3.2 matrix §5.2): the treasurer approves payroll runs and their disbursement instructions,
+  // and closes payroll periods. Given to Al-Noor's treasurer only, never through a starter set.
+  treasurer: ['payroll.view', 'payroll.approve'],
 };
 
 const ALNOOR_ROLE_NAMES: Readonly<Record<string, string>> = {

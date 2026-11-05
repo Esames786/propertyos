@@ -1,6 +1,6 @@
 import { decideTarget, MODULE_KEYS, type AccessDecision, type AccessTarget, type EffectiveAccess, type ModuleKey, type SuspensionClass } from '@repo/contracts';
 import { findScreenByRegisterRoute } from '@repo/contracts/screens';
-import { ArrowRightLeft, BadgeCheck, Banknote, BarChart3, Briefcase, Building, Building2, CalendarClock, Car, ClipboardCheck, Compass, Contact, DatabaseZap, DoorOpen, FileText, FlaskConical, HandCoins, Coins, Home, Landmark, Megaphone, MessagesSquare, MonitorSmartphone, ReceiptText, Settings2, ShieldCheck, ShoppingCart, Smartphone, Users, UsersRound, Vote, Wallet, Wrench } from 'lucide-react';
+import { ArrowRightLeft, BadgeCheck, Banknote, BarChart3, Briefcase, Building, Building2, Calculator, CalendarClock, Car, ClipboardCheck, Compass, Contact, DatabaseZap, DoorOpen, FileText, FlaskConical, HandCoins, Coins, Home, Landmark, Megaphone, MessagesSquare, MonitorSmartphone, ReceiptText, Settings2, ShieldCheck, ShoppingCart, Smartphone, Users, UsersRound, Vote, Wallet, Wrench } from 'lucide-react';
 import { LIVE, PLANNED } from '../shell/QuickCreateMenu';
 import type { NavItem } from '../shell/types';
 
@@ -42,6 +42,8 @@ export const TENANT_NAV: NavItem[] = [
   { id: 'hr-attendance', labelKey: 'nav:pages.attendance', href: '/backoffice/hr/attendance', icon: CalendarClock, anyOf: ['hr.view', 'attendance.record'], module: 'hr', feature: 'hr.shifts', match: '/backoffice/hr/attendance', group: 'operations', menu: false, hub: 'hr' },
   { id: 'hr-leave', labelKey: 'nav:pages.leaveAdjustments', href: '/backoffice/hr/leave-attendance-adjustments', icon: CalendarClock, anyOf: ['hr.view', 'leave.manage', 'attendance.adjust', 'attendance.record'], module: 'hr', match: '/backoffice/hr/leave-attendance-adjustments', group: 'operations', menu: false, hub: 'hr' },
   { id: 'staff-advances', labelKey: 'nav:items.staffAdvances', href: '/backoffice/hr/employee-advances', icon: HandCoins, anyOf: ['hr.advances.manage', 'hr.advances.approve'], module: 'hr', match: '/backoffice/hr/employee-advance', group: 'operations' },
+  // Gate S.2b (society payroll add-on): pay is seen with payroll.view only, never with hr.view.
+  { id: 'payroll', labelKey: 'nav:items.payroll', href: '/backoffice/pay/payroll-dashboard', icon: Calculator, permission: 'payroll.view', module: 'payroll', match: '/backoffice/pay', group: 'operations', suspension: 'history_read' },
   { id: 'operations', labelKey: 'nav:items.operations', href: '/backoffice/mnt/maintenance-dashboard', icon: Wrench, permission: 'operations.view', match: '/backoffice/mnt', group: 'operations', bottomBar: true },
   { id: 'residents', labelKey: 'nav:items.residents', href: '/backoffice/res/resident-dashboard', icon: Users, permission: 'residents.view', match: '/backoffice/res/', group: 'operations' },
   // Gate D.2: the gate and visitors, vehicles, and official notices (with the quick broadcast under them).

@@ -1,0 +1,527 @@
+{
+  "nav": {
+    "label": "Payroll sections",
+    "dashboard": "Overview",
+    "periods": "Periods",
+    "run": "Run workspace",
+    "finalisation": "Finalisation",
+    "disbursement": "Disbursement",
+    "accounting": "Accounting"
+  },
+  "boundary": {
+    "title": "Owed, instructed and paid are three different things",
+    "run": "A run calculates what is owed. Approving it freezes an approved obligation.",
+    "instruction": "A disbursement instruction asks for payment. Marking it sent is only a simulation.",
+    "settlement": "Pay counts as paid only on independent evidence, which this prototype cannot verify yet. Nothing here is ever shown as paid."
+  },
+  "partial": "Partly built",
+  "demo": "Fictional demo data",
+  "scopeLimited": "You see the staff of your sites only. Totals cover them only; changes need every site of the employer.",
+  "period": {
+    "state": {
+      "draft": "Draft",
+      "open": "Open",
+      "closed": "Closed"
+    }
+  },
+  "runState": {
+    "draft": "Draft",
+    "submitted": "Awaiting approval",
+    "approved": "Approved obligation — not paid",
+    "reversed": "Reversed"
+  },
+  "instructionState": {
+    "prepared": "Instruction prepared — not approved",
+    "approved": "Approved instruction — not sent",
+    "sent_simulated": "Sent (simulated) — not paid",
+    "cancelled": "Cancelled"
+  },
+  "settlement": {
+    "not_settled": "Not settled — no evidence"
+  },
+  "lineState": {
+    "included": "In this run",
+    "excluded": "Excluded"
+  },
+  "basis": {
+    "monthly": "Monthly salary",
+    "daily": "Daily wage",
+    "none": "No pay terms"
+  },
+  "method": {
+    "bank": "Bank transfer",
+    "cash": "Cash",
+    "none": "Not set"
+  },
+  "account": {
+    "ending": "Account ending {{last4}}",
+    "verified": "verified",
+    "unverified": "not verified"
+  },
+  "allowance": {
+    "conveyance": "Conveyance allowance",
+    "mobile": "Mobile allowance"
+  },
+  "blocker": {
+    "missing_pay": "No agreed pay terms",
+    "days_unconfirmed": "Days worked not confirmed",
+    "unpaid_leave_policy": "Unpaid leave: no adopted policy",
+    "suspended_policy": "Suspended: no adopted policy"
+  },
+  "blockerHelp": {
+    "missing_pay": "No pay terms were agreed for this person, so nothing is calculated. Agreeing pay terms is not part of this gate: exclude the person from this run with a reason.",
+    "days_unconfirmed": "A daily wage is paid for the days worked. HR attendance does not cover the whole month, so confirm the days worked from the attendance register.",
+    "unpaid_leave_policy": "HR shows approved unpaid leave in this period. No policy says how unpaid leave reduces pay, so nothing is deducted and the line is held. Exclude it until the committee adopts a policy.",
+    "suspended_policy": "The person is suspended. No policy says what is paid while suspended, so the line is held. Exclude it until the committee decides."
+  },
+  "warning": {
+    "partial_month": "Part month (demo rule)",
+    "advance_held": "Instalment held, not deducted",
+    "absences": "Absences recorded",
+    "bank_unverified": "Bank account not verified",
+    "leave_pending": "Unpaid leave awaiting a decision"
+  },
+  "warningHelp": {
+    "partial_month": "Employed for part of the period: pay is prorated by calendar days, rounded to the paisa. This is a demo placeholder rule, not an adopted policy.",
+    "advance_held": "An approved advance or loan has an instalment due this month. It is not deducted: the advance's payment to the employee cannot be verified yet (staff advance settlement).",
+    "absences": "HR recorded absences in this period. Nothing is deducted: no absence policy has been adopted.",
+    "bank_unverified": "The bank account on file is not verified. A disbursement instruction will hold this person's pay rather than send it.",
+    "leave_pending": "Unpaid leave in this period is waiting for a decision. If it is approved, the line will be held."
+  },
+  "runBlocker": {
+    "stale": "HR records changed after this version was calculated. Recalculate before submitting.",
+    "no_lines": "Nobody is in the run.",
+    "line_blockers": "Some lines are held. Resolve them, or exclude the people with a reason.",
+    "period_not_open": "The period is not open."
+  },
+  "policy": {
+    "title": "Policies payroll would need",
+    "intro": "No statutory rule, rate or legal threshold is assumed. Anything not configured is never applied.",
+    "state": {
+      "demo_rule": "Demo placeholder rule",
+      "not_configured": "Configuration needed — not applied"
+    },
+    "key": {
+      "proration": "Part-month pay",
+      "statutory": "Statutory deductions (income tax, EOBI, social security)",
+      "overtime": "Overtime",
+      "unpaid_leave": "Unpaid leave",
+      "absences": "Absences",
+      "advance_recovery": "Advance and loan recovery"
+    },
+    "help": {
+      "proration": "Calendar days, rounded half up to the paisa. Used in the demo; needs owner approval before real use.",
+      "statutory": "Shown as placeholders and never calculated, until an adviser confirms the rules.",
+      "overtime": "Not calculated: no overtime rate or multiplier has been approved.",
+      "unpaid_leave": "Not deducted: the line is held until a policy is adopted.",
+      "absences": "Not deducted: absences are reported only.",
+      "advance_recovery": "Instalments are listed but held: an advance's payment to the employee is not verified."
+    }
+  },
+  "statutory": {
+    "income_tax": "Income tax withholding",
+    "eobi": "EOBI contribution",
+    "social_security": "Social security contribution",
+    "placeholder": "Demo placeholder — configuration needed. Not calculated."
+  },
+  "money": {
+    "gross": "Gross pay",
+    "deductions": "Deductions applied",
+    "net": "Net pay (owed)",
+    "netShort": "Net pay"
+  },
+  "dashboard": {
+    "title": "Payroll overview",
+    "intro": "Staff pay for {{entity}}: what is owed, what is instructed, and what can be verified as paid. Every figure opens the records behind it.",
+    "kpi": {
+      "staffInRun": "Staff in the current run",
+      "blockedLines": "Lines held",
+      "approvedObligation": "Approved obligations (owed)",
+      "instructed": "Instructed (not paid)",
+      "settledVerified": "Verified as paid",
+      "awaitingMe": "Waiting for you"
+    },
+    "notAvailable": "Not available",
+    "notAvailableHint": "Verification needs evidence this prototype cannot check yet.",
+    "currentTitle": "Current period",
+    "noPeriod": "No payroll period yet.",
+    "runLine": "{{ref}} · version {{version}}",
+    "noRun": "No run prepared for this period yet.",
+    "nextPeriod": "Next: {{ref}} ({{state}})",
+    "openRun": "Open the run",
+    "toPeriods": "All periods",
+    "attentionTitle": "Needs attention",
+    "allClear": "Nothing waiting.",
+    "attention": {
+      "blocked_lines_one": "{{count}} line is held in the current run",
+      "blocked_lines_other": "{{count}} lines are held in the current run",
+      "stale": "HR records changed: the current run needs recalculating",
+      "awaiting_run_one": "{{count}} run is waiting for your approval",
+      "awaiting_run_other": "{{count}} runs are waiting for your approval",
+      "awaiting_instruction_one": "{{count}} disbursement instruction is waiting for your approval",
+      "awaiting_instruction_other": "{{count}} disbursement instructions are waiting for your approval",
+      "held_bank_one": "{{count}} person's bank account is not verified",
+      "held_bank_other": "{{count}} people's bank accounts are not verified",
+      "statutory": "Statutory deductions are not configured (placeholders only)"
+    }
+  },
+  "periods": {
+    "title": "Payroll periods",
+    "intro": "One month per period, created in order. One period is open at a time; it closes once its run is approved.",
+    "new": "New period",
+    "newSubtitle": "The next month after the latest period.",
+    "entity": "Employer",
+    "month": "Month",
+    "monthHint": "Periods are created in order, from the month payroll was licensed. At most two months ahead.",
+    "payDate": "Pay date",
+    "payDateHint": "Up to 5 days before or 10 days after the month ends.",
+    "create": "Create period",
+    "created": "Period {{ref}} created as a draft.",
+    "dates": "{{from}} to {{to}}",
+    "payOn": "Pay date {{date}}",
+    "open": "Open period",
+    "close": "Close period",
+    "prepareRun": "Prepare run",
+    "opened": "Period {{ref}} opened.",
+    "closed": "Period {{ref}} closed.",
+    "prepared": "Run {{ref}} prepared (version {{version}}).",
+    "confirm": {
+      "open": "Open {{ref}}?",
+      "close": "Close {{ref}}?"
+    },
+    "effect": {
+      "open": "Runs can then be prepared for this month. Only one period can be open at a time.",
+      "close": "No run of this period can change or be reversed afterwards. Closing pays nobody: disbursement and settlement stay separate."
+    },
+    "run": "Run",
+    "noRun": "No run yet",
+    "empty": "No payroll periods yet.",
+    "created_by": "Created by {{name}}",
+    "show": "Show",
+    "view": {
+      "all": "All",
+      "draft": "Draft",
+      "open": "Open",
+      "closed": "Closed"
+    }
+  },
+  "run": {
+    "title": "Payroll run workspace",
+    "pick": "Choose a run",
+    "none": "No run yet. Prepare one from an open period.",
+    "toPeriods": "Go to periods",
+    "period": "{{month}} · {{from}} to {{to}}",
+    "version": "Version {{version}}",
+    "preparedBy": "Prepared by {{name}}",
+    "recompute": "Recalculate",
+    "recomputed": "Recalculated as version {{version}}.",
+    "submit": "Submit for approval",
+    "submitted": "{{ref}} submitted for approval.",
+    "withdraw": "Withdraw submission",
+    "withdrawn": "{{ref}} is a draft again.",
+    "export": "Download CSV",
+    "toFinalisation": "Review and approve",
+    "staleTitle": "Out of date",
+    "blockersTitle": "Before this run can be submitted",
+    "totals": "Totals",
+    "included": "In the run",
+    "excluded": "Excluded",
+    "blocked": "Held",
+    "lines": "People",
+    "search": "Find a person",
+    "searchPlaceholder": "Name, code or role",
+    "noMatch": "Nobody matches.",
+    "filter": {
+      "all": "All",
+      "blocked": "Held",
+      "warnings": "Warnings",
+      "excluded": "Excluded"
+    },
+    "own": "Your own pay",
+    "versions": "Versions",
+    "versionLine": "v{{n}} · {{reason}}",
+    "historyTitle": "Activity",
+    "confirm": {
+      "submit": "Submit {{ref}} for approval?",
+      "withdraw": "Withdraw {{ref}}?",
+      "recompute": "Recalculate {{ref}}?"
+    },
+    "effect": {
+      "submit": "It goes to an approver who made no part of it. It cannot be changed while waiting.",
+      "withdraw": "It becomes a draft again, so it can be changed.",
+      "recompute": "Every line is calculated again from today's HR records, keeping your inputs, as a new version."
+    },
+    "approvedNote": "Approved by {{name}} on {{date}}. This is an obligation: nothing has been paid.",
+    "reversedNote": "Reversed by {{name}} on {{date}}: “{{reason}}”",
+    "instructionLink": "Disbursement: {{ref}}",
+    "exportName": "payroll-{{ref}}-v{{version}}.csv",
+    "csvHeader": "Code,Name,Role,State,Gross,Deductions,Net",
+    "csvNote": "Demo export, fictional data. Net pay is owed, not paid."
+  },
+  "breakdown": {
+    "title": "Employee pay breakdown",
+    "intro": "{{name}} in {{ref}} ({{month}}).",
+    "notFound": "No pay line to show.",
+    "backToRun": "Back to the run",
+    "tabs": {
+      "label": "Pay breakdown",
+      "earnings": "Earnings",
+      "bonuses": "Bonuses",
+      "deductions": "Deductions",
+      "net": "Net pay"
+    },
+    "employed": "Employed {{days}} of {{of}} days",
+    "base": "Base pay",
+    "rate": "Rate",
+    "daysCounted": "{{counted}} of {{of}} days",
+    "daysWorked": "{{counted}} days worked",
+    "dailyRate": "{{rate}} a day",
+    "recorded": "HR attendance recorded {{days}} days worked (from {{from}}).",
+    "recordedNone": "HR attendance recorded {{days}} days worked.",
+    "confirmed": "Confirmed: {{days}} days, by {{name}} — “{{reason}}”",
+    "confirmDays": "Confirm days worked",
+    "daysLabel": "Days worked",
+    "daysHint": "From 0 to {{max}} (the days employed in the period).",
+    "reasonLabel": "How you checked",
+    "confirmSave": "Confirm days",
+    "daysSaved": "Days confirmed: version {{version}}.",
+    "noBonuses": "No bonuses in this run.",
+    "addBonus": "Add bonus",
+    "bonusLabel": "What it is for",
+    "bonusAmount": "Amount (PKR)",
+    "bonusReason": "Why",
+    "bonusSave": "Add bonus",
+    "bonusAdded": "Bonus added: version {{version}}.",
+    "bonusRemoved": "Bonus removed: version {{version}}.",
+    "removeBonus": "Remove",
+    "bonusBy": "Added by {{name}}",
+    "bonusesOff": "Bonuses are not part of your plan.",
+    "applied": "Applied",
+    "appliedNone": "No deduction is applied in this run.",
+    "held": "Held, not deducted",
+    "heldLine": "{{ref}} · instalment {{n}} of {{of}}",
+    "heldNone": "No advance or loan instalment falls in this month.",
+    "statutoryTitle": "Statutory deductions",
+    "unpaidLeave": "Approved unpaid leave: {{count}} days (no deduction policy)",
+    "absences": "Absences recorded: {{count}} (no deduction policy)",
+    "netExplain": "Gross pay minus the deductions applied. It is what this run says is owed, before any statutory deduction (none is configured). It is not a payment.",
+    "payment": "Paid by",
+    "own": "This is your own pay. You can see it but not change it, and you cannot approve a run that includes it.",
+    "exclude": "Exclude from this run",
+    "include": "Include again",
+    "excludedNote": "Excluded by {{name}}: “{{reason}}”",
+    "excluded": "{{name}} excluded: version {{version}}.",
+    "includedToast": "{{name}} included again: version {{version}}.",
+    "confirm": {
+      "exclude": "Exclude {{name}} from {{ref}}?",
+      "include": "Include {{name}} again?",
+      "removeBonus": "Remove “{{label}}”?"
+    },
+    "effect": {
+      "exclude": "Their pay is left out of this run's obligation. Nothing is paid or owed through this run.",
+      "include": "Their pay is calculated in this run again, as a new version.",
+      "removeBonus": "The bonus is removed and the line recalculated as a new version."
+    },
+    "otherRuns": "Other runs",
+    "historyTitle": "Changes to this line"
+  },
+  "finalisation": {
+    "title": "Payroll finalisation",
+    "intro": "Someone who made no part of a run, and has no pay in it, approves it. Approval freezes an obligation; it pays nobody.",
+    "queue": "Runs",
+    "none": "No run is waiting.",
+    "summary": "Summary",
+    "makers": "Prepared or changed by",
+    "submittedBy": "Submitted by {{name}} on {{date}}",
+    "warnings": "Warnings to read",
+    "warningCount": "{{label}}: {{count}}",
+    "noWarnings": "No line warnings.",
+    "acknowledge": "I understand this approves what is owed, not a payment, and that statutory deductions are not configured.",
+    "note": "Note (optional)",
+    "approve": "Approve and freeze",
+    "approved": "{{ref}} approved: an obligation, not a payment.",
+    "return": "Return for changes",
+    "returned": "{{ref}} returned to the preparer.",
+    "reverse": "Reverse approval",
+    "reversed": "{{ref}} reversed.",
+    "returnReason": "What needs to change",
+    "reverseReason": "Why it is reversed",
+    "confirm": {
+      "return": "Return {{ref}}?",
+      "reverse": "Reverse {{ref}}?"
+    },
+    "effect": {
+      "return": "It becomes a draft again for the preparer to change.",
+      "reverse": "The approved obligation is withdrawn. The period can then have a new run. No payment existed, so none is undone."
+    },
+    "audit": "Audit trail",
+    "closePeriod": "Close the period",
+    "frozen": "Frozen: version {{version}} can no longer change."
+  },
+  "disbursement": {
+    "title": "Pay instructions",
+    "intro": "Instructions to pay approved runs. Preparing, approving or marking one sent moves no money and changes nothing owed.",
+    "partialTitle": "Settlement cannot be verified yet",
+    "partial": "Instructions are tracked here, but no payment can be verified as made: that needs an outgoing payroll payment matched to a statement line of a verified account, once, by a second person. Until then every line stays “Not settled”.",
+    "none": "No approved run yet. Disbursement starts after a run is approved.",
+    "prepare": "Prepare instruction",
+    "prepared": "Instruction {{ref}} prepared.",
+    "approve": "Approve instruction",
+    "approvedToast": "{{ref}} approved: an instruction, not a payment.",
+    "send": "Mark sent (simulated)",
+    "sent": "{{ref}} marked sent (simulated). Nothing was paid.",
+    "cancel": "Cancel instruction",
+    "cancelled": "{{ref}} cancelled.",
+    "cancelReason": "Why it is cancelled",
+    "total": "Instructed total",
+    "lines": "To pay",
+    "held": "Held",
+    "heldReason": {
+      "bank_unverified": "Bank account not verified",
+      "zero_net": "Nothing owed"
+    },
+    "settlementCol": "Settlement",
+    "who": {
+      "prepared": "Prepared by {{name}}",
+      "approved": "Approved by {{name}}",
+      "sent": "Marked sent by {{name}}",
+      "cancelled": "Cancelled by {{name}}: “{{reason}}”"
+    },
+    "confirm": {
+      "approve": "Approve {{ref}}?",
+      "send": "Mark {{ref}} as sent (simulated)?",
+      "cancel": "Cancel {{ref}}?"
+    },
+    "effect": {
+      "approve": "This approves an instruction to pay. No money moves and nothing owed changes.",
+      "send": "This records that the instruction was handed over. It is a simulation: nothing is sent, paid or settled.",
+      "cancel": "The instruction stops. What is owed is unchanged."
+    },
+    "obligation": "Run obligation",
+    "earlier": "Cancelled instructions",
+    "needsTitle": "What verified settlement will need",
+    "needs": {
+      "subject": "A payroll payment subject: this run, this employee, this period and legal entity.",
+      "account": "The paying bank account verified, and the employee's account verified.",
+      "line": "A statement line of that account, imported, never typed in.",
+      "match": "One line settles one payment once; a partial match needs a second person.",
+      "reversal": "A reversed line restores what is owed."
+    }
+  },
+  "accounting": {
+    "title": "Payroll accounting",
+    "intro": "What approved runs would record, kept apart from anything actually posted. Nothing is posted from payroll.",
+    "partialTitle": "Proposed only",
+    "partial": "These entries are proposals. They are never posted: payroll has no approved accounting classification here, and no payment can be evidenced.",
+    "none": "No approved run yet.",
+    "proposed": "Proposed entry",
+    "reversal": "Proposed reversal",
+    "account": "Account",
+    "debit": "Debit",
+    "credit": "Credit",
+    "balanced": "Balanced",
+    "unbalanced": "Not balanced",
+    "accounts": {
+      "salaries_expense": "Staff salaries and wages (proposed)",
+      "salaries_payable": "Salaries payable to staff (proposed)"
+    },
+    "statutoryNote": "Statutory payables are not calculated: {{list}}.",
+    "postedTitle": "Posted entries",
+    "postedNone": "None. Nothing is posted from payroll.",
+    "gapsTitle": "Why nothing can be posted",
+    "gaps": {
+      "no_ledger": "The society has no general ledger in this plan; the cashbook records evidenced cash only.",
+      "no_category": "No accounting classification for payroll has been approved.",
+      "no_settlement": "No payment can be evidenced yet, so nothing paid can be recorded."
+    },
+    "obligationTitle": "Obligation",
+    "approved": "Approved and owed",
+    "instructed": "Instructed (not paid)",
+    "settled": "Verified as paid",
+    "settledNone": "Not available"
+  },
+  "version": {
+    "prepared": "Prepared",
+    "recalculated": "Recalculated from HR records",
+    "days_confirmed": "Days confirmed",
+    "bonus_added": "Bonus added",
+    "bonus_removed": "Bonus removed",
+    "line_excluded": "Person excluded",
+    "line_included": "Person included again"
+  },
+  "history": {
+    "period_created": "Period created",
+    "period_opened": "Period opened",
+    "period_closed": "Period closed",
+    "run_prepared": "Run prepared",
+    "run_recalculated": "Recalculated (version {{version}})",
+    "run_submitted": "Submitted for approval (version {{version}}, net {{net}})",
+    "run_withdrawn": "Submission withdrawn",
+    "run_returned": "Returned for changes",
+    "run_approved": "Approved as an obligation (version {{version}}, net {{net}})",
+    "run_reversed": "Approval reversed",
+    "line_removed": "{{name}} left the run (no longer in this period's employer)",
+    "instruction_prepared": "Disbursement instruction prepared",
+    "instruction_approved": "Instruction approved",
+    "instruction_sent": "Marked sent (simulated)",
+    "instruction_cancelled": "Instruction cancelled",
+    "days_confirmed": "Days worked confirmed: {{days}}",
+    "bonus_added": "Bonus added: {{label}}, {{amount}}",
+    "bonus_removed": "Bonus removed: {{label}}, {{amount}}",
+    "line_excluded": "Excluded from the run",
+    "line_included": "Included again"
+  },
+  "blocked": {
+    "own_run": "You prepared or changed this run, so someone else approves it.",
+    "own_line": "Your own pay is in this run, so someone else approves it.",
+    "other_sites": "This employer has sites outside your access, so only someone with all of them can act.",
+    "instruction_live": "A disbursement instruction exists for this run. Cancel it before reversing.",
+    "period_closed": "The period is closed: the run can no longer be reversed.",
+    "another_open": "Another period is open. Close it first.",
+    "run_not_approved": "The period closes once its run is approved.",
+    "frozen": "The run is approved or reversed: it no longer changes.",
+    "submitted": "The run is waiting for approval: withdraw it to change anything.",
+    "own_instruction": "You prepared this instruction, so someone else approves it."
+  },
+  "problems": {
+    "otherSites": "This employer has sites outside your access, so you cannot change this.",
+    "ownRecord": "Nobody changes or approves their own pay.",
+    "makerChecker": "You prepared or changed this, so someone else must decide it.",
+    "stateChanged": "This has changed since you opened it. Reload and try again.",
+    "periodNotOpen": "The period is not open.",
+    "runExists": "This period already has a run.",
+    "runExistsDetail": "Run {{ref}} already exists for this period.",
+    "runFrozen": "The run is approved or reversed: it no longer changes.",
+    "runSubmitted": "The run is waiting for approval. Withdraw it to make changes.",
+    "runStale": "HR records changed after this version was calculated. Recalculate first.",
+    "noLines": "Nobody is in the run.",
+    "lineBlockers": "Some lines are held. Resolve them, or exclude the people with a reason.",
+    "periodExists": "That month already has a period.",
+    "periodExistsDetail": "Period {{ref}} already covers that month.",
+    "anotherOpen": "Another period is open.",
+    "anotherOpenDetail": "Close {{ref}} before opening another period.",
+    "runNotApproved": "The run is not approved.",
+    "periodClosed": "The period is closed.",
+    "instructionLive": "A disbursement instruction exists for this run.",
+    "instructionLiveDetail": "Cancel instruction {{ref}} first.",
+    "instructionExists": "This run already has a live instruction.",
+    "instructionExistsDetail": "Instruction {{ref}} is still live.",
+    "instructionSent": "A sent instruction cannot be cancelled here; recalling it would need the bank.",
+    "lineExcluded": "This person is excluded from the run. Include them again first.",
+    "trainingNotSupported": "Payroll cannot be practised in training mode. Nothing was changed."
+  },
+  "errors": {
+    "minLength": "Write at least {{min}} characters.",
+    "maxLength": "Keep it to {{max}} characters.",
+    "month": "Choose a month.",
+    "periodOrder": "Periods are created in order: the next one is {{month}}.",
+    "periodTooFar": "That month is more than two months ahead.",
+    "date": "Enter a date.",
+    "payDate": "Choose a pay date from 5 days before to 10 days after the month ends.",
+    "days": "Enter whole days from 0 to {{max}}.",
+    "notDaily": "Days worked apply to a daily wage only.",
+    "amount": "Enter an amount above zero, with up to two decimals.",
+    "bonusTooLarge": "A bonus can be at most PKR 500,000.",
+    "acknowledge": "Confirm that this approves what is owed, not a payment."
+  }
+}

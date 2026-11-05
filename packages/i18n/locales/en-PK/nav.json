@@ -35,7 +35,8 @@
     "polls": "Polls",
     "residentDocuments": "Documents for residents",
     "dutyRoster": "Duty roster",
-    "staffAdvances": "Staff advances"
+    "staffAdvances": "Staff advances",
+    "payroll": "Payroll"
   },
   "header": {
     "search": "Search",

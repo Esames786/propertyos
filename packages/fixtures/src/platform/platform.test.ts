@@ -100,7 +100,8 @@ async function createAlNoor(t: PlatformMockTransport, contractPatch?: (c: Contra
       // Gate D.2: the workspace's Al-Noor also has the online-payments add-on on its site (sandbox, BILL-011);
       // Gate D.3: and the two community add-ons by explicit amendment (no preset includes them);
       // Gate S.2a: and the optional HR add-on, organisation-wide.
-      modules: [...PRESETS.find((p) => p.key === 'community')!.modules.map((m) => sel(m)), sel('online_payments', ['site_alnoor']), sel('community_chat', ['site_alnoor']), sel('community_hub', ['site_alnoor']), sel('hr')],
+      // Gate S.2b: and the optional payroll add-on, organisation-wide (it needs HR).
+      modules: [...PRESETS.find((p) => p.key === 'community')!.modules.map((m) => sel(m)), sel('online_payments', ['site_alnoor']), sel('community_chat', ['site_alnoor']), sel('community_hub', ['site_alnoor']), sel('hr'), sel('payroll')],
       contract,
     },
   });

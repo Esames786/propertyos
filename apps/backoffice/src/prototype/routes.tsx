@@ -203,6 +203,15 @@ const HrLeave = lazy(() => import('../pages/society/hr/LeaveAdjustmentsPage'));
 const HrDocuments = lazy(() => import('../pages/society/hr/DocumentsPage'));
 const HrAdvances = lazy(() => import('../pages/society/hr/AdvancesPages').then((m) => ({ default: m.AdvancesPage })));
 const HrSettlement = lazy(() => import('../pages/society/hr/AdvancesPages').then((m) => ({ default: m.SettlementPage })));
+// Gate S.2b: society payroll (PAY-001…007), for whoever may see pay (payroll.view, never hr.view).
+const PayDashboard = lazy(() => import('../pages/society/payroll/PayrollDashboardPage'));
+const PayPeriods = lazy(() => import('../pages/society/payroll/PayrollPeriodsPage'));
+const PayRun = lazy(() => import('../pages/society/payroll/PayrollRunPage'));
+const PayBreakdown = lazy(() => import('../pages/society/payroll/PayBreakdownPage'));
+const PayFinalisation = lazy(() => import('../pages/society/payroll/PayrollFinalisationPage'));
+const PayDisbursement = lazy(() => import('../pages/society/payroll/PayrollDisbursementPage'));
+const PayAccounting = lazy(() => import('../pages/society/payroll/PayrollAccountingPage'));
+const PAY_VIEW: AccessTarget = { module: 'payroll', permission: 'payroll.view' };
 const NoticesOffice = lazy(() => import('../pages/society/operations/NoticesOffice'));
 const SendMessagePage = ops(() => import('../pages/society/operations/NoticesOffice'), 'SendMessagePage');
 const VehiclesOffice = lazy(() => import('../pages/society/operations/VehiclesOffice'));
@@ -522,6 +531,14 @@ const shellChildren: RouteObject[] = [
   { path: 'hr/employee-documents', loader: registerLoader, element: <OpsScreen page={HrDocuments} target={HR_VIEW} />, handle: h({ title: (t) => t('hr:documents.title') }) },
   { path: 'hr/employee-advances', loader: registerLoader, element: <OpsScreen page={HrAdvances} target={HR_ADVANCES} />, handle: h({ title: (t) => t('hr:advances.title') }) },
   { path: 'hr/employee-advance-settlement', loader: registerLoader, element: <OpsScreen page={HrSettlement} target={HR_ADVANCES} />, handle: h({ title: (t) => t('hr:settlement.title') }) },
+  // Gate S.2b: society payroll at the register's addresses (a developer's payroll stays planned: Gate E).
+  { path: 'pay/payroll-dashboard', loader: registerLoader, element: <OpsScreen page={PayDashboard} target={PAY_VIEW} />, handle: h({ title: (t) => t('payroll:dashboard.title') }) },
+  { path: 'pay/payroll-periods', loader: registerLoader, element: <OpsScreen page={PayPeriods} target={PAY_VIEW} />, handle: h({ title: (t) => t('payroll:periods.title') }) },
+  { path: 'pay/payroll-run-workspace', loader: registerLoader, element: <OpsScreen page={PayRun} target={PAY_VIEW} />, handle: h({ title: (t) => t('payroll:run.title') }) },
+  { path: 'pay/employee-pay-breakdown', loader: registerLoader, element: <OpsScreen page={PayBreakdown} target={PAY_VIEW} />, handle: h({ title: (t) => t('payroll:breakdown.title') }) },
+  { path: 'pay/payroll-finalization', loader: registerLoader, element: <OpsScreen page={PayFinalisation} target={PAY_VIEW} />, handle: h({ title: (t) => t('payroll:finalisation.title') }) },
+  { path: 'pay/payroll-disbursement-status', loader: registerLoader, element: <OpsScreen page={PayDisbursement} target={PAY_VIEW} />, handle: h({ title: (t) => t('payroll:disbursement.title') }) },
+  { path: 'pay/payroll-accounting', loader: registerLoader, element: <OpsScreen page={PayAccounting} target={PAY_VIEW} />, handle: h({ title: (t) => t('payroll:accounting.title') }) },
   { path: 'park/vehicle-registry', loader: registerLoader, element: <OpsScreen page={VehiclesOffice} target={PARKING} />, handle: h({ title: (t) => t('nav:pages.vehicles') }) },
   { path: 'res/resident-dashboard', loader: registerLoader, element: <OpsScreen page={ResidentsOffice} target={RESIDENTS} />, handle: h({ title: (t) => t('nav:pages.residents') }) },
   { path: 'residents/portal-access', loader: registerLoader, element: <SocietyPermitted page={PortalAccessPage} permission="portal_access.view" />, handle: h({ title: (t) => t('nav:pages.portalAccess') }) },

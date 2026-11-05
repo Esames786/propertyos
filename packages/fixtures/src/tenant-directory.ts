@@ -180,8 +180,12 @@ export const TENANT_DIRECTORY: readonly DirectoryTenant[] = [
       { module: 'community_hub', sites: ['site_alnoor'], from: '2026-10-21' },
       // Gate S.2a amendment (fictional, explicit and dated, V3.2 matrix §7): the optional HR add-on from
       // 12 October 2026, with its duty-roster feature. HR is organisation-wide (tenant scope); payroll is
-      // not granted (S.2b). No edition preset includes HR, so no other society gains it.
+      // a separate add-on (S.2b, below). No edition preset includes HR, so no other society gains it.
       { module: 'hr', sites: 'all', from: '2026-10-12' },
+      // Gate S.2b amendment (fictional, explicit and dated, V3.2 D-22): the optional payroll add-on from
+      // 15 October 2026, after HR, with its loans and bonuses features. No edition preset includes it, so
+      // no other organisation gains it.
+      { module: 'payroll', sites: 'all', from: '2026-10-15' },
     ],
     licensedFrom: '2026-10-01',
     allowSettlement: true,
@@ -192,7 +196,7 @@ export const TENANT_DIRECTORY: readonly DirectoryTenant[] = [
     // payments add-on on Al-Noor's site in sandbox mode only (BILL-011; nothing is ever paid through it).
     // Gate D.3 (fictional): the hub's local services, polls and resources. The marketplace is not granted
     // (off until the owner decides D-31).
-    features: ['banking.cashbook', 'receivables.bulk_office_collection', 'receivables.office_collections', 'receivables.reminders', 'residents.committee', 'residents.transfer_clearance', 'communications.sms', 'communications.whatsapp', 'maintenance.community_issues', 'visitors.live_queue', 'parking.vehicle_approvals', 'community_hub.services_directory', 'community_hub.polls', 'community_hub.resources', 'hr.shifts'],
+    features: ['banking.cashbook', 'receivables.bulk_office_collection', 'receivables.office_collections', 'receivables.reminders', 'residents.committee', 'residents.transfer_clearance', 'communications.sms', 'communications.whatsapp', 'maintenance.community_issues', 'visitors.live_queue', 'parking.vehicle_approvals', 'community_hub.services_directory', 'community_hub.polls', 'community_hub.resources', 'hr.shifts', 'payroll.loans', 'payroll.bonuses'],
     timeZone: 'Asia/Karachi',
   },
 ];
