@@ -14,6 +14,7 @@ import {
   type FinanceOverview,
   type FlatDetail,
   type InvoiceDetail,
+  type InvoiceList,
   type MyProperty,
   type OfficeCashRecorded,
   type PaymentDetail,
@@ -533,5 +534,164 @@ describe('COL-04 and RES-03: what waits for the office, and the proof the reside
     const home = await s.as(KAMRAN).get<DuesHome>('/portal/dues/home');
     expect(home.position.pendingSubmissionId).toBeUndefined();
     expect(home.position.status).toBe('paid');
+  });
+});
+
+describe('GitHub Issue #19: one credit note can never credit a line twice or credit a line of another bill', () => {
+  /** A-101's November bill after 3,000 office cash: maintenance billed 3,000, paid 2,000, so 1,000 open. */
+  async function oneThousandOpen() {
+    const s = session();
+    const invoiceId = (await s.as(KAMRAN).get<DuesHome>('/portal/dues/home')).position.current!.invoiceId;
+    const paid = await officeCash(s, '3000');
+    const inv = await s.as(AYESHA).get<InvoiceDetail>(`/billing/invoices/${invoiceId}`);
+    const line = (category: string) => inv.invoice.lines.find((l) => l.category === category)!;
+    const open = (d: InvoiceDetail, id: string) => d.creditable.find((c) => c.lineId === id)!.open.amount;
+    const post = (body: unknown) => s.as(AYESHA).post<CreditNote>(`/billing/invoices/${invoiceId}/credit-notes`, body);
+    const read = () => s.as(AYESHA).get<InvoiceDetail>(`/billing/invoices/${invoiceId}`);
+    return { s, invoiceId, paid, inv, maintenance: line('maintenance'), security: line('security'), lift: line('lift'), water: line('water'), open, post, read };
+  }
+  const REASON_CN = 'Demo correction';
+  const duplicate = (id: string) => ({ [`lines.${id}`]: [{ code: 'billing:creditNote.problems.duplicateLine', params: { unit: 'A-101' } }] });
+  const MISMATCH = { lines: [{ code: 'billing:creditNote.problems.linesMismatch' }] };
+  const failed = (errors: Record<string, unknown>) => ({ status: 422, code: 'validation_failed', messageKey: 'errors:validation.summary', errors });
+
+  it('(1) 600 + 600 on the same line with 1,000.00 open: 422 at that line; the whole store is byte-identical (numbering and audit included)', async () => {
+    const t = await oneThousandOpen();
+    expect(t.open(t.inv, t.maintenance.id)).toBe('1000.00');
+    const twice = { reason: REASON_CN, lines: [{ lineId: t.maintenance.id, amount: '600.00' }, { lineId: t.maintenance.id, amount: '600.00' }] };
+    const counters = JSON.stringify(t.s.state().counters);
+    const audit = t.s.state().audit.length;
+    const r = await refusedUnchanged(t.s, () => t.post(twice));
+    expect(r).toEqual(failed(duplicate(t.maintenance.id)));
+    expect(JSON.stringify(t.s.state().counters)).toBe(counters);
+    expect(t.s.state().audit.length).toBe(audit);
+    expect(t.s.state().creditNotes).toEqual([]);
+    // Deterministic: the same request answers the same way again, still changing nothing.
+    expect(await refusedUnchanged(t.s, () => t.post(twice))).toEqual(r);
+    // No number was used: the next legitimate credit note is the first one.
+    const cn = await t.post({ reason: REASON_CN, lines: [{ lineId: t.maintenance.id, amount: '600.00' }] });
+    expect(cn).toMatchObject({ ref: 'ANR-CN-0001', amount: { amount: '600.00' } });
+    expect(cn.lines).toHaveLength(1);
+    const after = await t.read();
+    expect(after.invoice.outstanding.amount).toBe('1600.00');
+    expect(t.open(after, t.maintenance.id)).toBe('400.00');
+  });
+
+  it('(2) 1,000 + 0.01 on one line, and any mixture of good and duplicated or unknown entries: refused whole, nothing partly issued', async () => {
+    const t = await oneThousandOpen();
+    const cases: Array<[string, unknown[], Record<string, unknown>]> = [
+      ['1000 + 0.01', [{ lineId: t.maintenance.id, amount: '1000.00' }, { lineId: t.maintenance.id, amount: '0.01' }], duplicate(t.maintenance.id)],
+      ['adding up to exactly the open amount is still one line sent twice', [{ lineId: t.maintenance.id, amount: '400' }, { lineId: t.maintenance.id, amount: '600' }], duplicate(t.maintenance.id)],
+      ['a blank entry beside an amount for the same line', [{ lineId: t.maintenance.id, amount: '' }, { lineId: t.maintenance.id, amount: '600' }], duplicate(t.maintenance.id)],
+      ['good security and lift around a duplicated maintenance', [{ lineId: t.security.id, amount: '500' }, { lineId: t.maintenance.id, amount: '600' }, { lineId: t.lift.id, amount: '100' }, { lineId: t.maintenance.id, amount: '400' }], duplicate(t.maintenance.id)],
+      ['two lines each sent twice', [{ lineId: t.security.id, amount: '100' }, { lineId: t.water.id, amount: '100' }, { lineId: t.security.id, amount: '100' }, { lineId: t.water.id, amount: '100' }], { ...duplicate(t.security.id), ...duplicate(t.water.id) }],
+      ['a good line beside a line never issued', [{ lineId: t.security.id, amount: '500' }, { lineId: 'iln_0000000000000000', amount: '100' }], MISMATCH],
+      ['a good line beside a malformed entry', [{ lineId: t.security.id, amount: '500' }, null], MISMATCH],
+      ['an invalid amount on a duplicated line is still the duplicate', [{ lineId: t.maintenance.id, amount: 'abc' }, { lineId: t.maintenance.id, amount: '600' }], duplicate(t.maintenance.id)],
+    ];
+    for (const [name, lines, errors] of cases) {
+      const r = await refusedUnchanged(t.s, () => t.post({ reason: REASON_CN, lines }));
+      expect(r, name).toEqual(failed(errors));
+    }
+    // A missing reason is reported beside the duplicate; still nothing issued.
+    const both = await refusedUnchanged(t.s, () => t.post({ reason: 'x', lines: [{ lineId: t.maintenance.id, amount: '1' }, { lineId: t.maintenance.id, amount: '1' }] }));
+    expect(both.errors).toEqual({ reason: [{ code: 'billing:creditNote.problems.reason' }], ...duplicate(t.maintenance.id) });
+    expect(t.s.state().creditNotes).toEqual([]);
+    const still = await t.read();
+    expect(still.creditable.map((c) => c.open.amount)).toEqual(t.inv.creditable.map((c) => c.open.amount));
+    expect(still.invoice.outstanding.amount).toBe('2200.00');
+  });
+
+  it('(3) different lines credited together within their open amounts still work; a repeated request is checked against what is left and never passes the cap', async () => {
+    const t = await oneThousandOpen();
+    const body = { reason: REASON_CN, lines: [{ lineId: t.maintenance.id, amount: '600' }, { lineId: t.security.id, amount: '500' }, { lineId: t.lift.id, amount: '100' }] };
+    const cn = await t.post(body);
+    expect(cn).toMatchObject({ ref: 'ANR-CN-0001', amount: { amount: '1200.00' } });
+    expect(cn.lines.map((l) => [l.invoiceLineId, l.amount.amount])).toEqual([[t.maintenance.id, '600.00'], [t.security.id, '500.00'], [t.lift.id, '100.00']]);
+    const after = await t.read();
+    expect([t.maintenance, t.security, t.lift, t.water].map((l) => t.open(after, l.id))).toEqual(['400.00', '0.00', '200.00', '400.00']);
+    expect(after.invoice.outstanding.amount).toBe('1000.00');
+    // This endpoint has no request-key replay (it is not one of Issue #18's six creates). The rule that keeps
+    // a retry safe: every request is checked against what is still open after every earlier credit note, so
+    // the same request sent again is refused as soon as it would pass the cap, and changes nothing.
+    const again = await refusedUnchanged(t.s, () => t.s.as(AYESHA).post(`/billing/invoices/${t.invoiceId}/credit-notes`, body, { key: 'cn-retry-1' }));
+    expect(again.errors).toEqual({
+      [`lines.${t.maintenance.id}`]: [{ code: 'billing:creditNote.problems.overOpen', params: { open: '400.00', unit: 'A-101' } }],
+      [`lines.${t.security.id}`]: [{ code: 'billing:creditNote.problems.overOpen', params: { open: '0.00', unit: 'A-101' } }],
+    });
+    // A repeat that still fits is a second, separately numbered credit note, on the invoice and in the audit;
+    // repeating it until refused can never take a line below zero.
+    const small = { reason: REASON_CN, lines: [{ lineId: t.maintenance.id, amount: '300' }] };
+    expect((await t.s.as(AYESHA).post<CreditNote>(`/billing/invoices/${t.invoiceId}/credit-notes`, small, { key: 'cn-retry-2' })).ref).toBe('ANR-CN-0002');
+    expect((await refusedUnchanged(t.s, () => t.s.as(AYESHA).post(`/billing/invoices/${t.invoiceId}/credit-notes`, small, { key: 'cn-retry-2' }))).errors).toEqual({
+      [`lines.${t.maintenance.id}`]: [{ code: 'billing:creditNote.problems.overOpen', params: { open: '100.00', unit: 'A-101' } }],
+    });
+    const end = await t.read();
+    expect(end.creditNotes.map((c) => c.ref)).toEqual(['ANR-CN-0001', 'ANR-CN-0002']);
+    expect(end.creditable.every((c) => Number(c.open.amount) >= 0)).toBe(true);
+    expect(end.invoice.outstanding.amount).toBe('700.00');
+    expect(t.s.state().audit.filter((a) => a.action === 'creditNoteIssued')).toHaveLength(2);
+  });
+
+  it('(4) money already paid stays out of reach; a reversal reopens exactly billed − live paid − credited, and duplicates stay refused at every step', async () => {
+    const t = await oneThousandOpen();
+    await t.post({ reason: REASON_CN, lines: [{ lineId: t.maintenance.id, amount: '600' }] });
+    // 400 open: one line sent twice is refused even when the two add up to exactly what is open.
+    expect((await refusedUnchanged(t.s, () => t.post({ reason: REASON_CN, lines: [{ lineId: t.maintenance.id, amount: '200' }, { lineId: t.maintenance.id, amount: '200' }] }))).errors).toEqual(duplicate(t.maintenance.id));
+    expect((await refusedUnchanged(t.s, () => t.post({ reason: REASON_CN, lines: [{ lineId: t.maintenance.id, amount: '400.01' }] }))).errors).toEqual({
+      [`lines.${t.maintenance.id}`]: [{ code: 'billing:creditNote.problems.overOpen', params: { open: '400.00', unit: 'A-101' } }],
+    });
+    await reverse(t.s, t.paid.payment.id);
+    const reopened = await t.read();
+    expect(reopened.creditable.find((c) => c.lineId === t.maintenance.id)).toMatchObject({ billed: { amount: '3000.00' }, paid: { amount: '0.00' }, credited: { amount: '600.00' }, open: { amount: '2400.00' } });
+    const sum = reopened.creditable.reduce((n, c) => n + Math.round(Number(c.open.amount) * 100), 0);
+    expect(reopened.invoice.outstanding.amount).toBe('3600.00');
+    expect(sum).toBe(360000);
+    expect((await refusedUnchanged(t.s, () => t.post({ reason: REASON_CN, lines: [{ lineId: t.maintenance.id, amount: '1200' }, { lineId: t.maintenance.id, amount: '1200' }] }))).errors).toEqual(duplicate(t.maintenance.id));
+    await t.post({ reason: REASON_CN, lines: [{ lineId: t.maintenance.id, amount: '2400' }] });
+    const done = await t.read();
+    expect(t.open(done, t.maintenance.id)).toBe('0.00');
+    expect(done.invoice.outstanding.amount).toBe('1200.00');
+    expect((await refusedUnchanged(t.s, () => t.post({ reason: REASON_CN, lines: [{ lineId: t.maintenance.id, amount: '0.01' }] }))).errors[`lines.${t.maintenance.id}`]?.[0]?.params).toEqual({ open: '0.00', unit: 'A-101' });
+  });
+
+  it('(5) lines of another bill, never issued or malformed get one answer that names nothing; without the right, the same refusal whatever the body says', async () => {
+    const t = await oneThousandOpen();
+    const sana = (await t.s.as(SANA).get<DuesHome>('/portal/dues/home')).position.current!.invoiceId;
+    const otherBill = (await t.s.as(AYESHA).get<InvoiceDetail>(`/billing/invoices/${sana}`)).invoice;
+    const list = await t.s.as(AYESHA).get<InvoiceList>('/billing/invoices');
+    const ownEarlier = list.items.find((i) => i.billingAccountId === A101 && i.id !== t.invoiceId)!;
+    const earlierLine = (await t.s.as(AYESHA).get<InvoiceDetail>(`/billing/invoices/${ownEarlier.id}`)).invoice.lines[0]!;
+    const foreign: Array<[string, unknown]> = [
+      ["a line of A-102's bill (same category)", [{ lineId: otherBill.lines.find((l) => l.category === 'maintenance')!.id, amount: '100' }]],
+      ["a line of A-101's earlier bill", [{ lineId: earlierLine.id, amount: '100' }]],
+      ['a line never issued', [{ lineId: 'iln_0000000000000000', amount: '100' }]],
+      ['a line id that is not text', [{ lineId: 42, amount: '100' }]],
+      ['an entry with no line id', [{ amount: '100' }]],
+      ['lines that are not a list (text)', 'iln_0000000000000000'],
+      ['lines that are not a list (object)', { [t.maintenance.id]: '100' }],
+    ];
+    const answers: Array<readonly [string, Awaited<ReturnType<typeof refusal>>]> = [];
+    for (const [name, lines] of foreign) answers.push([name, await refusedUnchanged(t.s, () => t.post({ reason: REASON_CN, lines }))] as const);
+    for (const [name, r] of answers) expect(r, name).toEqual(failed(MISMATCH));
+    // Nothing about another bill leaks: no flat, no amount, no line id in any answer.
+    expect(JSON.stringify(answers.map(([, r]) => r))).not.toMatch(/A-10|iln_|\d{3}\.\d\d/);
+    // Authority first: without credit_note.create, or from another organisation, a duplicated or foreign body
+    // gets exactly the refusal a valid body gets, for this invoice and for one never issued.
+    const bodies = [
+      { reason: REASON_CN, lines: [{ lineId: t.maintenance.id, amount: '600' }, { lineId: t.maintenance.id, amount: '600' }] },
+      { reason: REASON_CN, lines: [{ lineId: otherBill.lines[0]!.id, amount: '100' }] },
+      { reason: REASON_CN, lines: [{ lineId: t.maintenance.id, amount: '100' }] },
+    ];
+    for (const persona of [SABA, IMRAN, KAMRAN, 'society_admin', 'cedar_treasurer']) {
+      const seen = [];
+      for (const body of bodies) {
+        seen.push(await refusedUnchanged(t.s, () => t.s.as(persona).post(`/billing/invoices/${t.invoiceId}/credit-notes`, body)));
+        seen.push(await refusedUnchanged(t.s, () => t.s.as(persona).post('/billing/invoices/cin_anr_9999/credit-notes', body)));
+      }
+      expect(seen[0]!.status, persona).toBe(403);
+      for (const r of seen) expect(r, persona).toEqual(seen[0]);
+    }
+    expect(t.s.state().creditNotes).toEqual([]);
   });
 });

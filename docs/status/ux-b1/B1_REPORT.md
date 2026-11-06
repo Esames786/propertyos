@@ -4,7 +4,9 @@
 **Source** `docs/ux-backlog@90c2b0a` (§1–§6, the ten B1 entries in §8, §3 N-1 and N-2) and the audit
 `docs/frontend-ux-audit@1a0779e`. Neither branch was merged. Worktree `D:\laragon2\www\propertyos-b1`,
 `E2E_PORT_OFFSET=1000` (office 6173, resident 6174, HQ 6175).
-**Status:** implemented and tested; STOPPED for GPT and owner review after the push.
+**Status:** implemented and tested (`6b1d7f9`); GPT's review held sign-off for one P0, GitHub Issue #19
+(a credit note could credit one line twice in one request). Fixed in the follow-up commit on this branch:
+§11. STOPPED for GPT's final review.
 
 Rule kept everywhere: money is decided on the server (the mock API in `packages/fixtures`), the UI only
 shows it. Stored history is never rewritten: a reversed payment keeps its allocations and its unapplied
@@ -14,7 +16,7 @@ idempotency, a fresh key per logical create), maker-checker and the period lock 
 
 Contents: 1 findings · 2 OD-1 · 3 function matrix (server rules and their tests) · 4 tests and results ·
 5 mutation checks · 6 evidence · 7 manual verification · 8 observed, not fixed · 9 integration notes ·
-10 every interim failure.
+10 every interim failure · 11 Issue #19 closure.
 
 ## 1. Findings
 
@@ -46,10 +48,15 @@ note never credits money already paid (creditable = billed − paid − already 
 line would be a refund or an account credit: a separate feature with its own approval. `creditableOf` is
 the single place to change if the owner rules otherwise.
 
+GPT's review (Issue #19) recommends the same default: a credit note only offsets the unpaid eligible
+balance; anything related to money already received belongs to a separately approved refund or
+account-credit workflow with its own maker-checker and evidence. This is **GPT's recommendation, not the
+owner's consent**: OD-1 stays open until the owner affirms it.
+
 ## 3. Function matrix: server rules and their tests
 
-API tests: `packages/fixtures/src/society/ux-b1.api.test.ts` (18). "Unchanged" = the society's whole store
-as JSON is byte-identical before and after.
+API tests: `packages/fixtures/src/society/ux-b1.api.test.ts` (18, plus 5 for Issue #19: §11). "Unchanged" =
+the society's whole store as JSON is byte-identical before and after.
 
 | Rule | Where | Refusal / projection | Negative tests |
 |---|---|---|---|
@@ -59,6 +66,7 @@ as JSON is byte-identical before and after.
 | No credit applied from a reversed payment | `POST /payments/:id/apply-credit` | `409 already_reversed`, unchanged | without the permission: identical 403 for the real payment and one never issued, unchanged |
 | Reversal not replayed | existing S.1 rules | `409 already_reversed`; second decision 409 | both unchanged |
 | Credit capped at billed − paid − credited | credit-note POST | `422 overOpen {open, unit}`, no number used, unchanged | over by 500 and by 0.01; nothing left (0.00); legacy over-credit reads 0 (never negative); wrong permission (Saba, Imran), resident, other organisations (Shalimar, suspended Cedar): identical 403 for a real invoice and one never issued, unchanged |
+| One credit note: each line of this invoice at most once; no entry naming anything else (Issue #19) | credit-note POST, after the authority checks, before any number, audit or write | `422`: `lines.<id>` `duplicateLine {unit}`; `lines` `linesMismatch` (names nothing); whole request refused, unchanged | 600 + 600 and 1,000 + 0.01 on 1,000 open; mixtures with good lines; another bill's line, never issued, malformed, not a list: one answer; without the right or from another organisation: the same 403 whatever the body (§11) |
 | Drafts only for their preparer, entity, account | `GET /finance/cashbook` | projection | Ayesha, Imran, a second preparer (Rabia, test-only grant), revoked preparer, another legal entity (white-box): no drafts; money figures and FIN-001 byte-identical with a draft |
 | Draft edits only by the preparer, never into a closed month | existing PATCH | `403 not_preparer` unchanged; `409 period_closed` with the voucher unchanged and only the I-27 refusal record added | both |
 | Policy send must equal the stored draft | submit `expected` | `409 policy_changed`, unchanged; invalid → 422 unchanged | other rules, date, note; authority first: Ayesha (no permission) and Imran (holder, not author) get the same 403 whatever they claim |
@@ -241,3 +249,145 @@ flat); `finance:pending.kind.voucher_draft`, `pending.describe.voucher_draft`, `
 | 17 | Vitest run 1 (heavy load) | 1 of 1,535: 5 s timeout, `community.test.ts` | Load (other agent's regression, my e2e, tsc) | Rerun |
 | 18 | Vitest run 2 (saturated, 50 min) | 15 timeouts, 5 worker processes died | Machine saturated (another agent's 3-worker regression, my S.1 e2e, the API stream stall) | Discarded; rerun |
 | 19 | S.1 e2e single run (saturated, 55 min) | 2 phone/axe tests: test timeout with "Target crashed" in axe; worker exit 0xC0000142 | Infrastructure (process start-up failure under exhaustion) | Re-checked in the combined run: both passed (418/418) |
+
+## 11. Issue #19 closure: one credit note could credit the same line twice (P0)
+
+GPT's independent review of `6b1d7f9` accepted the B1 corrections and held sign-off for one defect
+(GitHub Issue #19). The batch was not reimplemented; this is a server-side fix with tests.
+
+### 11.1 Reproduction on `6b1d7f9` (before the fix)
+
+A temporary test (deleted, not committed) using the B1 harness on unchanged `6b1d7f9`: A-101's November
+bill after 3,000 office cash (maintenance billed 3,000, paid 2,000, so 1,000.00 open; the other lines
+credited in full first). One `POST /billing/invoices/:id/credit-notes` with
+`[{maintenance, 600.00}, {maintenance, 600.00}]`:
+
+- **issued** `ANR-CN-0002` for 1,200.00 with two stored lines for the same source line;
+- maintenance then read billed 3,000 · paid 2,000 · credited 1,200; the invoice **outstanding −200.00,
+  settlement "paid"**; the account balance −200.00.
+
+The same run showed two related gaps in the body checks: an entry naming a line that is not on the invoice
+was skipped silently (beside a good entry, the good one would have been issued alone), and `lines: [null]`
+threw a `TypeError` instead of a 422. `lines: "abc"` happened to answer "no lines" only because a string
+is iterable.
+
+### 11.2 Fix (server, `packages/fixtures/src/society/handlers.ts`, credit-note POST)
+
+**Duplicates are refused, not summed** (GPT's recommendation). Why: the UI sends one entry per line (the
+drawer keys amounts by line id, `Object.entries`), so a duplicate only comes from a malformed or crafted
+request. Refusing it is deterministic, places the error on the line, and keeps one stored credit-note
+line per source line. Summing would silently accept a malformed request and make it ambiguous which
+entry an amount error belongs to.
+
+Order inside the handler (unchanged parts in brackets):
+1. [invoice in the reader's site, else the same 404 as one never issued; `authorize(credit_note.create)`]:
+   nothing about the body is read before this.
+2. Body shape as a whole: `lines` must be a list (absent or null = "no lines" as before); each entry must
+   be an object whose `lineId` is text naming a line of **this** invoice. Anything else (another bill's
+   line, another organisation's, never issued, malformed, not a list) → one field error
+   `lines: billing:creditNote.problems.linesMismatch`, which names no id, flat or amount.
+3. Each line at most once: a line sent twice or more → `lines.<lineId>: duplicateLine {unit}` (the flat
+   of this invoice's own line), whatever the amounts (also when they add up to no more than is open, or
+   one is blank).
+4. Amounts on the remaining unique lines, unchanged: positive, at most `creditableOf(line)` (billed −
+   live paid − credited, never below 0): the single cap.
+5. Any error → `422 validation_failed` with all field errors; the request is refused whole (no good entry
+   is issued alone). Only after every check: the credit-note id, `nextRef` (the number), the record,
+   the audit entry and the save.
+
+New strings (EN and UR, Urdu for a native reader): `billing:creditNote.problems.duplicateLine`
+"This line ({{unit}}) was sent more than once. Enter one amount per line; nothing was issued." /
+"یہ اندراج ({{unit}}) ایک سے زیادہ بار بھیجا گیا۔ ہر اندراج پر ایک ہی رقم لکھیں؛ کچھ جاری نہیں ہوا۔";
+`linesMismatch` "The lines sent are not all lines of this invoice. Nothing was issued: open the invoice
+again and retry." / "بھیجے گئے سب اندراجات اس انوائس کے نہیں ہیں۔ کچھ جاری نہیں ہوا: انوائس دوبارہ کھولیں اور پھر
+کوشش کریں۔". 10,319 → 10,321 keys per locale.
+
+**UI:** no change. The drawer cannot send a duplicate or a line of another invoice (amounts are keyed by
+the displayed invoice's line ids). If such a refusal ever reached it, the existing error summary shows
+it and nothing was issued.
+
+**Retries and idempotency:** this endpoint has no request-key replay: it is not one of Issue #18's six
+bound creates (`voucher.create`, `transfer.create`, `office_cash.record`, `batch.create`, `cheque.receive`,
+`ownership.create`), and none was added (not broadening scope). The rule that keeps a retry safe: every
+request is checked against what is still open after every stored credit note, so the same request sent
+again is refused as soon as it would pass the cap, unchanged. A repeat that still fits is a second,
+separately numbered credit note, visible on the invoice and in the audit, and can never take a line below
+zero. In the UI the button is disabled while the request runs, mutations are not retried automatically,
+and the drawer closes on success. If GPT or the owner want a repeated identical credit note to be
+answered with the first one, that is request-key idempotency for credit notes: a separate decision.
+
+### 11.3 Tests (Vitest API, appended to `ux-b1.api.test.ts`; the 18 earlier tests unmodified)
+
+Diff of the test file: one import (`type InvoiceList`) and a new `describe` block; no line removed.
+
+| # | Test | What it shows |
+|---|---|---|
+| 1 | 600 + 600, same line, 1,000.00 open | `422`, `lines.<id>` `duplicateLine {unit: A-101}`; whole society store byte-identical, counters (numbering) and audit length unchanged, no credit note; the same request again gives the identical answer; the next valid credit note is `ANR-CN-0001` (no number used) and leaves 400.00 open, outstanding 1,600.00 |
+| 2 | 1,000 + 0.01; mixtures | eight bodies, each refused whole and unchanged: 1,000 + 0.01; two entries adding up to exactly the open amount; a blank entry beside an amount; good security and lift around a duplicated maintenance; two lines each sent twice (both reported); a good line beside a never-issued line or a malformed entry (`linesMismatch`); an invalid amount on a duplicated line (still the duplicate). A short reason is reported beside the duplicate. Open amounts and outstanding (2,200.00) as before |
+| 3 | different lines together; repeats | maintenance 600 + security 500 + lift 100 in one credit note works (`ANR-CN-0001`, 1,200.00, three lines; open 400 / 0 / 200 / 400; outstanding 1,000.00). The same request again (with a request key) → `422 overOpen` on maintenance (400.00) and security (0.00), unchanged. A small repeat that fits is `ANR-CN-0002`; the same again → `overOpen 100.00`, unchanged; all open ≥ 0; two `creditNoteIssued` audit entries |
+| 4 | paid money; reversal | after 600 credited (400 open): 200 + 200 duplicated refused (duplicate, even though it equals the open amount); 400.01 → `overOpen 400.00`. After the payment is reversed: maintenance billed 3,000 · paid 0 · credited 600 · open 2,400; invoice outstanding 3,600.00 = the sum of every line's open amount; 1,200 + 1,200 duplicated refused; a single 2,400 issued → open 0, outstanding 1,200.00; 0.01 more → `overOpen 0.00` |
+| 5 | another bill, never issued, malformed; authority first | a line of A-102's bill, a line of A-101's earlier bill, a never-issued id, a numeric id, an entry without an id, `lines` as text, `lines` as an object: all the identical answer `{lines: linesMismatch}`, unchanged, and no answer contains a flat, a line id or an amount. Saba, Imran, Kamran (resident), Shalimar's admin and suspended Cedar's treasurer, with a duplicated body, a foreign-line body and a valid body, on the real invoice and on one never issued: six identical 403s each, unchanged. (Only Al-Noor has society invoices in the demo, so "another organisation" is tested as the other organisations' readers.) |
+
+Run against the unfixed handler (the `6b1d7f9` file restored temporarily, then put back byte-identical):
+tests 1, 2, 4 and 5 fail; test 3 passes (it covers behaviour that already worked).
+
+### 11.4 Mutation checks (`test-results-b1/scratch/mutate19.cjs`)
+
+Each mutant breaks one guard, runs `ux-b1.api.test.ts` (23 tests), restores the file and compares
+SHA-256. **10 / 10 caught, every file restored byte-identical**; the five COL-01 mutants (K1–K5) were
+re-run against the new tests: 5 / 5 caught, restored.
+
+| # | Rule broken | Caught by |
+|---|---|---|
+| D1 | duplicate guard removed | 1, 2, 4 |
+| D2 | duplicate guard only from three entries | 1, 2, 4 |
+| D3 | an amount check overrides the duplicate error | 2 |
+| D4 | unknown entries skipped silently (the old behaviour) | 2, 5 |
+| D5 | `lines` that is not a list accepted | 5 |
+| D6 | "no lines" hides the mismatch | 5 |
+| D7 | duplicates each checked alone (per-entry cap only, the original defect) | 1, 2, 4 |
+| O1 | a number (`nextRef`) taken before the checks end | 7 tests (COL-01 two, Issue #19 all five) |
+| O2 | audit written before the checks end | 7 tests |
+| O3 | body checked before the record-level authority check | 1, 2, 4 (the reordered check answers differently). Test 5's 403s come from the route-level `requires(credit_note.create)`, which runs before the handler, so this mutant is not visible there; no demo reader holds `credit_note.create` without the record's scope, so the record-level order (`authorize` before the body) is shown by the code, not by a test |
+
+### 11.5 Results (final sources, production build)
+
+All on the final sources (handler fix, tests, two strings per locale), production build of 22:10Z served on
+6173-6175 over both loopbacks. Power checked before each run (`test-results-b1/i19-power-*.txt`): on AC and
+charging throughout (46 % to 85 %); the System log shows no sleep or standby during any run (the last
+Modern Standby episode was 21:34:37Z-21:56:11Z, before this work).
+
+| Check | Result | Time | Workers / CPU at start |
+|---|---|---|---|
+| `tsc` (typecheck) | exit 0 | 63 s | - |
+| Lint: eslint + logical CSS + i18n | exit 0; no physical left/right; 2 locales × 26 namespaces, **10,321** keys each, parity OK | 53 s | - |
+| Vitest, full | **1,540 / 1,540**, 55 files (1,535 + the 5 new; golden vectors included) | 76 s | 3 / 27 % |
+| Build (three apps, offset 1000) | built | 25 s | - |
+| **Chromium:** combined e2e (every gate) + `tests/evidence/uxb1.evidence.spec.ts`, retries off | **418 / 418**; 0 failed, 0 flaky, 0 skipped (D.1 `identity.spec.ts:327` palette test passed) | 38.9 min | 3 / 22 % |
+| axe in that run | **1,468 scans, 0 violations** (40,579 rule passes); B1 spec 42 scans, 0 | | |
+| Firefox smoke (every smoke spec) | **25 / 25** | 3.2 min (with WebKit) | 3 / 64 % |
+| **WebKit** smoke (every smoke spec) | **24 / 25**: `s2a.smoke.spec.ts:52` "a new guard" failed (below) | | |
+| WebKit `--repeat-each=20` of that test, this branch | 14 passed, **6 failed** | 2.5 min | 3 / 73 % |
+| WebKit `--repeat-each=20` of that test, base `04b6fde` (worktree `propertyos-s1fix`, clean; only its ignored `dist` rebuilt for these ports) | 11 passed, **9 failed** | 2.5 min | 3 / 47 % |
+
+Every WebKit failure (1 + 6 + 9) is the same assertion in the S.2a test's `pick` helper
+(`s2a.smoke.spec.ts:48`): after choosing an option the combo box's listbox is still open
+(`getByRole('listbox')` count 1, expected 0, 20 s); the helper's own comment records that WebKit under
+load sometimes drops a click that lands while the list is still filtering. It fails at least as often
+on the base without B1 (9/20 against 6/20), and neither B1 nor Issue #19 touches the staff screens or
+that searchable list. Not weakened, skipped or retried; it remains known QA debt (S.2a guard form,
+WebKit).
+
+Screenshots: the evidence spec re-shot all 55 (widths re-checked, 0 mismatches). One file,
+`c02-collections-recent-200pct-320-ur.png`, came out 5 bytes different with no visible change (both looked
+at side by side); the committed version was kept. No screen changed in this follow-up, so no new
+320 px / 200 % review was needed.
+
+### 11.6 Interim failures (Issue #19)
+
+| # | Where | Failure | Cause | Resolution |
+|---|---|---|---|---|
+| 1 | Reproduction on `6b1d7f9` | first run printed nothing | Vitest's default reporter hid the console lines | Rerun with the verbose reporter; output in `test-results-b1/issue19-repro.log` |
+| 2 | Appending the tests | a Git Bash heredoc failed to parse (nothing written) | Quoting inside the heredoc | Wrote the block to a file and appended it |
+| 3 | WebKit smoke (final) | `s2a.smoke.spec.ts:52` "a new guard" failed once | Known WebKit intermittent (listbox stays open after a choice) | Measured with `--repeat-each=20` on this branch (6/20 failed) and on base `04b6fde` (9/20 failed); not caused by B1; reported, not retried or skipped |
+| 4 | Evidence re-shoot | one PNG 5 bytes different | Encoding noise, no visible change | Committed version kept |

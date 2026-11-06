@@ -896,7 +896,9 @@
       "reason": "Give a reason of a few words.",
       "amount": "Enter an amount above 0.",
       "overOpen": "At most {{open}} is still open on this line ({{unit}}): the rest is paid or already credited.",
-      "noLines": "Enter an amount on at least one line."
+      "noLines": "Enter an amount on at least one line.",
+      "duplicateLine": "This line ({{unit}}) was sent more than once. Enter one amount per line; nothing was issued.",
+      "linesMismatch": "The lines sent are not all lines of this invoice. Nothing was issued: open the invoice again and retry."
     },
     "breakdown": "Billed {{billed}} · paid {{paid}} · credited {{credited}} · open {{open}}",
     "nothingOpen": "Nothing open to credit on this line: it is paid or already credited."

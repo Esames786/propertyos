@@ -1393,15 +1393,36 @@ export const SOCIETY_HANDLERS: readonly Handler[] = [
       const invoice = s.view.invoices.find((i) => i.id === ctx.params.invoiceId);
       if (!invoice) notFound(ctx);
       authorize(ctx, 'receivables', recordOf(s, { billingAccountId: invoice.billingAccountId }), 'credit_note.create');
-      const body = (ctx.req.body ?? {}) as { reason?: string; lines?: Array<{ lineId?: string; amount?: unknown }> };
+      const body = (ctx.req.body ?? {}) as { reason?: string; lines?: unknown };
       const reason = String(body.reason ?? '').trim();
       const errors: Record<string, Array<{ code: string; params?: Record<string, string> }>> = {};
       if (reason.length < 5) errors.reason = [{ code: 'billing:creditNote.problems.reason' }];
+      // GitHub Issue #19: every entry must name a line of THIS invoice, each line at most once. Checked as a
+      // whole before any amount, and every check ends before a number, the audit or the store is touched.
+      // An entry that is malformed or names any other line (another bill, another organisation, never
+      // issued) gets one answer that names nothing; a line sent twice is refused (never summed), so
+      // `creditableOf` stays the only cap and a credit note never holds the same source line twice.
+      const entries: unknown[] = Array.isArray(body.lines) ? body.lines : [];
+      let mismatch = body.lines != null && !Array.isArray(body.lines);
+      const sent = new Map<string, number>();
+      const lineOf = (e: unknown) => {
+        const id = e !== null && typeof e === 'object' ? (e as { lineId?: unknown }).lineId : undefined;
+        return typeof id === 'string' ? invoice.lines.find((x) => x.id === id) : undefined;
+      };
+      for (const e of entries) {
+        const line = lineOf(e);
+        if (!line) mismatch = true;
+        else sent.set(line.id, (sent.get(line.id) ?? 0) + 1);
+      }
+      if (mismatch) errors.lines = [{ code: 'billing:creditNote.problems.linesMismatch' }];
+      for (const line of invoice.lines) {
+        if ((sent.get(line.id) ?? 0) > 1) errors[`lines.${line.id}`] = [{ code: 'billing:creditNote.problems.duplicateLine', params: { unit: line.unitCode } }];
+      }
       const lines: CreditNote['lines'] = [];
-      for (const l of body.lines ?? []) {
-        const line = invoice.lines.find((x) => x.id === l.lineId);
-        const raw = String(l.amount ?? '').trim().replace(/,/g, '');
-        if (!line) continue;
+      for (const e of entries) {
+        const line = lineOf(e);
+        if (!line || errors[`lines.${line.id}`]) continue;
+        const raw = String((e as { amount?: unknown }).amount ?? '').trim().replace(/,/g, '');
         if (raw === '' || raw === '0' || raw === '0.00') continue;
         // UX B1 (COL-01, OD-1 recommended default): never more than billed − paid − already credited (a
         // reversed payment's money counts as open again). Refused before any number is used; nothing changes.
@@ -1410,7 +1431,7 @@ export const SOCIETY_HANDLERS: readonly Handler[] = [
         else if (toPaisa(raw) > open) errors[`lines.${line.id}`] = [{ code: 'billing:creditNote.problems.overOpen', params: { open: fromPaisa(open), unit: line.unitCode } }];
         else lines.push({ invoiceLineId: line.id, ...(line.category ? { category: line.category } : {}), unitCode: line.unitCode, amount: money(toPaisa(raw)) });
       }
-      if (!lines.length && !Object.keys(errors).some((k) => k.startsWith('lines.'))) errors.lines = [{ code: 'billing:creditNote.problems.noLines' }];
+      if (!lines.length && !Object.keys(errors).some((k) => k === 'lines' || k.startsWith('lines.'))) errors.lines = [{ code: 'billing:creditNote.problems.noLines' }];
       if (Object.keys(errors).length) problem(ctx, 422, 'validation_failed', 'errors:validation.summary', errors);
       const n = s.state.creditNotes.length + 1;
       const { by, byName } = actor(ctx);
