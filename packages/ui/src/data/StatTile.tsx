@@ -1,6 +1,6 @@
 import { ArrowDownRight, ArrowUpRight, Minus } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 import { Link } from 'react-aria-components';
 import { Sparkline } from '../charts/Sparkline';
 import { cn } from '../lib/cn';
@@ -25,7 +25,9 @@ const TONE = {
 /**
  * Stat tile: label · value · delta vs a named period · context line · 12-point trend.
  * Proportional figures for the big number (tabular only in columns). The whole tile is one link
- * to the screen behind the number; its accessible name is the label, value and change in words.
+ * to the screen behind the number; its accessible name is the label, value, change in words and
+ * context line, each once (SH-02). A context that the caller already folded into `accessibleValue`
+ * is not repeated; a context that is not plain text becomes the link's description.
  */
 export function StatTile({
   label,
@@ -41,7 +43,7 @@ export function StatTile({
 }: {
   label: string;
   value: ReactNode;
-  /** The value as plain text (the visible one may be animating). */
+  /** The value as plain text (the visible one may be animating). The context line is added by the tile. */
   accessibleValue: string;
   delta?: StatDelta;
   context?: ReactNode;
@@ -53,10 +55,14 @@ export function StatTile({
   testId?: string;
 }) {
   const DeltaIcon = delta?.direction === 'up' ? ArrowUpRight : delta?.direction === 'down' ? ArrowDownRight : Minus;
+  const contextId = useId();
+  const contextText = typeof context === 'string' && context.trim() && !accessibleValue.includes(context) ? context : undefined;
+  const describedBy = context && typeof context !== 'string' ? contextId : undefined;
   return (
     <Link
       href={href}
-      aria-label={[label, accessibleValue, delta?.description].filter(Boolean).join(', ')}
+      aria-label={[label, accessibleValue, delta?.description, contextText].filter(Boolean).join(', ')}
+      aria-describedby={describedBy}
       data-testid={testId}
       className={cn(
         'group relative flex w-full min-w-0 flex-col justify-between gap-4 overflow-hidden rounded-card border border-border/70 bg-panel p-5 shadow-card outline-none',
@@ -79,10 +85,19 @@ export function StatTile({
           </span>
         )}
       </div>
-      <div aria-hidden className="min-w-0">
-        <div className="text-3xl leading-none font-bold tracking-tight whitespace-nowrap text-text">{value}</div>
+      <div aria-hidden className="@container min-w-0">
+        {/* 320 px with 200 % text: the value was cut off by the tile's clip (S.1 hotfix report, residual 5).
+            It now never grows past about a fifth of the tile's width per glyph height, so "Rs 355.8K" and
+            "Rs 12.6 ہزار" stay whole on one line; at ordinary sizes text-3xl is the smaller of the two. */}
+        <div className="text-[length:min(var(--text-3xl),19cqi)] leading-none font-bold tracking-tight whitespace-nowrap text-text">{value}</div>
         <div className="mt-3 flex items-end justify-between gap-3">
-          {context ? <div className="min-w-0 text-xs leading-snug text-muted">{context}</div> : <span />}
+          {context ? (
+            <div id={describedBy} className="min-w-0 text-xs leading-snug text-muted">
+              {context}
+            </div>
+          ) : (
+            <span />
+          )}
           {trend && (
             <span className="shrink-0">
               <Sparkline values={trend} width={84} height={30} />

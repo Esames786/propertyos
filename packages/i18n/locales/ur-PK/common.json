@@ -39,6 +39,10 @@
     "reset": "ری سیٹ کریں",
     "done": "مکمل"
   },
+  "calendar": {
+    "previousMonth": "پچھلا مہینہ",
+    "nextMonth": "اگلا مہینہ"
+  },
   "state": {
     "loading": "لوڈ ہو رہا ہے…",
     "saving": "محفوظ ہو رہا ہے…",

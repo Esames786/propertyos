@@ -300,7 +300,7 @@ function ProofForm({ payee, defaultAmount }: { payee: ResidentPayee; defaultAmou
           <span className="min-w-0 flex-1 text-sm text-muted" aria-live="polite">
             {file ? <><bdi dir="ltr" className="ltr-ref font-medium text-text">{file.name}</bdi> · {t('dues:pay.fileKb', { kb: Math.max(1, Math.round(file.size / 1024)) })}</> : t('dues:pay.fileHint')}
           </span>
-          <input ref={input} type="file" accept={FILE_TYPES.join(',')} onChange={pick} aria-labelledby={`${titleId}-file`} className="sr-only" data-testid="proof-file" />
+          <input ref={input} type="file" accept={FILE_TYPES.join(',')} onChange={pick} aria-labelledby={`${titleId}-file`} className="sr-only" tabIndex={-1} data-testid="proof-file" />
         </div>
         {(fileError ?? fieldError('file')) && <p className="text-sm text-error" role="alert">{fileError ?? fieldError('file')}</p>}
       </div>

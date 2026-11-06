@@ -85,7 +85,10 @@ export function UrlTabs({
           />
         )}
       </div>
-      <TabPanel key={selected} id={selected} className="pt-5 outline-none">
+      {/* SH-10: React Aria makes a panel without focusable content a Tab stop, so its keyboard focus is
+          drawn. `outline-solid` is needed: in Tailwind 4 `outline-none` sets --tw-outline-style to none,
+          which `outline-2` reads, so the PillTabs classes alone draw nothing. */}
+      <TabPanel key={selected} id={selected} className="pt-5 outline-none data-focus-visible:outline-2 data-focus-visible:outline-offset-2 data-focus-visible:outline-solid data-focus-visible:outline-focus">
         {children(selected)}
       </TabPanel>
     </AriaTabs>

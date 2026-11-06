@@ -2,7 +2,9 @@ import { Check, ChevronDown, CircleAlert } from 'lucide-react';
 import type { ReactNode } from 'react';
 import {
   Button as AriaButton,
-  Checkbox as AriaCheckbox,
+  CheckboxButton,
+  CheckboxField as AriaCheckboxField,
+  FieldError,
   ListBox,
   ListBoxItem,
   Popover,
@@ -11,6 +13,7 @@ import {
   Select,
   SelectValue,
   Switch as AriaSwitch,
+  Text,
 } from 'react-aria-components';
 import { useController } from 'react-hook-form';
 import { cn } from '../lib/cn';
@@ -29,39 +32,47 @@ export interface Option {
 const boxClass =
   'grid size-5 shrink-0 place-items-center rounded-sm border-2 border-border-control bg-panel text-on-primary group-data-selected:border-primary group-data-selected:bg-primary group-data-invalid:border-error group-data-focus-visible:outline-2 group-data-focus-visible:outline-offset-2 group-data-focus-visible:outline-focus';
 
+/**
+ * SH-12: the description and the error are React Aria slots of the checkbox field, so the checkbox
+ * is described by both (aria-describedby) and marked invalid (aria-invalid) when the error shows.
+ */
 export function CheckboxField({ name, label, description }: { name: string; label: string; description?: string }) {
   const { id } = useFieldMeta(name, label);
   const { field, fieldState } = useController({ name });
   return (
-    <div className={fieldWrap}>
-      <AriaCheckbox
-        id={id}
-        name={name}
-        isSelected={!!field.value}
-        onChange={field.onChange}
-        onBlur={field.onBlur}
-        isInvalid={!!fieldState.error}
-        validationBehavior="aria"
-        className="group flex cursor-default items-start gap-3 text-sm text-text pointer-coarse:py-1"
-      >
+    <AriaCheckboxField
+      id={id}
+      name={name}
+      isSelected={!!field.value}
+      onChange={field.onChange}
+      onBlur={field.onBlur}
+      isInvalid={!!fieldState.error}
+      validationBehavior="aria"
+      className={fieldWrap}
+    >
+      <CheckboxButton className="group flex cursor-default items-start gap-3 text-sm text-text pointer-coarse:py-1">
         <span className={boxClass}>
           <Check aria-hidden className="size-3.5 opacity-0 group-data-selected:opacity-100" strokeWidth={3} />
         </span>
         <span>{label}</span>
-      </AriaCheckbox>
-      {description && <p className={cn(descriptionClass, 'ms-8')}>{description}</p>}
+      </CheckboxButton>
+      {description && (
+        <Text slot="description" className={cn(descriptionClass, 'ms-8')}>
+          {description}
+        </Text>
+      )}
       {fieldState.error?.message && <ErrorLine messageKey={fieldState.error.message} />}
-    </div>
+    </AriaCheckboxField>
   );
 }
 
 function ErrorLine({ messageKey }: { messageKey: string }) {
   const { t } = useT();
   return (
-    <p className={cn(errorClass, 'ms-8')}>
+    <FieldError className={cn(errorClass, 'ms-8')}>
       <CircleAlert aria-hidden className="mt-0.5 size-4 shrink-0" />
       <span>{t(messageKey as 'forms:errors.required')}</span>
-    </p>
+    </FieldError>
   );
 }
 
@@ -187,7 +198,8 @@ export function SelectControl({
       onSelectionChange={(key) => onChange(key === null ? null : String(key))}
       isDisabled={isDisabled}
       isRequired={!optional}
-      isInvalid={isInvalid}
+      // SH-04: an error key marks the field invalid (as PlainTextField does), so its message shows.
+      isInvalid={isInvalid ?? !!errorKey}
       validationBehavior="aria"
       // React Aria has no Urdu strings; its default "Select an item" would stay English.
       placeholder={placeholder ?? t('forms:selectPlaceholder')}

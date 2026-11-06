@@ -22,6 +22,7 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 import {
   Autocomplete,
+  Button as AriaButton,
   Dialog,
   Header,
   Input,
@@ -153,15 +154,27 @@ export function CommandPalette() {
       <Modal className="mx-auto flex h-dvh w-full flex-col bg-panel shadow-overlay sm:h-auto sm:max-h-[75vh] sm:max-w-2xl sm:rounded-card">
         <Dialog aria-label={t('common:command.title')} className="flex min-h-0 flex-1 flex-col outline-none" data-testid="command-palette">
           <Autocomplete inputValue={query} onInputChange={setQuery}>
-            <SearchField aria-label={t('common:command.inputLabel')} autoFocus className="flex items-center gap-3 border-b border-border px-4">
-              <Search aria-hidden className="size-5 shrink-0 text-muted" />
-              <Input
-                placeholder={t('nav:header.searchPlaceholder')}
-                className="min-h-14 flex-1 bg-transparent text-base text-text outline-none placeholder:text-subtle [&::-webkit-search-cancel-button]:hidden"
-              />
-              {search.isFetching && <Spinner className="text-muted" />}
-              <kbd className="ltr-ref hidden rounded-sm border border-border px-1.5 text-xs text-muted sm:block">{'Esc'}</kbd>
-            </SearchField>
+            {/* SH-01: below `sm` the palette fills the screen (no overlay left to tap, and a touch phone
+                has no Escape key), so a visible Cancel closes it; focus then returns to whatever opened
+                it. It sits beside the SearchField, not in it: the field's own button slot clears the text. */}
+            <div className="flex items-center border-b border-border">
+              <SearchField aria-label={t('common:command.inputLabel')} autoFocus className="flex min-w-0 flex-1 items-center gap-3 px-4 max-sm:pe-2">
+                <Search aria-hidden className="size-5 shrink-0 text-muted" />
+                <Input
+                  placeholder={t('nav:header.searchPlaceholder')}
+                  className="min-h-14 min-w-0 flex-1 bg-transparent text-base text-text outline-none placeholder:text-subtle [&::-webkit-search-cancel-button]:hidden"
+                />
+                {search.isFetching && <Spinner className="text-muted" />}
+                <kbd className="ltr-ref hidden rounded-sm border border-border px-1.5 text-xs text-muted sm:block">{'Esc'}</kbd>
+              </SearchField>
+              <AriaButton
+                onPress={() => setPaletteOpen(false)}
+                data-testid="command-palette-cancel"
+                className="me-2 inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-control px-3 text-sm font-semibold text-primary outline-none data-hovered:bg-primary-soft data-pressed:bg-primary-soft data-focus-visible:outline-2 data-focus-visible:outline-solid data-focus-visible:outline-focus sm:hidden"
+              >
+                {t('common:actions.cancel')}
+              </AriaButton>
+            </div>
             <p className="sr-only">{t('common:command.hint')}</p>
             <Menu
               aria-label={t('common:command.title')}

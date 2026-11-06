@@ -44,7 +44,7 @@ export default function FinanceDashboard() {
   const d = q.data;
   const p = fmt.period(d.period);
   const tile = (id: string, icon: LucideIcon, hue: TileHue, label: string, f: FinanceFigure, context: string) => (
-    <StatTile testId={`fin-${id}`} icon={icon} hue={hue} label={label} value={fmt.compact(f.amount)} accessibleValue={`${fmt.money(f.amount)}, ${context}`} context={context} href={f.href} />
+    <StatTile testId={`fin-${id}`} icon={icon} hue={hue} label={label} value={fmt.compact(f.amount)} accessibleValue={fmt.money(f.amount)} context={context} href={f.href} />
   );
   return (
     <div className="@container space-y-6" data-testid="finance-dashboard">

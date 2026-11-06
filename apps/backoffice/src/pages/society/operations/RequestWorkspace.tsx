@@ -20,7 +20,7 @@ import {
   useToast,
 } from '@repo/ui';
 import { Ban, CheckCircle2, ClipboardCheck, EyeOff, GitMerge, Hammer, Lock, MessageSquarePlus, PauseCircle, Play, RefreshCw, Send, UserCheck, Users, Wrench } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { OPS, SOCIETY } from '../../../nav.config';
 import { Loading, ProblemAlert, useSocietyFormat } from '../kit';
 import { Fact, FactGrid, HistoryList, WRAP } from '../finance/fkit';
@@ -48,19 +48,31 @@ function Workspace({ detail: d, refetch }: { detail: RequestDetail; refetch: () 
   const [drawer] = useQueryParam('drawer');
   const setParams = useQueryParams();
   const act = useApiMutation<RequestDetail>();
-  const [error, setError] = useState<unknown>(null);
+  // OPS-01: a refusal is shown where the person is looking: inside the drawer or dialog that sent it
+  // (focused and announced), or on the page for actions started there. Opening or closing a drawer
+  // clears it; a refusal that arrives after its drawer was closed is shown on the page.
+  const [failure, setFailure] = useState<{ error: unknown; from: string | null } | null>(null);
+  const [seenDrawer, setSeenDrawer] = useState(drawer);
+  if (seenDrawer !== drawer) {
+    setSeenDrawer(drawer);
+    setFailure(null);
+  }
+  const shownIn = failure ? (failure.from && failure.from === drawer ? failure.from : 'page') : null;
+  const problemIn = (surface: string) => (failure && shownIn === surface ? failure.error : null);
+  const refusalIn = (surface: string) => (problemIn(surface) ? <RefusalAlert error={problemIn(surface)} /> : undefined);
   const r = d.request;
   const order = [...d.workOrders].reverse().find((x) => x.state !== 'cancelled' && x.state !== 'done');
   const issue = r.kind === 'community_issue';
   const run: Run = async (path, body, message, method = 'POST') => {
-    setError(null);
+    const from = drawer ?? null;
+    setFailure(null);
     try {
       await act.mutateAsync({ method, path, body });
       toast.success(message);
       refetch();
       return true;
     } catch (e) {
-      setError(e);
+      setFailure({ error: e, from });
       return false;
     }
   };
@@ -85,7 +97,7 @@ function Workspace({ detail: d, refetch }: { detail: RequestDetail; refetch: () 
         }
       />
       <NextStep detail={d} order={order} onOpen={open} run={run} pending={act.isPending} />
-      {error ? <ProblemAlert error={error} /> : null}
+      {shownIn === 'page' ? <ProblemAlert error={failure!.error} /> : null}
       <UrlTabs
         label={t('operations:request.tabs.label')}
         phoneLimit={2}
@@ -114,15 +126,33 @@ function Workspace({ detail: d, refetch }: { detail: RequestDetail; refetch: () 
           )
         }
       </UrlTabs>
-      <TriageDrawer isOpen={drawer === 'triage'} onClose={close} detail={d} run={run} pending={act.isPending} />
-      <AssignDrawer isOpen={drawer === 'assign'} onClose={close} detail={d} run={run} pending={act.isPending} />
-      {order && <CompleteDrawer isOpen={drawer === 'complete'} onClose={close} order={order} run={run} pending={act.isPending} issue={issue} />}
-      {order && <HoldDrawer isOpen={drawer === 'hold'} onClose={close} order={order} run={run} pending={act.isPending} />}
-      {issue && <MergeDrawer isOpen={drawer === 'merge'} onClose={close} detail={d} run={run} pending={act.isPending} />}
-      {issue && <ResolveDrawer isOpen={drawer === 'resolve'} onClose={close} detail={d} run={run} pending={act.isPending} />}
-      <ConfirmDialog isOpen={drawer === 'close'} onOpenChange={(o) => !o && close()} title={t('operations:request.closeTitle', { ref: r.ref })} effect={t('operations:request.closeEffect')} confirmLabel={t('operations:request.closeForResident')} reasonLabel={t('operations:request.closeReason')} onConfirm={async (reason) => void ((await run(`/ops/requests/${r.id}/close`, { reason }, t('operations:request.closed'))) && close())} />
-      <ConfirmDialog isOpen={drawer === 'cancel'} onOpenChange={(o) => !o && close()} title={t('operations:request.cancelTitle', { ref: r.ref })} effect={t('operations:request.cancelEffect')} confirmLabel={t('operations:request.cancel')} destructive reasonLabel={t('operations:request.cancelReason')} onConfirm={async (reason) => void ((await run(`/ops/requests/${r.id}/cancel`, { reason }, t('operations:request.cancelled'))) && close())} />
-      <ConfirmDialog isOpen={drawer === 'hide'} onOpenChange={(o) => !o && close()} title={t('operations:issue.hideTitle', { ref: r.ref })} effect={t('operations:issue.hideEffect')} confirmLabel={t('operations:issue.hide')} destructive reasonLabel={t('operations:issue.hideReason')} onConfirm={async (reason) => void ((await run(`/issues/${r.id}/hide`, { reason }, t('operations:issue.hidden'))) && close())} />
+      <TriageDrawer isOpen={drawer === 'triage'} onClose={close} detail={d} run={run} pending={act.isPending} problem={problemIn('triage')} />
+      <AssignDrawer isOpen={drawer === 'assign'} onClose={close} detail={d} run={run} pending={act.isPending} problem={problemIn('assign')} />
+      {order && <CompleteDrawer isOpen={drawer === 'complete'} onClose={close} order={order} run={run} pending={act.isPending} issue={issue} problem={problemIn('complete')} />}
+      {order && <HoldDrawer isOpen={drawer === 'hold'} onClose={close} order={order} run={run} pending={act.isPending} problem={problemIn('hold')} />}
+      {issue && <MergeDrawer isOpen={drawer === 'merge'} onClose={close} detail={d} run={run} pending={act.isPending} problem={problemIn('merge')} />}
+      {issue && <ResolveDrawer isOpen={drawer === 'resolve'} onClose={close} detail={d} run={run} pending={act.isPending} problem={problemIn('resolve')} />}
+      {/* A refused close, cancel or hide keeps its dialog open, the reason still typed (onConfirm resolves false). */}
+      <ConfirmDialog isOpen={drawer === 'close'} onOpenChange={(o) => !o && close()} title={t('operations:request.closeTitle', { ref: r.ref })} effect={t('operations:request.closeEffect')} confirmLabel={t('operations:request.closeForResident')} reasonLabel={t('operations:request.closeReason')} problem={refusalIn('close')} onConfirm={async (reason) => ((await run(`/ops/requests/${r.id}/close`, { reason }, t('operations:request.closed'))) ? close() : false)} />
+      <ConfirmDialog isOpen={drawer === 'cancel'} onOpenChange={(o) => !o && close()} title={t('operations:request.cancelTitle', { ref: r.ref })} effect={t('operations:request.cancelEffect')} confirmLabel={t('operations:request.cancel')} destructive reasonLabel={t('operations:request.cancelReason')} problem={refusalIn('cancel')} onConfirm={async (reason) => ((await run(`/ops/requests/${r.id}/cancel`, { reason }, t('operations:request.cancelled'))) ? close() : false)} />
+      <ConfirmDialog isOpen={drawer === 'hide'} onOpenChange={(o) => !o && close()} title={t('operations:issue.hideTitle', { ref: r.ref })} effect={t('operations:issue.hideEffect')} confirmLabel={t('operations:issue.hide')} destructive reasonLabel={t('operations:issue.hideReason')} problem={refusalIn('hide')} onConfirm={async (reason) => ((await run(`/issues/${r.id}/hide`, { reason }, t('operations:issue.hidden'))) ? close() : false)} />
+    </div>
+  );
+}
+
+/**
+ * OPS-01: the refusal of this drawer's or dialog's last attempt, shown inside it. It is announced
+ * (role="alert") and takes focus, so a screen reader hears it and a phone scrolls to it.
+ */
+function RefusalAlert({ error }: { error: unknown }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (error) ref.current?.focus();
+  }, [error]);
+  if (!error) return null;
+  return (
+    <div ref={ref} tabIndex={-1} className="rounded-card" data-testid="refusal-alert">
+      <ProblemAlert error={error} />
     </div>
   );
 }
@@ -414,7 +444,7 @@ function Merged({ detail: d }: { detail: RequestDetail }) {
   );
 }
 
-function TriageDrawer({ isOpen, onClose, detail: d, run, pending }: { isOpen: boolean; onClose: () => void; detail: RequestDetail; run: Run; pending: boolean }) {
+function TriageDrawer({ isOpen, onClose, detail: d, run, pending, problem }: { isOpen: boolean; onClose: () => void; detail: RequestDetail; run: Run; pending: boolean; problem?: unknown }) {
   const { t } = useT();
   const w = useOpsWords();
   const r = d.request;
@@ -439,6 +469,7 @@ function TriageDrawer({ isOpen, onClose, detail: d, run, pending }: { isOpen: bo
       }
     >
       <div className="space-y-4">
+        <RefusalAlert error={problem} />
         <p className="text-sm text-text">{t('operations:triage.residentSaid', { urgency: w.urgency(r.urgency) })}</p>
         <SelectControl label={t('operations:triage.priority')} value={priority} onChange={(v) => setPriority((v ?? 'p3') as RequestPriority)} options={REQUEST_PRIORITIES.map((p) => ({ id: p, label: `${t(`operations:priority.${p}`)} · ${t(`operations:priority.hint.${p}`)}` }))} testId="triage-priority" />
         <SelectControl label={t('operations:triage.category')} value={category} onChange={(v) => setCategory(v ?? r.category)} options={REQUEST_CATEGORIES.map((c) => ({ id: c, label: w.category(c) }))} testId="triage-category" />
@@ -452,7 +483,7 @@ function TriageDrawer({ isOpen, onClose, detail: d, run, pending }: { isOpen: bo
 const DEMO_TODAY = '2026-10-26';
 const addDays = (n: number) => new Date(Date.parse(`${DEMO_TODAY}T00:00:00Z`) + n * 86400_000).toISOString().slice(0, 10);
 
-function AssignDrawer({ isOpen, onClose, detail: d, run, pending }: { isOpen: boolean; onClose: () => void; detail: RequestDetail; run: Run; pending: boolean }) {
+function AssignDrawer({ isOpen, onClose, detail: d, run, pending, problem }: { isOpen: boolean; onClose: () => void; detail: RequestDetail; run: Run; pending: boolean; problem?: unknown }) {
   const { t } = useT();
   const w = useOpsWords();
   const fmt = useSocietyFormat();
@@ -482,6 +513,7 @@ function AssignDrawer({ isOpen, onClose, detail: d, run, pending }: { isOpen: bo
       }
     >
       <div className="space-y-4">
+        <RefusalAlert error={problem} />
         <fieldset className="space-y-2">
           <legend className="text-sm font-medium text-text">{t('operations:assign.technician')}</legend>
           <div className="space-y-2" role="radiogroup" aria-label={t('operations:assign.technician')}>
@@ -528,7 +560,7 @@ function AssignDrawer({ isOpen, onClose, detail: d, run, pending }: { isOpen: bo
 
 const tradeOf = (category: string) => ({ electrical: 'electrical', plumbing: 'plumbing', water: 'plumbing', carpentry: 'carpentry', civil: 'civil', lift: 'lift' } as Record<string, string>)[category] ?? 'general';
 
-function CompleteDrawer({ isOpen, onClose, order, run, pending, issue }: { isOpen: boolean; onClose: () => void; order: WorkOrder; run: Run; pending: boolean; issue: boolean }) {
+function CompleteDrawer({ isOpen, onClose, order, run, pending, issue, problem }: { isOpen: boolean; onClose: () => void; order: WorkOrder; run: Run; pending: boolean; issue: boolean; problem?: unknown }) {
   const { t } = useT();
   const [note, setNote] = useState('');
   const [files, setFiles] = useState<Array<Omit<OpsFile, 'id'>>>([]);
@@ -549,6 +581,7 @@ function CompleteDrawer({ isOpen, onClose, order, run, pending, issue }: { isOpe
       }
     >
       <div className="space-y-4">
+        <RefusalAlert error={problem} />
         <PlainTextArea label={t('operations:complete.note')} description={t('operations:complete.noteHint')} value={note} onChange={setNote} testId="complete-note" />
         <PhotoPicker label={t('operations:complete.evidence')} files={files} onChange={setFiles} testId="complete-photos" />
         <p className="text-xs text-muted">{issue ? t('operations:complete.issueNext') : t('operations:complete.next')}</p>
@@ -557,7 +590,7 @@ function CompleteDrawer({ isOpen, onClose, order, run, pending, issue }: { isOpe
   );
 }
 
-function HoldDrawer({ isOpen, onClose, order, run, pending }: { isOpen: boolean; onClose: () => void; order: WorkOrder; run: Run; pending: boolean }) {
+function HoldDrawer({ isOpen, onClose, order, run, pending, problem }: { isOpen: boolean; onClose: () => void; order: WorkOrder; run: Run; pending: boolean; problem?: unknown }) {
   const { t } = useT();
   const [note, setNote] = useState('');
   return (
@@ -575,13 +608,16 @@ function HoldDrawer({ isOpen, onClose, order, run, pending }: { isOpen: boolean;
         </>
       }
     >
-      <PlainTextArea label={t('operations:hold.note')} description={t('operations:hold.hint')} value={note} onChange={setNote} testId="hold-note" />
+      <div className="space-y-4">
+        <RefusalAlert error={problem} />
+        <PlainTextArea label={t('operations:hold.note')} description={t('operations:hold.hint')} value={note} onChange={setNote} testId="hold-note" />
+      </div>
     </Drawer>
   );
 }
 
 /** MNT-013: merge a duplicate into the issue that stays (its affected households move with it). */
-function MergeDrawer({ isOpen, onClose, detail: d, run, pending }: { isOpen: boolean; onClose: () => void; detail: RequestDetail; run: Run; pending: boolean }) {
+function MergeDrawer({ isOpen, onClose, detail: d, run, pending, problem }: { isOpen: boolean; onClose: () => void; detail: RequestDetail; run: Run; pending: boolean; problem?: unknown }) {
   const { t } = useT();
   const w = useOpsWords();
   const r = d.request;
@@ -606,6 +642,7 @@ function MergeDrawer({ isOpen, onClose, detail: d, run, pending }: { isOpen: boo
       }
     >
       <div className="space-y-3">
+        <RefusalAlert error={problem} />
         <p className="text-sm text-text">{t('operations:merge.explain', { count: d.affected?.live.site ?? 0 })}</p>
         {!issues.data ? (
           <Loading lines={4} />
@@ -631,7 +668,7 @@ function MergeDrawer({ isOpen, onClose, detail: d, run, pending }: { isOpen: boo
   );
 }
 
-function ResolveDrawer({ isOpen, onClose, detail: d, run, pending }: { isOpen: boolean; onClose: () => void; detail: RequestDetail; run: Run; pending: boolean }) {
+function ResolveDrawer({ isOpen, onClose, detail: d, run, pending, problem }: { isOpen: boolean; onClose: () => void; detail: RequestDetail; run: Run; pending: boolean; problem?: unknown }) {
   const { t } = useT();
   const r = d.request;
   const [summary, setSummary] = useState(r.publicSummary ?? '');
@@ -654,7 +691,10 @@ function ResolveDrawer({ isOpen, onClose, detail: d, run, pending }: { isOpen: b
         </>
       }
     >
-      <PlainTextArea label={t('operations:issue.summary')} description={t('operations:issue.summaryHint')} value={summary} onChange={setSummary} testId="issue-summary" />
+      <div className="space-y-4">
+        <RefusalAlert error={problem} />
+        <PlainTextArea label={t('operations:issue.summary')} description={t('operations:issue.summaryHint')} value={summary} onChange={setSummary} testId="issue-summary" />
+      </div>
     </Drawer>
   );
 }
