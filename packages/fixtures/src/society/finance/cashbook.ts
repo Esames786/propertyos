@@ -323,7 +323,7 @@ export function pendingItems(state: SocietyState, accountId: string | null): Pen
 // The view
 // ---------------------------------------------------------------------------------------------
 
-export function cashbookView(state: SocietyState, today: string, accountId: string | null, period: string): Omit<CashbookView, 'actions'> {
+export function cashbookView(state: SocietyState, today: string, accountId: string | null, period: string): Omit<CashbookView, 'actions' | 'bankFeed'> {
   const accounts = financeAccounts(state, today);
   const events = cashEvents(state);
   const scoped = events.filter((e) => accountId === null || e.accountId === accountId);

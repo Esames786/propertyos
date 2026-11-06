@@ -24,7 +24,9 @@ import { invalidField, log, problem, save, siteOf, stamp, type Society } from '.
 import { factOn } from '../model';
 import { nextRef, viewOf } from '../state';
 import { raiseApproval } from './approvals';
-import { amountField, assertOpen, body, me, query, refuse, remember, replay, required, text } from './common';
+import * as bank from './bank-scope';
+import { seesBankFeed } from './bank-scope';
+import { amountField, assertOpen, body, me, query, refuse, remember, replayOf, required, text } from './common';
 import { financeAccounts } from './cashbook';
 import { addDays, DATE, money, paisa, sum } from './model';
 import { FIN_ROUTES } from './routes';
@@ -238,9 +240,12 @@ function chequeDetail(ctx: HandlerContext, s: Society, c: ChequeInstrument): Che
   const who = me(ctx);
   const reversal = s.state.finance.reversals.find((r) => r.chequeId === c.id && r.status === 'pending');
   const banks = financeAccounts(s.state, ctx.at).filter((a) => a.kind === 'bank' && a.receivesDues);
+  // Issue #18 (FIN-01): statement lines (candidates) and the bank's ids only with the bank feed.
+  const feed = seesBankFeed(ctx);
   return {
-    cheque: c,
-    candidates: c.status === 'deposited' ? chequeCandidates(s.state, c) : c.status === 'cleared' && !reversal ? chequeReversalCandidates(s.state, c) : [],
+    cheque: bank.cheque(ctx, c),
+    candidates: !feed ? [] : c.status === 'deposited' ? chequeCandidates(s.state, c) : c.status === 'cleared' && !reversal ? chequeReversalCandidates(s.state, c) : [],
+    bankFeed: feed,
     depositAccounts: banks.map((a) => ({ id: a.id, name: a.name })),
     actions: {
       deposit: can(ctx, 'cheque.manage') && c.status === 'received',
@@ -370,15 +375,20 @@ export const FINANCE_COLLECT_HANDLERS: readonly Handler[] = [
       if (!rule?.enabled) problem(ctx, 409, 'method_not_allowed', 'collections:problems.methodNotAllowed');
       assertOpen(ctx, s, ctx.at, 'payment');
       const input = body<{ accountId: string; payerPartyId: string; amount: string; note: string; allocations: unknown; idempotencyKey: string }>(ctx);
-      const key = text(input.idempotencyKey, 80) || undefined;
-      const seen = replay(s, key);
-      if (seen) return recordedOf(s, s.state.finance.batches.find((b) => b.id === seen)!, true);
       // The allocation is decided when the cash is counted (oldest first), not at the counter.
       if (input.allocations !== undefined) invalidField(ctx, 'allocations', 'finance:problems.allocationAtCount');
       const account = s.view.model.accounts.find((a) => a.id === input.accountId);
       if (!account) invalidField(ctx, 'accountId', 'collections:problems.account');
       if (!payersOf(s, account!.id, ctx.at).some((p) => p.partyId === input.payerPartyId)) invalidField(ctx, 'payerPartyId', 'collections:problems.payer');
       const amount = amountField(ctx, 'amount', input.amount);
+      // Issue #18 (FIN-02): the account and its liable payer (the target) first, then the bound replay.
+      const target = `${s.legalEntityId}|${account!.id}|${String(input.payerPartyId)}`;
+      const request = { amount, note: text(input.note, 200) };
+      const again = replayOf(ctx, s, 'office_cash.record', target, request);
+      if (again) {
+        const done = s.state.finance.batches.find((b) => b.id === again && b.siteId === s.siteId && b.origin === 'single' && b.lines[0]?.billingAccountId === account!.id && b.lines[0]?.payerPartyId === input.payerPartyId);
+        return recordedOf(s, done ?? notFound(ctx), true);
+      }
       if (rule!.maxAmount && amount > paisa(rule!.maxAmount)) invalidField(ctx, 'amount', 'collections:problems.overCashLimit', { limit: rule!.maxAmount.amount });
       const line = lineOf(ctx, s, { billingAccountId: account!.id, payerPartyId: input.payerPartyId, method: 'office_cash', amount: input.amount }, 0);
       const who = me(ctx);
@@ -405,7 +415,7 @@ export const FINANCE_COLLECT_HANDLERS: readonly Handler[] = [
         ],
       };
       f.batches.push(b);
-      remember(s, key, b.id);
+      remember(ctx, s, 'office_cash.record', target, request, b.id);
       log(ctx, s, 'officeCashRecorded', { kind: 'batch', id: b.id, label: b.ref }, { flats: line.flats, values: { amount: line.amount.amount, account: line.accountNo, payer: line.payerName } });
       save(ctx);
       return recordedOf(s, b, false);
@@ -444,9 +454,13 @@ export const FINANCE_COLLECT_HANDLERS: readonly Handler[] = [
     access: requires('receivables', 'payment.receive', 'operational', BULK),
     handle: (ctx): BatchDetail => {
       const s = site(ctx);
-      const key = text(body<{ idempotencyKey: string }>(ctx).idempotencyKey, 80) || undefined;
-      const seen = replay(s, key);
-      if (seen) return batchDetail(ctx, s, s.state.finance.batches.find((b) => b.id === seen)!);
+      // Issue #18 (FIN-02): an empty batch of this site; the same key replays only the same person's start.
+      const target = `${s.legalEntityId}|${s.siteId}`;
+      const again = replayOf(ctx, s, 'batch.create', target, {});
+      if (again) {
+        const done = s.state.finance.batches.find((b) => b.id === again && b.siteId === s.siteId && b.legalEntityId === s.legalEntityId && b.origin !== 'single');
+        return batchDetail(ctx, s, done ?? notFound(ctx));
+      }
       const f = s.state.finance;
       const who = me(ctx);
       const b: OfficeCollectionBatch = {
@@ -462,7 +476,7 @@ export const FINANCE_COLLECT_HANDLERS: readonly Handler[] = [
         history: [{ at: stamp(ctx), by: who.principalId, byName: who.name, action: 'created' }],
       };
       f.batches.push(b);
-      remember(s, key, b.id);
+      remember(ctx, s, 'batch.create', target, {}, b.id);
       log(ctx, s, 'batchCreated', { kind: 'batch', id: b.id, label: b.ref });
       save(ctx);
       return batchDetail(ctx, s, b);
@@ -618,7 +632,8 @@ export const FINANCE_COLLECT_HANDLERS: readonly Handler[] = [
       const items = [...all]
         .filter((c) => !status || status === 'all' || (status === 'pending' ? pendingStates.includes(c.status) : c.status === status))
         .filter((c) => !account || c.billingAccountId === account)
-        .reverse();
+        .reverse()
+        .map((c) => bank.cheque(ctx, c));
       return { items, counts, pending: money(sum(all.filter((c) => pendingStates.includes(c.status)).map((c) => paisa(c.amount)))) };
     },
   },
@@ -639,17 +654,24 @@ export const FINANCE_COLLECT_HANDLERS: readonly Handler[] = [
     handle: (ctx): ChequeDetail => {
       const s = site(ctx);
       const input = body<{ accountId: string; payerPartyId: string; amount: string; drawerBank: string; number: string; date: string; idempotencyKey: string }>(ctx);
-      const key = text(input.idempotencyKey, 80) || undefined;
-      const seen = replay(s, key);
-      if (seen) return chequeDetail(ctx, s, s.state.finance.cheques.find((c) => c.id === seen)!);
       const draft: OfficeCollectionBatch = { id: 'single', ref: '', siteId: s.siteId, legalEntityId: s.legalEntityId, collectedBy: '', collectedByName: '', collectedOn: ctx.at, status: 'draft', lines: [], history: [] };
       draft.lines = [lineOf(ctx, s, { billingAccountId: input.accountId, payerPartyId: input.payerPartyId, method: 'cheque', amount: input.amount, cheque: { drawerBank: input.drawerBank, number: input.number, date: input.date } }, 0)];
+      // Issue #18 (FIN-02): the account and its liable payer (the target) first, then the bound replay,
+      // before the duplicate-cheque check (which the first request itself would now trip).
+      const first = draft.lines[0]!;
+      const target = `${s.legalEntityId}|${first.billingAccountId}|${first.payerPartyId}`;
+      const request = { amount: first.amount, cheque: first.cheque };
+      const again = replayOf(ctx, s, 'cheque.receive', target, request);
+      if (again) {
+        const done = s.state.finance.cheques.find((c) => c.id === again && c.legalEntityId === s.legalEntityId && c.billingAccountId === first.billingAccountId && c.payerPartyId === first.payerPartyId);
+        return chequeDetail(ctx, s, done ?? notFound(ctx));
+      }
       const r = review(ctx, s, draft);
       if (r.problems.length) refuse(ctx, 409, r.problems[0]!.code, 'cheque', r.problems[0]!.values);
       const line = draft.lines[0]!;
       const who = me(ctx);
       const c = newCheque(s, { billingAccountId: line.billingAccountId, accountNo: line.accountNo, payerPartyId: line.payerPartyId, payerName: line.payerName, flats: line.flats, drawerBank: line.cheque!.drawerBank, chequeNumber: line.cheque!.number, chequeDate: line.cheque!.date, amount: line.amount, source: { kind: 'office' }, receivedOn: ctx.at, receivedBy: who.principalId, receivedByName: who.name }, stamp(ctx));
-      remember(s, key, c.id);
+      remember(ctx, s, 'cheque.receive', target, request, c.id);
       log(ctx, s, 'chequeReceived', { kind: 'cheque', id: c.id, label: c.ref }, { flats: c.flats, values: { amount: c.amount.amount, number: c.chequeNumber } });
       save(ctx);
       return chequeDetail(ctx, s, c);
@@ -813,7 +835,8 @@ export const FINANCE_COLLECT_HANDLERS: readonly Handler[] = [
       if (c.status !== 'cleared' || !c.paymentId) refuse(ctx, 409, 'invalid_state');
       if (s.state.finance.reversals.some((r) => r.chequeId === c.id && r.status === 'pending')) return chequeDetail(ctx, s, c);
       const input = body<{ bankLineId: string; reason: string }>(ctx);
-      const checked = lineCheck(chequeReversalCandidates(s.state, c), text(input.bankLineId, 40));
+      // Issue #18 (FIN-01): without the bank feed every line id answers like one never issued.
+      const checked = lineCheck(seesBankFeed(ctx) ? chequeReversalCandidates(s.state, c) : [], text(input.bankLineId, 40));
       if (!checked.ok) refuse(ctx, 409, checked.problem, 'bankLineId');
       // The debit must be this cheque's amount and number at least (the bank's return memo shows both).
       if (checked.ok && (checked.missing.includes('amount') || checked.missing.includes('reference'))) refuse(ctx, 409, 'reversal_line_mismatch', 'bankLineId');

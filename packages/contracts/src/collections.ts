@@ -84,8 +84,9 @@ export interface SubmissionEvent {
 
 /** A partly matching statement line proposed for a proof, decided by someone other than the requester. */
 export interface SettlementException {
-  bankLineId: string;
-  bankTxnId: string;
+  /** Left out for a reader without the bank feed (Issue #18), as is `bankTxnId`. */
+  bankLineId?: string;
+  bankTxnId?: string;
   /** What the line does not match (amount, date, reference, name). */
   missing: MatchReason[];
   reason: string;
@@ -144,8 +145,8 @@ export interface SubmissionRow {
   bankReference: string;
   submittedAt: string;
   versions: number;
-  /** Best bank match found (for the inbox's "ready to verify" signal). */
-  match: 'exact' | 'possible' | 'none' | 'already_matched';
+  /** Best bank match found (for the inbox's "ready to verify" signal). Absent without the bank feed (Issue #18). */
+  match?: 'exact' | 'possible' | 'none' | 'already_matched';
   /** Same file, or same amount, date and reference as another submission of this payer. */
   possibleDuplicateOf?: string[];
   reviewer?: string;
@@ -230,6 +231,8 @@ export interface SubmissionDetail {
     reject: boolean;
     reason?: 'permission_missing' | 'invalid_state' | 'tenant_suspended' | 'maker_checker_required';
   };
+  /** Issue #18 (FIN-01): without the bank feed (`bank.view` or `bank.reconcile`) `candidates` is empty. */
+  bankFeed: boolean;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -441,6 +444,8 @@ export interface PaymentDetail {
   /** Open lines of the same payer the unapplied credit could settle now. */
   creditTargets: AllocationLine[];
   actions: { applyCredit: boolean };
+  /** Issue #18 (FIN-01): without the bank feed there is no `bankLine` and the payment names no line. */
+  bankFeed: boolean;
 }
 
 export interface CreditRow {

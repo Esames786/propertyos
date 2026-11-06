@@ -80,6 +80,12 @@ export interface FinanceAccountDetail {
   lines: BankLine[];
   lastCount?: CashCount;
   actions: { voucher: boolean; transfer: boolean; count: boolean; importStatement: boolean };
+  /**
+   * Issue #18 (FIN-01): whether the reader holds the bank feed (`bank.view` or `bank.reconcile`).
+   * Without it `statements` and `lines` are empty, statement imports are left out of `history`, the
+   * IBAN is masked and nothing counts the account's statement lines.
+   */
+  bankFeed: boolean;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -94,7 +100,8 @@ export type CashbookCategory = (typeof CASHBOOK_CATEGORIES)[number];
 
 /** What proves a line: the evidence it was settled on. */
 export type CashbookEvidence =
-  | { kind: 'statement_line'; bankLineId: string; bankTxnId: string; exception?: boolean }
+  /** The line and the bank's id are left out for a reader without the bank feed (Issue #18). */
+  | { kind: 'statement_line'; bankLineId?: string; bankTxnId?: string; exception?: boolean }
   | { kind: 'witnessed_count'; witnessedByName: string; countedByName: string }
   | { kind: 'witnessed_slip'; slipNo: string; witnessedByName: string }
   | { kind: 'counter'; byName: string }
@@ -168,6 +175,8 @@ export interface CashbookView {
   reconciliation: Array<{ accountId: string; name: string; cashbookMovement: Money; statementMovement: Money; unmatchedLines: number; unmatchedAmount: Money; difference: Money; reconciled: boolean; href: string }>;
   periodState: PeriodState;
   actions: { voucher: boolean; transfer: boolean; close: boolean; count: boolean };
+  /** Issue #18 (FIN-01): without the bank feed `reconciliation` is empty and evidence names no line. */
+  bankFeed: boolean;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -276,8 +285,9 @@ export interface TransferLeg {
 }
 
 export interface SettlementExceptionRequest {
-  bankLineId: string;
-  bankTxnId: string;
+  /** Left out for a reader without the bank feed (Issue #18), as is `bankTxnId`. */
+  bankLineId?: string;
+  bankTxnId?: string;
   missing: MatchReason[];
   reason: string;
   requestedBy: string;
@@ -371,6 +381,8 @@ export interface TransferDetail {
     reverse: boolean;
     reason?: 'permission_missing' | 'maker_checker_required' | 'period_closed' | 'invalid_state';
   };
+  /** Issue #18 (FIN-01): without the bank feed there are no candidates and no line or bank id. */
+  bankFeed: boolean;
 }
 
 /** A statement line proposed for a leg or a cheque, compared like C.2 proofs. */
@@ -451,6 +463,8 @@ export interface ChequeDetail {
   candidates: LegCandidate[];
   depositAccounts: Array<Pick<FinanceAccount, 'id' | 'name'>>;
   actions: { deposit: boolean; clear: boolean; decideException: boolean; return: boolean; cancel: boolean; requestReversal: boolean; reason?: 'permission_missing' | 'maker_checker_required' | 'period_closed' | 'invalid_state' };
+  /** Issue #18 (FIN-01): without the bank feed there are no candidates and no line or bank id. */
+  bankFeed: boolean;
 }
 
 /** Site rules for cheques (BILL-012 extension). */
@@ -660,6 +674,8 @@ export interface CloseCheck {
   count: number;
   amount?: Money;
   href?: string;
+  /** Issue #18 (FIN-01): the reader has no bank feed: only the outcome, never a count, amount or link. */
+  restricted?: true;
 }
 
 export interface CloseChecklist {
@@ -1174,6 +1190,8 @@ export interface FinanceOverview {
   approvals: { pending: number; yours: number; href: string };
   close: { state: PeriodState; blocking: number; href: string };
   byCategory: CashbookView['byCategory'];
+  /** Issue #18 (FIN-01): without the bank feed `unreconciled` is empty and no figure links to it. */
+  bankFeed: boolean;
 }
 
 // ---------------------------------------------------------------------------------------------

@@ -4,7 +4,7 @@ import { ArrowDownLeft, ArrowRightLeft, ArrowUpRight, BookOpenText, ChevronRight
 import { COLLECTIONS, FINANCE } from '../../../nav.config';
 import { Loading, ScrollRegion, useSocietyFormat } from '../kit';
 import { BankLineBadge } from '../collections/ckit';
-import { EvidenceText, Fact, FactGrid, HistoryList, WRAP, WrapMoney } from './fkit';
+import { BankRestricted, EvidenceText, Fact, FactGrid, HistoryList, ibanWrap, WRAP, WrapMoney } from './fkit';
 
 /**
  * BANK-001 cash and bank accounts and BANK-002 Account 360 (Gate S.1, society slice). A bank account
@@ -54,7 +54,7 @@ export function BankAccountsPage() {
                   {a.receivesDues && <Badge tone="success" icon={Link2}>{t('finance:accounts.receivesDues')}</Badge>}
                   {a.iban && (
                     <span className="inline-flex max-w-full items-center rounded-pill border border-border px-2 py-0.5 text-muted">
-                      <bdi dir="ltr" className="ltr-ref min-w-0 [overflow-wrap:anywhere]">{a.iban}</bdi>
+                      <bdi dir="ltr" className={`ltr-ref min-w-0 ${ibanWrap(a.iban)}`}>{a.iban}</bdi>
                     </span>
                   )}
                   {a.unreconciled > 0 && <Badge tone="warning" icon={FileWarning}>{t('finance:accounts.unreconciled', { count: a.unreconciled })}</Badge>}
@@ -78,10 +78,13 @@ export function AccountWorkspace({ accountId }: { accountId: string }) {
   if (q.isError) return <ErrorState error={q.error} onRetry={() => void q.refetch()} />;
   if (!q.data) return <Loading lines={8} />;
   const { account: a, actions } = q.data;
+  // Issue #18 (FIN-01): statement lines and reconciliation only for readers with the bank feed; a
+  // deep link to either tab opens the overview, which says why they are not shown.
+  const restricted = a.kind === 'bank' && !q.data.bankFeed;
   const tabs = [
     { id: 'overview', label: t('finance:account.tabs.overview') },
     { id: 'cashbook', label: t('finance:account.tabs.cashbook') },
-    ...(a.kind === 'bank' ? [{ id: 'lines', label: t('finance:account.tabs.lines') }, { id: 'reconciliation', label: t('finance:account.tabs.reconciliation') }] : []),
+    ...(a.kind === 'bank' && q.data.bankFeed ? [{ id: 'lines', label: t('finance:account.tabs.lines') }, { id: 'reconciliation', label: t('finance:account.tabs.reconciliation') }] : []),
     { id: 'history', label: t('finance:account.tabs.history') },
   ];
   return (
@@ -134,6 +137,7 @@ export function AccountWorkspace({ accountId }: { accountId: string }) {
           <WrapMoney value={a.outflow} className="text-lg font-bold @xs:text-xl" />
         </div>
       </div>
+      {restricted && <BankRestricted body={t('finance:bankRestricted.account')} testId="account-bank-restricted" />}
       <UrlTabs label={t('finance:account.tabsLabel')} items={tabs}>
         {(tab) =>
           tab === 'overview' ? (

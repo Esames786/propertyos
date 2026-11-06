@@ -17,6 +17,7 @@ import {
 import { decideRecord, forbid, invalid, notFound, requires, type Handler, type HandlerContext } from '../handler-types';
 import { pad } from '../seed';
 import { linesOf } from '../society/allocate';
+import { auditEntries } from '../society/finance/bank-scope';
 import { problem, recordOf, society, type Society } from '../society/handlers';
 import { maskPhone, principalOfParty, statusOf } from './portal-access-handlers';
 import { alnoorRegisterPeople, peopleOf } from './register-people';
@@ -69,7 +70,8 @@ function rowsOf(ctx: HandlerContext, s: Society | null, dataset: ExportDataset):
       });
     }
     case 'audit':
-      return s.state.audit.map((a) => ({ at: a.at, by: a.byName, action: a.action, target: a.target.label }));
+      // Issue #18 (FIN-01): statement and line events (labelled with the bank's ids) only with the bank feed.
+      return auditEntries(ctx, s.state.audit).map((a) => ({ at: a.at, by: a.byName, action: a.action, target: a.target.label }));
   }
 }
 

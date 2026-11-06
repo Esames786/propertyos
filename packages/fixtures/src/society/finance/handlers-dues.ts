@@ -32,7 +32,7 @@ import { log, openPeriod, save, siteOf, stamp, type Society } from '../handlers'
 import { factOn } from '../model';
 import { beneficiaryOn, nextRef, viewOf } from '../state';
 import { principalsOfParty, raiseApproval } from './approvals';
-import { amountField, body, me, query, refuse, remember, replay, required, text } from './common';
+import { amountField, body, me, query, refuse, remember, replayOf, required, text } from './common';
 import { addDays, DATE, money, paisa, periodOf, sum } from './model';
 import { planFor, type ReminderTarget } from './reminders';
 import { FIN_ROUTES } from './routes';
@@ -501,11 +501,17 @@ export const FINANCE_DUES_HANDLERS: readonly Handler[] = [
       const s = siteOf(ctx, 'residents');
       const f = s.state.finance;
       const input = body<{ flatId: string; toPartyId: string; toName: string; toPhone: string; effectiveOn: string; reason: string; idempotencyKey: string }>(ctx);
-      const key = text(input.idempotencyKey, 80) || undefined;
-      const seen = replay(s, key);
-      if (seen) return ownershipDetail(ctx, s, f.ownership.find((t) => t.id === seen)!);
       const flat = s.view.model.flats.find((x) => x.id === input.flatId || x.code === input.flatId);
       if (!flat) refuse(ctx, 422, 'flat_unknown', 'flatId');
+      // Issue #18 (FIN-02): the flat (the target) first, then the bound replay, before the checks the
+      // first request itself would now trip (an open transfer for the flat).
+      const target = `${s.legalEntityId}|${flat!.id}`;
+      const request = { toPartyId: text(input.toPartyId, 40), toName: text(input.toName, 120), toPhone: text(input.toPhone, 20), effectiveOn: String(input.effectiveOn ?? ''), reason: text(input.reason, 200) };
+      const again = replayOf(ctx, s, 'ownership.create', target, request);
+      if (again) {
+        const done = f.ownership.find((t) => t.id === again && t.siteId === s.siteId && t.flatId === flat!.id);
+        return ownershipDetail(ctx, s, done ?? notFound(ctx));
+      }
       const owner = s.view.facts.find((x) => x.role === 'owner' && x.flatId === flat!.id && factOn(x, ctx.at));
       if (!owner) refuse(ctx, 409, 'no_owner', 'flatId');
       if (f.ownership.some((t) => t.flatId === flat!.id && !['completed', 'rejected', 'withdrawn'].includes(t.status))) refuse(ctx, 409, 'transfer_open', 'flatId');
@@ -541,7 +547,7 @@ export const FINANCE_DUES_HANDLERS: readonly Handler[] = [
         history: [{ at: stamp(ctx), byName: who.name, action: 'requested', note: reason }],
       };
       f.ownership.push(t);
-      remember(s, key, id);
+      remember(ctx, s, 'ownership.create', target, request, id);
       log(ctx, s, 'ownershipTransferRequested', { kind: 'ownership_transfer', id, label: t.ref }, { flats: [flat!.code], values: { from: t.from.name, to: t.to.name, effectiveOn } });
       save(ctx);
       return ownershipDetail(ctx, s, t);

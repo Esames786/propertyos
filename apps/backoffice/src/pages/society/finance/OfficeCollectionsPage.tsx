@@ -20,6 +20,8 @@ import {
   UrlTabs,
   useApiMutation,
   useApiQuery,
+  useCreateKey,
+  isKeyReused,
   useQueryParam,
   useQueryParams,
   useSession,
@@ -31,7 +33,7 @@ import { useEffect, useState } from 'react';
 import { COLLECTIONS, FINANCE } from '../../../nav.config';
 import { AmountInput, Loading, ProblemAlert, useSocietyFormat, type SocietyFormat } from '../kit';
 import { MethodBadge } from '../collections/ckit';
-import { BatchBadge, ChequeBadge, ChequeNotice, Fact, FactGrid, HistoryList, WRAP } from './fkit';
+import { BankRestricted, BatchBadge, ChequeBadge, ChequeNotice, Fact, FactGrid, HistoryList, WRAP } from './fkit';
 import { CandidateRow, DemoStatementDrawer } from './TransfersPage';
 
 const BATCH_STATUSES = ['all', 'draft', 'submitted', 'confirmed', 'returned'] as const;
@@ -59,7 +61,8 @@ export default function OfficeCollectionsPage() {
   const setParams = useQueryParams();
   const create = useApiMutation<BatchDetail>();
   const [error, setError] = useState<unknown>(null);
-  const [key] = useState(() => `ocb-${Date.now().toString(36)}`);
+  // Issue #18 (FIN-02): one key per collection started, kept for its own retry, renewed after it succeeded.
+  const [key, renewKey] = useCreateKey('ocb');
   return (
     <div className="@container space-y-6" data-testid="office-collections-page">
       <PageHeader
@@ -74,10 +77,12 @@ export default function OfficeCollectionsPage() {
               onPress={async () => {
                 setError(null);
                 try {
-                  const r = await create.mutateAsync({ method: 'POST', path: '/office-collections', body: { idempotencyKey: key } });
+                  const r = await create.mutateAsync({ method: 'POST', path: '/office-collections', body: { idempotencyKey: key }, idempotencyKey: key });
+                  renewKey();
                   toast.success(t('finance:batch.started', { ref: r.batch.ref }));
                   setParams({ batch: r.batch.id });
                 } catch (e) {
+                  if (isKeyReused(e)) renewKey();
                   setError(e);
                 }
               }}
@@ -611,7 +616,7 @@ function ChequeDrawer({ chequeId, onClose }: { chequeId: string | null; onClose:
           )}
           {c.exception && (
             <InlineAlert tone="warning" title={t('finance:transfer.exceptionTitle', { name: c.exception.requestedByName })} data-testid="cheque-exception">
-              <p>{t('finance:transfer.exceptionMissing', { list: c.exception.missing.map((m) => t(`collections:review.field.${m}`)).join(', '), txn: c.exception.bankTxnId })}</p>
+              <p>{c.exception.bankTxnId ? t('finance:transfer.exceptionMissing', { list: c.exception.missing.map((m) => t(`collections:review.field.${m}`)).join(', '), txn: c.exception.bankTxnId }) : t('finance:transfer.exceptionMissingNoBank', { list: c.exception.missing.map((m) => t(`collections:review.field.${m}`)).join(', ') })}</p>
               <p>
                 <bdi>{t('billing:quote', { text: c.exception.reason })}</bdi>
               </p>
@@ -631,7 +636,10 @@ function ChequeDrawer({ chequeId, onClose }: { chequeId: string | null; onClose:
             <section className="space-y-2" aria-label={t('finance:cheque.linesTitle')} data-testid="cheque-candidates">
               <h3 className="text-sm font-semibold text-text">{d.actions.clear ? t('finance:cheque.linesTitle') : t('finance:cheque.reversalTitle')}</h3>
               <p className="text-sm text-muted">{d.actions.clear ? t('finance:cheque.linesBody') : t('finance:cheque.reversalBody')}</p>
-              {d.candidates.length === 0 ? (
+              {/* Issue #18 (FIN-01): statement lines are for the bank feed only. */}
+              {!d.bankFeed ? (
+                <BankRestricted body={t('finance:bankRestricted.cheque')} testId="cheque-bank-restricted" />
+              ) : d.candidates.length === 0 ? (
                 <p className="text-sm text-muted">{t('finance:transfer.noCandidates')}</p>
               ) : (
                 <ul className="space-y-2">

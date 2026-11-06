@@ -31,6 +31,8 @@ import {
   SelectControl,
   useApiMutation,
   useApiQuery,
+  useCreateKey,
+  isKeyReused,
   useQueryParam,
   useQueryParams,
   useSession,
@@ -42,7 +44,7 @@ import { useEffect, useState } from 'react';
 import { FileTrigger } from 'react-aria-components';
 import { FINANCE } from '../../../nav.config';
 import { AmountInput, Loading, ProblemAlert, ScrollRegion, useSocietyFormat } from '../kit';
-import { ApprovalPanel, EvidenceText, Fact, FactGrid, HistoryList, PeriodBadge, VoucherBadge, WRAP, WrapMoney } from './fkit';
+import { ApprovalPanel, BankRestricted, EvidenceText, Fact, FactGrid, HistoryList, PeriodBadge, VoucherBadge, WRAP, WrapMoney } from './fkit';
 
 /**
  * BANK-007 cashbook (reference experience 1): a derived view, never a ledger of its own. Every line
@@ -190,7 +192,8 @@ export default function CashbookPage() {
           <h2 id="rec-title" className="text-lg font-bold text-text">
             {t('finance:cashbook.reconciliation', { period: p })}
           </h2>
-          <p className="text-sm text-muted">{t('finance:cashbook.reconciliationIntro')}</p>
+          {/* Issue #18 (FIN-01): the comparison with statement lines is for the bank feed only. */}
+          {d.bankFeed ? <p className="text-sm text-muted">{t('finance:cashbook.reconciliationIntro')}</p> : <BankRestricted body={t('finance:bankRestricted.cashbook')} testId="cashbook-bank-restricted" />}
           <ul className="space-y-3">
             {d.reconciliation.map((r) => (
               <li key={r.accountId} className="rounded-tile border border-border/70 p-4" data-testid="reconciliation-row" data-reconciled={r.reconciled}>
@@ -370,13 +373,16 @@ export function VoucherDrawer({ isOpen, voucherId, onClose }: { isOpen: boolean;
   const [draft, setDraft] = useState<VoucherDraft>(blank(today));
   const [error, setError] = useState<unknown>(null);
   const [reverseOpen, setReverseOpen] = useState(false);
-  const [key] = useState(() => `cv-${Date.now().toString(36)}`);
+  // Issue #18 (FIN-02): one key per logical create: kept for its own retries, renewed after it
+  // succeeded and whenever the drawer closes (so the next "New voucher" is a new request).
+  const [key, renewKey] = useCreateKey('cv');
   useEffect(() => {
     if (!isOpen) {
       setDraft(blank(today));
       setError(null);
+      renewKey();
     }
-  }, [isOpen]);
+  }, [isOpen, renewKey]);
   const v = voucherId ? detail.data?.voucher : undefined;
   const cashAccounts = (book.data?.accounts ?? []).filter((a) => a.kind !== 'bank');
   const categories = VOUCHER_CATEGORIES.filter((c) => RECEIPT_CATEGORIES.includes(c) === (draft.direction === 'receipt'));
@@ -392,9 +398,19 @@ export function VoucherDrawer({ isOpen, voucherId, onClose }: { isOpen: boolean;
     }
   };
   const create = async (submit: boolean) => {
-    const r = await act('/finance/vouchers', { ...draft, submit, idempotencyKey: key }, t(submit ? 'finance:voucher.submitted' : 'finance:voucher.saved'));
-    if (r) window.history.replaceState(null, '', FINANCE.voucher(r.voucher.id));
-    if (r) onClose();
+    setError(null);
+    try {
+      const r = await save.mutateAsync({ method: 'POST', path: '/finance/vouchers', body: { ...draft, submit, idempotencyKey: key }, idempotencyKey: key });
+      renewKey();
+      setDraft(blank(today));
+      // The toast names the voucher this create made (never an earlier one).
+      toast.success(t(submit ? 'finance:voucher.createdSubmitted' : 'finance:voucher.createdDraft', { ref: r.voucher.ref }));
+      window.history.replaceState(null, '', FINANCE.voucher(r.voucher.id));
+      onClose();
+    } catch (e) {
+      if (isKeyReused(e)) renewKey();
+      setError(e);
+    }
   };
   return (
     <Drawer
@@ -717,6 +733,7 @@ function CloseDrawer({ isOpen, period, onClose }: { isOpen: boolean; period: str
                         {t(`finance:close.outcome.${c.outcome}`)}
                         {c.count ? ` · ${t('finance:close.items', { count: c.count })}` : ''}
                         {c.amount ? ` · ${fmt.money(c.amount)}` : ''}
+                        {c.restricted ? ` · ${t('finance:close.restricted')}` : ''}
                       </span>
                     </span>
                   </span>

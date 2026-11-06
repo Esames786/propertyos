@@ -18,6 +18,8 @@ import {
   SelectControl,
   useApiMutation,
   useApiQuery,
+  useCreateKey,
+  isKeyReused,
   useNavigation,
   useQueryParam,
   useQueryParams,
@@ -26,7 +28,7 @@ import {
   useToast,
 } from '@repo/ui';
 import { ArrowRight, BadgeCheck, ChevronRight, FileCheck2, FilePlus2, Gavel, Plus, ReceiptText, ScrollText, SearchCheck, XCircle } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { COLLECTIONS, FINANCE, SOCIETY } from '../../../nav.config';
 import { Loading, ProblemAlert, useSocietyFormat } from '../kit';
 import { ApprovalPanel, Fact, FactGrid, HistoryList, WRAP } from './fkit';
@@ -115,7 +117,24 @@ function NewOwnershipDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () 
   const [from, setFrom] = useState('2026-12-01');
   const [reason, setReason] = useState('');
   const [error, setError] = useState<unknown>(null);
-  const [key] = useState(() => `owt-${Date.now().toString(36)}`);
+  // Issue #18 (FIN-02): one key per logical create; the form and the key start again when the drawer
+  // opens and after a request was made.
+  const [key, renewKey] = useCreateKey('owt');
+  const reset = () => {
+    setFlat(null);
+    setWho('new');
+    setParty(null);
+    setName('');
+    setPhone('+92 399 ');
+    setFrom('2026-12-01');
+    setReason('');
+    setError(null);
+    renewKey();
+  };
+  useEffect(() => {
+    if (isOpen) reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
   const flats = (accounts.data ?? []).flatMap((a) => a.flats.map((f) => ({ id: f.id, label: `${f.code} · ${a.holderName}` })));
   return (
     <Drawer
@@ -135,10 +154,12 @@ function NewOwnershipDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () 
             onPress={async () => {
               setError(null);
               try {
-                const r = await create.mutateAsync({ method: 'POST', path: '/ownership-transfers', body: { flatId: flat, ...(who === 'existing' ? { toPartyId: party } : { toName: name, toPhone: phone.trim() === '+92 399' ? '' : phone.trim() }), effectiveOn: from, reason, idempotencyKey: key } });
+                const r = await create.mutateAsync({ method: 'POST', path: '/ownership-transfers', body: { flatId: flat, ...(who === 'existing' ? { toPartyId: party } : { toName: name, toPhone: phone.trim() === '+92 399' ? '' : phone.trim() }), effectiveOn: from, reason, idempotencyKey: key }, idempotencyKey: key });
+                reset();
                 toast.success(t('governance:ownership.created', { ref: r.transfer.ref }));
                 navigate(FINANCE.ownershipTransfer(r.transfer.id));
               } catch (e) {
+                if (isKeyReused(e)) renewKey();
                 setError(e);
               }
             }}

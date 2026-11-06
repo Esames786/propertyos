@@ -334,7 +334,9 @@
     "attach": "Attach a file",
     "sampleEvidence": "Use the sample bill (demo)",
     "attached": "Attached: {{name}}",
-    "noEvidence": "No document attached yet. A voucher needs one."
+    "noEvidence": "No document attached yet. A voucher needs one.",
+    "createdSubmitted": "{{ref}} sent for approval",
+    "createdDraft": "{{ref}} saved as a draft"
   },
   "count": {
     "open": "Count cash",
@@ -406,7 +408,8 @@
     },
     "confirmTitle": "Close {{period}}?",
     "confirmEffect": "Postings dated in {{period}} will be refused until an approved reopening.",
-    "closed": "{{period}} closed"
+    "closed": "{{period}} closed",
+    "restricted": "count and amount for finance staff with bank access"
   },
   "account": {
     "tabs": {
@@ -543,7 +546,10 @@
       "exception_rejected": "rejected the exception",
       "settled": "settled the last side",
       "reversal_prepared": "prepared it as a reversal"
-    }
+    },
+    "settledLineNoBank": "Settled on a statement line ({{date}}), matched by {{by}}.",
+    "settledExceptionNoBank": "Settled on a statement line ({{date}}) through an exception approved by {{approver}}.",
+    "exceptionMissingNoBank": "Does not match: {{list}}."
   },
   "demo": {
     "open": "Sample statement (demo)",
@@ -888,11 +894,20 @@
     "cheque_post_dated": "Dated later than the site allows.",
     "cheque_stale": "Older than six months (stale).",
     "allocationAtCount": "Office cash is allocated when a second person has counted it (oldest bills first); an allocation cannot be chosen at the counter.",
-    "witness_required": "Every office cash payment is counted by a second person (owner decision D-46); a single counter cannot be chosen."
+    "witness_required": "Every office cash payment is counted by a second person (owner decision D-46); a single counter cannot be chosen.",
+    "idempotencyKeyReused": "This request’s key was already used for a different request. Nothing was changed; send it again as a new request."
   },
   "cashAwaiting": {
     "title": "{{amount}} in office cash waiting for a second count",
     "body": "Recorded by {{name}} on {{date}} in {{ref}}. It is not a payment yet: no receipt, and the bill stays unpaid until it is counted and confirmed.",
     "open": "Open {{ref}}"
+  },
+  "bankRestricted": {
+    "title": "Bank details are for finance",
+    "account": "Statement lines and reconciliation of this account are for finance staff with bank access. You see its balance, movements and cashbook.",
+    "cashbook": "The comparison with bank statement lines is for finance staff with bank access.",
+    "dashboard": "Bank lines still to reconcile are shown to finance staff with bank access.",
+    "leg": "The statement lines that could settle this leg are for finance staff with bank access.",
+    "cheque": "The statement lines for this cheque are for finance staff with bank access."
   }
 }

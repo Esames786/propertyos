@@ -296,7 +296,9 @@
     "exceptionRejectReason": "Why",
     "exceptionApprovedToast": "Exception approved. Receipt {{receipt}} issued.",
     "exceptionRejectedToast": "Exception rejected. The proof is back for review.",
-    "chooseFull": "Verifying needs a transfer that matches fully. For a partial match, ask for an exception."
+    "chooseFull": "Verifying needs a transfer that matches fully. For a partial match, ask for an exception.",
+    "bankRestricted": "Bank statement lines are for finance staff with bank access. You can see what the resident sent and where the proof stands.",
+    "exceptionPendingBodyNoBank": "{{name}} proposed a bank transfer for approval. Does not match: {{list}}."
   },
   "payments": {
     "intro": "Every verified payment, how it was confirmed, what it settled and its receipt.",
@@ -354,7 +356,8 @@
     "reversedTitle": "This payment was reversed",
     "reversedBody": "Reversed on {{date}} ({{ref}}), approved by {{approver}}. The lines it settled are open again; the receipt stays, marked reversed.",
     "reversedBadge": "Reversed",
-    "requestReversal": "Request a reversal"
+    "requestReversal": "Request a reversal",
+    "bankRestricted": "This payment was settled on a bank statement line. The line is for finance staff with bank access."
   },
   "office": {
     "open": "Record office payment",

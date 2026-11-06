@@ -52,14 +52,14 @@ export function SubmissionStateBadge({ state, className }: { state: SubmissionSt
   );
 }
 
-const MATCH: Record<SubmissionRow['match'], [StatusTone, LucideIcon]> = {
+const MATCH: Record<NonNullable<SubmissionRow['match']>, [StatusTone, LucideIcon]> = {
   exact: ['success', Link2],
   possible: ['info', ScanSearch],
   already_matched: ['error', Copy],
   none: ['neutral', SearchX],
 };
 
-export function MatchBadge({ match, className }: { match: SubmissionRow['match']; className?: string }) {
+export function MatchBadge({ match, className }: { match: NonNullable<SubmissionRow['match']>; className?: string }) {
   const { t } = useT();
   const [tone, icon] = MATCH[match];
   return (
