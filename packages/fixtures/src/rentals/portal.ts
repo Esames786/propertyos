@@ -3,7 +3,7 @@ import { notFound, permits, refused, requires, type Handler, type HandlerContext
 import { liabilityRecord } from '../portal';
 import { money, monthOf, paisa, rentKey, shareOf, basisPoints, ZERO } from './rules';
 import { rentalsState, type RentalsState, type StoredStatement } from './state';
-import { isLet, leaseEnd, leaseSchedule, leaseStart, ownershipsOn, PENDING, seedIssued, siteName, totalsOf, memoOf, unitOf } from './views';
+import { isLet, leaseEnd, leaseSchedule, leaseStart, ownerFootprint, ownershipsOn, PENDING, projectStatement, seedIssued, siteName, statementSites, unitOf } from './views';
 
 /**
  * PORTAL-037 "My rental properties" (Gate S.3), for a landlord in the resident app. **Rule R** (V3.2
@@ -21,13 +21,26 @@ import { isLet, leaseEnd, leaseSchedule, leaseStart, ownershipsOn, PENDING, seed
  * the tenant's name and the rent status of the current period (never the tenant's other accounts),
  * the deposit agreed (held: nothing evidenced), their issued statements (never drafts) and their
  * payout instructions (none can be settled here).
+ *
+ * **Issue #17 (P0): one site projection for both endpoints.** The sites Rule R lets this landlord see
+ * for an owner are the sites of their permitted units of that owner. When that is every site the
+ * owner's rentals records touch (`ownerFootprint`), the landlord sees the owner's statements and payout
+ * instructions as they are. Otherwise (a site's rentals grant withdrawn, a link ended or not verified)
+ * the owner is **partial** for this landlord: a statement is projected by `projectStatement` (the
+ * office's own rule: the permitted sites' lines and totals only, never an owner-wide line, opening or
+ * figure) and labelled partial; a statement with no permitted site is neither listed nor opened (it
+ * answers exactly like an id never issued); payout instructions, which belong to the whole owner, are
+ * not sent at all.
  */
 
 interface Landlord {
+  ctx: HandlerContext;
   st: RentalsState;
   ownerIds: string[];
   /** The landlord's units this request may show (Rule R passed for each). */
   properties: Array<{ link: PartyLink; unitId: string; siteId: string; ownerId: string; share: string }>;
+  /** For one owner: the sites Rule R lets this landlord see, and whether they are every site of the owner's records. */
+  scopeOf: (ownerId: string) => { permitted: ReadonlySet<string>; whole: boolean };
 }
 
 function landlordOf(ctx: HandlerContext): Landlord {
@@ -55,23 +68,28 @@ function landlordOf(ctx: HandlerContext): Landlord {
     const d = rentalsFor(candidates[0]!.link);
     refused(d.allowed ? { allowed: false, reason: 'out_of_scope' } : d, ctx.correlationId);
   }
-  return { st, ownerIds: [...new Set(properties.map((p) => p.ownerId))], properties };
+  const scopeOf = (ownerId: string) => {
+    const permitted = new Set(properties.filter((p) => p.ownerId === ownerId).map((p) => p.siteId));
+    return { permitted, whole: ownerFootprint(st, ownerId).every((s) => permitted.has(s)) };
+  };
+  return { ctx, st, ownerIds: [...new Set(properties.map((p) => p.ownerId))], properties, scopeOf };
 }
 
-/** An issued statement as this landlord may see it: lines of their permitted sites only. */
-function landlordStatement(l: Landlord, s: StoredStatement): OwnerStatementView {
-  const sites = new Set(l.properties.map((p) => p.siteId));
-  const allSites = Object.keys(s.openingBySite).every((x) => sites.has(x)) && s.body.lines.every((x) => x.siteId === '' || sites.has(x.siteId));
-  // Owner-level lines (payout instructions) belong to the landlord; site lines follow the permitted sites.
-  const lines = s.body.lines.filter((x) => x.siteId === '' || sites.has(x.siteId));
-  const opening = Object.entries(s.openingBySite).filter(([x]) => sites.has(x)).reduce((t, [, v]) => t + BigInt(v), 0n);
+/**
+ * An issued statement as this landlord may see it (Issue #17: the one projection rule), or nothing when
+ * none of its records comes from a site they may see for that owner: such a statement is not theirs to
+ * know about, and its id answers like one never issued.
+ */
+function landlordStatement(l: Landlord, s: StoredStatement): OwnerStatementView | null {
+  const { permitted, whole } = l.scopeOf(s.ownerId);
+  if (!whole && !statementSites(s.body, s.openingBySite).some((x) => permitted.has(x))) return null;
+  const { body, scopeLimited } = projectStatement(l.ctx, s.body, s.openingBySite, permitted, whole);
   return {
-    ...s.body,
-    ...(allSites ? {} : { lines, totals: totalsOf(lines, s.body.model, opening), memo: memoOf(lines) }),
+    ...body,
     id: s.id,
     ref: s.ref,
     state: 'issued',
-    scopeLimited: !allSites,
+    scopeLimited,
     issuedByName: '',
     issuedAt: s.issuedAt,
     // The office's internal history (who issued it and when) stays with the office.
@@ -108,15 +126,17 @@ function landlordView(ctx: HandlerContext): LandlordView {
   const statements = l.st.statements
     .filter((s) => l.ownerIds.includes(s.ownerId))
     .sort((a, b) => b.period.localeCompare(a.period))
-    .map((s) => {
+    .flatMap((s) => {
       const v = landlordStatement(l, s);
-      return { id: s.id, ref: s.ref, period: s.period, closing: v.totals.closing, issuedAt: s.issuedAt };
+      return v ? [{ id: s.id, ref: s.ref, period: s.period, closing: v.totals.closing, issuedAt: s.issuedAt, scopeLimited: v.scopeLimited }] : [];
     });
+  // A payout instruction belongs to the whole owner: only for a landlord who may see every site of it.
+  const pending = l.st.payouts.filter((p) => l.ownerIds.includes(p.ownerId) && l.scopeOf(p.ownerId).whole && PENDING.includes(p.state));
   return {
     name: ctx.persona!.displayName,
     properties,
     statements,
-    payouts: { settled: [], pending: l.st.payouts.filter((p) => l.ownerIds.includes(p.ownerId) && PENDING.includes(p.state)).map((p) => ({ ref: p.ref, amount: p.amount, state: p.state })) },
+    payouts: { settled: [], pending: pending.map((p) => ({ ref: p.ref, amount: p.amount, state: p.state })) },
     today: ctx.at,
   };
 }
@@ -129,10 +149,12 @@ export const RENTALS_PORTAL_HANDLERS: Handler[] = [
     access: requires('resident_portal', 'portal.use', 'operational'),
     handle: (ctx): OwnerStatementView => {
       const l = landlordOf(ctx);
-      // Their own owner's issued statement only: a draft, another owner's or a never-issued id is "not found".
+      // Their own owner's issued statement with a permitted site only: a draft, another owner's, one of
+      // hidden sites only or a never-issued id is "not found", the same answer.
       const s = l.st.statements.find((x) => x.id === ctx.params.id && l.ownerIds.includes(x.ownerId));
-      if (!s) notFound(ctx);
-      return landlordStatement(l, s);
+      const v = s ? landlordStatement(l, s) : null;
+      if (!v) notFound(ctx);
+      return v;
     },
   },
 ];

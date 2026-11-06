@@ -1,12 +1,12 @@
 # Gate S.3: Rentals (Riverbend Estate Managers)
 
-**Status: built and verified, PROVISIONAL, stopped for GPT and owner review.** Nothing is merged; `main` is untouched.
+**Status: PROVISIONAL. Issue #17 review (GPT, `7df5f80`: PROVISIONAL / HOLD) closed on this branch: the accepted Issue #18 hotfix merged, P0 and P1 fixed, the complete integrated regression rerun; stopped for GPT and owner review.** Nothing is merged into `main`; `main` is untouched. The closure is described first ([Issue #17 closure](#issue-17-closure)); the sections after it describe the gate as built, updated where the closure changed it.
 
 **Commits**
 - **Branch:** `feature/gate-s3-rentals` (dedicated worktree `propertyos-s3`). The legacy `feature/gate-s3-rentals-parallel` was not used.
 - **Base:** started on `a0d4a70` (S.2b as delivered) while Issue #16 was open, as Issue #17 directed; **rebased onto `474e4ae`**, the S.2b Issue #16 closure GPT accepted. The rebase was clean: S.2b's closure touched payroll files, `tests/support/society.ts` and its own documents only, none of the global files S.3 changes.
 - **Gate commit:** `Gate S.3: rentals …` on `474e4ae`; its SHA is in the delivery message.
-- **Not touched:** `main`, Issue #13, the VPS, Bingoo, Laravel and any backend, real payment rails, SOS; no real person, property, account or amount. `PROJECT_HANDOFF.md` and the Nizam reference files are not committed. Issue #18 (`fix/s1-bank-feed-and-idempotency`) is **not** integrated; its rules are applied here from the start (§2.5).
+- **Not touched:** `main`, Issue #13, the VPS, Bingoo, Laravel and any backend, real payment rails, SOS; no real person, property, account or amount. `PROJECT_HANDOFF.md` and the Nizam reference files are not committed. Issue #18 (`fix/s1-bank-feed-and-idempotency`, `04b6fde`, accepted by GPT) is **merged** in the closure (below); before it, its rules were applied by hand (§2.5).
 
 **Brief.** [GitHub Issue #17](https://github.com/Esames786/propertyos/issues/17), the coordinator's updates (integrate `474e4ae`; apply Issue #18's rules; full combined regression).
 
@@ -16,6 +16,73 @@
 - `MODULE_AND_LICENSING_MATRIX.md` §2 (module), §3 (features), §5.2 (permissions), §6 (dependencies), §7 (Riverbend amendment);
 - `OWNER_DECISIONS.md` D-33 (issuing model open), D-43 (adoption), D-48 (no settlement without evidence);
 - accepted C.1/C.2, S.1, resident Rule R and the live screen register.
+
+## Issue #17 closure
+
+GPT's independent review of `7df5f80` (Issue #17, 6 November 2026) accepted the core money model at source level and put the gate on **PROVISIONAL / HOLD** for one P0, one P1 and the integration of Issue #18. This closure answers each point. Chain: `474e4ae` (S.2b, accepted) → `7df5f80` (S.3 as reviewed) → merge `0dd9723` (with `04b6fde`) → the closure commit (SHA in the delivery message). No rebase, no force-push.
+
+### C1. Merge of the accepted Issue #18 hotfix (`04b6fde`)
+
+- `git merge --no-ff 04b6fde` into `feature/gate-s3-rentals` → merge commit **`0dd9723`**. **No textual conflict:** the two branches change disjoint files (S.3: rentals, contracts, catalogue, roles, register, nav, i18n `rentals`/`common`/`nav`/`platform`; the hotfix: S.1/C.2 finance and collections handlers, `bank-scope.ts`, `common.ts`, `useApi.ts`, i18n `finance`/`collections`, its own tests and `docs/status/s1-hotfix/`). tsc was clean and the full Vitest suite passed (1,603 / 1,603) on the merge before any closure change.
+- **Semantic integration** (the rules the hotfix made shared, applied consistently to rentals in the closure commit):
+  - **Idempotency code.** Rentals already bound every create's key to operation, principal, target and the normalised request (Issue #16), but refused reuse as `409 idempotency_conflict`. Payroll (accepted) and S.1 (hotfix) use `409 idempotency_key_reused`, which the shared UI helper `isKeyReused` recognises. Rentals now uses the same code (message key `rentals:problems.idempotencyKeyReused`, payroll's wording, EN and UR). Every create is covered and tested: lease, renewal, rent roll preview, statement issue, payout instruction, agreement version (`rentals.issue17.api.test.ts`).
+  - **One key per logical create in the UI** (`useCreateKey`, `isKeyReused`): the new-lease wizard (kept until the whole save, including the submit, succeeded), the Lease 360 drawer forms, rent roll preview, statement issue, payout instruction and agreement version drafting. Before, each press minted a fresh key, so a double press could reach the server as two requests.
+  - **Bank feed (`seesBankFeed`).** Rentals reads no S.1 bank data. The one bank-derived field it could carry is a settled statement line's source reference (the bank's line), which exists only when a settlement event exists (none can in this gate; tests inject one). It now goes through `seesBankFeed` in the one statement projection: readers without `bank.view` or `bank.reconcile` (every Riverbend role, every landlord) get the amount, never the reference.
+- **Counts reconciled.** Screen register: unchanged at **449 rows / 362 distinct** (139 built, 43 partial, 180 planned): the hotfix added no row. Module catalogue: 30 (the hotfix added none). i18n: 2 locales × 27 namespaces, **10,884** keys each (S.3 alone: 10,866; the hotfix added `finance`/`collections` keys; the closure renamed one rentals key and added two). Test counts in [test-results.md](test-results.md).
+
+### C2. P0: the landlord view and owner-wide data
+
+**Finding (reproduced).** `landlordView()` listed every issued statement and every pending payout of the owners behind the landlord's permitted units, and `landlordStatement()` treated owner-wide lines (`siteId: ''`, payout instructions) as always visible. With the new negative tests run against the original `portal.ts`, the three partial-landlord cases fail (a Court-only statement is listed to a Heights-only landlord; `test-results-s3/p0-repro-original-portal.txt`).
+
+**Fix: one site projection rule** (`packages/fixtures/src/rentals/views.ts` `projectStatement`), used by the office (`projectBody`) and by both portal endpoints (`portal.ts`):
+- **Owner footprint** (`ownerFootprint`): every site an owner's rentals records touch — the leases they let, their approved expenses, settlement events and issued statements — whether or not rentals is licensed there today.
+- **Permitted sites** of a landlord for an owner: the sites of their Rule R units of that owner (verified link in force, landlord role, portal and rentals for that site). The landlord is **whole** for the owner only if the permitted sites include the whole footprint.
+- **Whole:** the statement as issued, and the owner's pending payout instructions.
+- **Partial** (a site's rentals grant withdrawn, a link ended, a link unverified): a **labelled partial statement** — the permitted sites' lines only, totals recalculated from those lines and the permitted sites' own frozen openings — never an owner-wide line (`siteId: ''`), owner-wide opening or payout instruction; the list marks it "Partial statement". A statement with **no permitted site** is not listed, and its id answers exactly like an id never issued (`404 not_found`, same body). No payout card. Nothing synthetic: no settlement or payment is created to fill a gap.
+- **Office, same rule:** `ownerWhole` now also needs every site of the owner's footprint, so a site whose rentals grant was withdrawn makes the owner partial for every member of staff: owner-wide figures are withheld and owner-wide actions (issue, prepare a payout, draft an agreement version) are refused until the grant returns (fail closed, R8).
+- **Contract:** `LandlordView.statements[].scopeLimited`. **UI:** the partial badge in the landlord's list; the drawer's notice now also says payout lines are left out.
+- **Negative tests** (`rentals.issue17.api.test.ts`): the fictional owner Tahira Rehman lets a flat at Riverbend Heights (A) and one at Riverbend Court (B). TEST ONLY: settled rent on both sites with bank references, a whole-owner payout instruction (prepared through the office route) and the October statement issued through the office route, plus an injected Court-only issued statement carrying a whole-owner payout line. Then (a) the Court rentals grant withdrawn, (b) her Court link ended, (c) her Court link unverified. Both portal reads are serialized and contain no site-B or whole-owner id, reference, amount, tenant name, payout metadata, bank reference or count; the hidden statement and an unknown id give identical refusals; reads and refusals leave the store byte-identical. With full authority she keeps everything that is hers. The office fail-closed case is tested too. **Mutations** M16–M19 and M23 (each breaks one part of the projection) are killed.
+
+### C3. P1: issuing is its own permission
+
+- New permission **`owner_statement.issue`** (contracts `permissions.ts`, module `rentals` in `access.ts`), held **only by Riverbend's client money accounts officer** (`accounts_officer`, Usman Ghani), who already issues in the reference flow and the seed. No other role and no starter set holds it (tested over every organisation's roles and every starter set). Maker-checker is unchanged: the officer prepares payout instructions and the finance controller approves them; nobody approves their own statement because issuing is a single act by the authorised officer on a frozen snapshot.
+- **Server:** `POST /rentals/owner-statements/issue` requires it at the transport, before any id is read: a view-only reader gets `403 permission_missing`, identical for a real and a never-registered owner, and nothing changes. `statementView` offers `issue` only to its holders and tells everyone else why (`blocked: issue_permission`).
+- **UI:** a view-only reader (portfolio manager, finance controller, director) has no Issue control; the statement says "Only the client money accounts officer issues statements to owners. You can read and print this one; issuing it is for them." (EN and UR; screenshots h01, h04). `owner_statement.view` stays read-only.
+- **Tests:** API (view-only refused and unchanged, issuer, roles), e2e (three readers see the reason, their direct request is refused, Usman issues), Firefox/WebKit smoke. **Mutations** M20–M22 killed.
+
+### C4. Owner rulings recorded (GPT review, 6 November 2026)
+
+| # | Decision | Ruling |
+|---|---|---|
+| R1 | Keep "Riverbend Estate Managers (Demo)" | **Accepted** (owner policy default) |
+| R2 | Finance controller holds tenant-local `lease.view` and `rentals.configure` | **Accepted** with checker separation (the director drafts versions, the controller approves; never their own) |
+| R3 | "Client-money accounts officer" replaces the maintenance starter (tenant-local role) | **Accepted** |
+| R4 | Statements issued by any `owner_statement.view` holder | **Rejected — tighten issuance.** Done: `owner_statement.issue` (C3) |
+| R5 | Term 1–36 months, due day 1–28, no pro-rating | **Accepted as a demo-only placeholder** |
+| R6 | Owner payouts behind the `rentals.owner_payouts` site feature | **Accepted** |
+| R7 | Lease activation by a second person with `lease.manage` | **Accepted** |
+| R8 | D-33 (issuing model) and D-48 (settlement evidence) | **Remain unapproved legal and settlement decisions: fail closed.** Unchanged: both models are labelled fictional alternatives; nothing is settled, posted or paid; the closure's office rule fails closed on a withdrawn site |
+
+### C5. Results of the closure (details in [test-results.md](test-results.md))
+
+- tsc and lint (logical CSS, i18n parity 2 × 27 namespaces, 10,884 keys) clean; **Vitest 1,618 / 1,618** (57 files; rentals 100, of which 14 new); golden vectors pass.
+- **Mutations 25 / 25 killed** (10 new for P0, P1 and the Issue #18 rules), each file restored byte-identically.
+- **Complete combined regression** (every e2e spec, gates B to S.3 and the S.1 hotfix, + the S.3 evidence spec; Chromium, production build, 3 workers, retries off): **428 / 429 in 52.0 min**. The one failure is the D.1 branding test `identity.spec.ts:327` (a single-read assertion right after a click at ~90 % CPU), untouched by this work; alone, `--repeat-each=10`: 10 / 10.
+- **Axe:** 1,506 scans in that run, **0 violations** (S.3: 80).
+- **Firefox + WebKit smoke, every smoke spec** (8 files, 3 workers, retries off): run 1 **50 / 50** (3.2 min); run 2 **49 / 50** (3.4 min). Firefox 25 / 25 both times.
+- **WebKit, separately:** run 1 25 / 25; run 2 24 / 25: the known S.2a intermittent "a new guard…" (the option click did not close the list). A/B, that test alone, `--repeat-each=10`, 1 worker: **this branch 8 / 10, clean `04b6fde` 8 / 10**, same symptom: pre-existing, not caused by S.3; the test is unchanged.
+
+### C6. Screens and evidence
+
+- Statuses unchanged and honest: **BUILT** RNT-001, RNT-003, RNT-007, RNT-008 (drawer), PORTAL-037; **PARTIAL** RNT-002, RNT-004, RNT-005, RNT-006, RNT-009 (drawer). Register rows RNT-005 (permission column: `owner_statement.view; owner_statement.issue`, tests, note) and PORTAL-037 (tests, note) updated; no status changed.
+- New screenshots (18, `docs/status/gate-s3/screenshots/h…`): h01 read-only statement with the reason (1440, 390; EN, UR), h02 partial landlord view (1440, 390; EN, UR), h03 partial statement drawer (1440, 390; EN, UR), h04–h06 the same at 320 px with 200 % text (EN, UR). Each file's width was checked against the viewport in its name and every phone and 200 % capture was looked at. All earlier S.3 screenshots were regenerated byte-identical; the video was re-recorded by the run and the committed one kept (same flow).
+- The partial landlord is shown with the demo's narrow-only site scope (`demo:site-scope`, which now also narrows a resident's or landlord's links to the listed sites; it never adds or changes a link), standing in for an ended Court link.
+
+### C7. Remaining risks and open decisions
+
+- Settlement of rent, deposits and payouts still waits for a lease and payout subject in the S.1/C.2 reconciler (G1); posting stays refused (RNT-004 PARTIAL). D-33 and D-48 remain open (R8).
+- Statement references come from one organisation-wide counter (G4 in [SECURITY_FINDINGS.md](SECURITY_FINDINGS.md)).
+- Manual screen-reader and device checks remain open ([MANUAL_VERIFICATION.md](MANUAL_VERIFICATION.md)), now including the two closure states.
 
 ## Summary
 
@@ -35,7 +102,7 @@ States: **RNT-008** (renew or end early, a drawer of RNT-002) is **BUILT**; **RN
 **Register:** 439 rows / 354 distinct before S.3 → **449 rows / 362 distinct** (139 built, 43 partial, 180 planned). The 10 rows are the delta's own; their routes are the delta's paths without the query strings (filters are query parameters of the same screen, as for HR-010).
 
 **Results** (details in [`test-results.md`](test-results.md))
-- Typecheck, lint (with logical CSS and i18n parity: 2 locales × 27 namespaces, same keys): clean.
+- (Gate build, before the closure.) Typecheck, lint (with logical CSS and i18n parity: 2 locales × 27 namespaces, same keys): clean.
 - Vitest: **1,587 / 1,587** (54 files) on the integrated branch; the rentals suites: **86** tests (45 rules, golden vectors and catalogue; 41 API).
 - Mutation checks: **15 / 15** killed, each file restored byte-identically.
 - **Complete combined regression** (every e2e spec, gates B to S.3, retries off): **404 / 404** in 38.5 minutes.
@@ -132,14 +199,14 @@ States: **RNT-008** (renew or end early, a drawer of RNT-002) is **BUILT**; **RN
 7. Rule R in the resident app: Kashif's verified flat only, another landlord's statement not available, the lessee has no landlord view, buyer pages lead to the landlord view, a withdrawn add-on closes the view.
 8. Both languages: axe at 1440/768/390 and the landlord view; 320 px at 200 % (screens, drawers, landlord view); dark mode with high contrast; the keyboard walk.
 
-## 4. Decisions made in S.3 (open to the owner)
+## 4. Decisions made in S.3 (rulings: closure C4)
 
 | # | Decision | Why |
 |---|---|---|
 | R1 | Riverbend keeps its display name "Riverbend Estate Managers (Demo)" (Issue #17 says "(Portfolio Demo)") | Accepted HQ tests assert the name; the edition is portfolio |
 | R2 | The finance controller holds `lease.view` and `rentals.configure` (matrix: neither) | An approver reads leases; agreement versions need a second signatory |
 | R3 | Riverbend's "maintenance" starter role is replaced by "Client-money accounts officer" | Keeps six roles (accepted role test) and splits the payout maker-checker pair |
-| R4 | Statements are generated live and issued by any `owner_statement.view` holder with every site of the owner (register: `owner_statement.view`) | A separate issue permission may be wanted |
+| R4 | ~~Statements issued by any `owner_statement.view` holder~~ → issuing needs `owner_statement.issue` (closure C3) | Ruled: tighten issuance |
 | R5 | No pro-rating of part months; due day 1–28; term 1–36 months; deposit cap from the agreement (2 months in the seed) | Fictional demo rules, stated on screen |
 | R6 | Owner payouts require `rentals.owner_payouts` (off by default in the matrix; granted to Riverbend) | Matrix §3 |
 | R7 | A lease activation needs a second person (`lease.manage`), not only an approval permission | "No self-approval of leases" (Issue #17) without a new permission |
@@ -158,6 +225,7 @@ States: **RNT-008** (renew or end early, a drawer of RNT-002) is **BUILT**; **RN
 - `packages/fixtures/src/platform/platform.test.ts`, `packages/fixtures/src/tenant-access.test.ts`: module count 29 → 30 (and the plan check now also says rentals is not in Shalimar's plan).
 - `tests/e2e/register.spec.ts`: register 439 → 449 rows, 354 → 362 distinct, with the S.3 note.
 - `tests/support/fixtures.ts`: the seven Riverbend identities added to the persona list and maps (no existing entry changed).
+- **Issue #17 closure:** `rentals.api.test.ts`, three assertions: the refusal code `idempotency_conflict` → `idempotency_key_reused` (the shared code; nothing else in them changed) and one test title. `tests/e2e/s3.spec.ts`: the screen list of the axe, 320 px and dark-mode loops gains the read-only statement; the axe and 320 px loops also check the partial landlord view. No assertion was weakened, skipped or retried.
 - The customer app's dues edition now also requires the organisation not to be a portfolio manager (Riverbend licenses dues but has no society register); no existing tenant is a portfolio manager with residents in the resident app.
 
 ## 7. Evidence
@@ -172,9 +240,10 @@ States: **RNT-008** (renew or end early, a drawer of RNT-002) is **BUILT**; **RN
 - Office app: `apps/backoffice/src/pages/rentals/*`, `nav.config.ts` (`RENTALS`), `prototype/routes.tsx`; menu `packages/ui/src/workspace/tenantWorkspace.ts`.
 - Resident app: `apps/customer-web/src/pages/rentals/LandlordPage.tsx`, `nav.config.ts`, `prototype/RootLayout.tsx`, `prototype/routes.tsx`.
 - i18n: `rentals` namespace (en-PK, ur-PK), `common`, `nav`, `platform` additions; `packages/i18n/src/resources.ts`.
-- Tests: `packages/fixtures/src/rentals/{rentals.test.ts,rentals.api.test.ts,rentals.vectors.json,rent-test-kit.ts}`, `tests/e2e/s3.spec.ts`, `tests/evidence/gates3.evidence.spec.ts`, `tests/smoke/s3.smoke.spec.ts`.
+- Tests: `packages/fixtures/src/rentals/{rentals.test.ts,rentals.api.test.ts,rentals.issue17.api.test.ts,rentals.vectors.json,rent-test-kit.ts}`, `tests/e2e/s3.spec.ts`, `tests/evidence/gates3.evidence.spec.ts`, `tests/smoke/s3.smoke.spec.ts`.
+- Issue #17 closure: `packages/contracts/src/{permissions,access,rentals}.ts`; `packages/fixtures/src/rentals/{views,portal,handlers}.ts`, `role-templates.ts`, `demo-licence.ts` (+ test); `apps/backoffice/src/pages/rentals/{OwnerStatementsPage,NewLeasePage,Lease360Page,RentRollPage,PayoutsPage,RentalSettingsPage}.tsx`; `apps/customer-web/src/pages/rentals/LandlordPage.tsx`; i18n `rentals` (EN, UR); register rows RNT-005, PORTAL-037.
 - Register: `docs/ui/screen-register.csv` (10 rows appended), `packages/contracts/src/screens/register.generated.ts`.
 
 ## 9. Stop
 
-S.3 is **provisional**: pushed to `feature/gate-s3-rentals` only, for GPT and owner review. No merge, no deploy.
+S.3 is **provisional**: the Issue #17 closure is pushed to `feature/gate-s3-rentals` only (a fast-forward of `7df5f80`), for GPT and owner review. No merge into `main`, no deploy.

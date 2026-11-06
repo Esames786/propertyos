@@ -345,6 +345,54 @@ test.describe('S.3 scope, licensing and Rule R', () => {
   });
 });
 
+test.describe('S.3 closure (Issue #17): one site projection for landlords; reading a statement never issues it', () => {
+  test('a landlord who may see only Riverbend Heights gets a labelled partial statement with Heights lines only, and nothing of Court', async ({ page, consoleErrors }) => {
+    await start(page, 'rb_landlord_tahira', 'en-PK', 'customer');
+    await become(page, 'customer', 'rb_landlord_tahira');
+    // Her link to the Court flat no longer reaches her (the demo's narrow-only site scope).
+    await page.evaluate(() => sessionStorage.setItem('demo:site-scope', JSON.stringify({ rb_landlord_tahira: ['site_rb_heights'] })));
+    await portal(page, 'rb_landlord_tahira', 'landlord');
+    await expect(page.getByTestId('landlord-property')).toHaveCount(1);
+    await expect(page.locator('[data-testid="landlord-property"][data-unit="H-1204"]')).toBeVisible();
+    await expect(page.getByTestId('landlord-statement')).toHaveCount(1);
+    await expect(page.getByTestId('landlord-statement')).toHaveAttribute('data-partial', 'true');
+    await expect(page.getByTestId('landlord-statement-partial')).toHaveText('Partial statement');
+    await page.getByTestId('landlord-statement-open').click();
+    await expect(page.getByTestId('landlord-statement-limited')).toContainText('Payout lines are left out.');
+    await expect(page.locator('[data-testid="landlord-statement-lines"] li')).toHaveCount(2);
+    const text = await page.locator('body').innerText();
+    expect(text).not.toMatch(/C-⁠?07|Mehwish|Riverbend Court|62,000|124,000/);
+    await page.keyboard.press('Escape');
+    // With every site of the owner, the same statement is whole again.
+    await page.evaluate(() => sessionStorage.removeItem('demo:site-scope'));
+    await portal(page, 'rb_landlord_tahira', 'landlord');
+    await expect(page.getByTestId('landlord-statement')).toHaveAttribute('data-partial', 'false');
+    await expect(page.getByTestId('landlord-statement-partial')).toHaveCount(0);
+    expect(consoleErrors).toEqual([]);
+  });
+
+  test('Sadia, Naila and Faisal read the statement and are told why they cannot issue it; a direct request is refused; Usman issues it', async ({ page, consoleErrors }) => {
+    await start(page);
+    const path = '/backoffice/rentals/owner-statements?owner=own_rb_tahira&period=2026-10';
+    for (const persona of ['rb_manager', 'rb_finance', 'rb_director'] as const) {
+      await office(page, persona, path, 'statement');
+      await expect(page.getByTestId('statement')).toHaveAttribute('data-state', 'draft');
+      await expect(page.getByTestId('statement-issue')).toHaveCount(0);
+      await expect(page.getByTestId('statement-issue-blocked')).toContainText('Only the client money accounts officer issues statements to owners.');
+      await expect(page.getByTestId('statement-print')).toBeVisible();
+      expect(await api(page, '/rentals/owner-statements/issue', 'POST', { ownerId: 'own_rb_tahira', period: '2026-10' })).toEqual({ ok: false, code: 'permission_missing', status: 403 });
+    }
+    await page.reload();
+    await expect(page.getByTestId('statement')).toHaveAttribute('data-state', 'draft');
+    await office(page, 'rb_accounts', path, 'statement-issue');
+    await expect(page.getByTestId('statement-issue-blocked')).toHaveCount(0);
+    await page.getByTestId('statement-issue').click();
+    await confirm(page, 'Issue to the owner');
+    await expect(page.getByTestId('statement')).toHaveAttribute('data-state', 'issued');
+    expect(consoleErrors).toEqual([]);
+  });
+});
+
 // ---------------------------------------------------------------------------------------------
 // Both languages, every width, 320 px at 200 %, dark mode with high contrast, the keyboard
 // ---------------------------------------------------------------------------------------------
@@ -356,6 +404,8 @@ const SCREENS: Array<[string, PersonaId, string, string]> = [
   ['wizard', 'rb_manager', '/backoffice/rentals/leases/new?unit=unt_rb_c12', 'wizard-step-unit'],
   ['rent-roll', 'rb_finance', '/backoffice/rentals/rent-roll?period=2026-10', 'roll-lines'],
   ['statements', 'rb_accounts', '/backoffice/rentals/owner-statements?owner=own_rb_tahira&period=2026-10', 'statement-memo-lines'],
+  // Issue #17 (R4): the same statement for a reader who may not issue it (the reason instead of the control).
+  ['statements-read-only', 'rb_manager', '/backoffice/rentals/owner-statements?owner=own_rb_tahira&period=2026-10', 'statement-issue-blocked'],
   ['payouts', 'rb_finance', '/backoffice/rentals/payouts', 'payout-owners'],
   ['settings', 'rb_finance', '/backoffice/rentals/settings', 'agreement'],
 ];
@@ -384,6 +434,16 @@ for (const locale of ['en-PK', 'ur-PK'] as const) {
       await axe(page, testInfo, `landlord-${vp}-${locale}`);
       expect(await overflowOf(page), `landlord ${vp} ${locale}`).toBeLessThanOrEqual(0);
     }
+    // Issue #17: the partial landlord view (Heights only) and its labelled partial statement.
+    await page.evaluate(() => sessionStorage.setItem('demo:site-scope', JSON.stringify({ rb_landlord_tahira: ['site_rb_heights'] })));
+    for (const [vp, size] of [['1440', VIEWPORTS.desktop], ['390', VIEWPORTS.phone]] as const) {
+      await page.setViewportSize(size);
+      await page.goto(`${CU}/customer/portal/rentals?statement=ost_rb_0001`);
+      await expect(page.getByTestId('landlord-statement-limited')).toBeVisible();
+      await axe(page, testInfo, `landlord-partial-${vp}-${locale}`);
+      expect(await overflowOf(page), `landlord partial ${vp} ${locale}`).toBeLessThanOrEqual(0);
+    }
+    await page.evaluate(() => sessionStorage.removeItem('demo:site-scope'));
     expect(consoleErrors).toEqual([]);
   });
 
@@ -414,6 +474,15 @@ for (const locale of ['en-PK', 'ur-PK'] as const) {
     await page.goto(`${CU}/customer/portal/rentals`);
     await expect(page.getByTestId('landlord-properties')).toBeVisible();
     expect(await layoutProblems(page), `landlord ${lang(locale)} 200 %`).toEqual([]);
+    // Issue #17: the partial landlord view, its partial badge and the partial statement drawer.
+    await page.evaluate(() => sessionStorage.setItem('demo:site-scope', JSON.stringify({ rb_landlord_tahira: ['site_rb_heights'] })));
+    await page.goto(`${CU}/customer/portal/rentals`);
+    await expect(page.getByTestId('landlord-statement-partial')).toBeVisible();
+    expect(await layoutProblems(page), `landlord partial ${lang(locale)} 200 %`).toEqual([]);
+    await page.goto(`${CU}/customer/portal/rentals?statement=ost_rb_0001`);
+    await expect(page.getByTestId('landlord-statement-limited')).toBeVisible();
+    expect(await layoutProblems(page.getByTestId('landlord-statement-detail')), `landlord partial statement ${lang(locale)} 200 %`).toEqual([]);
+    await page.evaluate(() => sessionStorage.removeItem('demo:site-scope'));
     expect(consoleErrors).toEqual([]);
   });
 

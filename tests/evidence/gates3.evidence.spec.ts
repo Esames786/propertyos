@@ -213,6 +213,46 @@ test('dark mode with high contrast: leases and the rent roll (390, ur)', async (
   await page.context().close();
 });
 
+/**
+ * Issue #17 closure: a reader who may not issue the statement sees why (R4, `owner_statement.issue`);
+ * a landlord who may see only Riverbend Heights gets a labelled partial statement and nothing of
+ * Court (P0; the demo's narrow-only site scope stands in for her ended Court link).
+ */
+test('Issue #17 closure: the read-only statement and the partial landlord view (1440, 390 and 320 px at 200 %, both languages)', async ({ browser }) => {
+  test.setTimeout(240_000);
+  const PARTIAL = () => sessionStorage.setItem('demo:site-scope', JSON.stringify({ rb_landlord_tahira: ['site_rb_heights'] }));
+  const STATEMENT = '/backoffice/rentals/owner-statements?owner=own_rb_tahira&period=2026-10';
+  for (const locale of ['en-PK', 'ur-PK'] as Locale[]) {
+    for (const [w, size] of [['1440', VIEWPORTS.desktop], ['390', VIEWPORTS.phone]] as const) {
+      const page = await context(browser, size, locale);
+      await page.addInitScript(PARTIAL);
+      await as(page, 'rb_manager', STATEMENT, 'statement-issue-blocked');
+      await shot(page, `h01-statement-read-only-reason-${w}-${lang(locale)}`);
+      await as(page, 'rb_landlord_tahira', '/customer/portal/rentals', 'landlord-statement-partial', 'customer');
+      await shot(page, `h02-landlord-partial-${w}-${lang(locale)}`);
+      await as(page, 'rb_landlord_tahira', '/customer/portal/rentals?statement=ost_rb_0001', 'landlord-statement-limited', 'customer');
+      await shot(page, `h03-landlord-partial-statement-${w}-${lang(locale)}`, false);
+      await page.context().close();
+    }
+    const page = await context(browser, { width: 320, height: 700 }, locale, false, 2);
+    await page.addInitScript(PARTIAL);
+    await as(page, 'rb_manager', STATEMENT, 'statement-issue-blocked');
+    await page.getByTestId('statement-issue-blocked').scrollIntoViewIfNeeded();
+    await settle(page, 300);
+    await shot(page, `h04-statement-read-only-reason-200pct-320-${lang(locale)}`, false);
+    await as(page, 'rb_landlord_tahira', '/customer/portal/rentals', 'landlord-statement-partial', 'customer');
+    await page.getByTestId('landlord-statement-partial').scrollIntoViewIfNeeded();
+    await settle(page, 300);
+    await shot(page, `h05-landlord-partial-200pct-320-${lang(locale)}`, false);
+    await as(page, 'rb_landlord_tahira', '/customer/portal/rentals?statement=ost_rb_0001', 'landlord-statement-limited', 'customer');
+    // The notice is taller than the drawer's visible part at 200 %: show its end (payout lines are left out).
+    await page.getByTestId('landlord-statement-limited').evaluate((e) => e.scrollIntoView({ block: 'end' }));
+    await settle(page, 300);
+    await shot(page, `h06-landlord-partial-statement-200pct-320-${lang(locale)}`, false);
+    await page.context().close();
+  }
+});
+
 test('video: from a draft lease to an approved demand that cannot be posted, and a statement the landlord opens (desktop, en)', async ({ browser }) => {
   test.setTimeout(240_000);
   const page = await context(browser, VIEWPORTS.desktop, 'en-PK', true);

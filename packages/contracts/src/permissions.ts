@@ -121,12 +121,14 @@ export const PERMISSIONS = [
   'marketplace.moderate',
   // Gate S.3: the optional, site-licensed rentals add-on (V3.2 matrix §5.2). Each maker-checker pair is
   // split: drafting and activating a lease, preparing and approving a rent roll, preparing and approving
-  // an owner payout instruction, drafting and approving a management agreement version.
+  // an owner payout instruction, drafting and approving a management agreement version. Reading an owner
+  // statement never publishes it: issuing one to the landlord is its own permission (Issue #17, R4).
   'lease.view',
   'lease.manage',
   'rent.bill',
   'rent.approve',
   'owner_statement.view',
+  'owner_statement.issue',
   'owner_payout.prepare',
   'owner_payout.approve',
   'rentals.configure',

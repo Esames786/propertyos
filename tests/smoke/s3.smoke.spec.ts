@@ -87,3 +87,19 @@ test('320 × 700, Urdu, 200 %: the leases and the rent roll are not clipped, spi
   expect(await layoutProblems(page), 'rent roll').toEqual([]);
   expect(appErrors(consoleErrors)).toEqual([]);
 });
+
+test('Issue #17: a statement reader who may not issue sees why and is refused; a landlord who may see Heights only gets a partial statement', async ({ page, consoleErrors }) => {
+  test.setTimeout(180_000);
+  await at(page);
+  await seed(page, { persona: 'rb_manager' });
+  await as(page, 'rb_manager', '/backoffice/rentals/owner-statements?owner=own_rb_tahira&period=2026-10', 'statement-issue-blocked');
+  await expect(page.getByTestId('statement-issue')).toHaveCount(0);
+  expect(await societyApi(page, '/rentals/owner-statements/issue', 'POST', { ownerId: 'own_rb_tahira', period: '2026-10' })).toEqual({ ok: false, code: 'permission_missing', status: 403 });
+  await become(page, 'customer', 'rb_landlord_tahira');
+  await page.evaluate(() => sessionStorage.setItem('demo:site-scope', JSON.stringify({ rb_landlord_tahira: ['site_rb_heights'] })));
+  await page.goto(`${CU}/customer/portal/rentals?statement=ost_rb_0001`);
+  await expect(page.getByTestId('landlord-statement-limited')).toBeVisible();
+  await expect(page.getByTestId('landlord-property')).toHaveCount(1);
+  await expect(page.getByTestId('landlord-statement-partial')).toBeVisible();
+  expect(appErrors(consoleErrors)).toEqual([]);
+});

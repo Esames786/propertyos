@@ -1,5 +1,5 @@
 import { ApiError, type IssuingModel, type LeaseOptions, type LeaseView } from '@repo/contracts';
-import { Button, ErrorState, InlineAlert, KeyValueList, PageHeader, Panel, PlainCheckbox, PlainTextField, SelectControl, Stepper, useApiMutation, useApiQuery, useNavigation, useQueryParam, useT, useToast } from '@repo/ui';
+import { Button, ErrorState, InlineAlert, isKeyReused, KeyValueList, PageHeader, Panel, PlainCheckbox, PlainTextField, SelectControl, Stepper, useApiMutation, useApiQuery, useCreateKey, useNavigation, useQueryParam, useT, useToast } from '@repo/ui';
 import { ArrowLeft, ArrowRight, Save, Send, TriangleAlert } from 'lucide-react';
 import { useState } from 'react';
 import { RENTALS } from '../../nav.config';
@@ -55,6 +55,9 @@ function Wizard({ o }: { o: LeaseOptions }) {
   const [error, setError] = useState<unknown>(null);
   const create = useApiMutation<LeaseView>();
   const submit = useApiMutation<LeaseView>();
+  // Issue #18 (FIN-02): one idempotency key per lease, kept until the whole save succeeded (a retry after a
+  // failed submit replays the draft instead of making a second one), renewed when the server refused it.
+  const [key, renewKey] = useCreateKey('lse');
   const fe = useFieldError(error);
   const index = STEPS.indexOf(step);
   const landlords = (unit?.owners ?? []).filter((x) => (shares[x.ownerId] ?? '').trim() !== '' && Number(shares[x.ownerId]) > 0);
@@ -84,11 +87,14 @@ function Wizard({ o }: { o: LeaseOptions }) {
         method: 'POST',
         path: '/rentals/leases',
         body: { unitId, landlords: landlords.map((x) => ({ ownerId: x.ownerId, share: shares[x.ownerId] })), tenantPartyId: tenant, model, from, to, rent, dueDay: Number(dueDay), deposit, ...(authority ? { authority } : {}) },
+        idempotencyKey: key,
       });
       if (andSubmit) await submit.mutateAsync({ method: 'POST', path: `/rentals/leases/${lease.id}/submit` });
       toast.success(t(andSubmit ? 'rentals:wizard.submitted' : 'rentals:wizard.saved', { ref: lease.ref }));
+      renewKey();
       navigate(RENTALS.lease(lease.id));
     } catch (e) {
+      if (isKeyReused(e)) renewKey();
       setError(e);
       const field = e instanceof ApiError ? Object.keys(e.problem.errors ?? {}).find((f) => STEP_OF[f]) : undefined;
       if (field) setStep(STEP_OF[field]!);

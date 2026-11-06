@@ -37,6 +37,17 @@ describe('demoAccessFor', () => {
     expect(demoAccessFor(() => access([{ type: 'all' }]))(persona('alnoor_manager'))!.scopes).toEqual([{ type: 'all' }]);
   });
 
+  it('a resident or landlord keeps only their links at the named sites (Issue #17 closure); no link is added or changed', () => {
+    const links = [
+      { unitId: 'unt_a', billingAccountId: 'ba_a', siteId: 'site_a', legalEntityId: 'le', verified: true, from: '2024-01-01' },
+      { unitId: 'unt_b', billingAccountId: 'ba_b', siteId: 'site_b', legalEntityId: 'le', verified: true, from: '2024-01-01' },
+    ];
+    store.set(DEMO_SITE_SCOPE_KEY, JSON.stringify({ landlord: ['site_a', 'site_c'] }));
+    const of = demoAccessFor(() => access([{ type: 'party', partyId: 'pty_1', links }]));
+    expect(of(persona('landlord'))!.scopes).toEqual([{ type: 'party', partyId: 'pty_1', links: [links[0]] }]);
+    expect(of(persona('someone_else'))!.scopes).toEqual([{ type: 'party', partyId: 'pty_1', links }]);
+  });
+
   it('withdrawal and site scope combine, and withdrawal still removes only optional add-ons', () => {
     store.set(DEMO_WITHDRAWN_KEY, JSON.stringify(['community_hub', 'dues']));
     store.set(DEMO_SITE_SCOPE_KEY, JSON.stringify({ alnoor_manager: ['site_alnoor'] }));

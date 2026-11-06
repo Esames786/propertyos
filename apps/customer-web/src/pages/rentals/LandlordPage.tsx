@@ -93,9 +93,18 @@ function Landlord({ v, statement, onStatement }: { v: LandlordView; statement: s
         ) : (
           <ul className="space-y-2" data-testid="landlord-statements">
             {v.statements.map((s) => (
-              <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 rounded-tile border border-border/70 p-3 text-sm" data-testid="landlord-statement" data-ref={s.ref}>
+              <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 rounded-tile border border-border/70 p-3 text-sm" data-testid="landlord-statement" data-ref={s.ref} data-partial={s.scopeLimited}>
                 <span>
                   <span className="font-medium">{monthOf(s.period)}</span> · <bdi dir="ltr">{unbroken(s.ref)}</bdi> · {t('rentals:portal.closing')}: <Money value={s.closing} />
+                  {/* Issue #17: a statement of only some of the owner's sites says so where it is listed. */}
+                  {s.scopeLimited && (
+                    <>
+                      {' '}
+                      <Badge tone="neutral" data-testid="landlord-statement-partial">
+                        {t('rentals:portal.partial')}
+                      </Badge>
+                    </>
+                  )}
                 </span>
                 <Button className={WRAP} icon={FileText} onPress={() => onStatement(s.id)} data-testid="landlord-statement-open">
                   {t('rentals:portal.open')}

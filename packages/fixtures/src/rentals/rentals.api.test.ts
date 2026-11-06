@@ -237,16 +237,16 @@ describe('new lease wizard (RNT-003) and activation', () => {
     expect(act.deposit).toMatchObject({ agreed: { amount: '110000.00' }, heldEvidenced: { amount: '0.00' }, holding: 'owner_account', state: 'awaiting_evidence' });
   });
 
-  it('idempotency binds operation, principal, target and the exact request (Issue #16)', async () => {
+  it('idempotency binds operation, principal, target and the exact request (Issues #16 and #18)', async () => {
     const api = rentSession();
     const a = await api.post<LeaseView>('/rentals/leases', draftC12(), { key: 'k-lease-1' });
     const again = await api.post<LeaseView>('/rentals/leases', { ...draftC12(), rent: ' 55000.00 ' }, { key: 'k-lease-1' });
     expect(again.id).toBe(a.id);
     expect(api.rent().leases.filter((l) => l.unitId === 'unt_rb_c12')).toHaveLength(1);
     // The same key with another request, another person or another operation: a non-disclosing 409.
-    expect(await refusedUnchanged(api, () => api.post('/rentals/leases', draftC12({ rent: '56000.00' }), { key: 'k-lease-1' }))).toMatchObject({ status: 409, code: 'idempotency_conflict' });
-    expect(await refusedUnchanged(api, () => api.as('rb_accounts').post('/rentals/leases', draftC12(), { key: 'k-lease-1' }))).toMatchObject({ status: 409, code: 'idempotency_conflict' });
-    expect(await refusedUnchanged(api, () => api.as('rb_manager').post('/rentals/rent-roll/2026-11/preview', {}, { key: 'k-lease-1' }))).toMatchObject({ status: 409, code: 'idempotency_conflict' });
+    expect(await refusedUnchanged(api, () => api.post('/rentals/leases', draftC12({ rent: '56000.00' }), { key: 'k-lease-1' }))).toMatchObject({ status: 409, code: 'idempotency_key_reused' });
+    expect(await refusedUnchanged(api, () => api.as('rb_accounts').post('/rentals/leases', draftC12(), { key: 'k-lease-1' }))).toMatchObject({ status: 409, code: 'idempotency_key_reused' });
+    expect(await refusedUnchanged(api, () => api.as('rb_manager').post('/rentals/rent-roll/2026-11/preview', {}, { key: 'k-lease-1' }))).toMatchObject({ status: 409, code: 'idempotency_key_reused' });
     // A replay is checked for authority first: a reader who lost the site gets nothing back.
     const narrowed = rentSession({ accessFor: changed(['rb_manager'], sitesOnly('site_rb_heights')) });
     await narrowed.get('/rentals/leases');

@@ -1,6 +1,6 @@
 import type { OwnerStatementsList, OwnerStatementView, StatementLineView } from '@repo/contracts';
-import { Button, ConfirmDialog, EmptyState, ErrorState, FilterPills, InlineAlert, KeyValueList, Link, Money, PageHeader, Panel, SelectControl, useApiMutation, useApiQuery, useQueryParam, useQueryParams, useSession, useT, useToast, DateTime } from '@repo/ui';
-import { FileCheck2, Printer } from 'lucide-react';
+import { Button, ConfirmDialog, EmptyState, ErrorState, FilterPills, InlineAlert, isKeyReused, KeyValueList, Link, Money, PageHeader, Panel, SelectControl, useApiMutation, useApiQuery, useCreateKey, useQueryParam, useQueryParams, useSession, useT, useToast, DateTime } from '@repo/ui';
+import { FileCheck2, Info, Printer } from 'lucide-react';
 import { useState } from 'react';
 import { RENTALS } from '../../nav.config';
 import { Loading, useSocietyFormat } from '../society/kit';
@@ -12,6 +12,7 @@ import { Activity, D33Note, ModelBadge, NotSettled, PAYOUTS_TARGET, RENT_VIEW, R
  * out on **settled money only**. Approved rent demands, approved owner expenses, deposits held for
  * tenants and payout instructions are shown apart as memo lines and never reach the closing payable.
  * Issuing freezes the statement as an immutable snapshot the landlord can open in the resident app.
+ * Issuing needs `owner_statement.issue` (Issue #17, R4): a reader without it sees why, and no control.
  */
 export default function OwnerStatementsPage() {
   const { t } = useT();
@@ -67,6 +68,8 @@ function Statement({ owner, period }: { owner: string; period: string }) {
   const { allows } = useSession();
   const [issuing, setIssuing] = useState(false);
   const issue = useApiMutation<OwnerStatementView>();
+  // Issue #18 (FIN-02): one key per issue, renewed after it succeeded or when the server refused the key.
+  const [key, renewKey] = useCreateKey('ost');
   const q = useApiQuery<OwnerStatementView>({ method: 'GET', path: '/rentals/owner-statements/statement', query: { owner, period } });
   if (q.isError) return <ErrorState error={q.error} onRetry={() => void q.refetch()} />;
   if (!q.data) return <Loading lines={8} />;
@@ -113,6 +116,12 @@ function Statement({ owner, period }: { owner: string; period: string }) {
           </p>
           <p className="text-xs text-muted">{t('rentals:statements.sample')}</p>
           <D33Note />
+          {s.blocked === 'issue_permission' && (
+            <p className="flex items-start gap-1.5 text-muted print:hidden" data-testid="statement-issue-blocked" data-blocked={s.blocked}>
+              <Info aria-hidden className="mt-0.5 size-4 shrink-0" />
+              {t('rentals:statements.issuePermission')}
+            </p>
+          )}
         </div>
       </Panel>
       {s.scopeLimited && (
@@ -241,9 +250,11 @@ function Statement({ owner, period }: { owner: string; period: string }) {
         confirmLabel={t('rentals:statements.issue')}
         onConfirm={async () => {
           try {
-            const v = await issue.mutateAsync({ method: 'POST', path: '/rentals/owner-statements/issue', body: { ownerId: s.owner.id, period: s.period } });
+            const v = await issue.mutateAsync({ method: 'POST', path: '/rentals/owner-statements/issue', body: { ownerId: s.owner.id, period: s.period }, idempotencyKey: key });
+            renewKey();
             toast.success(t('rentals:statements.issued', { ref: v.ref ?? '' }));
           } catch (e) {
+            if (isKeyReused(e)) renewKey();
             problem(e);
           }
           setIssuing(false);

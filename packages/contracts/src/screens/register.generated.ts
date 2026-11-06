@@ -9807,7 +9807,7 @@ export const SCREENS: readonly ScreenEntry[] = [
     "application": "backoffice",
     "edition": "COMM, PORTFOLIO (add-on)",
     "module": "rentals",
-    "permission": "owner_statement.view",
+    "permission": "owner_statement.view; owner_statement.issue",
     "scope": "site; owner",
     "disposition": "new",
     "canonicalId": "RNT-005",

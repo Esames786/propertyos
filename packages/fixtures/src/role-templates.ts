@@ -172,14 +172,16 @@ const ALNOOR_ROLE_NAMES: Readonly<Record<string, string>> = {
  * administrators only: approving an agreement needs a second person); the portfolio manager drafts
  * leases and prepares rent rolls; the client-money accounts officer activates leases someone else drafted
  * and prepares owner payout instructions; the finance controller approves rent rolls and payout
- * instructions and may read leases. No Riverbend role holds a society billing or HR permission: those
- * screens are built for societies only. The technician and security starters are kept as they are.
+ * instructions and may read leases. Issuing an owner statement to the landlord (`owner_statement.issue`,
+ * Issue #17 R4) is the client-money accounts officer's alone: every other role reads statements only.
+ * No Riverbend role holds a society billing or HR permission: those screens are built for societies
+ * only. The technician and security starters are kept as they are.
  */
 const RIVERBEND_ROLES: readonly TenantRoleTemplate[] = [
   { id: 'administrator', tenantId: 'tnt_riverbend', starter: null, labelKey: 'common:roles.director', permissions: ['lease.view', 'lease.manage', 'owner_statement.view', 'rentals.configure'], holders: ['rb_director'] },
   { id: 'manager', tenantId: 'tnt_riverbend', starter: null, labelKey: 'common:roles.portfolio_manager', permissions: ['lease.view', 'lease.manage', 'rent.bill', 'owner_statement.view'], holders: ['rb_manager'] },
   { id: 'treasurer', tenantId: 'tnt_riverbend', starter: null, labelKey: 'common:roles.finance_controller', permissions: ['lease.view', 'rent.approve', 'owner_statement.view', 'owner_payout.approve', 'rentals.configure'], holders: ['rb_finance'] },
-  { id: 'accounts_officer', tenantId: 'tnt_riverbend', starter: null, labelKey: 'common:roles.client_money_officer', permissions: ['lease.view', 'lease.manage', 'rent.bill', 'owner_statement.view', 'owner_payout.prepare'], holders: ['rb_accounts'] },
+  { id: 'accounts_officer', tenantId: 'tnt_riverbend', starter: null, labelKey: 'common:roles.client_money_officer', permissions: ['lease.view', 'lease.manage', 'rent.bill', 'owner_statement.view', 'owner_statement.issue', 'owner_payout.prepare'], holders: ['rb_accounts'] },
   ...starterRoles('tnt_riverbend', 'portfolio_manager').filter((r) => r.id === 'technician' || r.id === 'security'),
 ];
 

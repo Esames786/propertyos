@@ -1,5 +1,5 @@
 import type { RentRollView } from '@repo/contracts';
-import { Button, Dialog, EmptyState, ErrorState, FilterPills, InlineAlert, Link, Money, PageHeader, Panel, PlainCheckbox, PlainTextArea, useApiMutation, useApiQuery, useQueryParam, useSession, useT, useToast } from '@repo/ui';
+import { Button, Dialog, EmptyState, ErrorState, FilterPills, InlineAlert, Link, Money, PageHeader, Panel, PlainCheckbox, PlainTextArea, isKeyReused, useApiMutation, useApiQuery, useCreateKey, useQueryParam, useSession, useT, useToast } from '@repo/ui';
 import { CircleDashed, ClipboardCheck, Eye, Info } from 'lucide-react';
 import { useState } from 'react';
 import { ACCESS_DATE, RENTALS } from '../../nav.config';
@@ -24,6 +24,9 @@ export default function RentRollPage() {
   const period = param ?? ACCESS_DATE.slice(0, 7);
   const [approving, setApproving] = useState(false);
   const preview = useApiMutation<RentRollView>();
+  // Issue #18 (FIN-02): one idempotency key per logical create, renewed after it succeeded or when the
+  // server refused the key, so a second press while it runs replays it and never makes a second record.
+  const [key, renewKey] = useCreateKey('roll');
   const q = useApiQuery<RentRollView>({ method: 'GET', path: '/rentals/rent-roll', query: { period } });
   if (q.isError) return <ErrorState error={q.error} onRetry={() => void q.refetch()} />;
   if (!q.data) return <Loading lines={10} />;
@@ -44,9 +47,11 @@ export default function RentRollPage() {
                 isPending={preview.isPending}
                 onPress={async () => {
                   try {
-                    const v = await preview.mutateAsync({ method: 'POST', path: `/rentals/rent-roll/${r.period}/preview` });
+                    const v = await preview.mutateAsync({ method: 'POST', path: `/rentals/rent-roll/${r.period}/preview`, idempotencyKey: key });
+                    renewKey();
                     toast.success(t('rentals:roll.previewed', { month: fmt.period(v.period), version: v.version }));
                   } catch (e) {
+                    if (isKeyReused(e)) renewKey();
                     problem(e);
                   }
                 }}

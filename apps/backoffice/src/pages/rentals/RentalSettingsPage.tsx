@@ -1,5 +1,5 @@
 import type { AgreementView, IssuingModel, RentalSettings } from '@repo/contracts';
-import { Button, Dialog, Drawer, EmptyState, ErrorState, InlineAlert, Link, PageHeader, Panel, PlainCheckbox, PlainTextArea, PlainTextField, SelectControl, UrlTabs, useApiMutation, useApiQuery, useT, useToast } from '@repo/ui';
+import { Button, Dialog, Drawer, EmptyState, ErrorState, InlineAlert, Link, PageHeader, Panel, PlainCheckbox, PlainTextArea, PlainTextField, SelectControl, UrlTabs, isKeyReused, useApiMutation, useApiQuery, useCreateKey, useT, useToast } from '@repo/ui';
 import { BadgeCheck, FilePen, Info } from 'lucide-react';
 import { useState } from 'react';
 import { ACCESS_DATE, RENTALS } from '../../nav.config';
@@ -246,6 +246,9 @@ function DraftDrawer({ a, onClose }: { a: AgreementView; onClose: () => void }) 
   const [error, setError] = useState<unknown>(null);
   const fe = useFieldError(error);
   const m = useApiMutation<AgreementView>();
+  // Issue #18 (FIN-02): one idempotency key per logical create, renewed after it succeeded or when the
+  // server refused the key, so a second press while it runs replays it and never makes a second record.
+  const [key, renewKey] = useCreateKey('agr');
   return (
     <Drawer
       isOpen
@@ -265,10 +268,13 @@ function DraftDrawer({ a, onClose }: { a: AgreementView; onClose: () => void }) 
                 method: 'POST',
                 path: `/rentals/settings/agreements/${a.id}/versions`,
                 body: { effectiveFrom, model, feePct, depositHolding: model === 'agent' ? 'client_deposit_account' : 'owner_account', depositMaxMonths: Number(months), collectOnBehalf: model === 'agent' ? collect : false, signedReference: reference, signedDate, note },
+                idempotencyKey: key,
               });
+              renewKey();
               toast.success(t('rentals:settings.drafted', { ref: a.ref }));
               onClose();
             } catch (e) {
+              if (isKeyReused(e)) renewKey();
               setError(e);
               problem(e);
             }

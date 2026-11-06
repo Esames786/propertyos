@@ -55,9 +55,11 @@ import {
  *    statement, payout) or of the organisation (rent roll) for any change.
  * 2. **The ids** in the path or body, in scope (anything else: "not found" or a field problem, identical
  *    for an id never issued).
- * 3. **Idempotency** (Issue #16): a repeated key replays only the same operation by the same person on
- *    the same target with the same request, re-read through the scoped lookups; anything else is a
- *    409 that discloses nothing and changes nothing.
+ * 3. **Idempotency** (Issues #16 and #18): every rentals create (lease, renewal, roll preview, statement
+ *    issue, payout instruction, agreement version) binds its key to the operation, the person, the
+ *    target and the normalised request; a repeated key replays only that same request, re-read through
+ *    the scoped lookups; anything else is `409 idempotency_key_reused` (the code payroll and S.1 use),
+ *    which discloses nothing and changes nothing.
  * 4. **The record's state**, then **maker ≠ checker** by principal (and nobody acts on their own
  *    property), then **validation** of every field, before anything is stored.
  * A refused request changes nothing. Rentals cannot be practised in training mode (no practice store).
@@ -116,7 +118,7 @@ function idempotent(r: R, op: string, target: string, input: unknown): { replay?
     const e = r.st.idempotency[key];
     if (e) {
       if (e.op === op && e.principal === r.me.principalId && e.target === target && e.fp === fp) return { replay: e.id, remember: () => {} };
-      refuse(r.ctx, 409, 'idempotency_conflict', 'idempotencyConflict');
+      refuse(r.ctx, 409, 'idempotency_key_reused', 'idempotencyKeyReused');
     }
   }
   return { remember: (id) => void (key ? (r.st.idempotency[key] = { op, principal: r.me.principalId, target, fp, id }) : undefined) };
@@ -124,7 +126,7 @@ function idempotent(r: R, op: string, target: string, input: unknown): { replay?
 
 /** A replayed record must still be the reader's to see; otherwise the replay discloses nothing. */
 function replayed<T>(r: R, found: T | undefined): T {
-  if (found === undefined) refuse(r.ctx, 409, 'idempotency_conflict', 'idempotencyConflict');
+  if (found === undefined) refuse(r.ctx, 409, 'idempotency_key_reused', 'idempotencyKeyReused');
   return found;
 }
 
@@ -797,7 +799,9 @@ export const RENTALS_HANDLERS: Handler[] = [
 
   { method: 'GET', pattern: route('/rentals/owner-statements'), access: read('owner_statement.view', 'rentals.owner_statements'), handle: (ctx): OwnerStatementsList => statementsList(rentOf(ctx)) },
   { method: 'GET', pattern: route('/rentals/owner-statements/statement'), access: read('owner_statement.view', 'rentals.owner_statements'), handle: (ctx): OwnerStatementView => statementOf(rentOf(ctx)) },
-  { method: 'POST', pattern: route('/rentals/owner-statements/issue'), access: change('owner_statement.view', 'rentals.owner_statements'), handle: (ctx) => issueStatement(rentOf(ctx)) },
+  // Issue #17 (R4): issuing publishes the statement to the landlord, so it needs its own permission, checked
+  // by the transport before any id is read (reading a statement, `owner_statement.view`, never issues one).
+  { method: 'POST', pattern: route('/rentals/owner-statements/issue'), access: change('owner_statement.issue', 'rentals.owner_statements'), handle: (ctx) => issueStatement(rentOf(ctx)) },
 
   { method: 'GET', pattern: route('/rentals/payouts'), access: read(['owner_payout.prepare', 'owner_payout.approve', 'owner_statement.view'], 'rentals.owner_payouts'), handle: (ctx): PayoutsView => payoutsView(rentOf(ctx)) },
   { method: 'POST', pattern: route('/rentals/payouts'), access: change('owner_payout.prepare', 'rentals.owner_payouts'), handle: (ctx) => preparePayout(rentOf(ctx)) },

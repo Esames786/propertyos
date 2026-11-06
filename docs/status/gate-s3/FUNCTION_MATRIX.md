@@ -1,7 +1,9 @@
 # Gate S.3 function matrix
 
 Each function: where it is, who may use it, what the server checks, and the test that proves it.
-API = `packages/fixtures/src/rentals/rentals.api.test.ts`; vectors = `rentals.vectors.json` via `rentals.test.ts`; e2e = `tests/e2e/s3.spec.ts`.
+API = `packages/fixtures/src/rentals/rentals.api.test.ts`; I17 = `rentals.issue17.api.test.ts` (Issue #17 closure); vectors = `rentals.vectors.json` via `rentals.test.ts`; e2e = `tests/e2e/s3.spec.ts`.
+
+**Issue #17 closure.** Every create (lease, renewal, roll preview, statement issue, payout instruction, agreement version) binds its idempotency key to operation, principal, target and the normalised request; any other reuse is `409 idempotency_key_reused` (the payroll and S.1 code), with nothing changed; the office forms keep one key per logical create (`useCreateKey`). Owner statements, in the office and the landlord view, go through one site projection (`projectStatement`).
 
 | Screen | Function | Who (permission, feature) | Server rule | State | Tests |
 |---|---|---|---|---|---|
@@ -23,8 +25,9 @@ API = `packages/fixtures/src/rentals/rentals.api.test.ts`; vectors = `rentals.ve
 | RNT-004 | Approve | `rent.approve` | every rentals site; draft; not stale; approver previewed nothing; acknowledgement | BUILT | API maker ≠ checker, stale, acknowledgement; e2e |
 | RNT-004 | Post | `rent.bill` or `rent.approve` | approved roll → **always** `409 posting_unavailable`, nothing changes | PARTIAL | API posting refused; e2e (no control) |
 | RNT-005 | List owners and periods | `owner_statement.view`, `rentals.owner_statements` | owners with an agreement in force; reader's sites | BUILT | API list |
-| RNT-005 | Statement | same | settled basis; memo lines; sources; projection for limited readers; principal closing 0 | PARTIAL (no settled lines can exist) | API statement, principal, scope |
-| RNT-005 | Issue | same | every site of the owner; this month or earlier; agreement in force; once (snapshot frozen); idempotent | BUILT | API issue, freeze, replay; e2e |
+| RNT-005 | Statement | same | settled basis; memo lines; sources; principal closing 0; **one site projection** (whole only with every site the owner's records touch, else the permitted sites' lines and totals, never an owner-wide line); a settled line's bank reference only with `bank.view`/`bank.reconcile` | PARTIAL (no settled lines can exist) | API statement, principal, scope; I17 office fail-closed, bank reference |
+| RNT-005 | Issue | **`owner_statement.issue`** (client money accounts officer only; Issue #17 R4), `rentals.owner_statements` | permission checked by the transport before any id is read; every site of the owner; this month or earlier; agreement in force; once (snapshot frozen); idempotent | BUILT | API issue, freeze, replay; I17 view-only refused (403, unchanged, no oracle), issuer, roles; e2e |
+| RNT-005 | Read-only reason | `owner_statement.view` without issue | `blocked: issue_permission`; no control, a stated reason | BUILT | I17; e2e closure |
 | RNT-006 | Payouts view | prepare, approve or `owner_statement.view`; `rentals.owner_payouts` | whole-owner money only for whole readers; holds; masked owner account only for preparers and approvers | PARTIAL | API payouts, Issue #18 rule |
 | RNT-006 | Prepare | `owner_payout.prepare`, feature | owner in scope with agreement in force; every site; not the owner's own person; idempotent; principal model, no collection authority, unverified account refused; amount ≤ settled closing − pending | PARTIAL (nothing settled) | API holds, exceeds, injected settled source |
 | RNT-006 | Approve | `owner_payout.approve`, feature | awaiting approval; not the preparer; not the owner's own person; re-checks what is left; acknowledgement; changes no payable | PARTIAL | API maker ≠ checker, conflict, payable unchanged |
@@ -33,5 +36,5 @@ API = `packages/fixtures/src/rentals/rentals.api.test.ts`; vectors = `rentals.ve
 | RNT-007 | Settings read | `rentals.configure` | agreements of visible owners; notes and bound leases projected | BUILT | API settings scope |
 | RNT-007 | Draft or replace a version | `rentals.configure` | every site of the owner; effective today or later; model; fee 0–30 %; deposit holding matches the model; 0–3 months; principal never collects; signed reference and date together; idempotent | BUILT | API unsigned flow, scope |
 | RNT-007 | Approve a version | `rentals.configure` | every site; a draft; not its drafter; signed agreement on file; not effective in the past; acknowledgement | BUILT | API unsigned flow; e2e |
-| PORTAL-037 | Landlord view | `portal.use` (`resident_portal`) | Rule R (§2.4 of the report) | BUILT | API Rule R (6 tests); e2e |
-| PORTAL-037 | Issued statement | same | the landlord's own owner, issued only; lines of permitted sites; no office history | BUILT | API; e2e |
+| PORTAL-037 | Landlord view | `portal.use` (`resident_portal`) | Rule R (§2.4 of the report); Issue #17: payout instructions only when the landlord may see every site of the owner; statements of hidden sites only not listed; partial statements labelled | BUILT | API Rule R (6 tests); I17 (full authority, 3 partial cases); e2e |
+| PORTAL-037 | Issued statement | same | the landlord's own owner, issued only; one site projection (no owner-wide line or opening for a partial landlord); a statement with no permitted site answers like an unknown id; no office history; no bank reference | BUILT | API; I17; e2e |

@@ -1,6 +1,7 @@
 import { decide, type AgreementVersionState, type AgreementVersionView, type AgreementView, type IssuingModel, type LeaseAgreementRef, type LeaseBlocker, type LeaseIssuing, type LeaseState, type LeaseSummary, type LeaseView, type Money, type OwnerStatementView, type PayoutHold, type PayoutView, type Permission, type RentEvent, type RentRollView, type RollLineView, type RollState, type StatementBody, type StatementLineView } from '@repo/contracts';
 import { POSTING_NEEDS } from '@repo/contracts';
 import { authorize, can, notFound, permits, type HandlerContext } from '../handler-types';
+import { seesBankFeed } from '../society/finance/bank-scope';
 import { problem, stamp } from '../society/handlers';
 import { addDays, availableToInstruct, basisPoints, firstDay, isDate, lastDay, ledger, monthOf, money, nextMonth, overlaps, paisa, rentKey, schedule, shareOf, sharesValid, sum, ZERO } from './rules';
 import { RENTALS_LICENSED, rentalsState, type RentalsState, type StoredAgreement, type StoredAgreementVersion, type StoredLease, type StoredOwner, type StoredPayout, type StoredRoll, type StoredRollLine, type StoredStatement } from './state';
@@ -92,10 +93,34 @@ export function ownerSites(r: R, ownerId: string): string[] {
   return [...new Set([...units].map((u) => unitOf(r.st, u)?.siteId).filter((s): s is string => !!s && r.rentalSites.includes(s)))];
 }
 export const ownerVisible = (r: R, ownerId: string) => ownerSites(r, ownerId).some((s) => r.scope.has(s));
+/**
+ * Every site of the owner is in the person's scope: the sites of their units at rentals sites and
+ * (Issue #17) every site their rentals records touch, licensed today or not. With a site whose rentals
+ * grant was withdrawn, nobody holds the whole owner: owner-wide figures and actions fail closed.
+ */
 export const ownerWhole = (r: R, ownerId: string) => {
   const sites = ownerSites(r, ownerId);
-  return sites.length > 0 && sites.every((s) => r.scope.has(s));
+  return sites.length > 0 && sites.every((s) => r.scope.has(s)) && ownerFootprint(r.st, ownerId).every((s) => r.scope.has(s));
 };
+
+/**
+ * Issue #17 (P0): every site an owner's rentals records touch, whether or not rentals is licensed there
+ * today: the leases they let, their approved expenses, settlement events and issued statements. (A unit
+ * owned with no rentals record carries no rentals money.) Owner-wide figures (payout instructions, the
+ * owner-wide opening, a whole statement) are for a reader who may see every one of these sites.
+ */
+export function ownerFootprint(st: RentalsState, ownerId: string): string[] {
+  const sites = new Set<string>();
+  for (const l of st.leases) if (l.landlords.some((x) => x.ownerId === ownerId)) sites.add(l.siteId);
+  for (const x of st.expenses) if (x.ownerId === ownerId) sites.add(x.siteId);
+  for (const e of st.settled) if (e.ownerId === ownerId) sites.add(e.siteId);
+  for (const s of st.statements) if (s.ownerId === ownerId) for (const id of statementSites(s.body, s.openingBySite)) sites.add(id);
+  sites.delete('');
+  return [...sites];
+}
+
+/** The sites a statement's records come from (an owner-wide line or opening carries no site). */
+export const statementSites = (body: StatementBody, openingBySite: Record<string, string>): string[] => [...new Set([...Object.keys(openingBySite), ...body.lines.map((l) => l.siteId)])].filter((s) => s !== '');
 /** Every licensed rentals site of the organisation is in the person's scope (a rent roll spans them). */
 export const tenantWhole = (r: R) => r.rentalSites.length > 0 && r.rentalSites.every((s) => r.scope.has(s));
 
@@ -479,12 +504,29 @@ export const memoOf = (lines: readonly StatementLineView[]): StatementBody['memo
   pendingPayouts: money(ofKind(lines, 'payout_pending', 'memo')),
 });
 
-/** A body as one reader may see it: all of it, or their sites' lines with totals over those only. */
+/**
+ * Issue #17 (P0): **the one site projection of an owner statement**, for the office (RNT-005) and the
+ * landlord view (PORTAL-037). `permitted` are the sites this reader may see for the owner; `whole` says
+ * they may see every site the owner's records touch (and the statement's own sites). A whole reader gets
+ * the statement as it is. Anyone else gets a partial statement: the permitted sites' lines only, with
+ * totals recalculated from those lines and the permitted sites' own openings (frozen per site in the
+ * snapshot). Owner-wide lines (payout instructions and settled payouts, `siteId: ''`) and an owner-wide
+ * opening never reach them. Issue #18: a settled line's source reference (the bank's statement line)
+ * reaches holders of the bank feed (`bank.view` or `bank.reconcile`) only.
+ */
+export function projectStatement(ctx: HandlerContext, body: StatementBody, openingBySite: Record<string, string>, permitted: ReadonlySet<string>, whole: boolean): { body: StatementBody; scopeLimited: boolean } {
+  const bank = seesBankFeed(ctx);
+  const safe = (lines: readonly StatementLineView[]) => lines.map((l) => (l.basis === 'settled' && !bank ? { ...l, source: { ...l.source, ref: '' } } : l));
+  if (whole) return { body: { ...body, lines: safe(body.lines) }, scopeLimited: false };
+  const lines = body.lines.filter((l) => l.siteId !== '' && permitted.has(l.siteId));
+  const opening = sum(Object.entries(openingBySite).filter(([s]) => s !== '' && permitted.has(s)).map(([, v]) => BigInt(v)));
+  return { body: { ...body, lines: safe(lines), totals: totalsOf(lines, body.model, opening), memo: memoOf(lines) }, scopeLimited: true };
+}
+
+/** A body as one office reader may see it: whole only with every site of the owner and of the statement. */
 export function projectBody(r: R, body: StatementBody, openingBySite: Record<string, string>): { body: StatementBody; scopeLimited: boolean } {
-  if (ownerWhole(r, body.owner.id)) return { body, scopeLimited: false };
-  const lines = body.lines.filter((l) => r.scope.has(l.siteId));
-  const opening = sum(Object.entries(openingBySite).filter(([s]) => r.scope.has(s)).map(([, v]) => BigInt(v)));
-  return { body: { ...body, lines, totals: totalsOf(lines, body.model, opening), memo: memoOf(lines) }, scopeLimited: true };
+  const whole = ownerWhole(r, body.owner.id) && statementSites(body, openingBySite).every((s) => r.scope.has(s));
+  return projectStatement(r.ctx, body, openingBySite, r.scope, whole);
 }
 
 export function issuedOf(r: R, ownerId: string, period: string) {
@@ -498,14 +540,16 @@ export function statementView(r: R, ownerId: string, period: string): OwnerState
   const { body, scopeLimited } = projectBody(r, source.body, source.openingBySite);
   const future = period > monthOf(r.today);
   const view = holds(r, 'owner_statement.view');
+  // Issue #17 (R4): reading a statement never publishes it; issuing needs its own permission.
+  const issuer = holds(r, 'owner_statement.issue');
   return {
     ...body,
     ...(issued ? { id: issued.id, ref: issued.ref, issuedByName: issued.issuedByName, issuedAt: issued.issuedAt } : {}),
     state: issued ? 'issued' : 'draft',
     scopeLimited,
     history: projectHistory(issued?.history ?? [], whole),
-    actions: { issue: view && whole && !issued && !future },
-    ...(view && !whole ? { blocked: 'other_sites' as const } : future ? { blocked: 'future_period' as const } : issued ? { blocked: 'already_issued' as const } : {}),
+    actions: { issue: issuer && whole && !issued && !future },
+    ...(view && !whole ? { blocked: 'other_sites' as const } : future ? { blocked: 'future_period' as const } : issued ? { blocked: 'already_issued' as const } : !issuer ? { blocked: 'issue_permission' as const } : {}),
   };
 }
 

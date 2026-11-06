@@ -13,3 +13,6 @@ Automated checks (axe, layout, keyboard walk) cover only part of accessibility. 
 | 7 | Print / save as PDF of an owner statement and of the landlord's statement drawer: readable, labelled "Sample" and "fictional" | both apps | Open |
 | 8 | Urdu proofreading of the `rentals` namespace by a native speaker | both apps | Open |
 | 9 | Owner wording review: "Approved demand — not invoiced", "Not settled — no evidence", "Approved instruction — not sent" | all rentals screens | Open |
+| 10 | Issue #17 closure: NVDA + Firefox, the owner statement as a reader who may not issue it (the reason is read where the Issue control would be; nothing focusable is missing) | `/backoffice/rentals/owner-statements?owner=own_rb_tahira&period=2026-10` as Sadia Rauf | Open |
+| 11 | Issue #17 closure: VoiceOver iOS, Urdu, the partial landlord view ("Partial statement" read with its statement; the drawer's notice read before the lines) | `/customer/portal/rentals` as Tahira Rehman with the demo site scope set to Riverbend Heights | Open |
+| 12 | Owner wording review of the closure: "Partial statement", "Payout lines are left out", "Only the client money accounts officer issues statements to owners" | both apps | Open |

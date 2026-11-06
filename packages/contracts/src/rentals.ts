@@ -351,8 +351,10 @@ export interface OwnerStatementView extends StatementBody {
   issuedByName?: string;
   issuedAt?: string;
   history: RentEvent[];
+  /** `issue` needs `owner_statement.issue` (Issue #17, R4): reading a statement never publishes it. */
   actions: { issue: boolean };
-  blocked?: 'other_sites' | 'future_period' | 'already_issued';
+  /** `issue_permission`: the statement could be issued, but not by this reader (they may read and print it). */
+  blocked?: 'other_sites' | 'future_period' | 'already_issued' | 'issue_permission';
 }
 
 export interface OwnerStatementsList {
@@ -482,11 +484,16 @@ export interface LandlordProperty {
   deposit?: { agreed: Money; heldEvidenced: Money };
 }
 
-/** PORTAL-037: a landlord's own verified, let properties and their issued statements (Rule R). */
+/**
+ * PORTAL-037: a landlord's own verified, let properties and their issued statements (Rule R). Issue #17
+ * (P0): for an owner some of whose rentals sites this landlord may not see here, a statement is a
+ * labelled partial statement (`scopeLimited`: the permitted sites' lines and totals only), a statement
+ * with no permitted site is not listed at all, and no owner-wide figure (payout instructions) is sent.
+ */
 export interface LandlordView {
   name: string;
   properties: LandlordProperty[];
-  statements: Array<{ id: string; ref: string; period: string; closing: Money; issuedAt: string }>;
+  statements: Array<{ id: string; ref: string; period: string; closing: Money; issuedAt: string; scopeLimited: boolean }>;
   payouts: { settled: never[]; pending: Array<{ ref: string; amount: Money; state: PayoutState }> };
   today: string;
 }

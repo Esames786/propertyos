@@ -362,6 +362,7 @@ export const PERMISSION_MODULE: Partial<Record<Permission, ModuleKey>> = {
   'rent.bill': 'rentals',
   'rent.approve': 'rentals',
   'owner_statement.view': 'rentals',
+  'owner_statement.issue': 'rentals',
   'owner_payout.prepare': 'rentals',
   'owner_payout.approve': 'rentals',
   'rentals.configure': 'rentals',

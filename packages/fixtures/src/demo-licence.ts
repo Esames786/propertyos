@@ -31,6 +31,8 @@ function withdrawn(): ModuleKey[] {
  *
  * Narrow-only: it applies only to a person whose scope is organisation-wide, and replaces it with
  * those sites. A person already limited in any way is left as they are, and nothing is ever widened.
+ * Gate S.3 closure (Issue #17): for a resident or landlord (a party scope) it keeps only their links at
+ * those sites, as when a link to another site has ended; it never adds or changes a link.
  * Set by a test through sessionStorage as `{ "<personaId>": ["<siteId>", …] }`; nothing else reads it.
  */
 export const DEMO_SITE_SCOPE_KEY = 'demo:site-scope';
@@ -54,6 +56,7 @@ export function demoAccessFor(base: (persona: Persona) => EffectiveAccess | null
     if (off.length) access = { ...access, grants: access.grants.filter((g) => !off.includes(g.module)) };
     const sites = siteScopeFor(persona.id);
     if (sites && access.scopes.length > 0 && access.scopes.every((s) => s.type === 'all')) access = { ...access, scopes: [{ type: 'site', ids: sites }] };
+    else if (sites && access.scopes.some((s) => s.type === 'party')) access = { ...access, scopes: access.scopes.map((s) => (s.type === 'party' ? { ...s, links: s.links.filter((l) => sites.includes(l.siteId)) } : s)) };
     return access;
   };
 }

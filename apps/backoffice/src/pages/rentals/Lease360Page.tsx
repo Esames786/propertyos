@@ -1,5 +1,5 @@
 import { ApiError, type LeaseView } from '@repo/contracts';
-import { Button, ConfirmDialog, Drawer, EmptyState, ErrorState, InlineAlert, KeyValueList, Link, Money, PageHeader, Panel, PlainCheckbox, PlainTextArea, PlainTextField, UrlTabs, useApiMutation, useApiQuery, useQueryParam, useQueryParams, useSession, useT, useToast } from '@repo/ui';
+import { Button, ConfirmDialog, Drawer, EmptyState, ErrorState, InlineAlert, KeyValueList, Link, Money, PageHeader, Panel, PlainCheckbox, PlainTextArea, PlainTextField, UrlTabs, isKeyReused, useApiMutation, useApiQuery, useCreateKey, useQueryParam, useQueryParams, useSession, useT, useToast } from '@repo/ui';
 import { Ban, BadgeCheck, CalendarPlus, CircleDashed, FileSignature, Info, Send, TriangleAlert, Undo2 } from 'lucide-react';
 import { useState } from 'react';
 import { ACCESS_DATE, RENTALS } from '../../nav.config';
@@ -424,14 +424,20 @@ function useForm<T>(path: string, onDone: (v: T) => void) {
   const problem = useProblemToast();
   const m = useApiMutation<T>();
   const [error, setError] = useState<unknown>(null);
+  // Issue #18 (FIN-02): one idempotency key per logical create, renewed after it succeeded or when the
+  // server refused the key, so a second press while it runs replays it and never makes a second record.
+  const [key, renewKey] = useCreateKey('rnt');
   return {
     pending: m.isPending,
     error,
     submit: async (body: unknown) => {
       setError(null);
       try {
-        onDone(await m.mutateAsync({ method: 'POST', path, body }));
+        const v = await m.mutateAsync({ method: 'POST', path, body, idempotencyKey: key });
+        renewKey();
+        onDone(v);
       } catch (e) {
+        if (isKeyReused(e)) renewKey();
         setError(e);
         if (!(e instanceof ApiError) || e.problem.status !== 422) problem(e);
       }
