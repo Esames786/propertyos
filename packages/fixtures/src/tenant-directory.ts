@@ -105,9 +105,14 @@ export const TENANT_DIRECTORY: readonly DirectoryTenant[] = [
       { id: 'site_rb_court', name: 'Riverbend Court', city: 'Rawalpindi', kind: 'residential', buildings: 2, declaredUnits: 64 },
       { id: 'site_rb_villas', name: 'Riverbend Villas', city: 'Islamabad', kind: 'plots', buildings: 0, declaredUnits: 48 },
     ],
-    modules: all(presetFor('portfolio').modules),
+    // Gate S.3 amendment (fictional, explicit and dated, V3.2 matrix §7): the rentals add-on on Riverbend
+    // Heights and Riverbend Court from 1 September 2026, never on Riverbend Villas. No preset includes it,
+    // so no other organisation gains it.
+    modules: [...all(presetFor('portfolio').modules), { module: 'rentals', sites: ['site_rb_heights', 'site_rb_court'], from: '2026-09-01' }],
     licensedFrom: '2026-05-01',
     allowSettlement: true,
+    // Owner statements, owner payout instructions and management fee rules come with that amendment.
+    features: ['rentals.owner_statements', 'rentals.owner_payouts', 'rentals.management_fees'],
   },
   {
     id: 'tnt_cedar',

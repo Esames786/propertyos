@@ -24,6 +24,7 @@ import enOperations from '../locales/en-PK/operations.json';
 import enCommunity from '../locales/en-PK/community.json';
 import enHr from '../locales/en-PK/hr.json';
 import enPayroll from '../locales/en-PK/payroll.json';
+import enRentals from '../locales/en-PK/rentals.json';
 import urA11y from '../locales/ur-PK/a11y.json';
 import urCommon from '../locales/ur-PK/common.json';
 import urDashboard from '../locales/ur-PK/dashboard.json';
@@ -50,6 +51,7 @@ import urOperations from '../locales/ur-PK/operations.json';
 import urCommunity from '../locales/ur-PK/community.json';
 import urHr from '../locales/ur-PK/hr.json';
 import urPayroll from '../locales/ur-PK/payroll.json';
+import urRentals from '../locales/ur-PK/rentals.json';
 
 export const NAMESPACES = [
   'common',
@@ -83,6 +85,8 @@ export const NAMESPACES = [
   'hr',
   // Gate S.2b: society payroll (periods, runs, pay breakdown, finalisation, disbursement, accounting).
   'payroll',
+  // Gate S.3: rentals (leases, rent roll, owner statements and payouts, settings, the landlord view).
+  'rentals',
 ] as const;
 
 export type Namespace = (typeof NAMESPACES)[number];
@@ -114,6 +118,7 @@ const en = {
   community: enCommunity,
   hr: enHr,
   payroll: enPayroll,
+  rentals: enRentals,
 };
 
 const ur: typeof en = {
@@ -143,6 +148,7 @@ const ur: typeof en = {
   community: urCommunity,
   hr: urHr,
   payroll: urPayroll,
+  rentals: urRentals,
 };
 
 export const resources = { 'en-PK': en, 'ur-PK': ur };

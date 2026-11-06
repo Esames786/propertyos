@@ -189,3 +189,17 @@ export const PAYROLL = {
   disbursement: (run?: string) => `/backoffice/pay/payroll-disbursement-status${q({ run })}`,
   accounting: (run?: string) => `/backoffice/pay/payroll-accounting${q({ run })}`,
 } as const;
+
+/**
+ * Gate S.3 rentals (RNT-001…009). Addresses follow the screen register; a lease is in the path, the
+ * tab and drawer (renewal, termination, owner authority, deposit refund) are query parameters.
+ */
+export const RENTALS = {
+  leases: (params: Record<string, string | undefined> = {}) => `/backoffice/rentals${q(params)}`,
+  lease: (id: string, tab?: string, drawer?: string) => `/backoffice/rentals/leases/${id}${q({ tab, drawer })}`,
+  newLease: (unit?: string) => `/backoffice/rentals/leases/new${q({ unit })}`,
+  rentRoll: (period?: string) => `/backoffice/rentals/rent-roll${q({ period })}`,
+  statements: (owner?: string, period?: string) => `/backoffice/rentals/owner-statements${q({ owner, period })}`,
+  payouts: (status?: string) => `/backoffice/rentals/payouts${q({ status })}`,
+  settings: (tab?: string) => `/backoffice/rentals/settings${q({ tab })}`,
+} as const;

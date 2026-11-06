@@ -36,7 +36,12 @@
     "residentDocuments": "رہائشیوں کے لیے دستاویزات",
     "dutyRoster": "ڈیوٹی روسٹر",
     "staffAdvances": "عملے کے ایڈوانس",
-    "payroll": "پے رول"
+    "payroll": "پے رول",
+    "rentals": "کرایہ داری اور مالکان",
+    "rentRoll": "کرایہ رول",
+    "ownerStatements": "مالکان کے گوشوارے",
+    "ownerPayouts": "مالکان کی ادائیگیاں",
+    "rentalSettings": "کرایہ داری کی ترتیبات"
   },
   "header": {
     "search": "تلاش",

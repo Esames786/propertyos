@@ -18,6 +18,8 @@ export const CRESCENT_BAY = { id: 'tnt_crescent', name: 'Crescent Bay Developers
 export const CEDAR_HILLS = { id: 'tnt_cedar', name: 'Cedar Hills Co-operative (Demo)' } as const;
 /** The Gate C society: setup and monthly maintenance billing (A7 §C.2). */
 export const AL_NOOR = { id: 'tnt_alnoor', name: 'Al-Noor Residency (Demo)' } as const;
+/** Gate S.3: the property manager with the rentals add-on on two of its three sites. */
+export const RIVERBEND = { id: 'tnt_riverbend', name: 'Riverbend Estate Managers (Demo)' } as const;
 
 import { FIRST_NAMES, LAST_NAMES, URDU_NAMES } from './names';
 
@@ -252,6 +254,18 @@ export const PERSONAS: readonly Persona[] = [
     ...holds(AL_NOOR.id, 'technician'),
     projectScope: 'all',
   },
+  // Gate S.3: Riverbend Estate Managers (Demo). Every maker-checker pair of the rentals add-on sits with
+  // two different people (see role-templates.ts). All four are fictional.
+  { id: 'rb_director', tenantId: RIVERBEND.id, principalId: 'usr_rb_0001', app: 'backoffice', displayName: 'Faisal Butt', email: 'faisal.butt@example.com', ...holds(RIVERBEND.id, 'administrator'), projectScope: 'all' },
+  { id: 'rb_manager', tenantId: RIVERBEND.id, principalId: 'usr_rb_0002', app: 'backoffice', displayName: 'Sadia Rauf', email: 'sadia.rauf@example.com', ...holds(RIVERBEND.id, 'manager'), projectScope: 'all' },
+  { id: 'rb_finance', tenantId: RIVERBEND.id, principalId: 'usr_rb_0003', app: 'backoffice', displayName: 'Naila Haider', email: 'naila.haider@example.com', ...holds(RIVERBEND.id, 'treasurer'), projectScope: 'all' },
+  { id: 'rb_accounts', tenantId: RIVERBEND.id, principalId: 'usr_rb_0004', app: 'backoffice', displayName: 'Usman Ghani', email: 'usman.ghani@example.com', ...holds(RIVERBEND.id, 'accounts_officer'), projectScope: 'all' },
+  // Two fictional landlords and one lessee (customer app). A landlord reaches only the let properties
+  // their verified, in-force links and the owner register give them (Rule R, PORTAL-037); the lessee
+  // holds no landlord link at all.
+  { id: 'rb_landlord_tahira', tenantId: RIVERBEND.id, principalId: 'usr_rb_c0001', app: 'customer', displayName: 'Tahira Rehman', roleKey: 'common:persona.landlord', email: 'tahira.rehman@example.com', permissions: ['portal.use'], projectScope: 'all', partyId: 'pty_rb_0001' },
+  { id: 'rb_landlord_kashif', tenantId: RIVERBEND.id, principalId: 'usr_rb_c0002', app: 'customer', displayName: 'Kashif Mirza', roleKey: 'common:persona.landlord_company', email: 'kashif.mirza@example.com', permissions: ['portal.use'], projectScope: 'all', partyId: 'pty_rb_0002' },
+  { id: 'rb_tenant_adeel', tenantId: RIVERBEND.id, principalId: 'usr_rb_c0003', app: 'customer', displayName: 'Adeel Shah', roleKey: 'common:persona.lessee', email: 'adeel.shah@example.com', permissions: ['portal.use'], projectScope: 'all', partyId: 'pty_rb_0010' },
   // Al-Noor residents (customer app). Each sees only what their verified links reach and, within a
   // shared account, only the flats they are liable for (per-unit liability, A2 §4.5).
   ...ALNOOR_RESIDENTS.map(
@@ -312,9 +326,9 @@ export function demoSignInNumbers(): Array<{ name: string; phone: string }> {
 export const ALL_PERSONAS: readonly Persona[] = [...PERSONAS, ...INVITED_RESIDENT_PERSONAS];
 
 /** Tenants that have backoffice demo identities. */
-export const BACKOFFICE_TENANTS = [TENANT, CRESCENT_BAY, SHALIMAR, CEDAR_HILLS, AL_NOOR] as const;
+export const BACKOFFICE_TENANTS = [TENANT, CRESCENT_BAY, SHALIMAR, CEDAR_HILLS, AL_NOOR, RIVERBEND] as const;
 /** Tenants that have customer-app (resident) demo identities. */
-export const CUSTOMER_TENANTS = [TENANT, AL_NOOR] as const;
+export const CUSTOMER_TENANTS = [TENANT, AL_NOOR, RIVERBEND] as const;
 
 export function findPersona(id: string | null | undefined): Persona | undefined {
   return ALL_PERSONAS.find((p) => p.id === id);

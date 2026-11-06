@@ -2,7 +2,7 @@ import { generateVisits } from './crm-data';
 import type { TenantDataset } from './dataset-types';
 import { FLOORS, GARDEN_BLOCKS, PROJECTS, TOWERS, UNITS } from './inventory';
 import { alnoorRegisterPeople, registerLinks } from './identity/register-people';
-import { ALNOOR_RESIDENTS, AL_NOOR, PARTIES, SHALIMAR, TENANT } from './people';
+import { ALNOOR_RESIDENTS, AL_NOOR, PARTIES, RIVERBEND, SHALIMAR, TENANT } from './people';
 import { billingAccountOf, INVOICES, LEADS, NOTIFICATIONS } from './records';
 import { CEDAR } from './tenants/cedar';
 import { CRESCENT } from './tenants/crescent';
@@ -103,7 +103,42 @@ const ALNOOR_DATA: TenantDataset = {
   society: { siteId: 'site_alnoor', legalEntityId: 'le_alnoor' },
 };
 
-const DATASETS: ReadonlyMap<string, TenantDataset> = new Map([LARKSPUR, CRESCENT, CEDAR, SHALIMAR_DATA, ALNOOR_DATA].map((d) => [d.tenantId, d]));
+/**
+ * Gate S.3: Riverbend Estate Managers (Demo). Its lettings live in the rentals state (rentals/state.ts);
+ * here are only the verified links of its fictional landlords and lessee. Tahira Rehman is linked to
+ * a flat at each rentals site, a plot at Riverbend Villas (no rentals licence) and a flat she sold on
+ * 30 June 2026 (that link has ended). Kashif Mirza signs for Mirza Family Properties (Demo): one verified
+ * link, and a claim to a second flat that nobody has verified. Adeel Shah rents a flat; he is no landlord.
+ */
+const rbLink = (partyId: string, unit: string, siteId: string, verified: boolean, from: string, to?: string) => ({
+  partyId, unitId: `unt_rb_${unit}`, billingAccountId: `ba_rb_${unit}`, siteId, legalEntityId: 'le_riverbend', verified, from, ...(to ? { to } : {}),
+});
+
+const RIVERBEND_DATA: TenantDataset = {
+  tenantId: RIVERBEND.id,
+  projects: [],
+  towers: [],
+  floors: [],
+  blocks: [],
+  units: [],
+  parties: [],
+  leads: [],
+  invoices: [],
+  visits: [],
+  notifications: [],
+  partyLinks: [
+    rbLink('pty_rb_0001', 'h1204', 'site_rb_heights', true, '2024-01-10'),
+    rbLink('pty_rb_0001', 'c07', 'site_rb_court', true, '2023-05-01'),
+    rbLink('pty_rb_0001', 'v14', 'site_rb_villas', true, '2022-08-01'),
+    rbLink('pty_rb_0001', 'c03', 'site_rb_court', true, '2021-03-01', '2026-07-01'),
+    rbLink('pty_rb_0002', 'c11', 'site_rb_court', true, '2025-11-01'),
+    rbLink('pty_rb_0002', 'c12', 'site_rb_court', false, '2026-10-20'),
+    rbLink('pty_rb_0010', 'h1204', 'site_rb_heights', true, '2026-03-01'),
+  ],
+  refs: { party: 'RB-P-', lead: 'RB-LD-', city: 'Islamabad' },
+};
+
+const DATASETS: ReadonlyMap<string, TenantDataset> = new Map([LARKSPUR, CRESCENT, CEDAR, SHALIMAR_DATA, ALNOOR_DATA, RIVERBEND_DATA].map((d) => [d.tenantId, d]));
 
 /** The tenant's own records; undefined for a tenant with no records in the demo (fail closed). */
 export const datasetFor = (tenantId: string | undefined): TenantDataset | undefined => (tenantId ? DATASETS.get(tenantId) : undefined);

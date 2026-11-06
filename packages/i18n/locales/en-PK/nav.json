@@ -36,7 +36,12 @@
     "residentDocuments": "Documents for residents",
     "dutyRoster": "Duty roster",
     "staffAdvances": "Staff advances",
-    "payroll": "Payroll"
+    "payroll": "Payroll",
+    "rentals": "Rentals & owners",
+    "rentRoll": "Rent roll",
+    "ownerStatements": "Owner statements",
+    "ownerPayouts": "Owner payouts",
+    "rentalSettings": "Rental settings"
   },
   "header": {
     "search": "Search",

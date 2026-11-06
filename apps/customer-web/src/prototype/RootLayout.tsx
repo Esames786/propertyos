@@ -5,7 +5,7 @@ import { useCallback } from 'react';
 import { Button as AriaButton } from 'react-aria-components';
 import { Outlet, ScrollRestoration, useHref, useLocation, useMatches, useNavigate } from 'react-router';
 import { GatePrompt, NotificationsBell } from '../pages/operations/GatePrompt';
-import { switchToOfficeUrl, CUSTOMER_BOTTOM_NAV, CUSTOMER_CENTRE_ACTION, CUSTOMER_NAV_ALIASES, CUSTOMER_NAV_GROUPS, DUES, DUES_BOTTOM_NAV, DUES_CENTRE_ACTION, DUES_NAV_ALIASES, DUES_NAV_GROUPS, PORTAL, START } from '../nav.config';
+import { switchToOfficeUrl, CUSTOMER_BOTTOM_NAV, CUSTOMER_CENTRE_ACTION, CUSTOMER_NAV_ALIASES, CUSTOMER_NAV_GROUPS, DUES, DUES_BOTTOM_NAV, DUES_CENTRE_ACTION, DUES_NAV_ALIASES, DUES_NAV_GROUPS, LANDLORD_BOTTOM_NAV, LANDLORD_NAV_GROUPS, PORTAL, START } from '../nav.config';
 
 const PHONE_SIGN_IN = '/shared/auth/customer-portal-login';
 
@@ -17,8 +17,14 @@ export interface CustomerHandle {
 
 /** A society resident (the dues edition): their organisation licenses dues. */
 export function useIsDuesResident(): boolean {
-  const { persona, allows } = useSession();
-  return !!persona && allows({ module: 'dues' });
+  const { persona, allows, access } = useSession();
+  return !!persona && allows({ module: 'dues' }) && access?.tenant.type !== 'portfolio_manager';
+}
+
+/** Gate S.3: a property manager's landlord (or lessee): their resident app is the landlord view (PORTAL-037). */
+export function useIsLandlordEdition(): boolean {
+  const { persona, access } = useSession();
+  return !!persona && access?.tenant.type === 'portfolio_manager';
 }
 
 const TOUR_OF = (personaId: string) => (DUES_TOUR.applicablePersonas.includes(personaId) ? DUES_TOUR.id : PORTAL_TOUR.id);
@@ -68,6 +74,7 @@ function HeaderActions() {
   const signOut = useSignOut();
   const tour = useGuidedTour();
   const dues = useIsDuesResident();
+  const landlord = useIsLandlordEdition();
   const tourId = persona ? TOUR_OF(persona.id) : PORTAL_TOUR.id;
   const appSwitch = useAppSwitch(switchToOfficeUrl);
   if (!persona) return null;
@@ -77,7 +84,8 @@ function HeaderActions() {
       <RoleModeChip app="customer" compact className="max-[25rem]:hidden" />
       {/* Gate D.2 (PORTAL-042): notices and the resident's own news, behind the bell. */}
       {dues && <NotificationsBell />}
-      <IconButton label={t('portal:shell.help')} icon={CircleHelp} onPress={() => tour.start(tourId)} data-tour-id="portal-help" data-testid="portal-help" />
+      {/* The buyer's tour does not describe the landlord view (no tour is offered there yet). */}
+      {!landlord && <IconButton label={t('portal:shell.help')} icon={CircleHelp} onPress={() => tour.start(tourId)} data-tour-id="portal-help" data-testid="portal-help" />}
       <MenuButton
         label={t('portal:shell.account', { name: persona.displayName })}
         trigger={
@@ -97,7 +105,7 @@ function HeaderActions() {
               { id: 'profile', label: t('nav:pages.profile'), icon: UserRound, href: PORTAL.profile, testId: 'menu-profile' },
               { id: 'text-size', label: t('a11y:textSize.menu'), icon: Type, href: `${PORTAL.accessibility}#text-size`, testId: 'menu-text-size' },
               { id: 'accessibility', label: t('portal:shell.accessibility'), icon: Accessibility, href: PORTAL.accessibility },
-              { id: 'tour', label: t('portal:shell.replayTour'), icon: Compass },
+              ...(landlord ? [] : [{ id: 'tour', label: t('portal:shell.replayTour'), icon: Compass }]),
             ],
           },
           ...(appSwitch.target ? [{ id: 'app-switch', items: [{ id: 'switch', label: t(`identity:switch.to.${appSwitch.target.app}`), icon: ArrowLeftRight, testId: 'menu-app-switch' }] }] : []),
@@ -118,19 +126,20 @@ function SignedIn() {
   const { persona, tenant } = useSession();
   const display = useDisplayPreferences();
   const dues = useIsDuesResident();
+  const landlord = useIsLandlordEdition();
   // ADM-022: the organisation's colours (a resident's own palette and high contrast still win).
   useOrgAppearanceSync();
   // D.1 closure: the accessibility essentials follow the person from the office app (and back).
   const shared = useSharedPreferences();
   const matches = useMatches();
-  const appName = dues ? t('dues:shell.appName') : t('portal:shell.ownerPortal');
+  const appName = dues ? t('dues:shell.appName') : landlord ? t('rentals:portal.appName') : t('portal:shell.ownerPortal');
   const match = [...matches].reverse().find((m) => (m.handle as CustomerHandle | undefined)?.title);
   const pageTitle = match ? (match.handle as CustomerHandle).title(t, match.data) : appName;
   if (!persona)
     return (
       <DemoSignIn
         appName={t('common:app.customerPortal')}
-        describe={(p) => (p.tenantId === 'tnt_alnoor' ? t('dues:signIn.describe') : t('common:demo.scopeOne', { project: 'Larkspur Heights' }))}
+        describe={(p) => (p.tenantId === 'tnt_alnoor' ? t('dues:signIn.describe') : p.tenantId === 'tnt_riverbend' ? t('rentals:portal.signIn') : t('common:demo.scopeOne', { project: 'Larkspur Heights' }))}
         footer={
           <Link href={PHONE_SIGN_IN} className="inline-flex items-center gap-1.5 font-medium" data-testid="sign-in-with-phone">
             <Smartphone aria-hidden className="size-4" />
@@ -155,10 +164,10 @@ function SignedIn() {
   return (
     <CustomerShell
       appName={appName}
-      navGroups={dues ? DUES_NAV_GROUPS : CUSTOMER_NAV_GROUPS}
-      bottomItems={dues ? DUES_BOTTOM_NAV : CUSTOMER_BOTTOM_NAV}
-      centreAction={dues ? DUES_CENTRE_ACTION : CUSTOMER_CENTRE_ACTION}
-      aliases={dues ? DUES_NAV_ALIASES : CUSTOMER_NAV_ALIASES}
+      navGroups={dues ? DUES_NAV_GROUPS : landlord ? LANDLORD_NAV_GROUPS : CUSTOMER_NAV_GROUPS}
+      bottomItems={dues ? DUES_BOTTOM_NAV : landlord ? LANDLORD_BOTTOM_NAV : CUSTOMER_BOTTOM_NAV}
+      {...(landlord ? {} : { centreAction: dues ? DUES_CENTRE_ACTION : CUSTOMER_CENTRE_ACTION })}
+      aliases={dues ? DUES_NAV_ALIASES : landlord ? {} : CUSTOMER_NAV_ALIASES}
       pageTitle={pageTitle}
       headerEnd={<HeaderActions />}
     >

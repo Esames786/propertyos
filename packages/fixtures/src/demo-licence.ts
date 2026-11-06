@@ -11,7 +11,8 @@ import { effectiveAccessFor } from './tenant-directory';
 export const DEMO_WITHDRAWN_KEY = 'demo:withdrawn-modules';
 // Gate S.2a: the optional HR add-on too (shows "not in your plan" and the residents' tab going away).
 // Gate S.2b: and the payroll add-on (HR keeps working without it).
-const WITHDRAWABLE: readonly ModuleKey[] = ['community_chat', 'community_hub', 'hr', 'payroll'];
+// Gate S.3: and the rentals add-on (staff see "not in your plan"; landlords lose their view at once).
+const WITHDRAWABLE: readonly ModuleKey[] = ['community_chat', 'community_hub', 'hr', 'payroll', 'rentals'];
 
 function withdrawn(): ModuleKey[] {
   try {

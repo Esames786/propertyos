@@ -38,6 +38,8 @@ export const MODULE_KEYS = [
   // V3.2 Gate D.3: site-licensed opt-in community engagement.
   'community_chat',
   'community_hub',
+  // V3.2 Gate S.3: the site-licensed rentals add-on (leases, rent roll, owner statements and payouts).
+  'rentals',
 ] as const;
 export type ModuleKey = (typeof MODULE_KEYS)[number];
 
@@ -59,6 +61,7 @@ export const SITE_SCOPED_MODULES: ReadonlySet<ModuleKey> = new Set<ModuleKey>([
   'amenities',
   'community_chat',
   'community_hub',
+  'rentals',
 ]);
 export type FeatureKey = `${ModuleKey}.${string}`;
 
@@ -354,6 +357,14 @@ export const PERMISSION_MODULE: Partial<Record<Permission, ModuleKey>> = {
   'polls.manage': 'community_hub',
   'resources.publish': 'community_hub',
   'marketplace.moderate': 'community_hub',
+  'lease.view': 'rentals',
+  'lease.manage': 'rentals',
+  'rent.bill': 'rentals',
+  'rent.approve': 'rentals',
+  'owner_statement.view': 'rentals',
+  'owner_payout.prepare': 'rentals',
+  'owner_payout.approve': 'rentals',
+  'rentals.configure': 'rentals',
 };
 
 /** Something the UI offers (a menu item, action, tour step, link): its module and permission. */

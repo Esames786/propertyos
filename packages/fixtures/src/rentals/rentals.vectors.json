@@ -1,0 +1,130 @@
+{
+  "description": "Gate S.3 rentals golden vectors (V3.2 plan §4: rent; agent and principal models; client-money separation; payout settlement). Amounts are decimal strings in PKR. Settled-basis figures use only settled source money; approved demands, deposits and instructions never enter them.",
+  "shares": [
+    { "name": "one landlord at 100 %", "shares": ["100.00"], "valid": true },
+    { "name": "two landlords 50 / 50", "shares": ["50.00", "50.00"], "valid": true },
+    { "name": "three landlords 33.33 / 33.33 / 33.34", "shares": ["33.33", "33.33", "33.34"], "valid": true },
+    { "name": "shares short of 100 %", "shares": ["50.00", "49.99"], "valid": false },
+    { "name": "shares above 100 %", "shares": ["60.00", "50.00"], "valid": false },
+    { "name": "a zero share", "shares": ["100.00", "0.00"], "valid": false },
+    { "name": "a negative share", "shares": ["110.00", "-10.00"], "valid": false },
+    { "name": "three decimals", "shares": ["33.333", "66.667"], "valid": false },
+    { "name": "no landlord", "shares": [], "valid": false }
+  ],
+  "schedule": [
+    {
+      "name": "a 12-month lease due on the 5th",
+      "versions": [{ "n": 1, "from": "2026-03-01", "to": "2027-02-28", "rent": "85000.00", "dueDay": 5 }],
+      "end": "2027-02-28",
+      "count": 12,
+      "first": { "period": "2026-03", "dueDate": "2026-03-05", "amount": "85000.00", "version": 1 },
+      "last": { "period": "2027-02", "dueDate": "2027-02-05", "amount": "85000.00", "version": 1 }
+    },
+    {
+      "name": "a lease starting mid-month: the first due day falls before the start, so no pro-rated line",
+      "versions": [{ "n": 1, "from": "2025-12-16", "to": "2026-12-15", "rent": "62000.00", "dueDay": 1 }],
+      "end": "2026-12-15",
+      "count": 12,
+      "first": { "period": "2026-01", "dueDate": "2026-01-01", "amount": "62000.00", "version": 1 },
+      "last": { "period": "2026-12", "dueDate": "2026-12-01", "amount": "62000.00", "version": 1 }
+    },
+    {
+      "name": "a renewal adds a version at a new rent; the first version's lines never change",
+      "versions": [
+        { "n": 1, "from": "2025-05-01", "to": "2026-04-30", "rent": "65000.00", "dueDay": 1 },
+        { "n": 2, "from": "2026-05-01", "to": "2027-04-30", "rent": "68000.00", "dueDay": 1 }
+      ],
+      "end": "2027-04-30",
+      "count": 24,
+      "first": { "period": "2025-05", "dueDate": "2025-05-01", "amount": "65000.00", "version": 1 },
+      "last": { "period": "2027-04", "dueDate": "2027-04-01", "amount": "68000.00", "version": 2 },
+      "at": { "period": "2026-05", "amount": "68000.00", "version": 2 }
+    },
+    {
+      "name": "an early termination stops the schedule after the termination date",
+      "versions": [{ "n": 1, "from": "2026-03-01", "to": "2027-02-28", "rent": "85000.00", "dueDay": 5 }],
+      "end": "2026-11-30",
+      "count": 9,
+      "last": { "period": "2026-11", "dueDate": "2026-11-05", "amount": "85000.00", "version": 1 }
+    },
+    {
+      "name": "terminated on the 3rd, the due day (5th) of that month is after the end: no line",
+      "versions": [{ "n": 1, "from": "2026-03-01", "to": "2027-02-28", "rent": "85000.00", "dueDay": 5 }],
+      "end": "2026-11-03",
+      "count": 8,
+      "last": { "period": "2026-10", "dueDate": "2026-10-05", "amount": "85000.00", "version": 1 }
+    }
+  ],
+  "rentKeys": [
+    { "lease": "lse_rb_0001", "period": "2026-11", "version": 1, "key": "lse_rb_0001:2026-11:v1" },
+    { "lease": "lse_rb_0006", "period": "2026-11", "version": 2, "key": "lse_rb_0006:2026-11:v2" }
+  ],
+  "ledger": [
+    {
+      "name": "nothing settled: approved demands and deposits never make a payable",
+      "model": "agent", "feePct": "8.00", "opening": "0.00",
+      "settledRent": [], "settledExpenses": [], "settledPayouts": [],
+      "expect": { "settledRent": "0.00", "fees": "0.00", "settledExpenses": "0.00", "settledPayouts": "0.00", "closing": "0.00" }
+    },
+    {
+      "name": "agent model: settled rent less the fee",
+      "model": "agent", "feePct": "8.00", "opening": "0.00",
+      "settledRent": ["85000.00"], "settledExpenses": [], "settledPayouts": [],
+      "expect": { "settledRent": "85000.00", "fees": "6800.00", "settledExpenses": "0.00", "settledPayouts": "0.00", "closing": "78200.00" }
+    },
+    {
+      "name": "agent model: two settled lines, a settled expense and a settled payout",
+      "model": "agent", "feePct": "7.50", "opening": "1000.00",
+      "settledRent": ["62000.00", "85000.00"], "settledExpenses": ["18500.00"], "settledPayouts": ["50000.00"],
+      "expect": { "settledRent": "147000.00", "fees": "11025.00", "settledExpenses": "18500.00", "settledPayouts": "50000.00", "closing": "68475.00" }
+    },
+    {
+      "name": "fee rounding half up per settled line",
+      "model": "agent", "feePct": "8.00", "opening": "0.00",
+      "settledRent": ["0.06", "0.06"], "settledExpenses": [], "settledPayouts": [],
+      "expect": { "settledRent": "0.12", "fees": "0.00", "settledExpenses": "0.00", "settledPayouts": "0.00", "closing": "0.12" }
+    },
+    {
+      "name": "principal model: the owner's own entity collects; the manager holds and owes nothing",
+      "model": "principal", "feePct": "5.00", "opening": "0.00",
+      "settledRent": ["58000.00"], "settledExpenses": [], "settledPayouts": [],
+      "expect": { "settledRent": "58000.00", "fees": "0.00", "settledExpenses": "0.00", "settledPayouts": "0.00", "closing": "0.00" }
+    }
+  ],
+  "available": [
+    { "name": "nothing settled: nothing can be instructed", "closing": "0.00", "pending": [], "available": "0.00" },
+    { "name": "pending instructions are deducted (an approved instruction must not be instructed twice)", "closing": "78200.00", "pending": ["50000.00"], "available": "28200.00" },
+    { "name": "never below zero", "closing": "10000.00", "pending": ["20000.00"], "available": "0.00" }
+  ],
+  "instruction": [
+    { "name": "within what is available", "amount": "28200.00", "available": "28200.00", "allowed": true },
+    { "name": "one paisa over", "amount": "28200.01", "available": "28200.00", "allowed": false },
+    { "name": "any amount when nothing is settled", "amount": "1.00", "available": "0.00", "allowed": false },
+    { "name": "zero", "amount": "0.00", "available": "1000.00", "allowed": false }
+  ],
+  "refund": [
+    { "name": "no deposit receipt evidenced: nothing refundable", "held": "0.00", "deductions": "0.00", "refundable": "0.00" },
+    { "name": "evidenced deposit less agreed deductions", "held": "140000.00", "deductions": "32000.00", "refundable": "108000.00" },
+    { "name": "deductions above the deposit: zero, never negative", "held": "10000.00", "deductions": "12000.00", "refundable": "0.00" }
+  ],
+  "depositCap": [
+    { "name": "two months' rent under a two-month cap", "deposit": "170000.00", "rent": "85000.00", "months": 2, "ok": true },
+    { "name": "above the cap", "deposit": "170000.01", "rent": "85000.00", "months": 2, "ok": false },
+    { "name": "no deposit", "deposit": "0.00", "rent": "85000.00", "months": 2, "ok": true }
+  ],
+  "overlaps": [
+    { "a": ["2026-11-15", "2027-11-14"], "b": ["2025-09-01", "2026-08-31"], "overlap": false },
+    { "a": ["2026-11-15", "2027-11-14"], "b": ["2027-11-14", "2028-11-13"], "overlap": true },
+    { "a": ["2026-01-01", "2026-12-31"], "b": ["2026-06-01", "2026-06-30"], "overlap": true }
+  ],
+  "termMonths": [
+    { "from": "2026-03-01", "to": "2027-02-28", "months": 12 },
+    { "from": "2025-12-16", "to": "2026-12-15", "months": 12 },
+    { "from": "2026-11-15", "to": "2026-12-14", "months": 1 },
+    { "from": "2026-11-15", "to": "2026-12-13", "months": 0 }
+  ],
+  "fingerprint": [
+    { "name": "key order and spaces do not matter", "a": { "b": " 1 ", "a": "x" }, "b": { "a": "x", "b": "1" }, "same": true },
+    { "name": "a different amount is a different request", "a": { "amount": "100.00" }, "b": { "amount": "100.01" }, "same": false }
+  ]
+}

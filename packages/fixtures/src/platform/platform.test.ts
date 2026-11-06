@@ -9,8 +9,8 @@ import { directoryTenant } from '../tenant-directory';
 const sel = (module: ModuleSelection['module'], sites: ModuleSelection['sites'] = 'all'): ModuleSelection => ({ module, sites });
 
 describe('module catalogue', () => {
-  it('has the 27 baseline modules plus two optional D.3 add-ons with valid references', () => {
-    expect(MODULES).toHaveLength(29);
+  it('has the 27 baseline modules plus two optional D.3 add-ons and the S.3 rentals add-on, with valid references', () => {
+    expect(MODULES).toHaveLength(30);
     const keys = new Set(MODULES.map((m) => m.key));
     for (const m of MODULES) for (const r of [...m.requires, ...m.integrates]) expect(keys.has(r), `${m.key} → ${r}`).toBe(true);
   });

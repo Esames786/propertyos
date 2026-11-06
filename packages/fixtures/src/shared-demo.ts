@@ -27,8 +27,11 @@ export interface SharedPartitions {
 
 export const SHARED_PREFIX = 'demo:shared:';
 const LOCAL_PREFIX = 'demo:shared-local:';
-/** Tenants whose demo spans the office and the resident app. */
-export const SHARED_TENANTS: readonly string[] = ['tnt_alnoor'];
+/**
+ * Tenants whose demo spans the office and the resident app. Gate S.3: Riverbend's lettings too (a
+ * statement issued in the office is the one the landlord opens in the resident app).
+ */
+export const SHARED_TENANTS: readonly string[] = ['tnt_alnoor', 'tnt_riverbend'];
 
 const parse = (raw: string | null): DemoOverlay | undefined => {
   if (!raw) return undefined;

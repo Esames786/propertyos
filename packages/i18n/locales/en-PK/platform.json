@@ -339,6 +339,10 @@
     "community_hub": {
       "name": "Community hub",
       "description": "Resident community home: local services directory, informal polls and published resources."
+    },
+    "rentals": {
+      "name": "Rentals",
+      "description": "Leases, rent rolls, owner statements and owner payout instructions, licensed by site; the issuing model follows each management agreement."
     }
   },
   "components": {

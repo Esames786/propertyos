@@ -119,6 +119,17 @@ export const PERMISSIONS = [
   'polls.manage',
   'resources.publish',
   'marketplace.moderate',
+  // Gate S.3: the optional, site-licensed rentals add-on (V3.2 matrix §5.2). Each maker-checker pair is
+  // split: drafting and activating a lease, preparing and approving a rent roll, preparing and approving
+  // an owner payout instruction, drafting and approving a management agreement version.
+  'lease.view',
+  'lease.manage',
+  'rent.bill',
+  'rent.approve',
+  'owner_statement.view',
+  'owner_payout.prepare',
+  'owner_payout.approve',
+  'rentals.configure',
   // Platform HQ (central plane, V3.1). Operators are a separate principal type from tenant staff.
   'platform.dashboard.view',
   'platform.tenants.view',

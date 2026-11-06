@@ -1,5 +1,5 @@
 import type { NavItem } from '@repo/ui';
-import { Accessibility, Building2, FileText, HardHat, HeartHandshake, History, House, LifeBuoy, Megaphone, ReceiptText, ScrollText, UserRound, UsersRound, Wallet, Wrench } from 'lucide-react';
+import { Accessibility, Building2, KeyRound, FileText, HardHat, HeartHandshake, History, House, LifeBuoy, Megaphone, ReceiptText, ScrollText, UserRound, UsersRound, Wallet, Wrench } from 'lucide-react';
 
 /** Customer portal routes (register URLs, blueprint 06). */
 export const PORTAL = {
@@ -133,6 +133,21 @@ export const DUES_NAV_ALIASES: Record<string, string> = {
 };
 
 export const START = PORTAL.home;
+
+/**
+ * Gate S.3: a property manager's resident app is the landlord's view (PORTAL-037). Its statements open
+ * in a drawer (`?statement=`); the buyer's and the society resident's pages are not part of it.
+ */
+export const LANDLORD = {
+  rentals: '/customer/portal/rentals',
+  statement: (id: string) => `/customer/portal/rentals?statement=${id}`,
+} as const;
+const L_RENTALS = item('rentals', LANDLORD.rentals, KeyRound, 'rentals:portal.nav');
+export const LANDLORD_BOTTOM_NAV: NavItem[] = [L_RENTALS, ACCESSIBILITY, PROFILE];
+export const LANDLORD_NAV_GROUPS = [
+  { id: 'top', items: [L_RENTALS] },
+  { id: 'account', labelKey: 'portal:nav.groups.account', items: [PROFILE, ACCESSIBILITY] },
+];
 
 /** The office app in this browser (same host, port 5173 unless VITE_OFFICE_ORIGIN says otherwise). */
 export const officeOrigin = () => (import.meta.env.VITE_OFFICE_ORIGIN as string | undefined) ?? `${window.location.protocol}//${window.location.hostname}:5173`;

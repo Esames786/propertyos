@@ -1,5 +1,5 @@
 import type { AccessTarget } from '@repo/contracts';
-import { AL_NOOR, CEDAR_HILLS, CRESCENT_BAY, LEADS, SHALIMAR } from '@repo/fixtures';
+import { AL_NOOR, CEDAR_HILLS, CRESCENT_BAY, LEADS, RIVERBEND, SHALIMAR } from '@repo/fixtures';
 import { AppSwitchLanding, DemoSignIn, Link, useSession, useT } from '@repo/ui';
 import { lazy, Suspense, type ComponentType, type LazyExoticComponent } from 'react';
 import { createBrowserRouter, Navigate, useLoaderData, useNavigate, useParams, useSearchParams, type RouteObject } from 'react-router';
@@ -11,6 +11,7 @@ import { LINKS } from '../nav.config';
 import { RouteError } from './RouteError';
 import { CommandPaletteRoute } from './CommandPaletteRoute';
 import { registerLoader, RegisterResolver, type RegisterData } from './register';
+import { PAYOUTS_TARGET, RENT_VIEW, ROLL_TARGET, SETTINGS_TARGET, STATEMENTS_TARGET } from '../pages/rentals/rkit';
 import type { RouteHandle } from './handle';
 import { RootLayout } from './RootLayout';
 import { ShellLayout } from './ShellLayout';
@@ -212,6 +213,29 @@ const PayFinalisation = lazy(() => import('../pages/society/payroll/PayrollFinal
 const PayDisbursement = lazy(() => import('../pages/society/payroll/PayrollDisbursementPage'));
 const PayAccounting = lazy(() => import('../pages/society/payroll/PayrollAccountingPage'));
 const PAY_VIEW: AccessTarget = { module: 'payroll', permission: 'payroll.view' };
+// Gate S.3: rentals (RNT-001…009). Each screen needs the rentals add-on and its own permission or feature;
+// anyone else gets the register's planned page at the same address (the server refuses the same way).
+const RentLeases = lazy(() => import('../pages/rentals/LeasesPage'));
+const RentLease = lazy(() => import('../pages/rentals/Lease360Page'));
+const RentNewLease = lazy(() => import('../pages/rentals/NewLeasePage'));
+const RentRoll = lazy(() => import('../pages/rentals/RentRollPage'));
+const RentStatements = lazy(() => import('../pages/rentals/OwnerStatementsPage'));
+const RentPayouts = lazy(() => import('../pages/rentals/PayoutsPage'));
+const RentSettings = lazy(() => import('../pages/rentals/RentalSettingsPage'));
+const RENT_MANAGE: AccessTarget = { module: 'rentals', permission: 'lease.manage' };
+
+/** RNT-002: the lease in the path (`/backoffice/rentals/leases/:id`). */
+function RentLeaseRoute() {
+  const { allows } = useSession();
+  const { id } = useParams();
+  return allows(RENT_VIEW) && id ? (
+    <Suspense fallback={null}>
+      <RentLease id={id} />
+    </Suspense>
+  ) : (
+    <RegisterResolver />
+  );
+}
 const NoticesOffice = lazy(() => import('../pages/society/operations/NoticesOffice'));
 const SendMessagePage = ops(() => import('../pages/society/operations/NoticesOffice'), 'SendMessagePage');
 const VehiclesOffice = lazy(() => import('../pages/society/operations/VehiclesOffice'));
@@ -407,6 +431,8 @@ function SignInRoute() {
               ? t('workspace:signIn.suspended')
               : p.tenantId === AL_NOOR.id
                 ? t('workspace:signIn.society')
+              : p.tenantId === RIVERBEND.id
+                ? t('rentals:signIn.office')
               : p.projectScope === 'all'
             ? t('common:demo.scopeAll')
             : t('common:demo.scopeOne', { project: 'Larkspur Heights' })
@@ -539,6 +565,14 @@ const shellChildren: RouteObject[] = [
   { path: 'pay/payroll-finalization', loader: registerLoader, element: <OpsScreen page={PayFinalisation} target={PAY_VIEW} />, handle: h({ title: (t) => t('payroll:finalisation.title') }) },
   { path: 'pay/payroll-disbursement-status', loader: registerLoader, element: <OpsScreen page={PayDisbursement} target={PAY_VIEW} />, handle: h({ title: (t) => t('payroll:disbursement.title') }) },
   { path: 'pay/payroll-accounting', loader: registerLoader, element: <OpsScreen page={PayAccounting} target={PAY_VIEW} />, handle: h({ title: (t) => t('payroll:accounting.title') }) },
+  // Gate S.3: rentals at the register's addresses (RNT-001…007; RNT-008 and RNT-009 are drawers of RNT-002).
+  { path: 'rentals', loader: registerLoader, element: <S1Screen page={RentLeases} target={RENT_VIEW} />, handle: h({ title: (t) => t('rentals:leases.title') }) },
+  { path: 'rentals/leases/new', loader: registerLoader, element: <S1Screen page={RentNewLease} target={RENT_MANAGE} />, handle: h({ title: (t) => t('rentals:wizard.title') }) },
+  { path: 'rentals/leases/:id', loader: registerLoader, element: <RentLeaseRoute />, handle: h({ title: (t) => t('rentals:lease.titlePlain') }) },
+  { path: 'rentals/rent-roll', loader: registerLoader, element: <S1Screen page={RentRoll} target={ROLL_TARGET} />, handle: h({ title: (t) => t('rentals:roll.title') }) },
+  { path: 'rentals/owner-statements', loader: registerLoader, element: <S1Screen page={RentStatements} target={STATEMENTS_TARGET} />, handle: h({ title: (t) => t('rentals:statements.title') }) },
+  { path: 'rentals/payouts', loader: registerLoader, element: <S1Screen page={RentPayouts} target={PAYOUTS_TARGET} />, handle: h({ title: (t) => t('rentals:payouts.title') }) },
+  { path: 'rentals/settings', loader: registerLoader, element: <S1Screen page={RentSettings} target={SETTINGS_TARGET} />, handle: h({ title: (t) => t('rentals:settings.title') }) },
   { path: 'park/vehicle-registry', loader: registerLoader, element: <OpsScreen page={VehiclesOffice} target={PARKING} />, handle: h({ title: (t) => t('nav:pages.vehicles') }) },
   { path: 'res/resident-dashboard', loader: registerLoader, element: <OpsScreen page={ResidentsOffice} target={RESIDENTS} />, handle: h({ title: (t) => t('nav:pages.residents') }) },
   { path: 'residents/portal-access', loader: registerLoader, element: <SocietyPermitted page={PortalAccessPage} permission="portal_access.view" />, handle: h({ title: (t) => t('nav:pages.portalAccess') }) },

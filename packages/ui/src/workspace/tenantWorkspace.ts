@@ -1,6 +1,6 @@
 import { decideTarget, MODULE_KEYS, type AccessDecision, type AccessTarget, type EffectiveAccess, type ModuleKey, type SuspensionClass } from '@repo/contracts';
 import { findScreenByRegisterRoute } from '@repo/contracts/screens';
-import { ArrowRightLeft, BadgeCheck, Banknote, BarChart3, Briefcase, Building, Building2, Calculator, CalendarClock, Car, ClipboardCheck, Compass, Contact, DatabaseZap, DoorOpen, FileText, FlaskConical, HandCoins, Coins, Home, Landmark, Megaphone, MessagesSquare, MonitorSmartphone, ReceiptText, Settings2, ShieldCheck, ShoppingCart, Smartphone, Users, UsersRound, Vote, Wallet, Wrench } from 'lucide-react';
+import { ArrowRightLeft, BadgeCheck, Banknote, BarChart3, Briefcase, Building, Building2, Calculator, CalendarClock, Car, ClipboardCheck, Compass, Contact, DatabaseZap, DoorOpen, FileText, FlaskConical, HandCoins, Coins, Home, KeyRound, Landmark, Megaphone, MessagesSquare, MonitorSmartphone, ReceiptText, Settings2, ShieldCheck, ShoppingCart, Smartphone, Users, UsersRound, Vote, Wallet, Wrench } from 'lucide-react';
 import { LIVE, PLANNED } from '../shell/QuickCreateMenu';
 import type { NavItem } from '../shell/types';
 
@@ -44,6 +44,13 @@ export const TENANT_NAV: NavItem[] = [
   { id: 'staff-advances', labelKey: 'nav:items.staffAdvances', href: '/backoffice/hr/employee-advances', icon: HandCoins, anyOf: ['hr.advances.manage', 'hr.advances.approve'], module: 'hr', match: '/backoffice/hr/employee-advance', group: 'operations' },
   // Gate S.2b (society payroll add-on): pay is seen with payroll.view only, never with hr.view.
   { id: 'payroll', labelKey: 'nav:items.payroll', href: '/backoffice/pay/payroll-dashboard', icon: Calculator, permission: 'payroll.view', module: 'payroll', match: '/backoffice/pay', group: 'operations', suspension: 'history_read' },
+  // Gate S.3 (rentals add-on, licensed by site): leases for everyone in rentals; the rent roll, owner
+  // statements, payouts and settings each need their own permission (and feature) on top.
+  { id: 'rentals', labelKey: 'nav:items.rentals', href: '/backoffice/rentals', icon: KeyRound, permission: 'lease.view', module: 'rentals', match: '/backoffice/rentals', group: 'workspace', suspension: 'history_read' },
+  { id: 'rent-roll', labelKey: 'nav:items.rentRoll', href: '/backoffice/rentals/rent-roll', icon: KeyRound, anyOf: ['rent.bill', 'rent.approve'], module: 'rentals', match: '/backoffice/rentals/rent-roll', group: 'workspace', suspension: 'history_read', menu: false, hub: 'rentals' },
+  { id: 'owner-statements', labelKey: 'nav:items.ownerStatements', href: '/backoffice/rentals/owner-statements', icon: KeyRound, permission: 'owner_statement.view', module: 'rentals', feature: 'rentals.owner_statements', match: '/backoffice/rentals/owner-statements', group: 'workspace', suspension: 'history_read', menu: false, hub: 'rentals' },
+  { id: 'owner-payouts', labelKey: 'nav:items.ownerPayouts', href: '/backoffice/rentals/payouts', icon: KeyRound, anyOf: ['owner_payout.prepare', 'owner_payout.approve', 'owner_statement.view'], module: 'rentals', feature: 'rentals.owner_payouts', match: '/backoffice/rentals/payouts', group: 'workspace', suspension: 'history_read', menu: false, hub: 'rentals' },
+  { id: 'rental-settings', labelKey: 'nav:items.rentalSettings', href: '/backoffice/rentals/settings', icon: KeyRound, permission: 'rentals.configure', module: 'rentals', match: '/backoffice/rentals/settings', group: 'workspace', suspension: 'history_read', menu: false, hub: 'rentals' },
   { id: 'operations', labelKey: 'nav:items.operations', href: '/backoffice/mnt/maintenance-dashboard', icon: Wrench, permission: 'operations.view', match: '/backoffice/mnt', group: 'operations', bottomBar: true },
   { id: 'residents', labelKey: 'nav:items.residents', href: '/backoffice/res/resident-dashboard', icon: Users, permission: 'residents.view', match: '/backoffice/res/', group: 'operations' },
   // Gate D.2: the gate and visitors, vehicles, and official notices (with the quick broadcast under them).

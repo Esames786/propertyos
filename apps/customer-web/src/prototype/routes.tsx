@@ -6,7 +6,8 @@ import { createBrowserRouter, Navigate, Outlet, useHref, useLoaderData, useLocat
 import AccessibilityPreferencesPage from '../pages/AccessibilityPreferencesPage';
 import CustomerLab, { type CustomerLabProps } from '../pages/CustomerLab';
 import { START } from '../nav.config';
-import { RootLayout, useIsDuesResident, type CustomerHandle } from './RootLayout';
+import { RootLayout, useIsDuesResident, useIsLandlordEdition, type CustomerHandle } from './RootLayout';
+import { LANDLORD } from '../nav.config';
 
 function registerLoader({ request }: { request: Request }) {
   const url = new URL(request.url);
@@ -112,6 +113,8 @@ const operations = {
 };
 // Gate D.3: the Community home (PORTAL-036) and the community chat (PORTAL-031, its phone route PORTAL-032).
 const CommunityHome = lazy(() => import('../pages/community/CommunityHomePage'));
+// Gate S.3: PORTAL-037 the landlord's let properties, rent status and issued statements (Rule R on the server).
+const LandlordPage = lazy(() => import('../pages/rentals/LandlordPage'));
 const ResidentChat = lazy(() => import('../pages/community/ResidentChatPage'));
 
 /** PORTAL-032: `/customer/portal/chat/:groupId` (the conversation on its own on a phone). */
@@ -144,6 +147,9 @@ function NoticeRoute() {
 type Page = LazyExoticComponent<ComponentType>;
 function Edition({ dues: Dues, developer: Developer }: { dues?: Page; developer?: Page }) {
   const isDues = useIsDuesResident();
+  // Gate S.3: a landlord's resident app has one page; the buyer's and resident's pages lead to it.
+  const landlord = useIsLandlordEdition();
+  if (landlord) return <Navigate to={LANDLORD.rentals} replace />;
   const Page = isDues ? Dues : Developer;
   return Page ? (
     <Suspense fallback={null}>
@@ -190,6 +196,7 @@ const portalChildren: RouteObject[] = [
   // Gate D.2: PORTAL-018 repairs, PORTAL-023 notices and PORTAL-043 notice detail (society edition).
   { path: 'maintenance-workspace', loader: registerLoader, element: <Edition dues={operations.repairs} />, handle: handle({ title: (t) => t('operations:repairs.title') }) },
   // Gate D.3: PORTAL-036 Community home (tabs by ?tab=), PORTAL-031 chat and PORTAL-032 a conversation.
+  { path: 'rentals', loader: registerLoader, element: <Suspense fallback={null}><LandlordPage /></Suspense>, handle: handle({ title: (t) => t('rentals:portal.title') }) },
   { path: 'community', loader: registerLoader, element: <Edition dues={CommunityHome} />, handle: handle({ title: (t) => t('community:home.title') }) },
   { path: 'chat', loader: registerLoader, element: <Edition dues={ResidentChat} />, handle: handle({ title: (t) => t('community:chat.title') }) },
   { path: 'chat/:groupId', loader: registerLoader, element: <ChatGroupRoute />, handle: handle({ title: (t) => t('community:chat.title') }) },

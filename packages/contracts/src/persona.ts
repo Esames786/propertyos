@@ -27,6 +27,14 @@ export interface Persona {
     | 'supreme_admin'
     | 'commercial_approver'
     | 'platform_support'
+    /** Gate S.3: Riverbend Estate Managers (Demo) staff, landlords and a lessee. */
+    | 'rb_director'
+    | 'rb_manager'
+    | 'rb_finance'
+    | 'rb_accounts'
+    | 'rb_landlord_tahira'
+    | 'rb_landlord_kashif'
+    | 'rb_tenant_adeel'
     /** Gate D.1: a resident who joined by invitation (generated from the society register). */
     | `res_${string}`;
   tenantId: string;

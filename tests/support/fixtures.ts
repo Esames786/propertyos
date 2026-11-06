@@ -26,6 +26,13 @@ export type PersonaId =
   | 'alnoor_tenant_a102'
   | 'alnoor_owner_a201'
   | 'alnoor_tenant_a202'
+  | 'rb_director'
+  | 'rb_manager'
+  | 'rb_finance'
+  | 'rb_accounts'
+  | 'rb_landlord_tahira'
+  | 'rb_landlord_kashif'
+  | 'rb_tenant_adeel'
   | 'supreme_admin'
   | 'commercial_approver'
   | 'platform_support';
@@ -64,6 +71,13 @@ const TENANT_OF: Record<string, string> = {
   alnoor_tenant_a102: 'tnt_alnoor',
   alnoor_owner_a201: 'tnt_alnoor',
   alnoor_tenant_a202: 'tnt_alnoor',
+  rb_director: 'tnt_riverbend',
+  rb_manager: 'tnt_riverbend',
+  rb_finance: 'tnt_riverbend',
+  rb_accounts: 'tnt_riverbend',
+  rb_landlord_tahira: 'tnt_riverbend',
+  rb_landlord_kashif: 'tnt_riverbend',
+  rb_tenant_adeel: 'tnt_riverbend',
 };
 
 /** Customer-app identities' principal ids (display preferences are kept per person and organisation). */
@@ -73,6 +87,9 @@ export const PRINCIPAL_OF: Record<string, string> = {
   alnoor_tenant_a102: 'usr_anr_r0002',
   alnoor_owner_a201: 'usr_anr_r0003',
   alnoor_tenant_a202: 'usr_anr_r0004',
+  rb_landlord_tahira: 'usr_rb_c0001',
+  rb_landlord_kashif: 'usr_rb_c0002',
+  rb_tenant_adeel: 'usr_rb_c0003',
 };
 
 export const displayKey = (persona: string) => `pref:display:v1:customer:${TENANT_OF[persona] ?? TENANT}:${PRINCIPAL_OF[persona]}`;

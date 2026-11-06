@@ -65,7 +65,10 @@
     "alnoor_accounts": "Accounts officer",
     "owner": "Owner (lives elsewhere)",
     "tenant": "Tenant",
-    "alnoor_admin": "Committee secretary"
+    "alnoor_admin": "Committee secretary",
+    "landlord": "Landlord",
+    "landlord_company": "Landlord (signs for a company)",
+    "lessee": "Tenant (rents a flat)"
   },
   "welcomeBenefit": {
     "manager": "See every project, approve work and move anywhere quickly.",
@@ -90,7 +93,14 @@
     "alnoor_admin": "Run the society’s workspace: flats and people, billing and collections, who uses the resident app, and the organisation’s settings.",
     "invited_resident": "See your bill, pay by bank transfer and keep your receipts, all in one place.",
     "alnoor_maintenance": "Triage residents’ repair requests, assign technicians and keep every job within its response time.",
-    "alnoor_technician": "See the jobs assigned to you, update them on site and record the fix with a photo."
+    "alnoor_technician": "See the jobs assigned to you, update them on site and record the fix with a photo.",
+    "rb_director": "Run Riverbend’s lettings: management agreements, leases and owner statements, with every maker-checker step kept apart.",
+    "rb_manager": "Let flats for the owners: draft leases, renew or end them, and prepare each month’s rent roll.",
+    "rb_finance": "Approve rent rolls, payout instructions and agreement versions that someone else prepared.",
+    "rb_accounts": "Activate leases, prepare rent rolls and owner payout instructions, and issue owner statements.",
+    "rb_landlord_tahira": "See your let flats, each tenant’s rent status and the statements Riverbend has issued to you.",
+    "rb_landlord_kashif": "See the flats you let through Riverbend and the statements issued to your company.",
+    "rb_tenant_adeel": "Your landlord’s view is not yours: this account rents a flat and owns none here."
   },
   "demo": {
     "signInTitle": "Choose a demo identity",
@@ -280,7 +290,11 @@
     "committee_treasurer": "Committee treasurer",
     "security_guard": "Security guard",
     "accounts_officer": "Accounts officer",
-    "committee_secretary": "Committee secretary"
+    "committee_secretary": "Committee secretary",
+    "director": "Director",
+    "portfolio_manager": "Portfolio manager",
+    "finance_controller": "Finance controller",
+    "client_money_officer": "Client money accounts officer"
   },
   "stepper": {
     "stepOf": "Step {{n}} of {{total}}",

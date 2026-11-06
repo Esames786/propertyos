@@ -1,7 +1,7 @@
 import type { EditionKey, EditionPreset, ModuleCatalog, ModuleCatalogEntry, ModuleKey } from '@repo/contracts';
 
 /**
- * The staged module catalogue (Gate D.3): 29 modules (27 baseline + two opt-in engagement add-ons), their scope, hard requirements ("requires") and
+ * The staged module catalogue (Gate S.3): 30 modules (27 baseline + two opt-in engagement add-ons + the rentals add-on), their scope, hard requirements ("requires") and
  * soft links ("integrates"), and which edition presets include them. An edition only pre-fills
  * grants; access is decided by grants alone (D-2).
  */
@@ -57,6 +57,9 @@ export const MODULES: readonly ModuleCatalogEntry[] = [
   m('community_hub', 'community', 'site', ['resident_portal', 'communications', 'residents'], ['community_chat', 'payables'], [], BOTH, [
     'community_hub.services_directory', 'community_hub.polls', 'community_hub.resources', 'community_hub.marketplace',
   ]),
+  // S.3: rentals is a separate, site-licensed business line (V3.2 matrix §2, D-21): an add-on for every
+  // edition, never part of a preset. Owner payouts are off unless granted (they need a management agreement).
+  m('rentals', 'property', 'site', ['residents', 'receivables'], ['banking', 'payables', 'accounting', 'resident_portal', 'communications'], [], BOTH, ['rentals.owner_statements', 'rentals.owner_payouts', 'rentals.management_fees']),
 ];
 
 const preset = (key: EditionKey, components: string[]): EditionPreset => ({
