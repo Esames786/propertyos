@@ -2,6 +2,51 @@
 
 All runs on Windows 11, Node 20.20.1, production builds served by `vite preview` on ports 5773–5775 (`E2E_PORT_OFFSET=600`, both loopbacks), retries off. Business date: Monday 26 October 2026 (fixed clock in browser tests).
 
+## Issue #17 closure 2 (6 November 2026): GPT's follow-up review of `d050bad` — the final regression
+
+Final code: `d050bad` + the closure-2 commit (office statement list and lookup, one predicate `statementKnown`). Same machine and rules as closure 1; the `.e2e-busy` lock was taken only when absent (atomic exclusive create, after a two-minute grace for the agent next in line).
+
+| Check | Result |
+|---|---|
+| Build (three apps, production), final code | built (69 s) |
+| Typecheck (`tsc --noEmit`) | clean |
+| Lint (`eslint`, logical CSS, i18n parity) | clean; 2 locales × 27 namespaces, 10,884 keys each |
+| Vitest, full suite (all packages, golden vectors included) | **1,621 / 1,621** (57 files), 60 s (rentals 103: 3 new) |
+| Mutation checks | **28 / 28 killed**, every file restored byte-identically |
+| S.3 spec (targeted, 1 worker) | 17 / 17 (5.3 min, under load) |
+| S.3 smoke, Firefox + WebKit (targeted, 1 worker) | 6 / 6 (1.2 min) |
+| Complete combined run 1 (every e2e spec + the S.3 evidence spec; Chromium, production build, 3 workers, retries off) | **426 / 429**, 2.6 h — **interrupted by the PC entering Modern Standby** (interim failure 1) |
+| The three tests that failed in run 1, alone, `--repeat-each=5`, 1 worker | **15 / 15** (2.5 min) |
+| **Complete combined run 2** (same scope and settings, on the resumed machine) | **429 / 429 in 39.3 min**, 0 flaky, 0 skipped |
+| Axe (run 2; JSON reporter) | **1,506 scans, 0 violations** (every attachment parsed); S.3 80 scans, 0 violations. Run 1 also 1,506 / 0 |
+| Firefox + WebKit smoke, every smoke spec (8 files), 3 workers, retries off | **50 / 50** (Firefox 25 / 25, WebKit 25 / 25), 2.5 min, one run |
+| D.1 `identity.spec.ts:327` (palette timing, failed once in closure 1) | passed in both combined runs here; alone `--repeat-each=10`: **10 / 10** |
+| S.2a WebKit `s2a.smoke.spec.ts:52` "a new guard" (the known intermittent) | passed in the complete smoke run; alone `--repeat-each=10`, 1 worker, on battery: **4 / 10** (6 failed, all the same symptom: listbox still open after the option click, line 48). See WebKit below |
+
+**WebKit, reported separately.** The complete smoke run passed WebKit 25 / 25. Run alone ten times on the final build, the known S.2a intermittent passed **4 / 10**; in closure 1 the same check gave 8 / 10 on this branch and 8 / 10 on clean `04b6fde`. The higher failure rate coincides with the PC running on battery (unplugged, Balanced plan; the charge fell from 87 % to 48 % during the runs), which is consistent with timing sensitivity under throttling but **not proven**: the A/B against `04b6fde` was not repeated under these conditions (to avoid running the battery down mid-task). Closure 2 changes only rentals server code (`views.ts`, `handlers.ts`, `portal.ts`), its tests and documents; nothing in HR, the roster, the search list or the UI. The test was not changed, skipped or retried.
+
+### Mutation checks (`test-results-s3/scratch/mutations-followup.cjs`, log `test-results-s3/mutations-followup.txt`)
+
+**28 / 28 killed**; every rentals file and `role-templates.ts` restored byte-identically (SHA-256 before and after the whole run). M1–M25 as in closure 1 (M19 now breaks the landlord view's call of the shared rule); new:
+
+| # | Rule broken | Failing tests |
+|---|---|---|
+| M26 | The shared rule `statementKnown` lets anyone know every issued statement | 5 |
+| M27 | The office list shows statements of hidden sites only | 2 |
+| M28 | The office lookup returns a statement of hidden sites only as issued | 2 |
+
+**Reproduction on `d050bad`:** the three new tests run against the `d050bad` product code: 2 failed (the Heights-only reader's list carries `ost_rb_test_b` / `RB-OS-0099` / `2026-10`, also after the Court grant is withdrawn), 1 passed (the Court-only reader, who may see that statement). A probe of the lookup on `d050bad` returned `state: issued`, the id, the reference, the issuer, the date and the issue event with no lines (`followup-repro-d050bad.txt`, `followup-probe-detail-d050bad.json`).
+
+### Every interim failure in closure 2 (in order)
+
+1. **Complete combined run 1: 426 / 429, 2.6 h.** Three Gate C.1 tests in `tests/e2e/society.spec.ts` timed out: :73 AC-1 storyline (300 s; `opening-waiting` not visible after `opening-submit`, line 125), :277 keyboard only (60 s; still tabbing to `flat-jump`, line 284), :305 Ctrl+K search (60 s; `society-dashboard` not visible after the navigation, line 308; the context teardown also overran). **Cause established:** all three started at 18:04:43–18:04:52Z on the three workers, and each lasted about 7,115–7,124 s; no other test started between 18:04:52Z and 20:05:56Z. The Windows System log shows the PC **entering Modern Standby at 18:04:50Z** (23:04:50 PKT; Kernel-Power 506, with a "Power source change" event 105 at 18:04:52Z; connectivity in standby: disconnected) and **exiting at 20:03:26Z** (507). The test timers fired only on resume. The power plan's display and sleep idle timeouts are "never" on AC and on battery, so it was not an idle timeout; the PC was found on battery afterwards. After resume: both loopbacks answered in under 20 ms, the served build was the current one, and the three tests alone passed 15 / 15. Run 2 then passed 429 / 429. No product or test change was made for this.
+2. **WebKit S.2a "a new guard", alone, ten repeats:** 4 / 10 on battery (above). Known intermittent; not changed.
+3. **The leak reproduction on `d050bad`** failed as intended (2 failed, 1 passed) and the lookup probe returned the issued markers (D1).
+4. **Evidence:** both combined runs re-recorded the S.3 video; the committed one was restored each time (same flow). No screenshot changed. No other gate's evidence was written.
+5. Every other run listed above passed first time.
+
+Raw logs (git-ignored, `test-results-s3/`): `followup-repro-d050bad{,-full}.txt`, `followup-probe-detail-d050bad.json`, `mutations-followup.txt`, `tsc-followup-1.txt`, `lint-followup-1.txt`, `vitest-followup-1.txt`, `followup-s3-run1.txt`, `followup-smoke-s3-run1.txt`, `lock-wait-followup.txt`, `followup-full-run{1,2}.{txt,json}`, `followup-society-repeat5.txt`, `followup-smoke-full-run1.{txt,json}`, `followup-webkit-s2a-repeat10.txt`, `followup-identity-repeat10.txt`.
+
 ## Issue #17 closure (6 November 2026): `7df5f80` + merge of `04b6fde` (`0dd9723`) + the closure commit
 
 The machine was shared with two other agents (their previews on 6173–6175 and 6373–6375, their targeted single-worker runs). Before the complete run: no `.e2e-busy` lock, none of my Playwright or Vite processes other than my own previews on 5773–5775, CPU about 19 %; during it, 47–91 %. The lock `D:\laragon2\www\.e2e-busy` was held for the complete Chromium run and the cross-browser smoke, and released after.

@@ -11,7 +11,7 @@ import {
   draftOf,
   holds,
   isEnding,
-  issuedOf,
+  officeKnows,
   leaseBlockers,
   leaseEnd,
   leaseStart,
@@ -41,6 +41,7 @@ import {
   statementBody,
   statementOwners,
   statementView,
+  storedStatementOf,
   tenantWhole,
   unitOf,
   versionOn,
@@ -509,7 +510,8 @@ function statementsList(r: R): OwnerStatementsList {
       model: versionOn(agreementOf(r.st, o.id), r.today)?.model ?? null,
       sites: ownerSites(r, o.id).filter((s) => r.scope.has(s)).map((s) => siteName(r.st, s)),
       scopeLimited: !ownerWhole(r, o.id),
-      issued: r.st.statements.filter((s) => s.ownerId === o.id).map((s) => ({ id: s.id, ref: s.ref, period: s.period })),
+      // Issue #17 follow-up: a statement of hidden sites only is not listed (no id, ref or period).
+      issued: r.st.statements.filter((s) => s.ownerId === o.id && officeKnows(r, s)).map((s) => ({ id: s.id, ref: s.ref, period: s.period })),
     })),
     periods: periods.reverse(),
     today: r.today,
@@ -537,7 +539,8 @@ function issueStatement(r: R): OwnerStatementView {
   if (!MONTH.test(period) || period < monthOf(licenceStart(r))) invalid(ctx, 'period', 'rentals:errors.month');
   if (period > monthOf(r.today)) invalid(ctx, 'period', 'rentals:errors.futurePeriod');
   if (!statementOwners(r, period).some((o) => o.id === ownerId)) invalid(ctx, 'ownerId', 'rentals:errors.noAgreement');
-  const issued = issuedOf(r, ownerId, period);
+  // The issuer holds every site of the owner (checked above), so the stored statement is theirs to know.
+  const issued = storedStatementOf(r.st, ownerId, period);
   if (issued) refuse(ctx, 409, 'already_issued', 'alreadyIssued', { ref: issued.ref });
   const { body: snapshot, openingBySite } = statementBody(r.st, ownerId, period, r.today);
   const { id, ref } = nextRent(r.st, 'statement');

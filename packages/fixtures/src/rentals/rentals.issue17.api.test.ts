@@ -1,9 +1,9 @@
-import type { EffectiveAccess, LandlordView, ModuleGrant, OwnerStatementView, PartyLink, Persona, PayoutsView, PayoutView, AgreementView, LeaseView, RentRollView, StatementLineView } from '@repo/contracts';
+import type { EffectiveAccess, LandlordView, ModuleGrant, OwnerStatementsList, OwnerStatementView, PartyLink, Persona, PayoutsView, PayoutView, AgreementView, LeaseView, RentRollView, StatementLineView } from '@repo/contracts';
 import { describe, expect, it } from 'vitest';
 import { ALL_PERSONAS } from '../people';
 import { rolesOf, starterRoles } from '../role-templates';
 import { effectiveAccessFor, TENANT_DIRECTORY } from '../tenant-directory';
-import { plus, refusal, rentalsOn, rentSession, type RentSession } from './rent-test-kit';
+import { plus, refusal, rentalsOn, rentSession, sitesOnly, type RentSession } from './rent-test-kit';
 import type { StoredStatement } from './state';
 import { memoOf, totalsOf } from './views';
 
@@ -295,5 +295,111 @@ describe('Issue #18 rule on rentals: every create binds its key to operation, pe
     expect(b.versions).toEqual(a.versions);
     expect(await refusedUnchanged(api, () => api.post('/rentals/settings/agreements/agr_rb_0004/versions', { ...body, note: 'Another note.' }, { key: 'k-agr' }))).toEqual(REUSED);
     expect(await refusedUnchanged(api, () => api.as('rb_finance').post('/rentals/settings/agreements/agr_rb_0004/versions', body, { key: 'k-agr' }))).toEqual(REUSED);
+  });
+});
+
+/**
+ * GPT's follow-up review of `d050bad` (Issue #17, 6 November 2026): the office's owner-statement list
+ * (`GET /rentals/owner-statements`) and lookup (`GET /rentals/owner-statements/statement`) must not
+ * disclose an issued statement whose every source is at a site the reader may not see: no id, ref,
+ * period, issuer, date or "issued" state. TEST ONLY: an October statement for Tahira Rehman sourced
+ * only from Riverbend Court (B), with a whole-owner payout line; the reader (Usman, who may read and
+ * issue) is limited to Riverbend Heights (A). A mixed A + B statement (September) stays visible as a
+ * labelled partial statement.
+ */
+const B_ONLY_LINES: StatementLineView[] = [
+  { kind: 'rent_due', siteId: 'site_rb_court', siteName: 'Riverbend Court', unitCode: 'C-07', leaseId: 'lse_rb_0002', leaseRef: 'RB-LS-0002', basis: 'memo', amount: { amount: '62000.00', currency: 'PKR' }, source: { kind: 'rent_roll', id: '2026-10', ref: 'lse_rb_0002:2026-10:v1' }, state: 'approved_demand' },
+  { kind: 'deposit_held', siteId: 'site_rb_court', siteName: 'Riverbend Court', unitCode: 'C-07', leaseId: 'lse_rb_0002', leaseRef: 'RB-LS-0002', basis: 'memo', amount: { amount: '124000.00', currency: 'PKR' }, source: { kind: 'lease', id: 'lse_rb_0002', ref: 'RB-LS-0002' }, state: 'awaiting_evidence' },
+  { kind: 'payout_pending', siteId: '', siteName: '', basis: 'memo', amount: { amount: '4444.00', currency: 'PKR' }, source: { kind: 'payout', id: 'opi_rb_test_b', ref: 'RB-PO-TEST-0099' }, state: 'awaiting_approval' },
+];
+const B_ONLY: StoredStatement = {
+  id: 'ost_rb_test_b',
+  ref: 'RB-OS-0099',
+  ownerId: TAHIRA,
+  period: '2026-10',
+  body: { owner: { id: TAHIRA, name: 'Tahira Rehman', ref: 'RB-OW-001' }, period: '2026-10', model: 'agent', agreement: { ref: 'RB-MA-0001', version: 1, feePct: '8.00' }, lines: B_ONLY_LINES, totals: totalsOf(B_ONLY_LINES, 'agent', 0n), memo: memoOf(B_ONLY_LINES) },
+  openingBySite: { site_rb_court: '0' },
+  issuedBy: 'usr_rb_0004',
+  issuedByName: 'Usman Ghani',
+  issuedAt: '2026-10-20T10:00:00+05:00',
+  history: [{ at: '2026-10-20T10:00:00+05:00', by: 'usr_rb_0004', byName: 'Usman Ghani', action: 'statement_issued', values: { period: '2026-10', closing: '0.00' } }],
+};
+const HIDDEN_B = ['ost_rb_test_b', 'RB-OS-0099', '2026-10-20T10:00', 'RB-PO-TEST-0099', '4444.00', 'Riverbend Court', 'C-07', '62000.00', '124000.00'];
+
+/** Usman's office session, with or without the Court-only statement; `cutWith` narrows his access later. */
+async function officeWorld(withBOnly: boolean) {
+  let cut: ((a: EffectiveAccess) => EffectiveAccess) | null = null;
+  const api = rentSession({
+    accessFor: (p) => {
+      const a = effectiveAccessFor(p);
+      return a && cut && p.id === 'rb_accounts' ? cut(a) : a;
+    },
+  }).as('rb_accounts');
+  await api.get('/rentals/leases');
+  if (withBOnly) api.rent().statements.push(structuredClone(B_ONLY));
+  return { api, cutWith: (c: (a: EffectiveAccess) => EffectiveAccess) => void (cut = c) };
+}
+const LIST = '/rentals/owner-statements';
+const STATEMENT = '/rentals/owner-statements/statement';
+
+describe('Issue #17 follow-up: the office statement list and lookup never disclose a statement of hidden sites only', () => {
+  it('a reader limited to Heights: list and lookup answer exactly as if the Court-only statement had never been issued; the mixed statement stays a labelled partial', async () => {
+    const withB = await officeWorld(true);
+    const without = await officeWorld(false);
+    for (const w of [withB, without]) w.cutWith(sitesOnly('site_rb_heights'));
+    const before = withB.api.snapshot();
+
+    const list = await withB.api.get<OwnerStatementsList>(LIST);
+    expect(JSON.stringify(list)).toBe(JSON.stringify(await without.api.get<OwnerStatementsList>(LIST)));
+    expect(list.owners.find((o) => o.id === TAHIRA)).toMatchObject({ scopeLimited: true, issued: [{ id: 'ost_rb_0001', ref: 'RB-OS-0001', period: '2026-09' }] });
+
+    const oct = await withB.api.get<OwnerStatementView>(STATEMENT, { owner: TAHIRA, period: '2026-10' });
+    expect(JSON.stringify(oct)).toBe(JSON.stringify(await without.api.get<OwnerStatementView>(STATEMENT, { owner: TAHIRA, period: '2026-10' })));
+    expect(oct).toMatchObject({ state: 'draft', scopeLimited: true, history: [], actions: { issue: false }, blocked: 'other_sites' });
+    for (const k of ['id', 'ref', 'issuedByName', 'issuedAt'] as const) expect(oct[k], k).toBeUndefined();
+    expect(oct.lines.every((l) => l.siteId === 'site_rb_heights')).toBe(true);
+
+    for (const token of HIDDEN_B) expect(JSON.stringify([list, oct]), token).not.toContain(token);
+
+    // The mixed Heights + Court statement of September: issued, labelled partial, Heights lines only.
+    const sept = await withB.api.get<OwnerStatementView>(STATEMENT, { owner: TAHIRA, period: '2026-09' });
+    expect(sept).toMatchObject({ state: 'issued', ref: 'RB-OS-0001', scopeLimited: true });
+    expect(sept.lines.length).toBeGreaterThan(0);
+    expect(sept.lines.every((l) => l.siteId === 'site_rb_heights')).toBe(true);
+    // Issuing is refused before anything is read, and nothing changed.
+    expect(await refusedUnchanged(withB.api, () => withB.api.post('/rentals/owner-statements/issue', { ownerId: TAHIRA, period: '2026-10' }))).toMatchObject({ status: 403, code: 'other_sites' });
+    expect(withB.api.snapshot()).toBe(before);
+  });
+
+  it('a reader limited to Court sees the Court-only statement as issued, labelled partial and without its whole-owner line', async () => {
+    const { api, cutWith } = await officeWorld(true);
+    cutWith(sitesOnly('site_rb_court'));
+    const before = api.snapshot();
+    const list = await api.get<OwnerStatementsList>(LIST);
+    expect(list.owners.find((o) => o.id === TAHIRA)!.issued.map((s) => s.ref)).toEqual(['RB-OS-0001', 'RB-OS-0099']);
+    const oct = await api.get<OwnerStatementView>(STATEMENT, { owner: TAHIRA, period: '2026-10' });
+    expect(oct).toMatchObject({ state: 'issued', ref: 'RB-OS-0099', scopeLimited: true });
+    expect(oct.lines.map((l) => l.kind)).toEqual(['rent_due', 'deposit_held']);
+    expect(JSON.stringify(oct)).not.toContain('RB-PO-TEST-0099');
+    expect(api.snapshot()).toBe(before);
+  });
+
+  it('the full-scope officer keeps every statement, the Court-only one issued and whole; withdrawing the Court grant hides it on the next request', async () => {
+    const withB = await officeWorld(true);
+    const without = await officeWorld(false);
+    const before = withB.api.snapshot();
+    const full = await withB.api.get<OwnerStatementsList>(LIST);
+    expect(full.owners.find((o) => o.id === TAHIRA)!.issued.map((s) => s.ref)).toEqual(['RB-OS-0001', 'RB-OS-0099']);
+    const oct = await withB.api.get<OwnerStatementView>(STATEMENT, { owner: TAHIRA, period: '2026-10' });
+    expect(oct).toMatchObject({ state: 'issued', id: 'ost_rb_test_b', ref: 'RB-OS-0099', issuedByName: 'Usman Ghani', scopeLimited: false, actions: { issue: false }, blocked: 'already_issued' });
+    expect(oct.lines.find((l) => l.kind === 'payout_pending')).toMatchObject({ amount: { amount: '4444.00' } });
+    // Revocation applies at once: the Court rentals grant is withdrawn (fail closed for every reader).
+    for (const w of [withB, without]) w.cutWith(rentalsOn('site_rb_heights'));
+    const list = await withB.api.get<OwnerStatementsList>(LIST);
+    expect(JSON.stringify(list)).toBe(JSON.stringify(await without.api.get<OwnerStatementsList>(LIST)));
+    const after = await withB.api.get<OwnerStatementView>(STATEMENT, { owner: TAHIRA, period: '2026-10' });
+    expect(JSON.stringify(after)).toBe(JSON.stringify(await without.api.get<OwnerStatementView>(STATEMENT, { owner: TAHIRA, period: '2026-10' })));
+    for (const token of HIDDEN_B) expect(JSON.stringify([list, after]), token).not.toContain(token);
+    expect(withB.api.snapshot()).toBe(before);
   });
 });

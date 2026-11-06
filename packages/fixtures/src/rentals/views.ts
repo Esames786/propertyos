@@ -523,14 +523,33 @@ export function projectStatement(ctx: HandlerContext, body: StatementBody, openi
   return { body: { ...body, lines: safe(lines), totals: totalsOf(lines, body.model, opening), memo: memoOf(lines) }, scopeLimited: true };
 }
 
+/**
+ * Issue #17 (P0 and GPT's follow-up review of `d050bad`): whether a reader may know that an issued
+ * statement exists at all — its id, reference, period, issuer, date and "issued" state. Only with the
+ * whole owner, or when at least one of the statement's own sites is theirs (it is then shown through
+ * `projectStatement`, labelled partial). A statement of hidden sites only is never listed, and looking
+ * it up answers exactly as if it had never been issued. The one rule for the landlord view and the office.
+ */
+export const statementKnown = (s: Pick<StoredStatement, 'body' | 'openingBySite'>, permitted: ReadonlySet<string>, whole: boolean) => whole || statementSites(s.body, s.openingBySite).some((x) => permitted.has(x));
+
+/** An office reader holds the whole statement: every site of the owner and of the statement itself. */
+const officeWhole = (r: R, body: StatementBody, openingBySite: Record<string, string>) => ownerWhole(r, body.owner.id) && statementSites(body, openingBySite).every((s) => r.scope.has(s));
+
 /** A body as one office reader may see it: whole only with every site of the owner and of the statement. */
 export function projectBody(r: R, body: StatementBody, openingBySite: Record<string, string>): { body: StatementBody; scopeLimited: boolean } {
-  const whole = ownerWhole(r, body.owner.id) && statementSites(body, openingBySite).every((s) => r.scope.has(s));
-  return projectStatement(r.ctx, body, openingBySite, r.scope, whole);
+  return projectStatement(r.ctx, body, openingBySite, r.scope, officeWhole(r, body, openingBySite));
 }
 
+/** An issued statement this office reader may know about (`statementKnown` with the reader's sites). */
+export const officeKnows = (r: R, s: StoredStatement) => statementKnown(s, r.scope, officeWhole(r, s.body, s.openingBySite));
+
+/** The owner's issued statement for a period, whoever asks (only for the issuer's own duplicate check). */
+export const storedStatementOf = (st: RentalsState, ownerId: string, period: string) => st.statements.find((s) => s.ownerId === ownerId && s.period === period);
+
+/** The owner's issued statement for a period as this reader may know it: one of hidden sites only is not there. */
 export function issuedOf(r: R, ownerId: string, period: string) {
-  return r.st.statements.find((s) => s.ownerId === ownerId && s.period === period);
+  const s = storedStatementOf(r.st, ownerId, period);
+  return s && officeKnows(r, s) ? s : undefined;
 }
 
 export function statementView(r: R, ownerId: string, period: string): OwnerStatementView {

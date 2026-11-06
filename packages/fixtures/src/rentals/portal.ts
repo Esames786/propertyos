@@ -3,7 +3,7 @@ import { notFound, permits, refused, requires, type Handler, type HandlerContext
 import { liabilityRecord } from '../portal';
 import { money, monthOf, paisa, rentKey, shareOf, basisPoints, ZERO } from './rules';
 import { rentalsState, type RentalsState, type StoredStatement } from './state';
-import { isLet, leaseEnd, leaseSchedule, leaseStart, ownerFootprint, ownershipsOn, PENDING, projectStatement, seedIssued, siteName, statementSites, unitOf } from './views';
+import { isLet, leaseEnd, leaseSchedule, leaseStart, ownerFootprint, ownershipsOn, PENDING, projectStatement, seedIssued, siteName, statementKnown, unitOf } from './views';
 
 /**
  * PORTAL-037 "My rental properties" (Gate S.3), for a landlord in the resident app. **Rule R** (V3.2
@@ -82,7 +82,7 @@ function landlordOf(ctx: HandlerContext): Landlord {
  */
 function landlordStatement(l: Landlord, s: StoredStatement): OwnerStatementView | null {
   const { permitted, whole } = l.scopeOf(s.ownerId);
-  if (!whole && !statementSites(s.body, s.openingBySite).some((x) => permitted.has(x))) return null;
+  if (!statementKnown(s, permitted, whole)) return null;
   const { body, scopeLimited } = projectStatement(l.ctx, s.body, s.openingBySite, permitted, whole);
   return {
     ...body,

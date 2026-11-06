@@ -1,6 +1,6 @@
 # Gate S.3: Rentals (Riverbend Estate Managers)
 
-**Status: PROVISIONAL. Issue #17 review (GPT, `7df5f80`: PROVISIONAL / HOLD) closed on this branch: the accepted Issue #18 hotfix merged, P0 and P1 fixed, the complete integrated regression rerun; stopped for GPT and owner review.** Nothing is merged into `main`; `main` is untouched. The closure is described first ([Issue #17 closure](#issue-17-closure)); the sections after it describe the gate as built, updated where the closure changed it.
+**Status: PROVISIONAL. Issue #17 review (GPT, `7df5f80`: PROVISIONAL / HOLD) closed on this branch (closure 1, `d050bad`: the accepted Issue #18 hotfix merged, P0 and P1 fixed); GPT's follow-up review of `d050bad` held final security acceptance for one office-side edge, closed in closure 2 below; the final regression rerun; stopped for GPT's final review.** Nothing is merged into `main`; `main` is untouched. The closure is described first ([Issue #17 closure](#issue-17-closure)); the sections after it describe the gate as built, updated where the closure changed it.
 
 **Commits**
 - **Branch:** `feature/gate-s3-rentals` (dedicated worktree `propertyos-s3`). The legacy `feature/gate-s3-rentals-parallel` was not used.
@@ -16,6 +16,38 @@
 - `MODULE_AND_LICENSING_MATRIX.md` §2 (module), §3 (features), §5.2 (permissions), §6 (dependencies), §7 (Riverbend amendment);
 - `OWNER_DECISIONS.md` D-33 (issuing model open), D-43 (adoption), D-48 (no settlement without evidence);
 - accepted C.1/C.2, S.1, resident Rule R and the live screen register.
+
+## Issue #17 closure 2 (GPT follow-up review of `d050bad`)
+
+GPT's follow-up review (Issue #17, 6 November 2026, comment 6689628632) accepted the portal P0 projection and the P1 issue permission at source level and held final S.3 security acceptance for **one office-side edge**. Chain: `d050bad` → the closure-2 commit (SHA in the delivery message); a fast-forward, no rebase or force-push.
+
+### D1. Finding (reproduced on `d050bad`)
+
+The office's `GET /rentals/owner-statements` listed **every** issued statement of a visible owner (id, reference, period), and `GET /rentals/owner-statements/statement?owner=&period=` answered an issued statement as **issued** (id, reference, issuer, date, the issue event) even when none of its sources was at a site the reader may see. With a TEST-ONLY October statement for Tahira Rehman sourced only from Riverbend Court and a reader limited to Riverbend Heights, the new tests fail on the `d050bad` code: the list carries `{ id: ost_rb_test_b, ref: RB-OS-0099, period: 2026-10 }` (also after the Court grant is withdrawn), and the lookup returns `state: issued`, the id, the reference, "Usman Ghani", the date and the issue event, with no lines (`test-results-s3/followup-repro-d050bad.txt`, `followup-probe-detail-d050bad.json`).
+
+### D2. Fix: the same rule as the landlord view, one predicate
+
+- `views.ts` **`statementKnown(statement, permitted, whole)`**: a reader may know an issued statement exists only with the whole owner or when at least one of the statement's own sites (`statementSites`) is theirs. It is now the only place this rule lives: the landlord view (`portal.ts`) calls it instead of its own expression, and the office calls it through `officeKnows` (the reader's sites; *whole* = every site of the owner and of the statement, the same `officeWhole` that `projectBody` uses for `projectStatement`).
+- **List:** `statementsList` lists an owner's issued statements only if `officeKnows`: a statement of hidden sites only has no id, reference or period in the response (nor in anything counted from it).
+- **Lookup:** `issuedOf` returns a statement only if `officeKnows`, so `statementView` answers a statement of hidden sites only **exactly as if it had never been issued**: the live draft of the reader's sites, labelled partial, without id, reference, issuer, date, issue event or "issued" state. Why the draft and not 404: in the office an in-range owner and month with no issued statement already answers with the live draft; a 404 for a hidden statement would itself tell the reader that something is there. The tests compare the two serialized answers (with and without the hidden statement) byte for byte.
+- **Mixed statements** (a site of the reader and a hidden one) stay visible, issued and labelled partial, with the reader's sites' lines and totals only (`projectStatement`, unchanged).
+- **Full-scope readers** keep everything; **issuing is unchanged** (`owner_statement.issue`, every site of the owner); its duplicate check reads the stored statement directly (`storedStatementOf`), which only a whole-owner issuer reaches.
+- **Revocation is immediate:** scope is worked out on every request; withdrawing the Court rentals grant hides the Court-only statement on the next request (fail closed for every reader).
+- No UI change: the office screen never rendered the `issued` list; the screens and their evidence are unchanged.
+
+### D3. Tests and mutations
+
+- `rentals.issue17.api.test.ts`, three new tests: (1) a Heights-only reader: the full serialized list and the October lookup are identical to a session where the Court-only statement was never issued; no id, ref, issuer, date, payout line, Court line or Court amount; the mixed September statement stays issued and labelled partial with Heights lines only; issuing is refused (403 `other_sites`); (2) a Court-only reader sees the Court-only statement issued, labelled partial, without its whole-owner payout line; (3) the full-scope officer sees everything, then the Court grant is withdrawn and the next list and lookup are identical to the never-issued session. Every read and refusal leaves the store byte-identical.
+- Mutations: M26 (the shared rule lets anyone know every statement), M27 (the office list guard removed), M28 (the office lookup guard removed); M19 now breaks the landlord view's call of the shared rule. Results in D4.
+
+### D4. Results of the final regression
+
+- tsc and lint (logical CSS, i18n parity 10,884 keys) clean; **Vitest 1,621 / 1,621** (57 files); **mutations 28 / 28 killed**, files restored byte-identically.
+- **Complete combined regression** (every e2e spec + the S.3 evidence spec; Chromium, production build, 3 workers, retries off): run 1 **426 / 429** — three Gate C.1 tests "timed out" because the PC entered Modern Standby at 18:04:50Z and resumed at 20:03:26Z (System log), mid-test; they passed 15 / 15 alone afterwards; **run 2 429 / 429 in 39.3 min**.
+- **Axe:** 1,506 scans, **0 violations** (S.3: 80).
+- **Firefox + WebKit smoke, every smoke spec:** **50 / 50** (one run).
+- **Known intermittents:** D.1 `identity.spec.ts:327` passed in both combined runs and 10 / 10 alone. **WebKit** S.2a "a new guard" passed in the smoke run, but alone ten times on battery it passed 4 / 10 (closure 1: 8 / 10 on this branch and on clean `04b6fde`); the A/B was not repeated on battery; closure 2 touches no HR or UI code.
+- No screen changed; the register is unchanged (449 / 362; 139 built, 43 partial, 180 planned).
 
 ## Issue #17 closure
 
