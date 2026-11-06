@@ -18,6 +18,8 @@ import {
   SelectControl,
   useApiMutation,
   useApiQuery,
+  useCreateKey,
+  isKeyReused,
   useQueryParam,
   useQueryParams,
   useSession,
@@ -25,7 +27,7 @@ import {
   useToast,
 } from '@repo/ui';
 import { ArrowRight, Ban, CheckCircle2, ChevronRight, FileDown, FileSpreadsheet, Hand, Link2, PenLine, Plus, Send, Truck, Undo2, UserCheck } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { COLLECTIONS, FINANCE } from '../../../nav.config';
 import { AmountInput, Loading, ProblemAlert, useSocietyFormat } from '../kit';
 import { ApprovalPanel, Fact, FactGrid, HistoryList, InstructionNotice, SampleNotice, TransferBadge, WRAP } from './fkit';
@@ -130,7 +132,23 @@ function NewTransferDrawer({ isOpen, onClose, onCreated }: { isOpen: boolean; on
   const [purpose, setPurpose] = useState('');
   const [reference, setReference] = useState('');
   const [error, setError] = useState<unknown>(null);
-  const [key] = useState(() => `trf-${Date.now().toString(36)}`);
+  // Issue #18 (FIN-02): one key per logical create; the form and the key start again when the drawer
+  // opens and after a create succeeded, so a second instruction is never answered with the first.
+  const [key, renewKey] = useCreateKey('trf');
+  const reset = () => {
+    setKind('deposit');
+    setFrom('');
+    setTo('');
+    setAmount('');
+    setPurpose('');
+    setReference('');
+    setError(null);
+    renewKey();
+  };
+  useEffect(() => {
+    if (isOpen) reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
   const accounts = book.data?.accounts ?? [];
   const side = (k: string) => (k === 'bank' ? 'bank' : 'cash');
   const [fromSide, toSide] = SIDES[kind];
@@ -152,10 +170,12 @@ function NewTransferDrawer({ isOpen, onClose, onCreated }: { isOpen: boolean; on
             onPress={async () => {
               setError(null);
               try {
-                const r = await create.mutateAsync({ method: 'POST', path: '/finance/transfers', body: { kind, fromAccountId: from, toAccountId: to, amount, purpose, bankReference: reference, idempotencyKey: key } });
+                const r = await create.mutateAsync({ method: 'POST', path: '/finance/transfers', body: { kind, fromAccountId: from, toAccountId: to, amount, purpose, bankReference: reference, idempotencyKey: key }, idempotencyKey: key });
+                reset();
                 toast.success(t('finance:transfer.created', { ref: r.transfer.ref }));
                 onCreated(r.transfer.id);
               } catch (e) {
+                if (isKeyReused(e)) renewKey();
                 setError(e);
               }
             }}
@@ -322,7 +342,10 @@ function LegCard({ leg, detail, onRun, pending }: { leg: TransferLeg; detail: Tr
       {settlement && (
         <p className="text-sm text-text" data-testid={`leg-${leg.leg}-settled`}>
           {settlement.evidenceType === 'statement_line'
-            ? t(settlement.exception ? 'finance:transfer.settledException' : 'finance:transfer.settledLine', { txn: settlement.bankTxnId ?? '', date: fmt.date(settlement.settledOn), by: settlement.confirmedByName, approver: settlement.exception?.approvedByName ?? '' })
+            ? // Issue #18 (FIN-01): the bank's transaction id only for readers with the bank feed.
+              settlement.bankTxnId
+              ? t(settlement.exception ? 'finance:transfer.settledException' : 'finance:transfer.settledLine', { txn: settlement.bankTxnId, date: fmt.date(settlement.settledOn), by: settlement.confirmedByName, approver: settlement.exception?.approvedByName ?? '' })
+              : t(settlement.exception ? 'finance:transfer.settledExceptionNoBank' : 'finance:transfer.settledLineNoBank', { date: fmt.date(settlement.settledOn), by: settlement.confirmedByName, approver: settlement.exception?.approvedByName ?? '' })
             : t('finance:transfer.settledSlip', { slip: settlement.slipNo ?? '', date: fmt.date(settlement.settledOn), witness: settlement.confirmedByName, by: leg.slip?.recordedByName ?? '' })}
         </p>
       )}
@@ -342,7 +365,7 @@ function LegCard({ leg, detail, onRun, pending }: { leg: TransferLeg; detail: Tr
       )}
       {leg.exception && (
         <InlineAlert tone="warning" title={t('finance:transfer.exceptionTitle', { name: leg.exception.requestedByName })} data-testid={`leg-${leg.leg}-exception`}>
-          <p>{t('finance:transfer.exceptionMissing', { list: leg.exception.missing.map((m) => t(`collections:review.field.${m}`)).join(', '), txn: leg.exception.bankTxnId })}</p>
+          <p>{leg.exception.bankTxnId ? t('finance:transfer.exceptionMissing', { list: leg.exception.missing.map((m) => t(`collections:review.field.${m}`)).join(', '), txn: leg.exception.bankTxnId }) : t('finance:transfer.exceptionMissingNoBank', { list: leg.exception.missing.map((m) => t(`collections:review.field.${m}`)).join(', ') })}</p>
           <p>
             <bdi>{t('billing:quote', { text: leg.exception.reason })}</bdi>
           </p>
@@ -357,6 +380,11 @@ function LegCard({ leg, detail, onRun, pending }: { leg: TransferLeg; detail: Tr
             </div>
           )}
         </InlineAlert>
+      )}
+      {!detail.bankFeed && leg.evidence === 'statement_line' && leg.status !== 'settled' && (
+        <p className="text-sm text-muted" data-testid={`leg-${leg.leg}-bank-restricted`}>
+          {t('finance:bankRestricted.leg')}
+        </p>
       )}
       {canMatch && (
         <div className="space-y-2" data-testid={`leg-${leg.leg}-candidates`}>

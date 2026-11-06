@@ -109,7 +109,8 @@ function ProofRow({ row }: { row: SubmissionRow }) {
       </span>
       <span className="flex flex-wrap items-center gap-1.5">
         <SubmissionStateBadge state={row.state} />
-        {row.state !== 'verified' && row.state !== 'rejected' && <MatchBadge match={row.match} />}
+        {/* Issue #18: the bank-match signal reaches only readers with the bank feed. */}
+        {row.state !== 'verified' && row.state !== 'rejected' && row.match && <MatchBadge match={row.match} />}
         {row.versions > 1 && <Badge tone="neutral" icon={History}>{t('collections:inbox.versions', { count: row.versions })}</Badge>}
         {row.possibleDuplicateOf && <Badge tone="warning" icon={Copy}>{t('collections:inbox.duplicate', { ref: row.possibleDuplicateOf[0] })}</Badge>}
         {row.reviewer && row.state === 'under_review' && <Badge tone="neutral" icon={UserRound}>{t('collections:inbox.reviewer', { name: row.reviewer })}</Badge>}

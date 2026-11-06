@@ -2,6 +2,7 @@ import type { Permission } from '@repo/contracts';
 import { decide } from '@repo/contracts';
 import type { HandlerContext } from '../../handler-types';
 import { actor, log, problem, save, stamp, type Society } from '../handlers';
+import { fingerprint } from '../import';
 import { isLocked } from './cashbook';
 import { AMOUNT, periodOf } from './model';
 
@@ -42,13 +43,42 @@ export function assertOpen(ctx: HandlerContext, s: Society, date: string, what: 
   problem(ctx, 409, 'period_closed', 'finance:problems.periodClosed', { date: [{ code: 'finance:problems.periodClosed', params: { period: period.period } }] });
 }
 
-/** A repeated request with the same key returns what the first one created (never a copy). */
-export function replay(s: Society, key: string | undefined): string | undefined {
-  return key ? s.state.finance.idempotency[key] : undefined;
+/**
+ * GitHub Issue #18 (FIN-02): idempotency bound to the request, as payroll's (Issue #16).
+ *
+ * Every S.1 create shares one map of keys. A create remembers its key with the operation, the
+ * principal, the target (legal entity and the account, flat or payer it creates on) and a
+ * fingerprint of its normalised input. The same key then replays only the exact same request: the
+ * same operation, by the same person, on the same target, with the same input. Anything else with
+ * that key is refused with one answer that says nothing about what the key was used for, and
+ * nothing changes. Callers check the target first (an account, flat or payer the caller cannot use
+ * is refused like one never issued), and look the recorded result up again through their own
+ * scoped finder, never trusting the stored id alone.
+ *
+ * The key is the body's `idempotencyKey` (the S.1 contract), else the request's own key.
+ */
+export type FinanceIdemOp = 'voucher.create' | 'transfer.create' | 'office_cash.record' | 'batch.create' | 'cheque.receive' | 'ownership.create';
+
+export const idemKey = (ctx: HandlerContext): string | undefined => text(body<{ idempotencyKey: string }>(ctx).idempotencyKey, 80) || text(ctx.req.idempotencyKey, 80) || undefined;
+
+const inputPrint = (input: unknown) => fingerprint(JSON.stringify(input, (_k, v: unknown) => (typeof v === 'bigint' ? v.toString() : v)) ?? '');
+
+/** The record an identical earlier request created, or nothing (a new create); any other reuse is refused. */
+export function replayOf(ctx: HandlerContext, s: Society, op: FinanceIdemOp, target: string, input: unknown): string | undefined {
+  const key = idemKey(ctx);
+  if (!key) return undefined;
+  const e = s.state.finance.idempotency[key];
+  if (!e) return undefined;
+  // A key stored before Issue #18 (an id alone) was never bound to a request: it replays nothing.
+  if (typeof e !== 'object' || e.op !== op || e.principal !== me(ctx).principalId || e.target !== target || e.fingerprint !== inputPrint(input)) {
+    problem(ctx, 409, 'idempotency_key_reused', 'finance:problems.idempotencyKeyReused');
+  }
+  return e.recordId;
 }
 
-export function remember(s: Society, key: string | undefined, id: string): void {
-  if (key) s.state.finance.idempotency[key] = id;
+export function remember(ctx: HandlerContext, s: Society, op: FinanceIdemOp, target: string, input: unknown, recordId: string): void {
+  const key = idemKey(ctx);
+  if (key) s.state.finance.idempotency[key] = { op, principal: me(ctx).principalId, target, fingerprint: inputPrint(input), recordId };
 }
 
 /** Whether a module is licensed for the tenant on the demo date (e.g. `payables` disables expense vouchers). */

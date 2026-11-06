@@ -84,7 +84,7 @@ export function closeChecks(view: SocietyView, period: string, today: string): {
   };
 }
 
-export function financeOverview(view: SocietyView, today: string, period: string, extras: { approvals: FinanceOverview['approvals'] }): Omit<FinanceOverview, 'site'> {
+export function financeOverview(view: SocietyView, today: string, period: string, extras: { approvals: FinanceOverview['approvals'] }): Omit<FinanceOverview, 'site' | 'bankFeed'> {
   const { state } = view;
   const f = state.finance;
   const book = cashbookView(state, today, null, period);

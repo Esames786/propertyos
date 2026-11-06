@@ -29,7 +29,9 @@ import { ALNOOR_SITE } from '../alnoor';
 import { log, save, siteOf, stamp, type Society } from '../handlers';
 import { nextRef } from '../state';
 import { evaluate, principalsOfParty, raiseApproval } from './approvals';
-import { amountField, assertOpen, body, licensed, me, query, refuse, remember, replay, required, text } from './common';
+import * as bank from './bank-scope';
+import { seesBankFeed } from './bank-scope';
+import { amountField, assertOpen, body, licensed, me, query, refuse, remember, replayOf, required, text } from './common';
 import { balanceOn, cashbookView, cashEvents, financeAccounts, periodState } from './cashbook';
 import { DATE, lastDayOf, money, paisa, periodOf, sum } from './model';
 import { accountRows, closeChecks, financeOverview } from './overview';
@@ -216,14 +218,17 @@ function transferDetail(ctx: HandlerContext, s: Society, t: FundsTransfer): Tran
   const legsWhere = (pred: (l: TransferLeg) => boolean) => (live ? t.legs.filter(pred).map((l) => l.leg) : []);
   const cashFirst = (l: TransferLeg) => !(t.kind === 'deposit' && l.leg === 'in' && t.legs.find((x) => x.leg === 'out')?.status !== 'settled');
   const reconciler = can(ctx, 'bank.reconcile') && !preparer;
+  // Issue #18 (FIN-01): statement lines (candidates) and the bank's ids only with the bank feed.
+  const feed = seesBankFeed(ctx);
   return {
-    transfer: t,
+    transfer: bank.transfer(ctx, t),
     ...(t.approvalId ? { approval: s.state.finance.approvals.find((a) => a.id === t.approvalId)! } : {}),
-    settlements: s.state.finance.settlements.filter((x) => x.subjectType === 'transfer_leg' && x.subjectId === t.id),
+    settlements: s.state.finance.settlements.filter((x) => x.subjectType === 'transfer_leg' && x.subjectId === t.id).map((x) => bank.settlement(ctx, x)),
     candidates: {
-      out: t.legs[0]!.evidence === 'statement_line' && live ? legCandidates(s.state, t, t.legs[0]!) : [],
-      in: t.legs[1]!.evidence === 'statement_line' && live ? legCandidates(s.state, t, t.legs[1]!) : [],
+      out: feed && t.legs[0]!.evidence === 'statement_line' && live ? legCandidates(s.state, t, t.legs[0]!) : [],
+      in: feed && t.legs[1]!.evidence === 'statement_line' && live ? legCandidates(s.state, t, t.legs[1]!) : [],
     },
+    bankFeed: feed,
     actions: {
       submit: false,
       cancel: (preparer || can(ctx, 'funds_transfer.approve')) && ['awaiting_approval', 'approved_instruction'].includes(t.status),
@@ -290,14 +295,24 @@ export const FINANCE_BOOK_HANDLERS: readonly Handler[] = [
     handle: (ctx): FinanceOverview => {
       const s = fin(ctx);
       const period = /^\d{4}-\d{2}$/.test(query(ctx).period ?? '') ? query(ctx).period! : periodOf(ctx.at);
-      return { site: { id: s.siteId, name: ALNOOR_SITE.name, legalEntityName: s.state.beneficiaries[0]?.legalEntityName ?? '' }, ...financeOverview(s.view, ctx.at, period, { approvals: approvalCounts(ctx, s) }) };
+      const o = financeOverview(s.view, ctx.at, period, { approvals: approvalCounts(ctx, s) });
+      const feed = seesBankFeed(ctx);
+      return {
+        site: { id: s.siteId, name: ALNOOR_SITE.name, legalEntityName: s.state.beneficiaries[0]?.legalEntityName ?? '' },
+        ...o,
+        accounts: o.accounts.map((a) => bank.accountRow(ctx, a)),
+        // Issue #18 (FIN-01): no count or amount of statement lines, and no link to the bank feed.
+        // "Bank settled" is the cashbook's own figure; without the feed it opens the cashbook.
+        ...(feed ? {} : { unreconciled: { amount: money(0n), count: 0, href: '' }, ladder: { ...o.ladder, bankSettled: { ...o.ladder.bankSettled, href: FIN_ROUTES.cashbook({ period }) } } }),
+        bankFeed: feed,
+      };
     },
   },
   {
     method: 'GET',
     pattern: /^\/finance\/accounts$/,
     access: BOOKS(['cashbook.view', 'bank.view'], 'history_read'),
-    handle: (ctx): FinanceAccountRow[] => accountRows(fin(ctx).view, ctx.at, periodOf(ctx.at)),
+    handle: (ctx): FinanceAccountRow[] => accountRows(fin(ctx).view, ctx.at, periodOf(ctx.at)).map((a) => bank.accountRow(ctx, a)),
   },
   {
     method: 'GET',
@@ -307,6 +322,9 @@ export const FINANCE_BOOK_HANDLERS: readonly Handler[] = [
       const s = fin(ctx);
       const row = accountRows(s.view, ctx.at, periodOf(ctx.at)).find((a) => a.id === ctx.params.accountId);
       if (!row) notFound(ctx);
+      // Issue #18 (FIN-01): statements, their lines and imports only with the bank feed (`bank.view`
+      // or `bank.reconcile`); the account itself (balance, movements, custodian) stays for cashbook readers.
+      const feed = seesBankFeed(ctx);
       const change = s.state.beneficiaryChanges.filter((c) => c.beneficiaryId === row!.id);
       const history =
         row!.kind === 'bank'
@@ -316,7 +334,7 @@ export const FINANCE_BOOK_HANDLERS: readonly Handler[] = [
                 ...(c.decidedAt ? [{ at: c.decidedAt, byName: c.decidedByName ?? '', action: 'beneficiary_approved', note: c.effectiveOn ?? '' }] : []),
               ]),
               ...s.state.finance.openings.filter((o) => o.accountId === row!.id).map((o) => ({ at: o.at, byName: o.approvedByName, action: 'opening_approved', note: o.document })),
-              ...s.state.bank.statements.filter((st) => st.beneficiaryId === row!.id).map((st) => ({ at: st.importedAt, byName: st.importedByName, action: 'statement_imported', note: st.fileName })),
+              ...(feed ? s.state.bank.statements.filter((st) => st.beneficiaryId === row!.id).map((st) => ({ at: st.importedAt, byName: st.importedByName, action: 'statement_imported', note: st.fileName })) : []),
             ]
           : [
               ...s.state.finance.openings.filter((o) => o.accountId === row!.id).map((o) => ({ at: o.at, byName: o.approvedByName, action: 'opening_approved', note: o.document })),
@@ -324,10 +342,11 @@ export const FINANCE_BOOK_HANDLERS: readonly Handler[] = [
             ];
       const lastCount = [...s.state.finance.cashCounts].filter((c) => c.accountId === row!.id).sort((a, b) => Date.parse(b.countedAt) - Date.parse(a.countedAt))[0];
       return {
-        account: row!,
+        account: bank.accountRow(ctx, row!),
         history: history.sort((a, b) => Date.parse(b.at) - Date.parse(a.at)),
-        statements: s.state.bank.statements.filter((st) => st.beneficiaryId === row!.id).map((st) => ({ id: st.id, fileName: st.fileName, from: st.from, to: st.to, lines: st.lines, importedAt: st.importedAt, importedByName: st.importedByName })).reverse(),
-        lines: s.state.bank.lines.filter((l) => l.beneficiaryId === row!.id).sort((a, b) => b.valueDate.localeCompare(a.valueDate)),
+        statements: feed ? s.state.bank.statements.filter((st) => st.beneficiaryId === row!.id).map((st) => ({ id: st.id, fileName: st.fileName, from: st.from, to: st.to, lines: st.lines, importedAt: st.importedAt, importedByName: st.importedByName })).reverse() : [],
+        lines: feed ? s.state.bank.lines.filter((l) => l.beneficiaryId === row!.id).sort((a, b) => b.valueDate.localeCompare(a.valueDate)) : [],
+        bankFeed: feed,
         ...(lastCount ? { lastCount } : {}),
         actions: {
           voucher: row!.kind !== 'bank' && can(ctx, 'cash_voucher.prepare'),
@@ -349,9 +368,14 @@ export const FINANCE_BOOK_HANDLERS: readonly Handler[] = [
       const accountId = account && account !== 'all' ? accountOf(ctx, s, account, 'account').id : null;
       const view = cashbookView(s.state, ctx.at, accountId, p);
       const lines = category && category !== 'all' ? view.lines.filter((l) => l.category === category) : view.lines;
+      // Issue #18 (FIN-01): the settled cashbook stays; the statement comparison and the line behind
+      // each bank movement are for the bank feed only.
+      const feed = seesBankFeed(ctx);
       return {
         ...view,
-        lines,
+        lines: feed ? lines : lines.map((l) => ({ ...l, evidence: bank.evidence(ctx, l.evidence) })),
+        reconciliation: feed ? view.reconciliation : [],
+        bankFeed: feed,
         actions: {
           voucher: can(ctx, 'cash_voucher.prepare'),
           transfer: can(ctx, 'funds_transfer.create'),
@@ -393,15 +417,20 @@ export const FINANCE_BOOK_HANDLERS: readonly Handler[] = [
     handle: (ctx): VoucherDetail => {
       const s = fin(ctx);
       const input = body<Record<string, unknown> & { submit: boolean; idempotencyKey: string }>(ctx);
-      const key = text(input.idempotencyKey, 80) || undefined;
-      const seen = replay(s, key);
-      if (seen) return voucherDetail(ctx, s, s.state.finance.vouchers.find((v) => v.id === seen)!);
+      // Issue #18 (FIN-02): the target account and the normalised voucher first, then the bound replay.
       const fields = voucherFields(ctx, s, input);
+      const target = `${s.legalEntityId}|${fields.accountId}`;
+      const request = { ...fields, submit: input.submit === true };
+      const again = replayOf(ctx, s, 'voucher.create', target, request);
+      if (again) {
+        const done = s.state.finance.vouchers.find((v) => v.id === again && v.legalEntityId === s.legalEntityId && v.accountId === fields.accountId);
+        return voucherDetail(ctx, s, done ?? notFound(ctx));
+      }
       assertOpen(ctx, s, fields.onDate, 'voucher');
       const v = newVoucher(ctx, s, fields);
       log(ctx, s, 'voucherPrepared', { kind: 'voucher', id: v.id, label: v.ref }, { values: { amount: v.amount.amount, account: v.accountName, purpose: v.purpose } });
       if (input.submit) submitVoucher(ctx, s, v);
-      remember(s, key, v.id);
+      remember(ctx, s, 'voucher.create', target, request, v.id);
       save(ctx);
       return voucherDetail(ctx, s, v);
     },
@@ -533,7 +562,7 @@ export const FINANCE_BOOK_HANDLERS: readonly Handler[] = [
       const all = s.state.finance.transfers;
       const counts = Object.fromEntries((['draft', 'awaiting_approval', 'approved_instruction', 'in_transit', 'settled', 'rejected', 'cancelled'] as const).map((k) => [k, all.filter((t) => t.status === k).length])) as TransferList['counts'];
       const inTransit = sum(all.filter((t) => t.status === 'in_transit').map((t) => paisa(t.amount)));
-      return { items: [...all].filter((t) => !status || status === 'all' || t.status === status).reverse(), counts, inTransit: money(inTransit) };
+      return { items: [...all].filter((t) => !status || status === 'all' || t.status === status).reverse().map((t) => bank.transfer(ctx, t)), counts, inTransit: money(inTransit) };
     },
   },
   {
@@ -554,9 +583,6 @@ export const FINANCE_BOOK_HANDLERS: readonly Handler[] = [
     handle: (ctx): TransferDetail => {
       const s = fin(ctx);
       const input = body<{ kind: string; fromAccountId: string; toAccountId: string; amount: string; purpose: string; bankReference: string; idempotencyKey: string; reversalOf: string }>(ctx);
-      const key = text(input.idempotencyKey, 80) || undefined;
-      const seen = replay(s, key);
-      if (seen) return transferDetail(ctx, s, s.state.finance.transfers.find((t) => t.id === seen)!);
       const kind = TRANSFER_KINDS.find((k) => k === input.kind);
       if (!kind) refuse(ctx, 422, 'transfer_kind', 'kind');
       const from = accountOf(ctx, s, input.fromAccountId, 'fromAccountId');
@@ -567,8 +593,17 @@ export const FINANCE_BOOK_HANDLERS: readonly Handler[] = [
       const [fromSide, toSide] = KINDS[kind!];
       if (side(from.kind) !== fromSide || side(to.kind) !== toSide) refuse(ctx, 422, 'transfer_accounts', 'toAccountId');
       const amount = amountField(ctx, 'amount', input.amount);
+      // Issue #18 (FIN-02): the accounts (target) are checked above; the bound replay comes before
+      // anything that depends on what the first request changed (the funds it already committed).
+      const target = `${s.legalEntityId}|${from.id}|${to.id}`;
+      const request = { kind, amount, purpose: text(input.purpose, 200), bankReference: text(input.bankReference, 40).toUpperCase(), reversalOf: text(input.reversalOf, 40) };
+      const again = replayOf(ctx, s, 'transfer.create', target, request);
+      if (again) {
+        const done = s.state.finance.transfers.find((t) => t.id === again && t.legalEntityId === s.legalEntityId && t.fromAccountId === from.id && t.toAccountId === to.id);
+        return transferDetail(ctx, s, done ?? notFound(ctx));
+      }
       if (amount > available(ctx, s, from.id)) refuse(ctx, 409, 'insufficient_funds', 'amount', { available: money(available(ctx, s, from.id)).amount });
-      const purpose = required(ctx, 'purpose', text(input.purpose, 200), 5);
+      const purpose = required(ctx, 'purpose', request.purpose, 5);
       assertOpen(ctx, s, ctx.at, 'transfer');
       const f = s.state.finance;
       const who = me(ctx);
@@ -611,7 +646,7 @@ export const FINANCE_BOOK_HANDLERS: readonly Handler[] = [
       t.history.push({ at: stamp(ctx), by: who.principalId, byName: who.name, action: 'submitted' });
       f.transfers.push(t);
       if (reversalOf) reversalOf.reversedBy = { id, ref };
-      remember(s, key, id);
+      remember(ctx, s, 'transfer.create', target, request, id);
       log(ctx, s, 'transferPrepared', { kind: 'transfer', id, label: ref }, { values: { kind: kind!, from: from.name, to: to.name, amount: t.amount.amount, approval: approval!.ref } });
       save(ctx);
       return transferDetail(ctx, s, t);
@@ -968,7 +1003,8 @@ export function closeChecklist(ctx: HandlerContext, s: Society, period: string):
   const who = me(ctx);
   return {
     period: stored,
-    checks,
+    // Issue #18 (FIN-01): the reconciliation check without the feed is its outcome only.
+    checks: checks.map((c) => bank.closeCheck(ctx, c)),
     counts: f.cashCounts.filter((c) => c.onDate >= lastDayOf(period)).sort((a, b) => Date.parse(b.countedAt) - Date.parse(a.countedAt)),
     cashAccounts,
     canClose,

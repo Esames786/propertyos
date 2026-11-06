@@ -82,8 +82,21 @@ export interface FinanceState {
   certificates: ClearanceCertificate[];
   /** Payment reversals asked for (each waits for its approval; nothing changes before it). */
   reversals: Array<{ id: string; approvalId: string; paymentId: string; chequeId?: string; reason: string; bankLineId?: string; requestedBy: string; requestedByName: string; at: string; status: 'pending' | 'approved' | 'rejected' }>;
-  /** Idempotency keys already used (key → the record they created): a repeat returns it, never a copy. */
-  idempotency: Record<string, string>;
+  /**
+   * Idempotency keys already used, each bound to the request that used it (Issue #18, FIN-02): only
+   * the exact same request replays the record it created. A bare id is a key stored before Issue #18
+   * and replays nothing.
+   */
+  idempotency: Record<string, FinanceIdempotency | string>;
+}
+
+/** What an idempotency key was used for (see `replayOf` in `common.ts`). */
+export interface FinanceIdempotency {
+  op: string;
+  principal: string;
+  target: string;
+  fingerprint: string;
+  recordId: string;
 }
 
 export const OFFICE_CASH = 'cac_anr_office';

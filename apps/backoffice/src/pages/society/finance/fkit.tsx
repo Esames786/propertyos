@@ -97,14 +97,39 @@ export function SampleNotice({ fileName }: { fileName?: string }) {
   );
 }
 
-/** What a cashbook line was settled on, in words (with the bank transaction where there is one). */
+/**
+ * Issue #18 (FIN-01): why bank statement details are not shown. The reader holds no bank feed
+ * (`bank.view` or `bank.reconcile`), so the server sent none; the words say so instead of a blank.
+ */
+export function BankRestricted({ body, testId }: { body: string; testId: string }) {
+  const { t } = useT();
+  return (
+    <InlineAlert tone="info" title={t('finance:bankRestricted.title')} data-testid={testId}>
+      <p>{body}</p>
+    </InlineAlert>
+  );
+}
+
+/**
+ * How an account number wraps: a full IBAN may break anywhere (it is one long word); the masked form a
+ * reader without the bank feed receives ("•••• 7890", Issue #18) is short and stays on one line.
+ */
+export const ibanWrap = (iban: string) => (iban.startsWith('•') ? 'whitespace-nowrap' : '[overflow-wrap:anywhere]');
+
+/** What a cashbook line was settled on, in words (with the bank transaction where the reader may see it). */
 export function EvidenceText({ evidence }: { evidence: CashbookEvidence }) {
   const { t } = useT();
   switch (evidence.kind) {
     case 'statement_line':
       return (
         <span>
-          {t(evidence.exception ? 'finance:evidence.lineException' : 'finance:evidence.line')} <bdi dir="ltr" className="ltr-ref">{evidence.bankTxnId}</bdi>
+          {t(evidence.exception ? 'finance:evidence.lineException' : 'finance:evidence.line')}
+          {evidence.bankTxnId ? (
+            <>
+              {' '}
+              <bdi dir="ltr" className="ltr-ref">{evidence.bankTxnId}</bdi>
+            </>
+          ) : null}
         </span>
       );
     case 'witnessed_count':

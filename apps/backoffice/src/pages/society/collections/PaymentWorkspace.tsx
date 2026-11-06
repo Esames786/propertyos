@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { COLLECTIONS, SOCIETY } from '../../../nav.config';
 import { Loading, moneyMinus, ProblemAlert, useSocietyFormat } from '../kit';
 import { AuditList } from '../parts';
+import { BankRestricted } from '../finance/fkit';
 import { AllocationTable, MethodBadge, VerificationBadge } from './ckit';
 
 /**
@@ -267,6 +268,9 @@ function Reconciliation({ data }: { data: PaymentDetail }) {
           />
           <Link href={COLLECTIONS.reconciliation}>{t('collections:payment.openReconciliation')}</Link>
         </>
+      ) : !data.bankFeed && (data.payment.verification === 'bank_matched' || data.payment.verification === 'exception_approved') ? (
+        // Issue #18 (FIN-01): settled on a statement line the reader may not see.
+        <BankRestricted body={t('collections:payment.bankRestricted')} testId="payment-bank-restricted" />
       ) : (
         <p className="flex items-start gap-2 text-sm text-text">
           <Link2Off aria-hidden className="mt-0.5 size-4 text-muted" />

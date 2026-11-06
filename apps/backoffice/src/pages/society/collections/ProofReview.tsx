@@ -29,6 +29,7 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Radio, RadioGroup, Label as AriaLabel } from 'react-aria-components';
 import { COLLECTIONS, SOCIETY } from '../../../nav.config';
 import { Loading, ProblemAlert, useSocietyFormat } from '../kit';
+import { BankRestricted } from '../finance/fkit';
 import { AllocationTable, ProofPreview, SubmissionStateBadge, SubmissionStepper } from './ckit';
 
 /** The choice "not on a statement yet": the proof waits for its bank line (nothing is settled). */
@@ -188,7 +189,8 @@ function ReviewView({ data }: { data: SubmissionDetail }) {
           ) : (
             <div className="space-y-4 rounded-card bg-panel p-5 shadow-card">
               <h2 className="text-lg font-bold tracking-tight text-text">{t('collections:review.matchTitle')}</h2>
-              <Candidates candidates={data.candidates} submissionId={sub.id} value={null} onChange={() => undefined} readOnly />
+              {/* Issue #18 (FIN-01): statement lines (often other residents' transfers) need the bank feed. */}
+              {data.bankFeed ? <Candidates candidates={data.candidates} submissionId={sub.id} value={null} onChange={() => undefined} readOnly /> : <BankRestricted body={t('collections:review.bankRestricted')} testId="review-bank-restricted" />}
               {!actions.verify && actions.reason === 'permission_missing' && (
                 <p className="text-sm text-muted" data-testid="review-read-only">{t('collections:review.readOnly')}</p>
               )}
@@ -619,7 +621,11 @@ function ExceptionCard({ data, onVerified }: { data: SubmissionDetail; onVerifie
           <Hand aria-hidden className="size-5 text-warning" />
           {t('collections:review.exceptionPendingTitle')}
         </h2>
-        <p className="text-sm text-text">{t('collections:review.exceptionPendingBody', { name: exception.requestedByName, txn: exception.bankTxnId, list: missingWords(exception.missing) })}</p>
+        <p className="text-sm text-text">
+          {exception.bankTxnId
+            ? t('collections:review.exceptionPendingBody', { name: exception.requestedByName, txn: exception.bankTxnId, list: missingWords(exception.missing) })
+            : t('collections:review.exceptionPendingBodyNoBank', { name: exception.requestedByName, list: missingWords(exception.missing) })}
+        </p>
         <p className="text-sm text-muted"><bdi>{t('billing:quote', { text: exception.reason })}</bdi></p>
       </div>
       {candidate && (

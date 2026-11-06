@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { FINANCE } from '../../../nav.config';
 import { Loading, useSocietyFormat } from '../kit';
-import { PeriodBadge, WRAP, WrapMoney } from './fkit';
+import { ibanWrap, PeriodBadge, WRAP, WrapMoney } from './fkit';
 
 /**
  * FIN-001 society finance (Gate S.1 reference experience 1, first stop). What the society holds and
@@ -123,8 +123,14 @@ export default function FinanceDashboard() {
           {tile('cash-awaiting-count', Coins, 'gold', t('finance:kpi.cashAwaitingCount'), d.cashAwaitingCount, t('finance:kpi.collections', { count: d.cashAwaitingCount.count ?? 0 }))}
           {tile('cheques', Coins, 'teal', t('finance:kpi.cheques'), d.chequesPending, t('finance:kpi.cheque', { count: d.chequesPending.count ?? 0 }))}
           {tile('transfers', ArrowRightLeft, 'sky', t('finance:kpi.transfers'), d.transfersAwaiting, t('finance:kpi.instructions', { count: d.transfersAwaiting.count ?? 0 }))}
-          {tile('unreconciled', FileWarning, 'gold', t('finance:kpi.unreconciled'), d.unreconciled, t('finance:kpi.lines', { count: d.unreconciled.count ?? 0 }))}
+          {d.bankFeed && tile('unreconciled', FileWarning, 'gold', t('finance:kpi.unreconciled'), d.unreconciled, t('finance:kpi.lines', { count: d.unreconciled.count ?? 0 }))}
         </div>
+        {/* Issue #18 (FIN-01): statement lines, and every count of them, are for the bank feed only. */}
+        {!d.bankFeed && (
+          <p className="text-sm text-muted" data-testid="fin-unreconciled-restricted">
+            {t('finance:bankRestricted.dashboard')}
+          </p>
+        )}
       </section>
 
       <div className="grid grid-cols-1 gap-5 @5xl:grid-cols-12">
@@ -150,7 +156,7 @@ export default function FinanceDashboard() {
                       {a.iban ? (
                         <>
                           {' · '}
-                          <bdi dir="ltr" className="ltr-ref [overflow-wrap:anywhere]">{a.iban}</bdi>
+                          <bdi dir="ltr" className={`ltr-ref ${ibanWrap(a.iban)}`}>{a.iban}</bdi>
                         </>
                       ) : null}
                       {a.receivesDues ? ` · ${t('finance:accounts.receivesDues')}` : ''}

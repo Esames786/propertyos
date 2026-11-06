@@ -22,6 +22,7 @@ import { pad } from '../../seed';
 import { log, save, siteOf, societyDashboardOf, stamp, type Society } from '../handlers';
 import { factOn } from '../model';
 import { approvalsGiven, delegationState, evaluate, holdersOf, policyOn, principalsOfParty, raiseApproval, recordDecision, staffOf } from './approvals';
+import { seesBankFeed } from './bank-scope';
 import { amountField, body, me, query, refuse, required, text } from './common';
 import { executeReversal, rejectReversal } from './handlers-collect';
 import { DATE, addDays, money } from './model';
@@ -45,7 +46,7 @@ function approvalOf(ctx: HandlerContext, s: Society): ApprovalRequest {
 }
 
 /** What the subject is, in facts the approver needs (amounts, accounts, dates, reasons). */
-function subjectOf(s: Society, a: ApprovalRequest): ApprovalDetail['subject'] {
+function subjectOf(ctx: HandlerContext, s: Society, a: ApprovalRequest): ApprovalDetail['subject'] {
   const f = s.state.finance;
   const fact = (key: string, value: string | undefined) => (value ? [{ key, value }] : []);
   switch (a.subject) {
@@ -68,7 +69,8 @@ function subjectOf(s: Society, a: ApprovalRequest): ApprovalDetail['subject'] {
     case 'payment_reversal': {
       const p = s.state.payments.find((x) => x.id === a.subjectId);
       const r = f.reversals.find((x) => x.approvalId === a.id);
-      const line = r?.bankLineId ? s.state.bank.lines.find((l) => l.id === r.bankLineId) : undefined;
+      // Issue #18 (FIN-01): the bank's debit line is named only to a reader with the bank feed.
+      const line = r?.bankLineId && seesBankFeed(ctx) ? s.state.bank.lines.find((l) => l.id === r.bankLineId) : undefined;
       return { label: a.subjectRef, href: FIN_ROUTES.payment(a.subjectId), facts: p ? [...fact('payer', p.payerName), ...fact('amount', p.amount.amount), ...fact('receipt', p.receiptRef), ...fact('method', p.method), ...fact('reason', r?.reason), ...fact('bankLine', line ? `${line.bankTxnId} · ${line.valueDate}` : undefined)] : [] };
     }
     case 'clearance_waiver': {
@@ -264,7 +266,7 @@ export const FINANCE_GOVERNANCE_HANDLERS: readonly Handler[] = [
       const s = core(ctx);
       const a = approvalOf(ctx, s);
       const policy = s.state.finance.policies.find((p) => p.id === a.policy.versionId)!;
-      return { request: a, evaluation: evaluate(s.state, ctx.tenantId!, a, me(ctx), ctx.at), policy, subject: subjectOf(s, a), audit: audit(a) };
+      return { request: a, evaluation: evaluate(s.state, ctx.tenantId!, a, me(ctx), ctx.at), policy, subject: subjectOf(ctx, s, a), audit: audit(a) };
     },
   },
   {
@@ -287,7 +289,7 @@ export const FINANCE_GOVERNANCE_HANDLERS: readonly Handler[] = [
       log(ctx, s, decision === 'approve' ? 'approvalGiven' : 'approvalRejected', { kind: 'approval', id: a.id, label: a.ref }, { values: { subject: a.subject, ref: a.subjectRef, as: seat.as.kind, remaining: String(Math.max(0, a.rule.approvalsRequired - approvalsGiven(a))) } });
       if (before === 'pending' && a.status !== 'pending') applyOutcome(ctx, s, a);
       save(ctx);
-      return { request: a, evaluation: evaluate(s.state, ctx.tenantId!, a, me(ctx), ctx.at), policy: s.state.finance.policies.find((p) => p.id === a.policy.versionId)!, subject: subjectOf(s, a), audit: audit(a) };
+      return { request: a, evaluation: evaluate(s.state, ctx.tenantId!, a, me(ctx), ctx.at), policy: s.state.finance.policies.find((p) => p.id === a.policy.versionId)!, subject: subjectOf(ctx, s, a), audit: audit(a) };
     },
   },
   // -------------------------------------------------------------------------------------------

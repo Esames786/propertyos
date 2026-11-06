@@ -34,6 +34,8 @@ import { DOCUMENT_KINDS, patternProblem } from './numbering';
 import { declaredAccount, sampleBankStatements, statementFrom } from './scenario';
 import { beneficiaryOn } from './state';
 import { assertOpen } from './finance/common';
+import * as bank from './finance/bank-scope';
+import { seesBankFeed } from './finance/bank-scope';
 
 /**
  * Collections endpoints for staff (Gate C.2, A6 §5.4). Same fail-closed declarations as C.1. The
@@ -129,13 +131,17 @@ function submissionDetail(ctx: HandlerContext, s: Society, sub: PaymentSubmissio
       : !workable
         ? ('invalid_state' as const)
         : undefined;
+  // Issue #18 (FIN-01): statement lines that could be this transfer (often other residents' money)
+  // and the line an exception names are for the bank feed only (`bank.view` or `bank.reconcile`).
+  const feed = seesBankFeed(ctx);
   return {
-    submission: sub,
-    candidates: candidatesOf(s.state, sub),
+    submission: bank.submission(ctx, sub),
+    candidates: feed ? candidatesOf(s.state, sub) : [],
+    bankFeed: feed,
     allocation: previewOf(open, amount, rule.allocations, rule.unapplied, false),
     openLines: toAllocationLines(open.map((line) => ({ line, amount: 0n }))),
     possibleDuplicates: possibleDuplicates(s.state, sub).map((d) => ({ id: d.id, ref: d.ref, state: d.state })),
-    beneficiary: beneficiaryOn(s.state, sub.legalEntityId, sub.current.transferDate),
+    beneficiary: ((b) => (b ? bank.payee(ctx, b) : null))(beneficiaryOn(s.state, sub.legalEntityId, sub.current.transferDate)),
     actions: {
       startReview: reviewer && sub.state === 'submitted',
       verify: reviewer && workable,
@@ -155,7 +161,8 @@ function submissionDetail(ctx: HandlerContext, s: Society, sub: PaymentSubmissio
  * force on its value date, and carries the amount received. Returns the line and what it does not match.
  */
 function settlementLine(ctx: HandlerContext, s: Society, sub: PaymentSubmission, lineId: string, amount: bigint) {
-  const line = s.state.bank.lines.find((l) => l.id === lineId);
+  // Issue #18 (FIN-01): without the bank feed every line id answers like one never issued.
+  const line = seesBankFeed(ctx) ? s.state.bank.lines.find((l) => l.id === lineId) : undefined;
   if (!line) notFound(ctx);
   // The bank's transaction settles one payment, ever: a second match is refused, whoever asks.
   if (line.state === 'matched') {
@@ -184,14 +191,17 @@ function paymentDetail(s: Society, paymentId: string, ctx: HandlerContext): Paym
   if (!payment) notFound(ctx);
   const receipt = s.state.receipts.find((r) => r.id === payment.receiptId)!;
   const submission = payment.source.kind === 'submission' ? s.state.submissions.find((x) => x.id === (payment.source as { submissionId: string }).submissionId) : undefined;
-  const bankLine = payment.bankLineId ? s.state.bank.lines.find((l) => l.id === payment.bankLineId) : undefined;
+  // Issue #18 (FIN-01): the statement line behind a payment, and its ids, only with the bank feed.
+  const feed = seesBankFeed(ctx);
+  const bankLine = payment.bankLineId && feed ? s.state.bank.lines.find((l) => l.id === payment.bankLineId) : undefined;
   const targets = openLinesFor(allLines(s), { partyId: payment.payerPartyId, legalEntityId: payment.legalEntityId, billingAccountId: payment.billingAccountId });
   const balance = viewBalance(s, payment.billingAccountId);
   return {
-    payment,
+    payment: bank.payment(ctx, payment),
     receipt,
-    ...(submission ? { submission } : {}),
+    ...(submission ? { submission: bank.submission(ctx, submission) } : {}),
     ...(bankLine ? { bankLine } : {}),
+    bankFeed: feed,
     accountBalance: money(balance),
     creditTargets: toAllocationLines(targets.map((line) => ({ line, amount: 0n }))),
     actions: { applyCredit: can(ctx, 'finance.evidence.review') && toPaisa(payment.unapplied.amount) > 0n && targets.length > 0 },
@@ -351,7 +361,9 @@ export const COLLECTIONS_HANDLERS: readonly Handler[] = [
         .filter((x) => !q || !q.trim() || matches(q.trim(), x.ref, x.accountNo, x.payerName, x.current.bankReference, ...x.flats))
         // Oldest first: the queue is worked in the order residents sent their proofs.
         .sort((a, b) => Date.parse(a.current.submittedAt) - Date.parse(b.current.submittedAt))
-        .map((x) => submissionRow(s.state, x));
+        .map((x) => submissionRow(s.state, x))
+        // Issue #18 (FIN-01): the bank-match signal is derived from statement lines: bank feed only.
+        .map((r) => (seesBankFeed(ctx) ? r : (({ match: _m, ...row }) => row)(r)));
       const pending = s.state.submissions.filter((x) => PENDING_STATES.includes(x.state)).reduce((n, x) => n + toPaisa(x.current.amount.amount), 0n);
       return { items, counts, pending: money(pending) };
     },
@@ -505,7 +517,7 @@ export const COLLECTIONS_HANDLERS: readonly Handler[] = [
         sub.state = sub.awaiting ? 'awaiting_bank_evidence' : 'under_review';
         delete sub.exception;
         decided(sub, ctx, 'exception_rejected', note);
-        log(ctx, s, 'paymentExceptionRejected', { kind: 'submission', id: sub.id, label: sub.ref }, { flats: sub.flats, values: { bank: exception.bankTxnId, note } });
+        log(ctx, s, 'paymentExceptionRejected', { kind: 'submission', id: sub.id, label: sub.ref }, { flats: sub.flats, values: { bank: exception.bankTxnId ?? '', note } });
         save(ctx);
         return submissionDetail(ctx, s, sub);
       }

@@ -54,6 +54,7 @@ import { approvalItems, cashCountItems, cashCountTasks } from './finance/approva
 import { cashAwaitingCount } from './finance/pending-cash';
 import { committable, FLAT_COLUMNS, fingerprint, OPENING_COLUMNS, rowsOf, validateFlats, validateOpening } from './import';
 import { factOn, payerOn } from './model';
+import { auditEntries } from './finance/bank-scope';
 import { formatRef } from './numbering';
 import { initialSociety } from './scenario';
 import {
@@ -578,7 +579,8 @@ export const SOCIETY_HANDLERS: readonly Handler[] = [
       const { flat, run, account, invoice } = (ctx.req.query ?? {}) as Record<string, string | undefined>;
       const flatCode = flat ? s.view.model.flats.find((f) => f.id === flat)?.code : undefined;
       const accountFlats = account ? s.view.model.flats.filter((f) => f.billingAccountId === account).map((f) => f.code) : [];
-      return [...s.state.audit]
+      // Issue #18 (FIN-01): statement and line events, bank transaction ids and IBANs only with the bank feed.
+      return auditEntries(ctx, s.state.audit)
         .filter((e) => (!flat || e.flats?.includes(flatCode ?? '')) && (!run || e.target.id === run) && (!invoice || e.target.id === invoice) && (!account || e.target.id === account || (e.flats ?? []).some((c) => accountFlats.includes(c))))
         .sort((a, b) => Date.parse(b.at) - Date.parse(a.at))
         .slice(0, 100);
