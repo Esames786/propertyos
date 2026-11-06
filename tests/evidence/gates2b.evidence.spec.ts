@@ -1,7 +1,7 @@
 import { copyFileSync, mkdirSync } from 'node:fs';
 import type { Browser, Page } from '@playwright/test';
 import { BO, test, type Locale, type PersonaId } from '../support/fixtures';
-import { become, seedSociety, societyApi, type SocietySeed } from '../support/society';
+import { addBlockCWorker, become, BLOCK_C_WORKER, seedSociety, societyApi, type SocietySeed } from '../support/society';
 import { VIEWPORTS, type ViewportName } from '../support/viewports';
 
 /**
@@ -222,6 +222,35 @@ test('dark mode with high contrast: run and disbursement (390, ur)', async ({ br
   await shot(page, 'g01-run-dark-contrast-390-ur');
   await as(page, 'alnoor_accounts', '/backoffice/pay/payroll-disbursement-status', 'pay-instruction');
   await shot(page, 'g02-disbursement-dark-contrast-390-ur');
+  await page.context().close();
+});
+
+test('Issue #16: a main-site-only reader beside a reader with every site (1440, en)', async ({ browser }) => {
+  test.setTimeout(240_000);
+  const page = await context(browser, VIEWPORTS.desktop, { staff: 'alnoor_accounts' });
+  await as(page, 'alnoor_accounts', '/backoffice/pay/payroll-dashboard', 'pay-dashboard');
+  await addBlockCWorker(page);
+  const w = BLOCK_C_WORKER;
+  await as(page, 'alnoor_accounts', `/backoffice/pay/payroll-run-workspace?run=${RUN}`, 'pay-run-lines');
+  await api(page, `/payroll/runs/${RUN}/recompute`);
+  await api(page, `/payroll/runs/${RUN}/lines/${w.id}/bonuses`, 'POST', { label: 'Block C night cover', amount: '3333.33', reason: 'Covered the Block C nights in October.' });
+  await api(page, `/payroll/runs/${RUN}/lines/emp_anr_901/exclude`, 'POST', { reason: 'Pay terms still to be agreed by the committee.' });
+  await api(page, `/payroll/runs/${RUN}/lines/${E.tariq}/days`, 'POST', { days: 23, reason: REASON });
+  await api(page, `/payroll/runs/${RUN}/lines/${E.rukhsana}/days`, 'POST', { days: 26, reason: REASON });
+  await api(page, `/payroll/runs/${RUN}/submit`);
+  await as(page, 'alnoor_treasurer', '/backoffice/pay/payroll-dashboard', 'pay-dashboard');
+  await api(page, `/payroll/runs/${RUN}/approve`, 'POST', { acknowledge: true, note: 'Approved; Omer Farooq’s cover checked.' });
+  await as(page, 'alnoor_accounts', '/backoffice/pay/payroll-dashboard', 'pay-dashboard');
+  await api(page, `/payroll/runs/${RUN}/instructions`);
+  // Ayesha with every site: the full audit.
+  await as(page, 'alnoor_treasurer', `/backoffice/pay/payroll-run-workspace?run=${RUN}`, 'pay-run-lines');
+  await shot(page, 'i01-run-full-reader-1440-en');
+  // Ayesha limited to the main site in this tab (the demo's narrow-only hook).
+  await page.evaluate(() => sessionStorage.setItem('demo:site-scope', JSON.stringify({ alnoor_treasurer: ['site_alnoor'] })));
+  await as(page, 'alnoor_treasurer', `/backoffice/pay/payroll-run-workspace?run=${RUN}`, 'pay-run-limited');
+  await shot(page, 'i02-run-main-site-reader-1440-en');
+  await as(page, 'alnoor_treasurer', '/backoffice/pay/payroll-disbursement-status', 'pay-instruction');
+  await shot(page, 'i03-disbursement-main-site-reader-1440-en');
   await page.context().close();
 });
 

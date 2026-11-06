@@ -2,7 +2,7 @@ import type { Page, TestInfo } from '@playwright/test';
 import { scanA11y } from '../support/axe';
 import { BO, CU, expect, test, type Locale, type PersonaId } from '../support/fixtures';
 import { focusWalk, layoutProblems } from '../support/layout';
-import { become, seedSociety, societyApi } from '../support/society';
+import { addBlockCWorker, become, BLOCK_C_WORKER, seedSociety, societyApi } from '../support/society';
 import { VIEWPORTS } from '../support/viewports';
 
 /**
@@ -243,6 +243,56 @@ test.describe('S.2b reference flow: run → breakdown → review → finalise �
     await office(page, 'alnoor_accounts', '/backoffice/pay/payroll-periods', 'pay-period-rows');
     await page.locator('[data-testid="pay-period-row"][data-ref="ANR-PP-2026-10"]').getByTestId('pay-period-prepare').click();
     await expect(page.getByTestId('pay-run')).toHaveAttribute('data-ref', 'ANR-PR-2026-10-2');
+    expect(consoleErrors).toEqual([]);
+  });
+});
+
+test.describe('S.2b closure (Issue #16): a reader with only some of the employer\'s sites', () => {
+  test('sees no Block C person, amount or note on the run, finalisation, disbursement and accounting screens; a reader with every site keeps the audit', async ({ page, consoleErrors }, testInfo) => {
+    test.setTimeout(240_000);
+    await at(page, '16:10');
+    await seedSociety(page, { staff: 'alnoor_accounts' });
+    await office(page, 'alnoor_accounts', '/backoffice/pay/payroll-dashboard', 'pay-dashboard');
+    await addBlockCWorker(page);
+    const w = BLOCK_C_WORKER;
+    // Saba (every site): the run with Omer's bonus; Rashid (no pay terms) excluded; days confirmed.
+    await office(page, 'alnoor_accounts', `/backoffice/pay/payroll-run-workspace?run=${RUN}`, 'pay-run-lines');
+    expect((await api(page, `/payroll/runs/${RUN}/recompute`, 'POST')).ok).toBe(true);
+    expect((await api(page, `/payroll/runs/${RUN}/lines/${w.id}/bonuses`, 'POST', { label: 'Block C night cover', amount: '3333.33', reason: 'Covered the Block C nights in October.' })).ok).toBe(true);
+    expect((await api(page, `/payroll/runs/${RUN}/lines/emp_anr_901/exclude`, 'POST', { reason: 'Pay terms still to be agreed by the committee.' })).ok).toBe(true);
+    for (const [id, d] of [[E.tariq, 23], [E.rukhsana, 26]] as const) expect((await api(page, `/payroll/runs/${RUN}/lines/${id}/days`, 'POST', { days: d, reason: REASON })).ok).toBe(true);
+    expect((await api(page, `/payroll/runs/${RUN}/submit`, 'POST')).ok).toBe(true);
+    await office(page, 'alnoor_treasurer', `/backoffice/pay/payroll-finalization?run=${RUN}`, 'pay-final-detail');
+    expect((await api(page, `/payroll/runs/${RUN}/approve`, 'POST', { acknowledge: true, note: 'Approved; Omer Farooq’s cover checked.' })).ok).toBe(true);
+    await office(page, 'alnoor_accounts', '/backoffice/pay/payroll-disbursement-status', 'pay-disbursement');
+    const ins = await api<{ id: string }>(page, `/payroll/runs/${RUN}/instructions`, 'POST');
+    expect(ins.ok).toBe(true);
+    // The reader with every site (Ayesha): Omer, his amounts and the note are there.
+    await office(page, 'alnoor_treasurer', `/backoffice/pay/payroll-run-workspace?run=${RUN}`, 'pay-run-lines');
+    await expect(page.getByTestId('pay-run-lines')).toContainText(w.name);
+    await expect(page.getByTestId('pay-run-versions')).toContainText('Rs');
+    await expect(page.getByTestId('pay-run-history')).toContainText('net');
+    // Ayesha limited to the main site in this tab (the demo's narrow-only hook).
+    await page.evaluate(() => sessionStorage.setItem('demo:site-scope', JSON.stringify({ alnoor_treasurer: ['site_alnoor'] })));
+    for (const [path, ready, limitedNote] of [[`/backoffice/pay/payroll-run-workspace?run=${RUN}`, 'pay-run-lines', 'pay-run-limited'], [`/backoffice/pay/payroll-finalization?run=${RUN}`, 'pay-final-audit', 'pay-final-limited'], ['/backoffice/pay/payroll-disbursement-status', 'pay-instruction', 'pay-disbursement-limited'], ['/backoffice/pay/payroll-accounting', 'pay-accounting-runs', null], ['/backoffice/pay/payroll-dashboard', 'pay-dashboard', 'pay-dashboard-limited'], ['/backoffice/pay/payroll-periods', 'pay-period-rows', 'pay-periods-limited']] as const) {
+      await page.goto(`${BO}${path}`);
+      await expect(page.getByTestId(ready).first()).toBeVisible();
+      // Every screen showing amounts says they cover the reader's sites only.
+      if (limitedNote) await expect(page.getByTestId(limitedNote), path).toBeVisible();
+      const text = await page.locator('main').innerText();
+      for (const secret of [w.name, 'Omer', w.code, w.last4, 'Block C']) expect(text, `${path}: ${secret}`).not.toContain(secret);
+    }
+    await page.goto(`${BO}/backoffice/pay/payroll-run-workspace?run=${RUN}`);
+    await expect(page.getByTestId('pay-run-limited')).toBeVisible();
+    await expect(page.getByTestId('pay-run-versions')).not.toContainText('Rs');
+    await expect(page.getByTestId('pay-run-versions')).toContainText('Changed');
+    await expect(page.getByTestId('pay-run-history')).toContainText('Approved as an obligation (version');
+    await expect(page.getByTestId('pay-run-history')).not.toContainText('net');
+    await axe(page, testInfo, 'pay-run-limited-reader-1440-en');
+    // A deep link to Omer's pay: "not found", like an id never issued.
+    await page.goto(`${BO}/backoffice/pay/employee-pay-breakdown?run=${RUN}&employee=${w.id}`);
+    await expect(page.getByTestId('pay-breakdown')).toHaveCount(0);
+    expect(await page.locator('main').innerText()).not.toContain('Omer');
     expect(consoleErrors).toEqual([]);
   });
 });

@@ -6,7 +6,7 @@ import { invalid } from '../operations/common';
 import { problem } from '../society/handlers';
 import { AMOUNT, money, paisa } from '../society/finance/model';
 import { newVersion, runTotals } from './compute';
-import { firstDay, lastDay, MONTH, monthOf, splitForInstruction } from './rules';
+import { fingerprint, firstDay, lastDay, MONTH, monthOf, splitForInstruction } from './rules';
 import { ev, nextPay, periodIds, runRef, type StoredInstruction, type StoredPeriod, type StoredRun } from './state';
 import {
   accounting,
@@ -83,11 +83,33 @@ function whole(p: P, legalEntityId: string): void {
   if (!entityWhole(p, legalEntityId)) refuse(p.ctx, 403, 'other_sites', 'otherSites');
 }
 
-/** A repeated create with the same idempotency key returns what the first one created. */
-const replayed = (p: P) => (p.ctx.req.idempotencyKey ? p.pay.idempotency[p.ctx.req.idempotencyKey] : undefined);
-const remember = (p: P, id: string) => {
-  if (p.ctx.req.idempotencyKey) p.pay.idempotency[p.ctx.req.idempotencyKey] = id;
-};
+/**
+ * Gate S.2b closure (GitHub Issue #16, P0-2): idempotency bound to the request.
+ *
+ * A create remembers its key with the operation, the principal, the target (employer, period, run, or
+ * run and employee) and a fingerprint of its normalised input. The same key then replays only the
+ * exact same request: the same operation, by the same person, on the same target, with the same input.
+ * Anything else with that key (another operation, person, target or input) is refused with one
+ * answer that says nothing about what the key was used for, and nothing changes.
+ *
+ * Callers check authority over the target first, so a replay never outlives revoked or narrowed
+ * access; and the recorded result is looked up again through the scoped finders, never returned raw.
+ */
+type IdemOp = 'period.create' | 'run.prepare' | 'bonus.add' | 'instruction.prepare';
+
+function replayOf(p: P, op: IdemOp, target: string, input: unknown): string | undefined {
+  const key = p.ctx.req.idempotencyKey;
+  if (!key) return undefined;
+  const e = p.pay.idempotency[key];
+  if (!e) return undefined;
+  if (typeof e !== 'object' || e.op !== op || e.principal !== p.me.principalId || e.target !== target || e.fingerprint !== fingerprint(input)) refuse(p.ctx, 409, 'idempotency_key_reused', 'idempotencyKeyReused');
+  return e.recordId;
+}
+
+function remember(p: P, op: IdemOp, target: string, input: unknown, recordId: string): void {
+  const key = p.ctx.req.idempotencyKey;
+  if (key) p.pay.idempotency[key] = { op, principal: p.me.principalId, target, fingerprint: fingerprint(input), recordId };
+}
 
 function findPeriod(p: P): StoredPeriod {
   const period = periodById(p, p.ctx.params.id ?? '');
@@ -137,7 +159,8 @@ function periodsList(p: P): PayPeriodsList {
     const month = expectedMonth(p, entity);
     next = { legalEntityId: entity, legalEntityName: entityName(p, entity), month, from: firstDay(month), to: lastDay(month), payDate: lastDay(month) };
   }
-  return { items, counts, canCreate: !!next, ...(next ? { next } : {}), today: p.today };
+  const scopeLimited = items.some((x) => !entityWhole(p, x.legalEntityId));
+  return { items, counts, canCreate: !!next, ...(next ? { next } : {}), today: p.today, scopeLimited };
 }
 
 /** The month the legal entity's next period must be: the one after its latest, or the licence month. */
@@ -153,8 +176,13 @@ function createPeriod(p: P): PayPeriodView {
   const le = str(b.legalEntityId);
   if (!le || !entityVisible(p, le)) invalid(ctx, 'legalEntityId', 'forms:errors.required');
   whole(p, le);
-  const again = replayed(p);
-  if (again) return periodView(p, periodById(p, again)!);
+  const input = { month: str(b.month), payDate: str(b.payDate) };
+  const again = replayOf(p, 'period.create', le, input);
+  if (again) {
+    const done = periodById(p, again);
+    if (!done || done.legalEntityId !== le || !entityVisible(p, done.legalEntityId)) notFound(ctx);
+    return periodView(p, done);
+  }
   const month = str(b.month);
   if (!MONTH.test(month)) invalid(ctx, 'month', 'payroll:errors.month');
   const existing = p.pay.periods.find((x) => x.legalEntityId === le && x.month === month);
@@ -169,7 +197,7 @@ function createPeriod(p: P): PayPeriodView {
   const { id, ref } = periodIds(entityCode(p, le), month);
   const period: StoredPeriod = { id, ref, legalEntityId: le, month, from: firstDay(month), to, payDate, state: 'draft', createdBy: p.me.principalId, createdByName: p.me.name, createdAt: p.now, history: [stamp(p, 'period_created')] };
   p.pay.periods.push(period);
-  remember(p, id);
+  remember(p, 'period.create', le, input, id);
   save(p);
   return periodView(p, period);
 }
@@ -208,8 +236,12 @@ function prepareRun(p: P): PayRunView {
   const { ctx } = official(p);
   const period = findPeriod(p);
   whole(p, period.legalEntityId);
-  const again = replayed(p);
-  if (again) return runView(p, findRun(p, again));
+  const again = replayOf(p, 'run.prepare', period.id, {});
+  if (again) {
+    const done = findRun(p, again);
+    if (done.periodId !== period.id) notFound(ctx);
+    return runView(p, done);
+  }
   if (period.state !== 'open') refuse(ctx, 409, 'period_not_open', 'periodNotOpen');
   const live = liveRun(p, period);
   if (live) refuse(ctx, 409, 'run_exists', 'runExists', { ref: live.ref });
@@ -218,7 +250,7 @@ function prepareRun(p: P): PayRunView {
   const run: StoredRun = { id, ref: runRef(entityCode(p, period.legalEntityId), period.month, nth), periodId: period.id, legalEntityId: period.legalEntityId, state: 'draft', version: 0, fingerprint: '', lines: [], versions: [], preparedBy: p.me.principalId, preparedByName: p.me.name, preparedAt: p.now, makers: [], makerNames: [], history: [stamp(p, 'run_prepared')] };
   p.pay.runs.push(run);
   newVersion(p.hr, p.pay, period, run, who(p), p.now, 'prepared', p.loans);
-  remember(p, id);
+  remember(p, 'run.prepare', period.id, {}, id);
   save(p);
   return runView(p, run);
 }
@@ -262,7 +294,7 @@ function confirmDays(p: P): PayBreakdown {
   const reason = text(ctx, 'reason', b.reason, 10, 300);
   line.daysConfirmed = { days, reason, by: p.me.principalId, byName: p.me.name, at: p.now };
   line.history.push(stamp(p, 'days_confirmed', { note: reason, values: { days: String(days) } }));
-  newVersion(p.hr, p.pay, periodOfRun(p, run), run, who(p), p.now, 'days_confirmed', p.loans, line.snapshot.name);
+  newVersion(p.hr, p.pay, periodOfRun(p, run), run, who(p), p.now, 'days_confirmed', p.loans, { id: line.employeeId, name: line.snapshot.name });
   save(p);
   return breakdown(p, run, run.lines.find((l) => l.employeeId === line.employeeId)!);
 }
@@ -273,10 +305,11 @@ function addBonus(p: P): PayBreakdown {
   const { ctx } = official(p);
   const run = findRun(p);
   const line = lineToChange(p, run);
-  const again = replayed(p);
-  if (again) return breakdown(p, run, line);
-  if (!line.included) refuse(ctx, 409, 'line_excluded', 'lineExcluded');
   const b = body<PayBonusInput>(ctx);
+  const target = `${run.id}:${line.employeeId}`;
+  const input = { label: str(b.label), amount: str(b.amount).replace(/,/g, ''), reason: str(b.reason) };
+  if (replayOf(p, 'bonus.add', target, input)) return breakdown(p, run, line);
+  if (!line.included) refuse(ctx, 409, 'line_excluded', 'lineExcluded');
   const label = text(ctx, 'label', b.label, 3, 60);
   const raw = str(b.amount).replace(/,/g, '');
   // Only a positive amount: a "negative bonus" is a deduction, and no deduction policy exists.
@@ -287,8 +320,8 @@ function addBonus(p: P): PayBreakdown {
   const { id } = nextPay(p.pay, entityCode(p, run.legalEntityId), 'bonus');
   line.bonuses.push({ id, label, amount: money(amount), reason, addedBy: p.me.principalId, addedByName: p.me.name, addedAt: p.now });
   line.history.push(stamp(p, 'bonus_added', { note: reason, values: { label, amount: money(amount).amount } }));
-  newVersion(p.hr, p.pay, periodOfRun(p, run), run, who(p), p.now, 'bonus_added', p.loans, line.snapshot.name);
-  remember(p, id);
+  newVersion(p.hr, p.pay, periodOfRun(p, run), run, who(p), p.now, 'bonus_added', p.loans, { id: line.employeeId, name: line.snapshot.name });
+  remember(p, 'bonus.add', target, input, id);
   save(p);
   return breakdown(p, run, run.lines.find((l) => l.employeeId === line.employeeId)!);
 }
@@ -301,7 +334,7 @@ function removeBonus(p: P): PayBreakdown {
   if (!bonus) notFound(ctx);
   line.bonuses = line.bonuses.filter((x) => x.id !== bonus.id);
   line.history.push(stamp(p, 'bonus_removed', { values: { label: bonus.label, amount: bonus.amount.amount } }));
-  newVersion(p.hr, p.pay, periodOfRun(p, run), run, who(p), p.now, 'bonus_removed', p.loans, line.snapshot.name);
+  newVersion(p.hr, p.pay, periodOfRun(p, run), run, who(p), p.now, 'bonus_removed', p.loans, { id: line.employeeId, name: line.snapshot.name });
   save(p);
   return breakdown(p, run, run.lines.find((l) => l.employeeId === line.employeeId)!);
 }
@@ -321,7 +354,7 @@ function exclude(p: P, out: boolean): PayBreakdown {
     delete line.exclusion;
     line.history.push(stamp(p, 'line_included'));
   }
-  newVersion(p.hr, p.pay, periodOfRun(p, run), run, who(p), p.now, out ? 'line_excluded' : 'line_included', p.loans, line.snapshot.name);
+  newVersion(p.hr, p.pay, periodOfRun(p, run), run, who(p), p.now, out ? 'line_excluded' : 'line_included', p.loans, { id: line.employeeId, name: line.snapshot.name });
   save(p);
   return breakdown(p, run, run.lines.find((l) => l.employeeId === line.employeeId)!);
 }
@@ -417,8 +450,10 @@ function reverse(p: P): PayRunView {
 }
 
 function runsList(p: P): PayRunsList {
+  const runs = visibleRuns(p);
   return {
-    items: visibleRuns(p).map((r) => {
+    scopeLimited: runs.some((r) => !entityWhole(p, r.legalEntityId)),
+    items: runs.map((r) => {
       const v = runView(p, r);
       return {
         id: v.id,
@@ -472,8 +507,12 @@ function prepareInstruction(p: P): PayInstructionView {
   const { ctx } = official(p);
   const run = findRun(p);
   whole(p, run.legalEntityId);
-  const again = replayed(p);
-  if (again) return instructionView(p, p.pay.instructions.find((i) => i.id === again)!);
+  const again = replayOf(p, 'instruction.prepare', run.id, {});
+  if (again) {
+    const done = p.pay.instructions.find((i) => i.id === again && i.runId === run.id && entityVisible(p, i.legalEntityId));
+    if (!done) notFound(ctx);
+    return instructionView(p, done);
+  }
   if (run.state !== 'approved') refuse(ctx, 409, 'run_not_approved', 'runNotApproved');
   const live = liveInstruction(p, run);
   if (live) refuse(ctx, 409, 'instruction_exists', 'instructionExists', { ref: live.ref });
@@ -497,7 +536,7 @@ function prepareInstruction(p: P): PayInstructionView {
   };
   p.pay.instructions.push(ins);
   run.history.push(stamp(p, 'instruction_prepared', { values: { ref } }));
-  remember(p, id);
+  remember(p, 'instruction.prepare', run.id, {}, id);
   save(p);
   return instructionView(p, ins);
 }
@@ -561,6 +600,7 @@ function disbursements(p: P): PayDisbursements {
     }),
     cancelled: p.pay.instructions.filter((i) => i.state === 'cancelled' && runs.some((r) => r.id === i.runId)).map((i) => instructionView(p, i)),
     settlementAvailable: false,
+    scopeLimited: runs.some((r) => !entityWhole(p, r.legalEntityId)),
   };
 }
 

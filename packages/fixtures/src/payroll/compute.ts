@@ -1,9 +1,8 @@
-import type { PayVersion } from '@repo/contracts';
 import { daysBetween } from '../hr/rules';
 import { pkt, type HrState, type StoredEmployee } from '../hr/state';
 import { money, paisa } from '../society/finance/model';
 import { computeLine, fingerprint, totalsOf, type LineFacts, type LineResult, type Period } from './rules';
-import { ev, nextPay, periodIds, runRef, SABA, seedTerms, type LineSnapshot, type PayrollState, type StoredLine, type StoredPeriod, type StoredRun, type StoredTerms } from './state';
+import { ev, nextPay, periodIds, runRef, SABA, seedTerms, type LineSnapshot, type PayrollState, type StoredLine, type StoredPeriod, type StoredRun, type StoredTerms, type StoredVersion } from './state';
 
 /**
  * Gate S.2b: from the HR records to pay lines. A run's lines are the employees of its legal entity
@@ -107,7 +106,7 @@ export const periodOf = (p: StoredPeriod): Period => ({ month: p.month, from: p.
  * people still in it. Someone no longer in the period (moved to another employer, start date moved
  * later) leaves the run, and the run's history says so.
  */
-export function calculate(hr: HrState, pay: PayrollState, period: StoredPeriod, run: StoredRun, loans: boolean): { lines: StoredLine[]; removed: string[]; fingerprint: string } {
+export function calculate(hr: HrState, pay: PayrollState, period: StoredPeriod, run: StoredRun, loans: boolean): { lines: StoredLine[]; removed: Array<{ id: string; name: string }>; fingerprint: string } {
   const p = periodOf(period);
   const people = periodEmployees(hr, run.legalEntityId, p);
   const lines = people.map((e): StoredLine => {
@@ -124,7 +123,7 @@ export function calculate(hr: HrState, pay: PayrollState, period: StoredPeriod, 
       history: prev?.history ?? [],
     };
   });
-  const removed = run.lines.filter((l) => !people.some((e) => e.id === l.employeeId)).map((l) => l.snapshot.name);
+  const removed = run.lines.filter((l) => !people.some((e) => e.id === l.employeeId)).map((l) => ({ id: l.employeeId, name: l.snapshot.name }));
   return { lines, removed, fingerprint: hrFingerprint(hr, pay, run.legalEntityId, p, loans) };
 }
 
@@ -133,19 +132,19 @@ export const runTotals = (lines: readonly StoredLine[]) =>
   totalsOf(lines.map((l) => ({ included: l.included, result: { gross: paisa(l.snapshot.gross), deductions: paisa(l.snapshot.deductions), net: paisa(l.snapshot.net), blockers: l.snapshot.blockers } })));
 
 /** Recalculates the run as a new version, by `who`, for a reason (`payroll:version.*`). */
-export function newVersion(hr: HrState, pay: PayrollState, period: StoredPeriod, run: StoredRun, who: { by: string; byName: string }, at: string, reason: string, loans: boolean, about?: string): void {
+export function newVersion(hr: HrState, pay: PayrollState, period: StoredPeriod, run: StoredRun, who: { by: string; byName: string }, at: string, reason: string, loans: boolean, about?: { id: string; name: string }): void {
   const { lines, removed, fingerprint: fp } = calculate(hr, pay, period, run, loans);
   run.lines = lines;
   run.fingerprint = fp;
   run.version += 1;
   const t = runTotals(lines);
-  const v: PayVersion = { n: run.version, at, byName: who.byName, reason, ...(about ? { about } : {}), net: money(t.net), included: t.included };
+  const v: StoredVersion = { n: run.version, at, byName: who.byName, reason, ...(about ? { about: about.name, aboutId: about.id } : {}), net: money(t.net), included: t.included };
   run.versions.push(v);
   if (!run.makers.includes(who.by)) {
     run.makers.push(who.by);
     run.makerNames.push(who.byName);
   }
-  for (const name of removed) run.history.push(ev(who, at, 'line_removed', { values: { name } }));
+  for (const r of removed) run.history.push(ev(who, at, 'line_removed', { employeeId: r.id, values: { name: r.name } }));
 }
 
 /**

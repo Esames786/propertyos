@@ -133,7 +133,7 @@ function RunWorkspace({ id, runs }: { id: string; runs: PayRunsList }) {
           )}
         </InlineAlert>
       )}
-      {r.state === 'reversed' && r.reversedByName && <InlineAlert tone="info">{t('payroll:run.reversedNote', { name: r.reversedByName, date: fmt.date(r.reversedAt!), reason: r.reversalReason! })}</InlineAlert>}
+      {r.state === 'reversed' && r.reversedByName && <InlineAlert tone="info">{r.reversalReason ? t('payroll:run.reversedNote', { name: r.reversedByName, date: fmt.date(r.reversedAt!), reason: r.reversalReason }) : t('payroll:run.reversedNoteBrief', { name: r.reversedByName, date: fmt.date(r.reversedAt!) })}</InlineAlert>}
       {r.runBlockers.length > 0 && (
         <InlineAlert tone="warning" title={r.stale ? t('payroll:run.staleTitle') : t('payroll:run.blockersTitle')} data-testid="pay-run-blockers">
           <ul className="list-disc space-y-0.5 ps-5">
@@ -273,7 +273,14 @@ function RunWorkspace({ id, runs }: { id: string; runs: PayRunsList }) {
                     </>
                   )}
                   <span className="block text-xs text-muted">
-                    <bdi>{v.byName}</bdi> · <Money value={v.net} /> · {fmt.count(v.included)}
+                    <bdi>{v.byName}</bdi>
+                    {v.net && (
+                      <>
+                        {' · '}
+                        <Money value={v.net} />
+                      </>
+                    )}
+                    {v.included !== undefined && <> · {fmt.count(v.included)}</>}
                   </span>
                 </li>
               ))}

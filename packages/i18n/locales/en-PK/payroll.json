@@ -253,6 +253,7 @@
     },
     "approvedNote": "Approved by {{name}} on {{date}}. This is an obligation: nothing has been paid.",
     "reversedNote": "Reversed by {{name}} on {{date}}: “{{reason}}”",
+    "reversedNoteBrief": "Reversed by {{name}} on {{date}}.",
     "instructionLink": "Disbursement: {{ref}}",
     "exportName": "payroll-{{ref}}-v{{version}}.csv",
     "csvHeader": "Code,Name,Role,State,Gross,Deductions,Net",
@@ -385,6 +386,7 @@
       "prepared": "Prepared by {{name}}",
       "approved": "Approved by {{name}}",
       "sent": "Marked sent by {{name}}",
+      "cancelledBrief": "Cancelled by {{name}}",
       "cancelled": "Cancelled by {{name}}: “{{reason}}”"
     },
     "confirm": {
@@ -441,6 +443,7 @@
     "settledNone": "Not available"
   },
   "version": {
+    "changed": "Changed",
     "prepared": "Prepared",
     "recalculated": "Recalculated from HR records",
     "days_confirmed": "Days confirmed",
@@ -456,9 +459,11 @@
     "run_prepared": "Run prepared",
     "run_recalculated": "Recalculated (version {{version}})",
     "run_submitted": "Submitted for approval (version {{version}}, net {{net}})",
+    "run_submitted_limited": "Submitted for approval (version {{version}})",
     "run_withdrawn": "Submission withdrawn",
     "run_returned": "Returned for changes",
     "run_approved": "Approved as an obligation (version {{version}}, net {{net}})",
+    "run_approved_limited": "Approved as an obligation (version {{version}})",
     "run_reversed": "Approval reversed",
     "line_removed": "{{name}} left the run (no longer in this period's employer)",
     "instruction_prepared": "Disbursement instruction prepared",
@@ -484,6 +489,7 @@
     "own_instruction": "You prepared this instruction, so someone else approves it."
   },
   "problems": {
+    "idempotencyKeyReused": "This request’s key was already used for a different request. Nothing was changed; send it again as a new request.",
     "otherSites": "This employer has sites outside your access, so you cannot change this.",
     "ownRecord": "Nobody changes or approves their own pay.",
     "makerChecker": "You prepared or changed this, so someone else must decide it.",

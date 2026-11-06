@@ -189,6 +189,35 @@ export async function addSharedGuard(page: Page, narrow: string[] = []): Promise
   return main;
 }
 
+/** A Block C-only worker of the browser's multi-site case (Issue #16): nobody limited to the main site sees him. */
+export const BLOCK_C_WORKER = { id: 'emp_anc_902', code: 'ANC-E-902', name: 'Omer Farooq', last4: '0977' } as const;
+
+/**
+ * Gate S.2b closure (Issue #16): the multi-site case of `addSharedGuard` plus a guard who works at
+ * Block C only, with fictional pay terms (monthly, a verified fictional account ending 0977), so his
+ * pay is calculated, approved and instructed. The page must be an office page whose HR and payroll
+ * states exist (a payroll screen opened once). Narrowing is done separately (`demo:site-scope`).
+ */
+export async function addBlockCWorker(page: Page): Promise<void> {
+  await addSharedGuard(page);
+  await page.evaluate((w) => {
+    type Emp = { id: string; code: string; name: string; sites: Array<{ siteId: string; from: string }>; personal: Record<string, string> };
+    const part = window.__prototype!.transport.demo.partition('tnt_alnoor');
+    const hr = part.section<{ employees: Emp[] }>('hr', () => {
+      throw new Error('HR state not created yet');
+    });
+    const pay = part.section<{ terms: unknown[] }>('payroll', () => {
+      throw new Error('Payroll state not created yet');
+    });
+    if (!hr.employees.some((e) => e.id === w.id)) {
+      const rashid = hr.employees.find((e) => e.id === 'emp_anr_901')!;
+      hr.employees.push({ ...(JSON.parse(JSON.stringify(rashid)) as Emp), id: w.id, code: w.code, name: w.name, sites: [{ siteId: 'site_anc_demo', from: '2025-01-01' }], personal: { cnic: '35202-9000004-4', phone: '+92 300 0000904', address: 'House 4, Block C, Lahore (Demo)' } });
+      pay.terms.push({ employeeId: w.id, from: '2025-01-01', basis: 'monthly', rate: { amount: '47000.00', currency: 'PKR' }, allowances: [], method: 'bank', account: { bankName: 'Demo Bank (fictional)', last4: w.last4, verified: true }, recordedByName: 'Saba Javed', recordedAt: '2026-10-15T09:30:00+05:00' });
+      part.save();
+    }
+  }, BLOCK_C_WORKER);
+}
+
 export const textScaleOf = (page: Page) =>
   page.evaluate(() =>
     getComputedStyle(document.documentElement).getPropertyValue('--text-scale').trim(),

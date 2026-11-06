@@ -1,4 +1,4 @@
-import type { Money, PayAccounting, PayBreakdown, PayDashboard, PayInstructionView, PayLineSummary, PayPeriodView, PayPolicy, PayRunBlocker, PayRunRef, PayRunView, Permission } from '@repo/contracts';
+import type { Money, PayAccounting, PayBreakdown, PayDashboard, PayEvent, PayInstructionView, PayLineSummary, PayPeriodView, PayPolicy, PayRunBlocker, PayRunRef, PayRunView, PayVersion, Permission } from '@repo/contracts';
 import { PAY_STATUTORY } from '@repo/contracts';
 import { authorize, can, notFound, permits, type HandlerContext } from '../handler-types';
 import { employeeVisible, scopeOfSites, type HrScope } from '../hr/scope';
@@ -9,7 +9,7 @@ import { problem } from '../society/handlers';
 import { money, paisa } from '../society/finance/model';
 import { hrFingerprint, periodOf, runTotals, seedPayroll } from './compute';
 import { proposedJournal } from './rules';
-import { payrollState, type PayrollState, type StoredInstruction, type StoredLine, type StoredPeriod, type StoredRun } from './state';
+import { payrollState, type PayrollState, type StoredEvent, type StoredInstruction, type StoredLine, type StoredPeriod, type StoredRun, type StoredVersion } from './state';
 
 /**
  * Gate S.2b read models and the request context. Every payroll endpoint needs the office app, a
@@ -76,6 +76,49 @@ export const visibleLines = (p: P, run: StoredRun) => (entityWhole(p, run.legalE
 
 export const isOwnLine = (p: P, l: Pick<StoredLine, 'employeeId'>) => employeeOf(p.hr, l.employeeId)?.principalId === p.me.principalId;
 
+// ---------------------------------------------------------------------------------------------
+// Gate S.2b closure (GitHub Issue #16, P0-1): history as the reader may see it
+// ---------------------------------------------------------------------------------------------
+
+/** Event values that never carry pay or a person: a version number, a reference. */
+const SAFE_VALUES: readonly string[] = ['version', 'ref'];
+/** Run events whose words name an amount: a limited reader gets the same words without it. */
+const LIMITED_TEXT = new Set(['run_submitted', 'run_approved']);
+/** Versions about the whole run (not about one person). */
+const RUN_WIDE = new Set(['prepared', 'recalculated']);
+
+/**
+ * Every event list, projected for the reader. Someone with every site of the employer gets the full
+ * audit. Someone with only some of the sites gets, for each event:
+ * - **about one person** (it names an employee): the event only if they may see that person;
+ * - **about the run or instruction**: who and when and what, without any amount, total or other
+ *   value except a version number or a reference, and without the free-text note (a note may name
+ *   anyone or any amount).
+ * Nothing is recalculated or invented: the events are the stored ones, with fields left out.
+ */
+export function projectEvents(p: P, events: readonly StoredEvent[], whole: boolean): PayEvent[] {
+  return events.flatMap(({ employeeId, ...e }): PayEvent[] => {
+    if (whole) return [e];
+    if (employeeId) return seesEmployee(p, employeeOf(p.hr, employeeId)) ? [e] : [];
+    const values = Object.fromEntries(Object.entries(e.values ?? {}).filter(([k]) => SAFE_VALUES.includes(k)));
+    return [{ at: e.at, by: e.by, byName: e.byName, action: LIMITED_TEXT.has(e.action) ? `${e.action}_limited` : e.action, ...(Object.keys(values).length ? { values } : {}) }];
+  });
+}
+
+/**
+ * A run's versions, projected for the reader. With every site: everything. With only some sites:
+ * the number, time, author and reason, never the employer-wide net or head count (no per-version
+ * filtered totals exist, and none are made up); a change about one person names them only if the
+ * reader may see them, and otherwise reads "Changed".
+ */
+export function projectVersions(p: P, versions: readonly StoredVersion[], whole: boolean): PayVersion[] {
+  return versions.map(({ aboutId, ...v }): PayVersion => {
+    if (whole) return v;
+    const seen = !!aboutId && seesEmployee(p, employeeOf(p.hr, aboutId));
+    return { n: v.n, at: v.at, byName: v.byName, reason: RUN_WIDE.has(v.reason) || seen ? v.reason : 'changed', ...(seen && v.about ? { about: v.about } : {}) };
+  });
+}
+
 export const periodById = (p: P, id: string) => p.pay.periods.find((x) => x.id === id);
 export const periodOfRun = (p: P, run: StoredRun) => p.pay.periods.find((x) => x.id === run.periodId)!;
 export const liveRun = (p: P, period: StoredPeriod) => p.pay.runs.find((r) => r.periodId === period.id && r.state !== 'reversed');
@@ -137,7 +180,7 @@ export function periodView(p: P, period: StoredPeriod): PayPeriodView {
     createdAt: period.createdAt,
     ...(period.openedByName ? { openedByName: period.openedByName, openedAt: period.openedAt! } : {}),
     ...(period.closedByName ? { closedByName: period.closedByName, closedAt: period.closedAt! } : {}),
-    history: period.history,
+    history: projectEvents(p, period.history, whole),
     actions: { open, close, prepareRun: prepare && period.state === 'open' && !live },
     ...(blocked ? { blocked } : {}),
   };
@@ -239,16 +282,16 @@ export function runView(p: P, run: StoredRun): PayRunView {
     lines: lines.map((l) => lineSummary(p, l)),
     runBlockers: blockers,
     policies: POLICIES,
-    versions: run.versions,
+    versions: projectVersions(p, run.versions, whole),
     preparedByName: run.preparedByName,
     preparedAt: run.preparedAt,
     ...(run.submittedByName ? { submittedByName: run.submittedByName, submittedAt: run.submittedAt! } : {}),
     ...(run.approvedByName ? { approvedByName: run.approvedByName, approvedAt: run.approvedAt! } : {}),
-    ...(run.approvalNote ? { approvalNote: run.approvalNote } : {}),
-    ...(run.reversedByName ? { reversedByName: run.reversedByName, reversedAt: run.reversedAt!, reversalReason: run.reversalReason! } : {}),
+    ...(run.approvalNote && whole ? { approvalNote: run.approvalNote } : {}),
+    ...(run.reversedByName ? { reversedByName: run.reversedByName, reversedAt: run.reversedAt!, ...(whole ? { reversalReason: run.reversalReason! } : {}) } : {}),
     makers: run.makerNames,
     ...(ins ? { instruction: { id: ins.id, ref: ins.ref, state: ins.state } } : {}),
-    history: run.history,
+    history: projectEvents(p, run.history, whole),
     actions,
     ...(blocked ? { blocked } : {}),
   };
@@ -301,7 +344,7 @@ export function breakdown(p: P, run: StoredRun, l: StoredLine): PayBreakdown {
     payment: { method: s.method, ...(s.account ? { account: s.account, accountVerified: !!s.accountVerified } : {}) },
     own,
     otherRuns,
-    history: l.history,
+    history: projectEvents(p, l.history, true),
     actions: {
       confirmDays: editable && s.basis === 'daily' && l.included,
       addBonus: editable && l.included && !!p.ctx.access?.features.includes('payroll.bonuses'),
@@ -351,8 +394,8 @@ export function instructionView(p: P, ins: StoredInstruction): PayInstructionVie
     preparedAt: ins.preparedAt,
     ...(ins.approvedByName ? { approvedByName: ins.approvedByName, approvedAt: ins.approvedAt! } : {}),
     ...(ins.sentByName ? { sentByName: ins.sentByName, sentAt: ins.sentAt! } : {}),
-    ...(ins.cancelledByName ? { cancelledByName: ins.cancelledByName, cancelledAt: ins.cancelledAt!, cancelReason: ins.cancelReason! } : {}),
-    history: ins.history,
+    ...(ins.cancelledByName ? { cancelledByName: ins.cancelledByName, cancelledAt: ins.cancelledAt!, ...(whole ? { cancelReason: ins.cancelReason! } : {}) } : {}),
+    history: projectEvents(p, ins.history, whole),
     actions: {
       approve: approve && ins.state === 'prepared' && !preparer && !own,
       send: prepare && ins.state === 'approved',

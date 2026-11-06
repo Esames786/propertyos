@@ -28,6 +28,11 @@ export default function PayrollFinalisationPage() {
     <div className="@container space-y-5" data-testid="pay-finalisation">
       <PageHeader title={t('payroll:finalisation.title')} description={t('payroll:finalisation.intro')} />
       <PayNav current="finalisation" />
+      {runs.data.scopeLimited && (
+        <InlineAlert tone="info" data-testid="pay-final-limited">
+          {t('payroll:scopeLimited')}
+        </InlineAlert>
+      )}
       <div className="grid grid-cols-1 gap-5 @4xl:grid-cols-[minmax(0,0.9fr)_minmax(0,2fr)]">
         <Panel title={t('payroll:finalisation.queue')}>
           {ordered.length === 0 ? (

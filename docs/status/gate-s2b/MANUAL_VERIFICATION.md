@@ -22,6 +22,7 @@ These checks are **not a WCAG certification**. The checks below need a person. T
 | Urdu wording by a native reader | `packages/i18n/locales/ur-PK/payroll.json`, the HR-008 sentence in `hr.json` | not performed | needs a person |
 | Money wording with the finance team | "Approved obligation — not paid", "Approved instruction — not sent", "Sent (simulated) — not paid", "Not settled — no evidence", "Verified as paid: Not available", the acknowledgement sentence | not performed | needs Al-Noor's treasurer and accounts officer |
 | Policy labels with an adviser | statutory placeholders, the demo proration rule, held unpaid leave and instalments | not performed | needs an adviser (no statutory claim is made) |
+| Limited reader (Issue #16) | whether "You see the staff of your sites only…", versions reading "Changed" and events without amounts are clear to a site-limited reader, with a screen reader too | not performed (automated in Chromium with the demo's narrow-only hook) | needs a person |
 | Multi-site and other employers in the screens | proven at the API with the S.2a multi-site fixture; the demo has one site | not performed in the screens | later stage |
 | Firefox and WebKit beyond the smoke | the rest of the payroll screens | not performed (smoke: reference flow; Urdu 320 px / 200 %) | later stage |
 

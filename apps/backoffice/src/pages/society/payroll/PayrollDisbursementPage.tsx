@@ -30,6 +30,11 @@ export default function PayrollDisbursementPage() {
     <div className="@container space-y-5" data-testid="pay-disbursement">
       <PageHeader title={t('payroll:disbursement.title')} description={t('payroll:disbursement.intro')} />
       <PayNav current="disbursement" />
+      {d.scopeLimited && (
+        <InlineAlert tone="info" data-testid="pay-disbursement-limited">
+          {t('payroll:scopeLimited')}
+        </InlineAlert>
+      )}
       <InlineAlert tone="warning" title={t('payroll:disbursement.partialTitle')} data-testid="pay-disbursement-partial">
         {t('payroll:disbursement.partial')}
       </InlineAlert>
@@ -90,7 +95,7 @@ export default function PayrollDisbursementPage() {
                   {c.ref}
                 </bdi>
                 <InstructionBadge state={c.state} />
-                {c.cancelledByName && <span className="text-muted">{t('payroll:disbursement.who.cancelled', { name: c.cancelledByName, reason: c.cancelReason ?? '' })}</span>}
+                {c.cancelledByName && <span className="text-muted">{c.cancelReason ? t('payroll:disbursement.who.cancelled', { name: c.cancelledByName, reason: c.cancelReason }) : t('payroll:disbursement.who.cancelledBrief', { name: c.cancelledByName })}</span>}
               </li>
             ))}
           </ul>

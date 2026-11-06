@@ -1,11 +1,12 @@
 # Gate S.2b: Society payroll (Al-Noor Residency)
 
-**Status: built, stopped for GPT and owner review.**
+**Status: Issue #16 closure (two P0 findings) built and verified, stopped for GPT and owner review.** The gate itself (`a0d4a70`) was provisionally accepted; the closure is in [§9](#9-issue-16-closure-gpt-review-of-a0d4a70).
 
 **Commits**
 - **Branch:** `feature/gate-s2b-society-payroll`.
 - **Base:** `feature/gate-s2a-society-staff@16e7f54`, the owner-accepted S.2a.
-- **Final commit:** see the delivery message; it holds the code, tests, register, evidence and these documents.
+- **Gate commit:** `a0d4a70` (reviewed by GPT, Issue #16).
+- **Closure commit:** `Gate S.2b closure (Issue #16)` on `a0d4a70`; its SHA is in the delivery message.
 - **Not touched:** `main`, Issue #13, the VPS, Bingoo, Laravel and any backend; no real payment, bank account or payroll data.
 - `docs/status/PROJECT_HANDOFF.md` is not committed.
 
@@ -286,7 +287,7 @@ Each is the safest fail-closed choice. None is an adopted pay policy.
 
 ## 7. Evidence
 
-- `screenshots/`: 49 captures.
+- `screenshots/`: 52 captures (49 for the gate; i01–i03 for Issue #16).
   - b01–b10: before approval, 1440 English and 390 Urdu.
   - c01–c05: after approval and a sent (simulated) instruction, both languages.
   - d01–d07: finalisation refused without acknowledgement; the preparer's view; out-of-order period; a stale run after an HR change; a held loan instalment; HR-008 unchanged.
@@ -294,6 +295,7 @@ Each is the safest fail-closed choice. None is an adopted pay policy.
   - f01–f03: 320 px at 200 % text, Urdu and English (named `…-200pct-320-…`).
   - g01–g02: dark mode with high contrast, 390 Urdu.
   - h01–h02: HR refused payroll; payroll not in the plan.
+  - i01–i03 (Issue #16): the run for a reader with every site; the run and the disbursement for a main-site-only reader.
 - `video/held-run-to-sent-instruction-never-paid-desktop-en.webm`: the reference flow.
 
 ## 8. Files
@@ -312,3 +314,118 @@ Each is the safest fail-closed choice. None is an adopted pay policy.
   - `packages/ui/src/workspace/tenantWorkspace.ts` (menu entry);
   - `apps/backoffice/src/nav.config.ts`, `apps/backoffice/src/prototype/routes.tsx`;
   - `docs/ui/screen-register.csv`, `packages/contracts/src/screens/register.generated.ts`.
+
+## 9. Issue #16 closure (GPT review of `a0d4a70`)
+
+[GitHub Issue #16](https://github.com/Esames786/propertyos/issues/16) found two P0 problems. The feature scope was provisionally accepted. Both findings are fixed in one closure commit on `a0d4a70`, with no other change of scope. Statuses are unchanged: PAY-001/002/003/005 BUILT, PAY-004/006/007 PARTIAL, HR-008 PARTIAL.
+
+### 9.1 P0-1: history and financial metadata for a reader with only some sites
+
+**The finding.** Lines and totals were already filtered for a reader who does not hold every site of the employer. The nested history was not:
+- **The run's versions** carried the employer-wide net, the head count and the name of the person each change was about.
+- **The run's history** carried the full net on submission and approval, and the names of people who left the run.
+- **The instruction's history** carried the full instruction total.
+- **Free-text notes** (approval note, return note, reversal reason, cancellation reason) could name anyone and any amount.
+
+**The fix:** one projection for every historical field (`views.ts`).
+
+| Field | Reader with every site of the employer | Reader with only some sites |
+|---|---|---|
+| Version list | Unchanged (net, count, person) | Number, time, author and reason. **No net and no count:** there are no stored per-version totals of their lines, and none are made up. A change about one person names them only if the reader may see that person; otherwise the reason reads "Changed" |
+| Run, period and instruction events | Unchanged | An event about one person (it records the employee) is returned only if the reader may see that person. Every other event keeps who, when and what, with only a version number or reference as values. Never an amount, a total or a free-text note. Submission and approval read "Submitted for approval (version 7)" and "Approved as an obligation (version 7)" |
+| `approvalNote`, `reversalReason`, `cancelReason` | Returned | Left out |
+| Lines, totals, instruction lines and totals, accounting, export | Unchanged | Already filtered in S.2b, unchanged |
+
+**What makes it work.** Stored events and versions now name the employee they are about (`StoredEvent.employeeId`, `StoredVersion.aboutId`). The read models never return those ids. The payroll state version is now 2; older demo sessions start again.
+
+**UI.**
+- The versions panel shows no amount when there is none.
+- The reversal and cancellation texts have short forms without the reason.
+- **Found in the follow-up audit, also fixed:** the periods list, the finalisation queue, the disbursement page and the overview showed filtered amounts without saying so.
+  - Each list now carries `scopeLimited`.
+  - Each of those screens shows "You see the staff of your sites only. Totals cover them only…", as the run workspace already did.
+
+### 9.2 P0-2: idempotency bound to the exact request
+
+**The finding.** One key map per organisation (`key → record id`) returned the cached record for any later request with that key:
+- another employer's period;
+- an instruction that was never checked against the new request's scope;
+- a "success" for a different bonus.
+
+**The fix** (`handlers.ts` `replayOf` / `remember`). An entry records:
+- the **operation**: create a period, prepare a run, add a bonus, prepare an instruction;
+- the **principal**;
+- the **target**: the employer, the period, the run, or the run with the employee;
+- a **fingerprint of the normalised input**: month and pay date; or label, amount (without separators) and reason;
+- the **record** it created.
+
+How a replay is handled:
+1. Authority over the target is checked **first**, so revoked or narrowed access applies at once.
+2. Then the key is looked up. Only the identical request replays, and its record is found again through the scoped finders, never returned raw.
+3. Any other use of the key gets **409 `idempotency_key_reused`**: "This request's key was already used for a different request. Nothing was changed; send it again as a new request." It says nothing about the earlier request, and nothing changes.
+
+### 9.3 Tests added
+
+**API:** `payroll.issue16.api.test.ts`, 4 tests on S.2a's fictional multi-site fixture. Block C belongs to Al-Noor's employer; the annexe is another legal entity.
+
+1. **A main-site-only payroll reader** (Imran, given `payroll.view` for the test). The scenario:
+   - a full manager adds a bonus for a Block-C-only worker;
+   - a second Block C worker joins and then leaves the run;
+   - the run is returned with a note naming the worker, approved with a note, and its first instruction cancelled with a note;
+   - a second instruction is approved and sent.
+
+   The reader then reads every endpoint (dashboard, periods, runs, run, export, a visible person's line and latest, disbursements, accounting). Checks:
+   - **No secret in the serialised responses:** no name, code, id, account, rate, bonus amount, full net, full gross or instruction total of Block C or the full run.
+   - **Versions:** no net or count; the hidden person's change reads "Changed".
+   - **Events:** no values other than version or reference, and no notes.
+   - **No hidden lines:** "not found" for their lines, identical to an id never issued.
+   - **Lists:** each says it is limited.
+   - **The full reader still sees the full audit.**
+2. **A key used for one employer's period** by its preparer (annexe only) is refused when a preparer of the other employer reuses it. Nothing about the annexe comes back. The same body as the annexe request is refused exactly like an employer never issued. The owner's identical replay returns her period, once.
+3. **The same key with anything changed is refused, never a silent success:**
+   - another month or pay date;
+   - another person;
+   - another operation (run, bonus, instruction);
+   - another bonus amount, label, reason or employee.
+
+   The identical bonus, written with or without the thousands separator, replays once.
+4. **An instruction key reused on another employer's run** (by its preparer, or the same person on another run) is refused, and nothing of Al-Noor comes back. The identical replay returns the same instruction, once. After the person's access is narrowed:
+   - their replayed period request is refused exactly like an unknown employer;
+   - their instruction replay gets "not found".
+
+**Browser** (`tests/e2e/s2b.spec.ts`, one more test, 15 in all). A Block-C-only worker with fictional pay terms is added in the page (`addBlockCWorker`).
+- The treasurer with every site sees him, his amounts and the notes.
+- Narrowed to the main site (the demo's narrow-only hook), she sees on six payroll screens:
+  - no name, code, account or "Block C";
+  - the limited notice;
+  - versions without amounts, with "Changed";
+  - events without nets.
+- Axe on the limited run page; a deep link to his pay shows nothing of him.
+
+**Evidence:** i01 (run, full reader), i02 (run, main-site reader), i03 (disbursement, main-site reader).
+
+### 9.4 Mutation checks
+
+Every S.2b check was re-run (P1–P26, all caught), plus the new guards (I, J, K). The payroll sources exactly as reviewed (`a0d4a70`, R0) fail all 4 new tests. The full table is in [`test-results.md`](test-results.md#issue-16-mutation-checks).
+
+**J1 (the operation binding removed) cannot be observed.** Each operation's target is a different kind of id (employer, period, run, or run and employee), so the target binding already separates operations. The operation binding stays as defence in depth.
+
+### 9.5 Results
+
+| Check | Result |
+|---|---|
+| Typecheck, lint, English/Urdu parity (10,278 keys) | clean |
+| Unit and API (two complete runs) | **1,501 / 1,501**, no timeouts (payroll 52) |
+| Mutation checks | P1–P26, I1–I9, J2–J5, K1 and R0 caught; J1 cannot be observed (by design) |
+| Complete combined Playwright, retries off | **402 / 402** in 39.4 min (e2e 389, evidence 13) |
+| Axe | 1,372 scans, 0 violations |
+| Firefox and WebKit smoke | **40 / 40** |
+| Evidence | 52 screenshots, 1 video |
+
+Details are in [`test-results.md`](test-results.md#issue-16-closure-results-final-code).
+
+**Related findings outside Issue #16, reported, not changed.** Two read-only reviews were run by owner-authorised parallel agents (the Gate E plan on `docs/gate-e-plan` and the UX audit on `docs/frontend-ux-audit`). Both found the same unbound idempotency pattern in the **accepted S.1 finance code**:
+- **Server:** `society/finance/common.ts` `replay`/`remember` store a key and a record with no binding.
+- **Client (audit finding FIN-02):** the voucher, transfer and office-collection screens reuse one request key per page visit, so a second request in the same visit returns the first record with a success toast.
+
+Payroll is not affected: its screens use the shared mutation hook, which sends a fresh key with every request. Fixing S.1 would change accepted S.1 code, so it is left for an owner decision.

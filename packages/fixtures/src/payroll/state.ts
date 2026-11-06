@@ -11,8 +11,9 @@ import { pad } from '../seed';
  * lines to confirm, and November's period as a draft. Another organisation starts with no payroll
  * records. Nothing here is a real salary, account or person.
  */
-// 1: Gate S.2b.
-export const PAY_STATE_VERSION = 1;
+// 1: Gate S.2b. 2: Gate S.2b closure (Issue #16): events and versions name the person they are about;
+// idempotency entries are bound to the request.
+export const PAY_STATE_VERSION = 2;
 export const PAY_SECTION = 'payroll';
 
 export interface StoredTerms {
@@ -45,7 +46,7 @@ export interface StoredPeriod {
   openedAt?: string;
   closedByName?: string;
   closedAt?: string;
-  history: PayEvent[];
+  history: StoredEvent[];
 }
 
 export interface StoredBonus {
@@ -94,7 +95,7 @@ export interface StoredLine {
   daysConfirmed?: { days: number; reason: string; by: string; byName: string; at: string };
   bonuses: StoredBonus[];
   snapshot: LineSnapshot;
-  history: PayEvent[];
+  history: StoredEvent[];
 }
 
 export interface StoredRun {
@@ -107,7 +108,7 @@ export interface StoredRun {
   /** The HR facts the current version was calculated from (stale when they change). */
   fingerprint: string;
   lines: StoredLine[];
-  versions: PayVersion[];
+  versions: StoredVersion[];
   preparedBy: string;
   preparedByName: string;
   preparedAt: string;
@@ -125,7 +126,7 @@ export interface StoredRun {
   reversedByName?: string;
   reversedAt?: string;
   reversalReason?: string;
-  history: PayEvent[];
+  history: StoredEvent[];
 }
 
 export interface StoredInstruction {
@@ -148,7 +149,7 @@ export interface StoredInstruction {
   cancelledByName?: string;
   cancelledAt?: string;
   cancelReason?: string;
-  history: PayEvent[];
+  history: StoredEvent[];
 }
 
 export interface PayrollState {
@@ -158,8 +159,34 @@ export interface PayrollState {
   periods: StoredPeriod[];
   runs: StoredRun[];
   instructions: StoredInstruction[];
-  /** A repeated create with the same idempotency key returns what the first one created. */
-  idempotency: Record<string, string>;
+  /**
+   * Gate S.2b closure (Issue #16, P0-2): a repeated create with the same idempotency key returns what
+   * the first one created, only for the exact same request (see `StoredIdempotency`).
+   */
+  idempotency: Record<string, StoredIdempotency>;
+}
+
+/**
+ * Gate S.2b closure (Issue #16, P0-1): an event as stored. A person-specific event names the employee
+ * it is about, so a reader who cannot see that person never receives it. Read models project events
+ * (`views.ts` `projectEvents`); the employee id itself is never returned.
+ */
+export type StoredEvent = PayEvent & { employeeId?: string };
+
+/** A version as stored, with the employee a person-specific change was about (never returned). */
+export type StoredVersion = PayVersion & { aboutId?: string };
+
+/**
+ * Gate S.2b closure (Issue #16, P0-2): what an idempotency key was used for. A replay is the same
+ * operation, by the same principal, on the same target, with the same normalised input; anything
+ * else is refused without saying what the key was used for.
+ */
+export interface StoredIdempotency {
+  op: string;
+  principal: string;
+  target: string;
+  fingerprint: string;
+  recordId: string;
 }
 
 const PREFIX = { run: ['prn', 'PR'], instruction: ['pdi', 'PD'], bonus: ['pbn', ''] } as const;
@@ -180,7 +207,7 @@ export const runRef = (code: string, month: string, nth: number) => `${code}-PR-
 
 export const SABA = { by: 'usr_anr_0004', byName: 'Saba Javed' };
 
-export const ev = (who: { by: string; byName: string }, at: string, action: string, extra: Partial<PayEvent> = {}): PayEvent => ({ at, by: who.by, byName: who.byName, action, ...extra });
+export const ev = (who: { by: string; byName: string }, at: string, action: string, extra: Partial<StoredEvent> = {}): StoredEvent => ({ at, by: who.by, byName: who.byName, action, ...extra });
 
 /** Created on first use, after the HR state it builds on (`seed` calculates the seeded run). */
 export function payrollState(ctx: HandlerContext, site: OpsSite, hr: HrState, seed: (state: PayrollState, hr: HrState) => void): PayrollState {

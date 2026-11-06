@@ -41,9 +41,9 @@ Status: **B** = built and tested; **P** = partial by design (the reason is in th
 | 3.5 | Stale detection | `payroll.view` | HR facts fingerprint differs from the version's; submit refused | API stale test | d05 |
 | 3.6 | Submit for approval | `payroll.prepare` + whole employer | No held line, not stale, at least one person, period open (409 with the reason) | API reference flow, starter, unpaid leave; E2E | — |
 | 3.7 | Withdraw a submission (reason) | `payroll.prepare` + whole employer | Submitted only; a reason of 5 or more characters | API frozen test | — |
-| 3.8 | Versions list (reason, by, net, people) | `payroll.view` | Every change is a version | API reference flow | b03 |
+| 3.8 | Versions list (reason, by, net, people) | `payroll.view` | Every change is a version. **Issue #16:** a reader with only some sites gets number, time, author and reason only (no net or count; "Changed" for a hidden person) | API reference flow; `payroll.issue16.api.test.ts`; E2E (limited reader) | b03 |
 | 3.9 | Policies panel | `payroll.view` | Statutory, overtime, unpaid leave, absences and recovery not configured; proration a demo rule | API; E2E | b03 |
-| 3.10 | Download CSV | `payroll.view` | Same filtered lines; says when limited | API oracle test | — |
+| 3.10 | Download CSV | `payroll.view` | Same filtered lines; says when limited | API oracle test; `payroll.issue16.api.test.ts` | — |
 
 ## PAY-004 Employee pay breakdown (PARTIAL)
 
@@ -93,6 +93,9 @@ Status: **B** = built and tested; **P** = partial by design (the reason is in th
 
 | # | Function | Rule | Tests |
 |---|---|---|---|
+| X.0a | History for a limited reader (Issue #16, P0-1) | Run, period, instruction and line events and versions projected: no amounts, totals, counts or notes; events about hidden people left out; notes (approval, reversal, cancellation) for full readers only | `payroll.issue16.api.test.ts` test 1; E2E limited reader; mutations I1–I9 |
+| X.0b | Idempotency (Issue #16, P0-2) | Bound to operation, principal, target and normalised input; authority first; scoped re-read; anything else 409 `idempotency_key_reused`, no change | `payroll.issue16.api.test.ts` tests 2–4; mutations J2–J5 |
+| X.0c | Limited lists (Issue #16 follow-up) | `scopeLimited` on periods, runs, disbursements and the dashboard; notice on each screen | `payroll.issue16.api.test.ts` test 1; E2E; mutation K1 |
 | X.1 | Licence | `payroll` add-on needs `hr`; Al-Noor only, from 15 October 2026; withdrawable in the demo | API licence tests; E2E |
 | X.2 | Scope | Visible with one site of the employer; every change needs all of them; lines follow employees | API oracle test |
 | X.3 | Suspended / revoked / not yet in force | Reads only while suspended; otherwise refused | API |

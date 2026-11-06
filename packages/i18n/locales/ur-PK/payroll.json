@@ -253,6 +253,7 @@
     },
     "approvedNote": "{{name}} نے {{date}} کو منظور کیا۔ یہ ایک ذمہ داری ہے: کچھ ادا نہیں ہوا۔",
     "reversedNote": "{{name}} نے {{date}} کو منسوخ کیا: “{{reason}}”",
+    "reversedNoteBrief": "{{name}} نے {{date}} کو منسوخ کیا۔",
     "instructionLink": "ادائیگی کی ہدایت: {{ref}}",
     "exportName": "payroll-{{ref}}-v{{version}}.csv",
     "csvHeader": "Code,Name,Role,State,Gross,Deductions,Net",
@@ -385,6 +386,7 @@
       "prepared": "{{name}} نے تیار کی",
       "approved": "{{name}} نے منظور کی",
       "sent": "{{name}} نے بھیجی ہوئی نشان زد کی",
+      "cancelledBrief": "{{name}} نے منسوخ کی",
       "cancelled": "{{name}} نے منسوخ کی: “{{reason}}”"
     },
     "confirm": {
@@ -441,6 +443,7 @@
     "settledNone": "دستیاب نہیں"
   },
   "version": {
+    "changed": "تبدیلی",
     "prepared": "تیار کیا گیا",
     "recalculated": "HR ریکارڈ سے دوبارہ حساب",
     "days_confirmed": "دنوں کی تصدیق",
@@ -456,9 +459,11 @@
     "run_prepared": "رن تیار کیا گیا",
     "run_recalculated": "دوبارہ حساب (ورژن {{version}})",
     "run_submitted": "منظوری کے لیے جمع (ورژن {{version}}، خالص {{net}})",
+    "run_submitted_limited": "منظوری کے لیے جمع (ورژن {{version}})",
     "run_withdrawn": "جمع کرانا واپس لیا گیا",
     "run_returned": "تبدیلی کے لیے واپس",
     "run_approved": "ذمہ داری کے طور پر منظور (ورژن {{version}}، خالص {{net}})",
+    "run_approved_limited": "ذمہ داری کے طور پر منظور (ورژن {{version}})",
     "run_reversed": "منظوری منسوخ",
     "line_removed": "{{name}} رن سے نکل گئے (اس مدت کے آجر کے ملازم نہیں رہے)",
     "instruction_prepared": "ادائیگی کی ہدایت تیار",
@@ -484,6 +489,7 @@
     "own_instruction": "یہ ہدایت آپ نے تیار کی، اس لیے کوئی اور اسے منظور کرے گا۔"
   },
   "problems": {
+    "idempotencyKeyReused": "اس درخواست کی کلید پہلے کسی اور درخواست کے لیے استعمال ہو چکی ہے۔ کچھ نہیں بدلا؛ اسے نئی درخواست کے طور پر دوبارہ بھیجیں۔",
     "otherSites": "اس آجر کی کچھ سائٹس آپ کی رسائی سے باہر ہیں، اس لیے آپ اسے نہیں بدل سکتے۔",
     "ownRecord": "کوئی اپنی تنخواہ نہ بدلتا ہے نہ منظور کرتا ہے۔",
     "makerChecker": "یہ آپ نے تیار یا تبدیل کیا، اس لیے فیصلہ کسی اور کو کرنا ہوگا۔",

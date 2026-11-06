@@ -44,7 +44,7 @@ Each risk Issue #15 names, the control in the mock server, and where it is teste
 | S21 | Reversal hides a payment or reopens a closed month | Only before the period closes (409 `period_closed`), with no live instruction (409 `instruction_live`), never by a maker; a reversed run never changes | API maker-checker test; API reference flow (after close) | P23 |
 | S22 | An instruction approved by its preparer, or by someone it pays | 403 `maker_checker_required` / `own_record` | API instructions test | P14 |
 | S23 | A sent instruction is quietly cancelled | 409 `instruction_sent` | API reference flow | P15 |
-| S24 | Duplicate submissions create duplicates | Idempotency keys on creating a period, a run, an instruction and a bonus return the first result (tested for the period, the bonus and the instruction); repeated state changes get 409 `state_changed` | API periods, inputs and instructions tests | — |
+| S24 | Duplicate submissions create duplicates | Idempotency keys on creating a period, a run, an instruction and a bonus return the first result **only for the exact same request** (Issue #16: bound to the operation, principal, target and input; see S37); repeated state changes get 409 `state_changed` | API periods, inputs and instructions tests; `payroll.issue16.api.test.ts` | J2–J5 |
 
 ## 4. Who sees pay; scope; oracles
 
@@ -54,7 +54,7 @@ Each risk Issue #15 names, the control in the mock server, and where it is teste
 | S26 | Payroll without its licence, or without HR | Transport refuses an unlicensed `payroll` (403 `module_not_licensed`); the handler refuses when `hr` is not licensed for any site | API licence tests; E2E "not in your plan" | — |
 | S27 | Another organisation gains payroll | Only Al-Noor's dated amendment; no society preset; a developer (preset payroll) has no permission, and with one the society payroll is "not found" (Gate E) | API; E2E | — |
 | S28 | Suspended or revoked rights | Suspended: reads only (403 `tenant_suspended` on changes); a licence not yet in force or ended: 403 `module_not_licensed` | API | — |
-| S29 | A person with some of an employer's sites sees or changes others' pay | Lines limited to their staff, totals over those only, `scopeLimited` shown, no hidden count; every change 403 `other_sites` | API oracle test | P7, P8 |
+| S29 | A person with some of an employer's sites sees or changes others' pay | Lines limited to their staff, totals over those only, `scopeLimited` shown on every list that shows amounts (Issue #16), no hidden count; every change 403 `other_sites`. Nested history projected (S36) | API oracle test; `payroll.issue16.api.test.ts` | P7, P8, K1 |
 | S30 | An id oracle (a real id answers differently from an invented one) | Out-of-scope run, period, employee and another employer's records answer exactly like ids never issued; changes check the employer before the employee id, and a frozen run answers 409 for any id | API oracle test; API frozen test | P9 |
 | S31 | Another employer's staff in a run, or a transferred person left in it | Lines are the run's employer's staff only; a person moved to another employer leaves at the next calculation (history says so) | API transfer test | P21 |
 | S32 | Training mode changes official records | Payroll changes refused in training mode (403 `training_not_supported`) | API | P16 |
@@ -70,3 +70,23 @@ Each risk Issue #15 names, the control in the mock server, and where it is teste
 | Five layout defects at 320 px / 200 % | Dashboard tiles, references, Urdu buttons, journal table, page title | See the report §2.7; covered by the E2E layout tests |
 
 No defect in S.2a or earlier code was found or changed.
+
+## 6. Issue #16 closure (GPT review of `a0d4a70`)
+
+| # | Finding (severity) | Cause | Fix | Tests | Mutation |
+|---|---|---|---|---|---|
+| S36 | **P0-1.** A reader with only some sites of the employer received employer-wide amounts and hidden people's names through nested history | Versions (net, count, person), run events (net on submit and approval, names of people who left), instruction events (total) and free-text notes were returned as stored | One projection (`projectEvents`, `projectVersions` in `views.ts`) for the run, period, instruction and line histories and the versions. Limited readers get: no version net or count; a person named only if visible ("Changed" otherwise); events about a hidden person left out; other events without amounts or notes; no approval, reversal or cancellation note. Full readers keep the audit | `payroll.issue16.api.test.ts` test 1 (every endpoint serialised; no Block C name, code, id, account, rate, bonus, full net or gross, instruction total; full reader still sees all); browser test (six screens, limited notice, "Changed", no nets) | I1–I9, R0 |
+| S37 | **P0-2.** An idempotency key replayed any recorded record: another employer's period, an unchecked instruction, or a "success" for a different bonus | One key map (`key → record id`) with no binding; the cached record returned without a scoped lookup | Entries bind operation, principal, target and the normalised input fingerprint. Authority is checked first; only the identical request replays, re-read through scoped finders; anything else gets 409 `idempotency_key_reused` (non-disclosing), with nothing changed | `payroll.issue16.api.test.ts` tests 2–4 (cross-employer period and instruction, changed month, pay date, person, operation, amount, label, reason or employee, narrowed access, identical replay once) | J2–J5, R0 (J1 cannot be observed: see test-results) |
+| S38 | **Found in the follow-up audit.** Lists showing filtered amounts did not say they were limited (periods, finalisation queue, disbursements, overview), so a partial net could be read as the employer's | A flag existed on the run view only | `scopeLimited` on `PayPeriodsList`, `PayRunsList`, `PayDisbursements` (and the dashboard's), with the notice on each screen | `payroll.issue16.api.test.ts` test 1 (true for the limited reader, false for the full one); browser test (notice on five screens) | K1 |
+
+**Inspected nearby, unchanged** (already scope-filtered in S.2b, re-checked for Issue #16):
+- the dashboard figures and attention items;
+- the period rows' run reference and net;
+- the runs list;
+- the export rows;
+- the accounting obligation and proposed entries;
+- the instruction's lines, held lines and total;
+- a pay line's own history (only for a visible person);
+- the breakdown's other runs.
+
+The idempotency of non-create actions (confirm days, exclude, submit) is unchanged: they are not replayed, and a repeat is either a new version or 409 `state_changed`.

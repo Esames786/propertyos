@@ -129,6 +129,8 @@ export interface PayPeriodsList {
   /** The next period the reader may create (in order, never before the payroll licence). */
   next?: { legalEntityId: string; legalEntityName: string; month: string; from: string; to: string; payDate: string };
   today: string;
+  /** The reader sees only some sites of an employer: the amounts shown cover the staff of those sites only (Issue #16). */
+  scopeLimited: boolean;
 }
 
 export interface PayPeriodInput {
@@ -158,12 +160,16 @@ export interface PayVersion {
   n: number;
   at: string;
   byName: string;
-  /** Key under `payroll:version.*`. */
+  /** Key under `payroll:version.*` (`changed`: about someone the reader may not see). */
   reason: string;
-  /** The person or input it was about (a name, never an id). */
+  /** The person it was about (a name, never an id), only when the reader may see them. */
   about?: string;
-  net: Money;
-  included: number;
+  /**
+   * The employer-wide net and head count of the version. Left out for a reader with only some of the
+   * employer's sites (Issue #16): no per-version totals of their lines exist, and none are made up.
+   */
+  net?: Money;
+  included?: number;
 }
 
 export interface PayRunView {
@@ -208,6 +214,8 @@ export interface PayRunView {
 
 export interface PayRunsList {
   items: Array<PayRunRef & { periodRef: string; month: string; legalEntityName: string; submittedByName?: string; submittedAt?: string; approvedByName?: string; approvedAt?: string; reversedAt?: string; stale: boolean; canApprove: boolean; blocked?: PayRunView['blocked'] }>;
+  /** The reader sees only some sites of an employer: the amounts shown cover the staff of those sites only (Issue #16). */
+  scopeLimited: boolean;
 }
 
 export interface PayEarning {
@@ -329,6 +337,8 @@ export interface PayDisbursements {
   /** Earlier instructions of those runs (cancelled ones stay in the history). */
   cancelled: PayInstructionView[];
   settlementAvailable: false;
+  /** The reader sees only some sites of an employer: the amounts shown cover the staff of those sites only (Issue #16). */
+  scopeLimited: boolean;
 }
 
 export interface PayJournalLine {

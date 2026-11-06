@@ -1,5 +1,5 @@
 import type { PayDashboard } from '@repo/contracts';
-import { EmptyState, ErrorState, Link, Money, PageHeader, Panel, StatTile, useApiQuery, useT } from '@repo/ui';
+import { EmptyState, ErrorState, InlineAlert, Link, Money, PageHeader, Panel, StatTile, useApiQuery, useT } from '@repo/ui';
 import { BadgeCheck, CalendarRange, CircleDashed, ClipboardCheck, HandCoins, Send, TriangleAlert, UsersRound } from 'lucide-react';
 import { PAYROLL } from '../../../nav.config';
 import { Loading, useSocietyFormat } from '../kit';
@@ -34,6 +34,11 @@ export default function PayrollDashboardPage() {
         }
       />
       <PayNav current="dashboard" />
+      {d.scopeLimited && (
+        <InlineAlert tone="info" data-testid="pay-dashboard-limited">
+          {t('payroll:scopeLimited')}
+        </InlineAlert>
+      )}
       <Boundary />
       <div className="grid grid-cols-1 gap-3 @md:grid-cols-2 @3xl:grid-cols-3">
         <StatTile label={t('payroll:dashboard.kpi.staffInRun')} value={fmt.count(k.staffInRun)} accessibleValue={String(k.staffInRun)} href={runHref} icon={UsersRound} hue="emerald" testId="pay-kpi-staffInRun" />

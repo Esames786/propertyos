@@ -41,6 +41,11 @@ export default function PayrollPeriodsPage() {
         }
       />
       <PayNav current="periods" />
+      {d.scopeLimited && (
+        <InlineAlert tone="info" data-testid="pay-periods-limited">
+          {t('payroll:scopeLimited')}
+        </InlineAlert>
+      )}
       <FilterPills label={t('payroll:periods.show')} value={view} onChange={(v) => setParams({ status: v === 'all' ? null : v })} options={VIEWS.map((v) => ({ id: v, label: t(`payroll:periods.view.${v}`), count: v === 'all' ? d.items.length : d.counts[v as PayPeriodState] }))} testId="pay-periods-show" />
       {shown.length === 0 ? (
         <EmptyState title={t('payroll:periods.empty')} />
