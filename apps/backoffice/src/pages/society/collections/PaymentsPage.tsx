@@ -22,7 +22,7 @@ import {
   useT,
   useToast,
 } from '@repo/ui';
-import { Banknote, ChevronRight, Link2, Link2Off, PiggyBank, Search } from 'lucide-react';
+import { Banknote, ChevronRight, Link2, Link2Off, PiggyBank, Search, Undo2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Input, Label, SearchField } from 'react-aria-components';
 import { COLLECTIONS, FINANCE } from '../../../nav.config';
@@ -92,13 +92,15 @@ export default function PaymentsPage() {
         <EmptyState title={t('collections:payments.emptyTitle')} body={t('collections:payments.emptyBody')} />
       ) : (
         <>
-          <p className="text-sm text-muted" role="status" data-testid="payments-count">
+          {/* UX B1 (COL-02): the totals count live payments only; reversed rows are listed and said apart. */}
+          <p className="text-sm text-muted" role="status" data-testid="payments-count" data-count={list.data.totals.count} data-reversed={list.data.totals.reversed}>
             {t('collections:payments.count', { count: list.data.totals.count, amount: fmt.money(list.data.totals.amount), unapplied: fmt.money(list.data.totals.unapplied) })}
+            {list.data.totals.reversed > 0 && <> · {t('collections:payments.reversedShown', { count: list.data.totals.reversed })}</>}
           </p>
           <ul className="space-y-2" data-testid="payments-list">
             {list.data.items.map((p) => (
               <li key={p.id}>
-                <Link href={COLLECTIONS.payment(p.id)} variant="plain" className="grid gap-x-6 gap-y-2 rounded-tile border border-border/70 bg-panel p-4 shadow-card hover:bg-raised @3xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_auto] @3xl:items-center" data-testid="payment-row" data-ref={p.ref}>
+                <Link href={COLLECTIONS.payment(p.id)} variant="plain" className="grid gap-x-6 gap-y-2 rounded-tile border border-border/70 bg-panel p-4 shadow-card hover:bg-raised @3xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_auto] @3xl:items-center" data-testid="payment-row" data-ref={p.ref} data-reversed={p.reversed ? 'true' : 'false'}>
                   <span className="min-w-0">
                     <span className="block font-semibold text-text"><bdi>{p.payerName}</bdi></span>
                     <span className="block text-xs text-muted">
@@ -106,13 +108,15 @@ export default function PaymentsPage() {
                     </span>
                   </span>
                   <span className="flex flex-wrap items-center gap-1.5">
+                    {/* UX B1 (COL-02): a reversed payment says so in words; it has no statement match or credit to show. */}
+                    {p.reversed && <Badge tone="error" icon={Undo2} data-testid="payment-row-reversed">{t('collections:payment.reversedBadge')}</Badge>}
                     <MethodBadge method={p.method} />
                     <VerificationBadge verification={p.verification} />
-                    {p.method === 'bank_transfer' && (p.reconciled ? <Badge tone="success" icon={Link2}>{t('collections:payments.reconciled')}</Badge> : <Badge tone="warning" icon={Link2Off}>{t('collections:payments.awaitingLine')}</Badge>)}
-                    {Number(p.unapplied.amount) > 0 && <Badge tone="info" icon={PiggyBank}>{t('collections:payments.credit', { amount: fmt.money(p.unapplied) })}</Badge>}
+                    {!p.reversed && p.method === 'bank_transfer' && (p.reconciled ? <Badge tone="success" icon={Link2}>{t('collections:payments.reconciled')}</Badge> : <Badge tone="warning" icon={Link2Off}>{t('collections:payments.awaitingLine')}</Badge>)}
+                    {!p.reversed && Number(p.unapplied.amount) > 0 && <Badge tone="info" icon={PiggyBank}>{t('collections:payments.credit', { amount: fmt.money(p.unapplied) })}</Badge>}
                   </span>
                   <span className="flex items-center justify-end gap-3">
-                    <Money value={p.amount} className="text-lg font-bold" />
+                    <Money value={p.amount} className={p.reversed ? 'text-lg font-bold text-muted line-through' : 'text-lg font-bold'} />
                     <DirectionalIcon icon={ChevronRight} className="size-4 text-muted" />
                   </span>
                 </Link>

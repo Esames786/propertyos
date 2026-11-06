@@ -371,8 +371,19 @@ export const FINANCE_BOOK_HANDLERS: readonly Handler[] = [
       // Issue #18 (FIN-01): the settled cashbook stays; the statement comparison and the line behind
       // each bank movement are for the bank feed only.
       const feed = seesBankFeed(ctx);
+      // UX B1 (FIN-03): a voucher saved as a draft can be found again. Listed only for the person who
+      // prepared it (only they may edit or submit it) while they may still prepare vouchers, in this
+      // legal entity and on the account shown. A draft is not money: it is never in a total, the
+      // "in transit" figure or any dashboard (those are computed without it).
+      const self = me(ctx).principalId;
+      const drafts = can(ctx, 'cash_voucher.prepare')
+        ? s.state.finance.vouchers
+            .filter((v) => v.status === 'draft' && v.preparedBy === self && v.legalEntityId === s.legalEntityId && (accountId === null || v.accountId === accountId))
+            .map((v) => ({ kind: 'voucher_draft' as const, id: v.id, ref: v.ref, amount: v.amount, accountId: v.accountId, since: v.preparedAt.slice(0, 10), describe: { key: 'voucher_draft', values: { purpose: v.purpose } }, href: FIN_ROUTES.voucher(v.id) }))
+        : [];
       return {
         ...view,
+        pending: [...drafts, ...view.pending],
         lines: feed ? lines : lines.map((l) => ({ ...l, evidence: bank.evidence(ctx, l.evidence) })),
         reconciliation: feed ? view.reconciliation : [],
         bankFeed: feed,

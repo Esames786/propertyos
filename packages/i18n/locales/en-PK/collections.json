@@ -170,7 +170,8 @@
       "rejected": "Rejected",
       "all": "All",
       "awaiting_bank_evidence": "Waiting for the bank",
-      "exception_pending": "Exceptions"
+      "exception_pending": "Exceptions",
+      "waiting": "Waiting for verification"
     },
     "empty": {
       "to_review": "Nothing to review",
@@ -179,7 +180,8 @@
       "rejected": "No proof rejected",
       "all": "No proofs yet",
       "awaiting_bank_evidence": "No proof is waiting for its bank line",
-      "exception_pending": "No exception waits for approval"
+      "exception_pending": "No exception waits for approval",
+      "waiting": "No proof is waiting for verification"
     },
     "emptyBody": "Proofs appear here as residents send them from the resident app.",
     "count_one": "{{count}} proof",
@@ -316,7 +318,9 @@
     "awaitingLine": "Waiting for the statement",
     "credit": "Credit {{amount}}",
     "emptyTitle": "No payments yet",
-    "emptyBody": "Payments appear when a proof is verified or cash is received at the office."
+    "emptyBody": "Payments appear when a proof is verified or cash is received at the office.",
+    "reversedShown_one": "{{count}} reversed payment listed, not counted",
+    "reversedShown_other": "{{count}} reversed payments listed, not counted"
   },
   "payment": {
     "eyebrow": "Payment",
@@ -652,6 +656,7 @@
     "statementAccount": "Choose the association account this statement belongs to.",
     "statementAccountMismatch": "This statement is for account {{file}}, not {{chosen}}. Choose the right account.",
     "bankLineDebit": "Money leaving the account never proves a resident's payment.",
-    "secondPersonRequired": "This site counts every office cash payment with a second person: record it as an office collection."
+    "secondPersonRequired": "This site counts every office cash payment with a second person: record it as an office collection.",
+    "reversedNoCredit": "This payment was reversed: it has no credit to apply."
   }
 }

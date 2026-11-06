@@ -1,4 +1,4 @@
-import type { CollectionPayment, CreditNote, CustomerInvoice, InvoiceRow, Money, Statement, StatementEntry } from '@repo/contracts';
+import type { CollectionPayment, CreditNote, CustomerInvoice, InvoiceLine, InvoiceRow, Money, Statement, StatementEntry } from '@repo/contracts';
 import { fromPaisa, toPaisa } from '../portal';
 
 /**
@@ -19,6 +19,18 @@ export function allocatedByLine(payments: readonly CollectionPayment[]): Map<str
   const out = new Map<string, bigint>();
   for (const p of payments) if (!p.reversal) for (const a of p.allocations) out.set(a.lineId, (out.get(a.lineId) ?? 0n) + toPaisa(a.amount.amount));
   return out;
+}
+
+/**
+ * UX B1 (COL-01; owner decision OD-1 pending, the backlog's recommended default applied): what a line
+ * of an invoice *as read* (`readInvoice`) may still be credited: billed − paid − already credited,
+ * where paid counts live allocations only (a reversed payment pays nothing, so its money reopens). A
+ * credit note never credits money already paid: a refund or account credit would be its own feature.
+ * The invoice read model and the credit-note POST both use this one figure.
+ */
+export function creditableOf(line: Pick<InvoiceLine, 'amount' | 'credited' | 'allocated'>): bigint {
+  const open = toPaisa(line.amount.amount) - toPaisa(line.credited.amount) - toPaisa(line.allocated.amount);
+  return open > 0n ? open : 0n;
 }
 
 /** An invoice as read today: credits and payments applied per line, settlement and overdue derived. */

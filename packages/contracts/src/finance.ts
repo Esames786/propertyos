@@ -137,9 +137,12 @@ export interface CashbookLine {
   balance: Money;
 }
 
-/** Something on its way: shown apart, never in a settled balance. */
+/**
+ * Something on its way: shown apart, never in a settled balance. UX B1 (FIN-03): `voucher_draft` is the
+ * reader's own saved draft (listed so it can be found again; a draft is not money and no total counts it).
+ */
 export interface PendingItem {
-  kind: 'cash_in_transit' | 'approved_instruction' | 'awaiting_approval' | 'cheque_received' | 'cheque_deposited' | 'proof_pending' | 'voucher_approved' | 'cash_awaiting_count';
+  kind: 'cash_in_transit' | 'approved_instruction' | 'awaiting_approval' | 'cheque_received' | 'cheque_deposited' | 'proof_pending' | 'voucher_approved' | 'cash_awaiting_count' | 'voucher_draft';
   id: string;
   ref: string;
   amount: Money;

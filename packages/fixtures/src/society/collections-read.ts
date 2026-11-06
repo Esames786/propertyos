@@ -48,6 +48,14 @@ export const ROUTES = {
 /** Not settled yet (the resident's money is "pending verification" in every one of these). */
 export const PENDING_STATES: readonly PaymentSubmission['state'][] = ['submitted', 'under_review', 'awaiting_bank_evidence', 'exception_pending', 'needs_information'];
 
+/**
+ * UX B1 (COL-04): waiting for the office or the bank. A proof sent back to the resident for more
+ * information (`needs_information`) is not waiting for the office: it is left out of "Waiting for
+ * verification", out of the share taken from "Still owed" and out of the count, as the resident side
+ * already does. The inbox filter `state=waiting` lists exactly this set.
+ */
+export const WAITING_STATES: readonly PaymentSubmission['state'][] = ['submitted', 'under_review', 'awaiting_bank_evidence', 'exception_pending'];
+
 /** Where a proof's money had to arrive: its legal entity's verified account in force on the value date. */
 export const scopeOf = (state: SocietyState, legalEntityId: string): DestinationScope => ({ legalEntityId, accountOn: (date) => beneficiaryOn(state, legalEntityId, date)?.id ?? null });
 
@@ -113,6 +121,8 @@ export function paymentRow(p: CollectionPayment, lines: readonly BankLine[]): Pa
     unapplied: p.unapplied,
     receiptRef: p.receiptRef,
     reconciled: p.bankLineId !== undefined && lines.some((l) => l.id === p.bankLineId && l.state === 'matched'),
+    // UX B1 (COL-02): a reversed payment is listed as the audit trail and never counted as received.
+    ...(p.reversal ? { reversed: true } : {}),
   };
 }
 
@@ -239,7 +249,8 @@ export function collectionsSummary(s: { view: SocietyView }, today: string, opts
     if (bucketOf(l.dueOn, today) !== 'current') overdueByAccount.set(l.billingAccountId, (overdueByAccount.get(l.billingAccountId) ?? 0n) + l.open);
   }
   const credit = creditByAccount(state);
-  const pending = state.submissions.filter((x) => PENDING_STATES.includes(x.state));
+  // UX B1 (COL-04): only proofs waiting for the office or the bank (never one sent back to the resident).
+  const pending = state.submissions.filter((x) => WAITING_STATES.includes(x.state));
   const aging = agingReport(view, today);
   const invoicesOfPeriod = view.invoices.filter((i) => i.source === 'billing_run' && i.period === period);
 
@@ -247,7 +258,8 @@ export function collectionsSummary(s: { view: SocietyView }, today: string, opts
     site: { id: ALNOOR_SITE.id, name: ALNOOR_SITE.name, legalEntityName: ALNOOR_ENTITY.name },
     period,
     billed: { amount: money(billed), invoices: invoicesOfPeriod.length, href: href(ROUTES.invoices, { period, source: 'billing_run' }) },
-    collected: { amount: money(received), payments: state.payments.length, href: ROUTES.payments },
+    // UX B1 (COL-02): the count is of live payments, like the amount (the payments list counts the same rows).
+    collected: { amount: money(received), payments: live.length, href: ROUTES.payments },
     rate: billed > 0n ? Number((collectedForPeriod * 10000n) / billed) / 10000 : 0,
     progress: ((): CollectionsSummary['progress'] => {
       const left = billed - collectedForPeriod;
@@ -255,7 +267,7 @@ export function collectionsSummary(s: { view: SocietyView }, today: string, opts
       const pendingShare = waiting < left ? waiting : left;
       return { collected: money(collectedForPeriod), pending: money(pendingShare), owed: money(left - pendingShare) };
     })(),
-    pending: { amount: money(sum(pending.map((x) => toPaisa(x.current.amount.amount)))), submissions: pending.length, href: ROUTES.inbox },
+    pending: { amount: money(sum(pending.map((x) => toPaisa(x.current.amount.amount)))), submissions: pending.length, href: href(ROUTES.inbox, { state: 'waiting' }) },
     outstanding: { amount: money(sum(openByAccount.values())), accounts: openByAccount.size, href: href(ROUTES.accounts, { status: 'owing' }) },
     arrears: { amount: money(sum(overdueByAccount.values())), accounts: overdueByAccount.size, href: href(ROUTES.accounts, { status: 'arrears' }) },
     credit: { amount: money(sum(credit.values())), accounts: credit.size, href: ROUTES.credits },

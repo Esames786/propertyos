@@ -1,7 +1,8 @@
 import type { AddHouseholdInput, FlatHousehold, HouseholdPerson, HouseholdRelationship, HouseholdRequest, MyProperty, PartyLink, PortalRole, PropertyDetail } from '@repo/contracts';
 import { normalizePkPhone } from '@repo/i18n/format';
 import { authorize, forbid, invalid, notFound, requires, type Handler, type HandlerContext } from '../handler-types';
-import { fromPaisa } from '../portal';
+import { fromPaisa, toPaisa } from '../portal';
+import { directoryTenant } from '../tenant-directory';
 import { linesOf } from '../society/allocate';
 import { problem, recordOf, society, type Society } from '../society/handlers';
 import { factOn } from '../society/model';
@@ -63,11 +64,13 @@ function propertyOf(ctx: HandlerContext, s: Society, link: PartyLink): MyPropert
   const mine = linesOf(s.view.invoices).filter((l) => l.unitId === flat.id && l.payerPartyId === partyId);
   const open = mine.reduce((sum, l) => sum + l.open, 0n);
   const overdue = mine.some((l) => l.open > 0n && l.dueOn < ctx.at);
-  const credit = s.state.payments.filter((p) => p.payerPartyId === partyId && p.billingAccountId === flat.billingAccountId && !p.reversal).reduce((sum, p) => sum + BigInt(Math.round(Number(p.unapplied.amount) * 100)), 0n);
+  // Unapplied credit of this person's live payments on the flat's account (a reversed payment left none).
+  const credit = s.state.payments.filter((p) => p.payerPartyId === partyId && p.billingAccountId === flat.billingAccountId && !p.reversal).reduce((sum, p) => sum + toPaisa(p.unapplied.amount), 0n);
   return {
     flatId: flat.id,
     flatCode: flat.code,
-    siteName: 'Al-Noor Residency',
+    // UX B1 (N-2): the site's own name from the tenant's licensed sites, never a hard-coded one.
+    siteName: directoryTenant(ctx.access?.tenant.id ?? '')?.sites.find((x) => x.id === link.siteId)?.name ?? '',
     buildingName: s.view.model.buildings.find((b) => b.id === flat.buildingId)?.name ?? '',
     floor: s.view.model.floors.find((f) => f.id === flat.floorId)?.level ?? 0,
     typeName: type?.name ?? '',
@@ -76,6 +79,8 @@ function propertyOf(ctx: HandlerContext, s: Society, link: PartyLink): MyPropert
     since: link.from,
     accountNo: s.view.model.accounts.find((a) => a.id === flat.billingAccountId)?.accountNo ?? flat.billingAccountId,
     balance: money(open),
+    // UX B1 (RES-02): the credit itself ("In credit Rs 1,500.00"); `balance` keeps meaning what is owed.
+    credit: money(credit),
     balanceState: open > 0n ? (overdue ? 'overdue' : 'due') : credit > 0n ? 'credit' : 'paid_up',
   };
 }

@@ -886,7 +886,7 @@
   "creditNote": {
     "title": "Credit note for {{ref}}",
     "subtitle": "Correct a posted invoice without editing it",
-    "rule": "Enter what to credit on each line (at most what is still open) and why. The invoice stays as issued; the credit note and the statement show the correction.",
+    "rule": "Enter what to credit on each line and why: at most what is still open (billed, less what was paid and what was already credited). Money already paid is never credited here. The invoice stays as issued; the credit note and the statement show the correction.",
     "open": "Open {{amount}} of {{total}}",
     "amount": "Credit",
     "reason": "Reason",
@@ -895,9 +895,11 @@
     "problems": {
       "reason": "Give a reason of a few words.",
       "amount": "Enter an amount above 0.",
-      "overOpen": "At most {{open}} on this line.",
+      "overOpen": "At most {{open}} is still open on this line ({{unit}}): the rest is paid or already credited.",
       "noLines": "Enter an amount on at least one line."
-    }
+    },
+    "breakdown": "Billed {{billed}} · paid {{paid}} · credited {{credited}} · open {{open}}",
+    "nothingOpen": "Nothing open to credit on this line: it is paid or already credited."
   },
   "quote": "“{{text}}”",
   "currency": "Rs"

@@ -26,7 +26,7 @@ import { fromPaisa, toPaisa } from '../portal';
 import { ALNOOR_ENTITY, DUE_DAY, ISSUE_DAY } from './alnoor';
 import { allocateOldestFirst, checkAllocation, isRuleAllocation, linesOf, openLinesFor, toAllocationLines, type Allocation, type OpenLine } from './allocate';
 import { applyCredit, recordPayment } from './collections';
-import { agingReport, candidatesOf, collectionsSummary, creditRows, paymentRow, PENDING_STATES, possibleDuplicates, reconciliation, scopeOf, submissionRow } from './collections-read';
+import { agingReport, candidatesOf, collectionsSummary, creditRows, paymentRow, PENDING_STATES, possibleDuplicates, reconciliation, scopeOf, submissionRow, WAITING_STATES } from './collections-read';
 import { actor, invalidField, log, problem, save, siteOf, society, stamp, type Society } from './handlers';
 import { fingerprint } from './import';
 import { destinationOf, newLines, usable } from './matching';
@@ -204,7 +204,8 @@ function paymentDetail(s: Society, paymentId: string, ctx: HandlerContext): Paym
     bankFeed: feed,
     accountBalance: money(balance),
     creditTargets: toAllocationLines(targets.map((line) => ({ line, amount: 0n }))),
-    actions: { applyCredit: can(ctx, 'finance.evidence.review') && toPaisa(payment.unapplied.amount) > 0n && targets.length > 0 },
+    // UX B1 (COL-02): a reversed payment has no credit left to apply, whatever its stored unapplied amount.
+    actions: { applyCredit: can(ctx, 'finance.evidence.review') && !payment.reversal && toPaisa(payment.unapplied.amount) > 0n && targets.length > 0 },
   };
 }
 
@@ -353,7 +354,7 @@ export const COLLECTIONS_HANDLERS: readonly Handler[] = [
       const s = siteOf(ctx, 'receivables');
       const { state, q, account } = (ctx.req.query ?? {}) as Record<string, string | undefined>;
       const wanted = (x: SubmissionState) =>
-        !state || state === 'all' ? true : state === 'to_review' ? x === 'submitted' || x === 'under_review' : state === 'pending' ? PENDING_STATES.includes(x) : x === state;
+        !state || state === 'all' ? true : state === 'to_review' ? x === 'submitted' || x === 'under_review' : state === 'pending' ? PENDING_STATES.includes(x) : state === 'waiting' ? WAITING_STATES.includes(x) : x === state;
       const counts = Object.fromEntries(SUBMISSION_STATES.map((k) => [k, s.state.submissions.filter((x) => x.state === k).length])) as SubmissionQueue['counts'];
       const items = s.state.submissions
         .filter((x) => wanted(x.state))
@@ -364,7 +365,9 @@ export const COLLECTIONS_HANDLERS: readonly Handler[] = [
         .map((x) => submissionRow(s.state, x))
         // Issue #18 (FIN-01): the bank-match signal is derived from statement lines: bank feed only.
         .map((r) => (seesBankFeed(ctx) ? r : (({ match: _m, ...row }) => row)(r)));
-      const pending = s.state.submissions.filter((x) => PENDING_STATES.includes(x.state)).reduce((n, x) => n + toPaisa(x.current.amount.amount), 0n);
+      // UX B1 (COL-04): the amount waiting for the office or the bank, as on the dashboards (a proof sent
+      // back to the resident is not waiting for a decision).
+      const pending = s.state.submissions.filter((x) => WAITING_STATES.includes(x.state)).reduce((n, x) => n + toPaisa(x.current.amount.amount), 0n);
       return { items, counts, pending: money(pending) };
     },
   },
@@ -586,19 +589,23 @@ export const COLLECTIONS_HANDLERS: readonly Handler[] = [
     pattern: /^\/payments$/,
     access: requires('receivables', READ_MONEY, 'history_read'),
     handle: (ctx): PaymentList => {
-      if (!ctx.data.society) return { items: [], totals: { amount: money(0n), allocated: money(0n), unapplied: money(0n), count: 0 } };
+      if (!ctx.data.society) return { items: [], totals: { amount: money(0n), allocated: money(0n), unapplied: money(0n), count: 0, reversed: 0 } };
       const s = siteOf(ctx, 'receivables');
       const { q, method, verification, account, credit } = (ctx.req.query ?? {}) as Record<string, string | undefined>;
       const rows = s.state.payments
         .filter((p) => !method || method === 'all' || p.method === method)
         .filter((p) => !verification || verification === 'all' || p.verification === verification)
         .filter((p) => !account || p.billingAccountId === account)
-        .filter((p) => credit !== '1' || toPaisa(p.unapplied.amount) > 0n)
+        // UX B1 (COL-02): a reversed payment has no credit left (its stored unapplied amount is history).
+        .filter((p) => credit !== '1' || (!p.reversal && toPaisa(p.unapplied.amount) > 0n))
         .filter((p) => !q || !q.trim() || matches(q.trim(), p.ref, p.receiptRef, p.accountNo, p.payerName, ...p.allocations.map((a) => a.unitCode)))
         .sort((a, b) => b.receivedOn.localeCompare(a.receivedOn) || b.ref.localeCompare(a.ref))
         .map((p) => paymentRow(p, s.state.bank.lines));
-      const total = (pick: (r: (typeof rows)[number]) => Money) => money(rows.reduce((n, r) => n + toPaisa(pick(r).amount), 0n));
-      return { items: rows, totals: { amount: total((r) => r.amount), allocated: total((r) => r.allocated), unapplied: total((r) => r.unapplied), count: rows.length } };
+      // UX B1 (COL-02): reversed rows stay listed (the audit trail) but are never received money: the
+      // amount, allocated, credit left and count are of live rows; how many were reversed is said apart.
+      const live = rows.filter((r) => !r.reversed);
+      const total = (pick: (r: (typeof rows)[number]) => Money) => money(live.reduce((n, r) => n + toPaisa(pick(r).amount), 0n));
+      return { items: rows, totals: { amount: total((r) => r.amount), allocated: total((r) => r.allocated), unapplied: total((r) => r.unapplied), count: live.length, reversed: rows.length - live.length } };
     },
   },
   {
@@ -641,6 +648,9 @@ export const COLLECTIONS_HANDLERS: readonly Handler[] = [
       const s = siteOf(ctx, 'receivables');
       const payment = s.state.payments.find((p) => p.id === ctx.params.paymentId);
       if (!payment) notFound(ctx);
+      // UX B1 (COL-02): a reversed payment (Gate S.1) received nothing, so it has no credit to apply;
+      // its stored unapplied amount is history and is never spent (nothing changes).
+      if (payment.reversal) problem(ctx, 409, 'already_reversed', 'collections:problems.reversedNoCredit');
       const credit = toPaisa(payment.unapplied.amount);
       if (credit <= 0n) problem(ctx, 409, 'no_credit', 'collections:problems.noCredit');
       const input = body<{ allocations: unknown; overrideReason: string }>(ctx);

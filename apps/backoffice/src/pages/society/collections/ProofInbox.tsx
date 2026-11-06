@@ -7,7 +7,9 @@ import { COLLECTIONS } from '../../../nav.config';
 import { Loading, useSocietyFormat } from '../kit';
 import { MatchBadge, SubmissionStateBadge } from './ckit';
 
-const FILTERS = ['to_review', 'awaiting_bank_evidence', 'exception_pending', 'needs_information', 'verified', 'rejected', 'all'] as const;
+// UX B1 (COL-04): "waiting" is exactly what the dashboards' "Waiting for verification" counts (to review,
+// waiting for the bank, exceptions; never a proof sent back to the resident).
+const FILTERS = ['to_review', 'waiting', 'awaiting_bank_evidence', 'exception_pending', 'needs_information', 'verified', 'rejected', 'all'] as const;
 
 /**
  * FIN-008 payment-proof inbox: worked oldest first. Each proof says at a glance whether a bank
@@ -32,7 +34,15 @@ export default function ProofInbox() {
   const query = useApiQuery<SubmissionQueue>({ method: 'GET', path: '/payment-submissions', query: { state: filter, q: q ?? undefined } }, { placeholderData: (prev) => prev });
   const counts = query.data?.counts;
   const count = (f: (typeof FILTERS)[number]) =>
-    !counts ? undefined : f === 'to_review' ? counts.submitted + counts.under_review : f === 'all' ? Object.values(counts).reduce((a, b) => a + b, 0) : counts[f];
+    !counts
+      ? undefined
+      : f === 'to_review'
+        ? counts.submitted + counts.under_review
+        : f === 'waiting'
+          ? counts.submitted + counts.under_review + counts.awaiting_bank_evidence + counts.exception_pending
+          : f === 'all'
+            ? Object.values(counts).reduce((a, b) => a + b, 0)
+            : counts[f];
   return (
     <div className="@container space-y-6" data-testid="proof-inbox" data-filter={filter}>
       <PageHeader
@@ -104,7 +114,7 @@ function ProofRow({ row }: { row: SubmissionRow }) {
           </bdi>
         </span>
         <span className="block text-xs text-muted">
-          <bdi dir="ltr" className="ltr-ref">{row.ref}</bdi> · {t('collections:inbox.sent')} <DateTime value={row.submittedAt} style="dateTime" /> · {t('collections:inbox.transfer', { date: fmt.date(row.transferDate) })} · <bdi dir="ltr" className="ltr-ref">{row.bankReference}</bdi>
+          <bdi dir="ltr" className="ltr-ref whitespace-nowrap">{row.ref}</bdi> · {t('collections:inbox.sent')} <DateTime value={row.submittedAt} style="dateTime" /> · {t('collections:inbox.transfer', { date: fmt.date(row.transferDate) })} · <bdi dir="ltr" className="ltr-ref whitespace-nowrap">{row.bankReference}</bdi>
         </span>
       </span>
       <span className="flex flex-wrap items-center gap-1.5">

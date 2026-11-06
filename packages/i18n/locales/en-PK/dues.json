@@ -29,7 +29,8 @@
     "partially_paid": "Partly paid",
     "paid": "Paid",
     "pending_verification": "Pending verification",
-    "nothing_due": "Nothing to pay"
+    "nothing_due": "Nothing to pay",
+    "credited": "Settled by credit note"
   },
   "proofState": {
     "submitted": "Pending verification",
@@ -107,7 +108,9 @@
     "cashNote": "You can also pay cash at the office: {{counter}}.",
     "onlineLater": "Online payment is not available yet (planned for stage {{gate}}).",
     "paidInAdvance": "You have paid in advance. The credit settles your next bills, oldest first.",
-    "cashAwaiting": "You handed in {{amount}} at the office on {{date}}. It counts once a second person at the office has confirmed it; until then your bill is not paid."
+    "cashAwaiting": "You handed in {{amount}} at the office on {{date}}. It counts once a second person at the office has confirmed it; until then your bill is not paid.",
+    "receiptReversed": "Reversed on {{date}}",
+    "seeProofs": "See your proofs"
   },
   "bills": {
     "title": "Your bills",
@@ -135,7 +138,8 @@
     "position": "What you owe in all",
     "positionLine": "Earlier balance {{previous}} + this month {{current}} = total to pay {{total}}",
     "positionRule": "The earlier balance is shown apart: it is never added to this bill's lines.",
-    "payments": "Payments on this bill"
+    "payments": "Payments on this bill",
+    "reversedPayment": "Reversed on {{date}}: pays nothing on this bill"
   },
   "history": {
     "title": "Receipts and proofs",
@@ -267,7 +271,14 @@
     "credit": "Kept as credit",
     "issued": "Issued {{date}}",
     "demo": "Demo document, fictional data",
-    "print": "Print"
+    "print": "Print",
+    "reversed": "Reversed",
+    "reversedOn": "Reversed on {{date}}",
+    "reversedBody": "The office reversed this payment after an approval. The receipt is kept for your records, but this amount no longer pays anything: the bills it paid are open again.",
+    "amountReversed": "Amount (reversed)",
+    "noLongerSettles": "No longer pays",
+    "creditGone": "Was kept as credit: no longer available",
+    "reasonLabel": "Reason given by the office:"
   },
   "statement": {
     "title": "Your statement",

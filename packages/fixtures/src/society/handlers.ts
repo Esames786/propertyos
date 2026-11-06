@@ -73,7 +73,7 @@ import {
   type StoredImport,
   type StoredRun,
 } from './state';
-import { invoiceRow, statementOf } from './statement';
+import { creditableOf, invoiceRow, statementOf } from './statement';
 
 /**
  * Society setup and monthly billing endpoints (Gate C.1, A6 §5.2–5.3). Every endpoint declares its
@@ -1371,6 +1371,8 @@ export const SOCIETY_HANDLERS: readonly Handler[] = [
           .filter((p) => p.allocations.some((a) => a.invoiceId === invoice.id))
           .map((p) => ({ id: p.id, ref: p.ref, receiptId: p.receiptId, receiptRef: p.receiptRef, receivedOn: p.receivedOn, method: p.method, amount: money(p.allocations.filter((a) => a.invoiceId === invoice.id).reduce((n, a) => n + toPaisa(a.amount.amount), 0n)) })),
         accountBalance: money(balance),
+        // UX B1 (COL-01): what each line may still be credited, the same figure the credit-note POST checks.
+        creditable: invoice.lines.map((l) => ({ lineId: l.id, billed: l.amount, paid: l.allocated, credited: l.credited, open: money(creditableOf(l)) })),
         actions: { creditNote: can(ctx, 'credit_note.create') && toPaisa(invoice.outstanding.amount) > 0n, edit: false },
       };
     },
@@ -1401,9 +1403,11 @@ export const SOCIETY_HANDLERS: readonly Handler[] = [
         const raw = String(l.amount ?? '').trim().replace(/,/g, '');
         if (!line) continue;
         if (raw === '' || raw === '0' || raw === '0.00') continue;
-        const open = toPaisa(line.amount.amount) - toPaisa(line.credited.amount);
+        // UX B1 (COL-01, OD-1 recommended default): never more than billed − paid − already credited (a
+        // reversed payment's money counts as open again). Refused before any number is used; nothing changes.
+        const open = creditableOf(line);
         if (!AMOUNT.test(raw) || toPaisa(raw) <= 0n) errors[`lines.${line.id}`] = [{ code: 'billing:creditNote.problems.amount' }];
-        else if (toPaisa(raw) > open) errors[`lines.${line.id}`] = [{ code: 'billing:creditNote.problems.overOpen', params: { open: fromPaisa(open) } }];
+        else if (toPaisa(raw) > open) errors[`lines.${line.id}`] = [{ code: 'billing:creditNote.problems.overOpen', params: { open: fromPaisa(open), unit: line.unitCode } }];
         else lines.push({ invoiceLineId: line.id, ...(line.category ? { category: line.category } : {}), unitCode: line.unitCode, amount: money(toPaisa(raw)) });
       }
       if (!lines.length && !Object.keys(errors).some((k) => k.startsWith('lines.'))) errors.lines = [{ code: 'billing:creditNote.problems.noLines' }];

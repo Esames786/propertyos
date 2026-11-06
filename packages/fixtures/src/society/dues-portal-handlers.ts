@@ -24,7 +24,7 @@ import { fromPaisa, liabilityRecord, toPaisa } from '../portal';
 import { ALNOOR_SITE, OPENING_AS_OF } from './alnoor';
 import { linesOf, type OpenLine } from './allocate';
 import { createSubmission, proofFile } from './collections';
-import { PENDING_STATES, possibleDuplicates } from './collections-read';
+import { PENDING_STATES, possibleDuplicates, WAITING_STATES } from './collections-read';
 import { invalidField, log, problem, save, society, stamp, type Society } from './handlers';
 import { factOn } from './model';
 import { beneficiaryOn } from './state';
@@ -139,11 +139,14 @@ function position(r: Resident): ResidentPosition {
   const current = all.find((b) => b.source === 'billing_run') ?? null;
   const previous = sum(all.filter((b) => b.invoiceId !== current?.invoiceId).map((b) => toPaisa(b.open.amount)));
   const overdue = sum(all.filter((b) => b.overdue).map((b) => toPaisa(b.open.amount)));
-  const credit = sum(r.payments.map((p) => toPaisa(p.unapplied.amount)));
+  // UX B1 (RES-01, N-1): a reversed payment (Gate S.1) left no credit, whatever its stored unapplied
+  // amount says: the office balance (`creditByAccount`) and My properties already leave it out.
+  const credit = sum(r.payments.filter((p) => !p.reversal).map((p) => toPaisa(p.unapplied.amount)));
   const due = (current ? toPaisa(current.open.amount) : 0n) + previous - credit;
   const total = due > 0n ? due : 0n;
   // Every proof not settled yet (with the office or waiting for the bank line) counts as pending, never paid.
-  const pending = sum(r.submissions.filter((x) => PENDING_STATES.includes(x.state) && x.state !== 'needs_information').map((x) => toPaisa(x.current.amount.amount)));
+  const waiting = waitingOf(r);
+  const pending = sum(waiting.map((x) => toPaisa(x.current.amount.amount)));
   const status: ResidentPosition['status'] =
     total === 0n ? (current && toPaisa(current.paid.amount) > 0n ? 'paid' : 'nothing_due') : pending > 0n && pending >= total ? 'pending_verification' : current?.overdue ? 'overdue' : current && toPaisa(current.paid.amount) > 0n ? 'partially_paid' : 'unpaid';
   return {
@@ -155,8 +158,13 @@ function position(r: Resident): ResidentPosition {
     overdue: money(overdue),
     status,
     ...(current ? { dueOn: current.dueOn } : {}),
+    // UX B1 (RES-03): the proof the server counts as pending (the latest sent), so Home and the bill can open it.
+    ...(waiting[0] ? { pendingSubmissionId: waiting[0].id } : {}),
   };
 }
+
+/** This resident's proofs waiting for the office or the bank (never one sent back to them), latest first. */
+const waitingOf = (r: Resident) => r.submissions.filter((x) => WAITING_STATES.includes(x.state)).sort((a, b) => Date.parse(b.current.submittedAt) - Date.parse(a.current.submittedAt) || b.ref.localeCompare(a.ref));
 
 /** The verified account in force for the issuing entity (never the platform's), with this bill's reference. */
 function payeeFor(r: Resident, amount: Money): ResidentPayee | null {
@@ -205,8 +213,11 @@ const submissionSummary = (x: PaymentSubmission): ResidentSubmissionSummary => (
   ...(x.receiptId ? { receiptId: x.receiptId, receiptRef: x.receiptRef } : {}),
 });
 
+/** UX B1 (RES-01): a reversal travels with every resident projection of its payment (date and reason). */
+const reversalOf = (p: CollectionPayment) => (p.reversal ? { reversed: { on: p.reversal.on, reason: p.reversal.reason } } : {});
+
 const receiptSummaries = (r: Resident) =>
-  [...r.payments].sort((a, b) => b.receivedOn.localeCompare(a.receivedOn) || b.ref.localeCompare(a.ref)).map((p) => ({ id: p.receiptId, ref: p.receiptRef, amount: p.amount, receivedOn: p.receivedOn, method: p.method }));
+  [...r.payments].sort((a, b) => b.receivedOn.localeCompare(a.receivedOn) || b.ref.localeCompare(a.ref)).map((p) => ({ id: p.receiptId, ref: p.receiptRef, amount: p.amount, receivedOn: p.receivedOn, method: p.method, ...reversalOf(p) }));
 
 function flatsOf(r: Resident): DuesHome['property']['flats'] {
   return r.links.map((l) => {
@@ -287,7 +298,8 @@ export const DUES_PORTAL_HANDLERS: readonly Handler[] = [
         receipts: receiptSummaries(r),
         payments: [...r.payments]
           .sort((a, b) => b.receivedOn.localeCompare(a.receivedOn))
-          .map((p) => ({ id: p.id, ref: p.ref, amount: p.amount, receivedOn: p.receivedOn, method: p.method, receiptId: p.receiptId, receiptRef: p.receiptRef, allocated: money(sum(p.allocations.map((a) => toPaisa(a.amount.amount)))), unapplied: p.unapplied, ...(p.reversal ? { reversed: true } : {}) })),
+          // UX B1 (RES-01): a reversed payment keeps no credit (its stored unapplied amount is history only).
+          .map((p) => ({ id: p.id, ref: p.ref, amount: p.amount, receivedOn: p.receivedOn, method: p.method, receiptId: p.receiptId, receiptRef: p.receiptRef, allocated: money(sum(p.allocations.map((a) => toPaisa(a.amount.amount)))), unapplied: p.reversal ? money(0n) : p.unapplied, ...(p.reversal ? { reversed: true } : {}) })),
         cheques: residentCheques(r),
       };
     },
@@ -308,7 +320,7 @@ export const DUES_PORTAL_HANDLERS: readonly Handler[] = [
         payee: payeeFor(r, pos.totalPayable),
         payments: r.payments
           .filter((p) => p.allocations.some((a) => a.invoiceId === bill.invoiceId))
-          .map((p) => ({ paymentRef: p.ref, receiptId: p.receiptId, receiptRef: p.receiptRef, receivedOn: p.receivedOn, amount: money(sum(p.allocations.filter((a) => a.invoiceId === bill.invoiceId).map((a) => toPaisa(a.amount.amount)))) })),
+          .map((p) => ({ paymentRef: p.ref, receiptId: p.receiptId, receiptRef: p.receiptRef, receivedOn: p.receivedOn, amount: money(sum(p.allocations.filter((a) => a.invoiceId === bill.invoiceId).map((a) => toPaisa(a.amount.amount)))), ...reversalOf(p) })),
       };
     },
   },

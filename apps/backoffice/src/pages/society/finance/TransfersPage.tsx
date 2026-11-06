@@ -111,7 +111,8 @@ export default function TransfersPage() {
         </ul>
       )}
       <NewTransferDrawer isOpen={drawer === 'new'} onClose={() => setParams({ drawer: null })} onCreated={(id) => setParams({ drawer: null, record: id })} />
-      <TransferDrawer transferId={record} onClose={() => setParams({ record: null })} />
+      {/* UX B1 (FIN-03): one router navigation shows a record in the drawer (address and drawer always agree). */}
+      <TransferDrawer transferId={record} onClose={() => setParams({ record: null })} onShow={(id) => setParams({ record: id })} />
       <DemoStatementDrawer isOpen={drawer === 'statement'} onClose={() => setParams({ drawer: null })} />
     </div>
   );
@@ -210,7 +211,7 @@ function NewTransferDrawer({ isOpen, onClose, onCreated }: { isOpen: boolean; on
   );
 }
 
-function TransferDrawer({ transferId, onClose }: { transferId: string | null; onClose: () => void }) {
+function TransferDrawer({ transferId, onClose, onShow }: { transferId: string | null; onClose: () => void; onShow: (id: string) => void }) {
   const { t } = useT();
   const fmt = useSocietyFormat();
   const q = useApiQuery<TransferDetail>({ method: 'GET', path: `/finance/transfers/${transferId}` }, { enabled: !!transferId });
@@ -249,7 +250,8 @@ function TransferDrawer({ transferId, onClose }: { transferId: string | null; on
                 const prefill = (await run(`/finance/transfers/${d.transfer.id}/reverse`, {}, t('finance:transfer.reversalReady'))) as { reversalOf: string; kind: string; fromAccountId: string; toAccountId: string; amount: string } | null;
                 if (prefill) {
                   const created = (await run('/finance/transfers', { ...prefill, purpose: t('finance:transfer.reversalPurpose', { ref: d.transfer.ref }) }, t('finance:transfer.reversalPrepared'))) as TransferDetail | null;
-                  if (created) window.history.replaceState(null, '', FINANCE.transfer(created.transfer.id));
+                  // UX B1 (FIN-03): the address and the drawer move to the new reversal transfer together.
+                  if (created) onShow(created.transfer.id);
                 }
               }}
               data-testid="transfer-reverse"

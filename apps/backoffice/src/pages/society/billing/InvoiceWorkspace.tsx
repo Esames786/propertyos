@@ -1,11 +1,11 @@
 import { ApiError, type CreditNote, type InvoiceDetail } from '@repo/contracts';
 import { formatIban } from '@repo/i18n';
-import { Badge, Breadcrumbs, Button, DateTime, Drawer, ErrorState, InlineAlert, Link, Money, NotFoundState, Panel, useAnnounce, useApiMutation, useApiQuery, useQueryParam, useT, useToast } from '@repo/ui';
+import { Badge, Breadcrumbs, Button, DateTime, Drawer, dynamicT, ErrorState, InlineAlert, Link, Money, NotFoundState, Panel, useAnnounce, useApiMutation, useApiQuery, useQueryParam, useT, useToast } from '@repo/ui';
 import { BadgeCheck, FileMinus2, Lock, ScrollText } from 'lucide-react';
 import { useState } from 'react';
 import { Label, TextArea, TextField } from 'react-aria-components';
 import { SOCIETY } from '../../../nav.config';
-import { AmountInput, Loading, moneyMinus, ProblemAlert, ScrollRegion, SettlementBadge, useSocietyFormat } from '../kit';
+import { AmountInput, Loading, ProblemAlert, ScrollRegion, SettlementBadge, useSocietyFormat } from '../kit';
 
 /**
  * FIN-003 invoice workspace for a society invoice, with BILL-014 (credit note) as its drawer. A
@@ -185,15 +185,29 @@ function CreditNoteDrawer({ data, onClose }: { data: InvoiceDetail; onClose: () 
       <div className="space-y-5">
         <InlineAlert tone="info">{t('billing:creditNote.rule')}</InlineAlert>
         <ul className="space-y-3">
-          {data.invoice.lines.map((l) => (
-            <li key={l.id} className="grid gap-2 rounded-tile border border-border p-3 @md:grid-cols-[1fr_12rem] @md:items-end" data-testid="credit-line" data-category={l.category ?? 'opening'}>
-              <span className="text-sm">
-                <span className="block font-semibold text-text">{l.category ? t(`billing:categories.${l.category}`) : t('billing:statement.kinds.opening_balance')} · <bdi dir="ltr">{l.unitCode}</bdi></span>
-                <span className="block text-xs text-muted">{t('billing:creditNote.open', { amount: fmt.money(moneyMinus(l.amount, l.credited)), total: fmt.money(l.amount) })}</span>
-              </span>
-              <AmountInput label={t('billing:creditNote.amount')} value={amounts[l.id] ?? ''} onChange={(v) => setAmounts((a) => ({ ...a, [l.id]: v }))} testId={`credit-amount-${l.category ?? 'opening'}`} />
-            </li>
-          ))}
+          {data.invoice.lines.map((l) => {
+            // UX B1 (COL-01): the server's own figure per line: billed − paid − already credited.
+            const c = data.creditable.find((x) => x.lineId === l.id);
+            const open = c ? Number(c.open.amount) : 0;
+            const lineError = save.error instanceof ApiError ? save.error.problem.errors?.[`lines.${l.id}`]?.[0] : undefined;
+            return (
+              <li key={l.id} className="grid gap-2 rounded-tile border border-border p-3 @md:grid-cols-[1fr_12rem] @md:items-end" data-testid="credit-line" data-category={l.category ?? 'opening'} data-open={c?.open.amount ?? '0.00'}>
+                <span className="text-sm">
+                  <span className="block font-semibold text-text">{l.category ? t(`billing:categories.${l.category}`) : t('billing:statement.kinds.opening_balance')} · <bdi dir="ltr" className="whitespace-nowrap">{l.unitCode}</bdi></span>
+                  {c && (
+                    <span className="block text-xs text-muted" data-testid="credit-line-breakdown">
+                      {t('billing:creditNote.breakdown', { billed: fmt.money(c.billed), paid: fmt.money(c.paid), credited: fmt.money(c.credited), open: fmt.money(c.open) })}
+                    </span>
+                  )}
+                </span>
+                {open > 0 ? (
+                  <AmountInput label={t('billing:creditNote.amount')} value={amounts[l.id] ?? ''} onChange={(v) => setAmounts((a) => ({ ...a, [l.id]: v }))} testId={`credit-amount-${l.category ?? 'opening'}`} error={lineError ? dynamicT(t)(lineError.code, { ...lineError.params, ...(lineError.params?.open ? { open: fmt.money({ amount: lineError.params.open, currency: 'PKR' }) } : {}) }) : undefined} />
+                ) : (
+                  <span className="text-sm text-muted" data-testid="credit-line-closed">{t('billing:creditNote.nothingOpen')}</span>
+                )}
+              </li>
+            );
+          })}
         </ul>
         <TextField value={reason} onChange={setReason} isRequired className="flex flex-col gap-1.5">
           <Label className="text-sm font-medium text-text">{t('billing:creditNote.reason')}</Label>
