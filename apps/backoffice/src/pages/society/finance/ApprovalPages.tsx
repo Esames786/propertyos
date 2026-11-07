@@ -28,7 +28,7 @@ import {
   useToast,
 } from '@repo/ui';
 import { CheckCircle2, ChevronRight, ClipboardCheck, FilePlus2, Gavel, Plus, Search, Send, ShieldCheck, Trash2, UserRoundCheck, XCircle } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FINANCE } from '../../../nav.config';
 import { AmountInput, Loading, ProblemAlert, useSocietyFormat } from '../kit';
 import { ApprovalBadge, Fact, FactGrid, HistoryList, WRAP, WrapMoney } from './fkit';
@@ -330,6 +330,22 @@ function DecideDrawer({ isOpen, approvalId, title, onClose, onDone }: { isOpen: 
 // ---------------------------------------------------------------------------------------------
 
 type DraftRule = { subject: ApprovalSubject; minAmount: string; maxAmount: string; approvers: ApproverRef[]; approvalsRequired: number };
+/** UX B1 (FIN-04): what the author changed on screen, for one draft (another draft starts clean). */
+type DraftEdits = { draftId: string; rules?: DraftRule[]; from?: string; note?: string };
+
+const ruleKey = (rules: readonly DraftRule[]) =>
+  JSON.stringify(rules.map((r) => [r.subject, r.minAmount, r.maxAmount, r.approvers.map((a) => (a.kind === 'office' ? `office:${a.office}` : `role:${a.roleId}`)), r.approvalsRequired]));
+
+/** Warns before the page is left (reload, close, another site) while the draft has unsaved changes. */
+function UnsavedGuard({ when }: { when: boolean }) {
+  useEffect(() => {
+    if (!when) return;
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [when]);
+  return null;
+}
 
 export function PoliciesPage() {
   const { t } = useT();
@@ -337,9 +353,9 @@ export function PoliciesPage() {
   const toast = useToast();
   const q = useApiQuery<PolicyOverview>({ method: 'GET', path: '/approval-policies' });
   const act = useApiMutation<PolicyOverview>();
-  const [rules, setRules] = useState<DraftRule[] | null>(null);
-  const [from, setFrom] = useState('2026-11-01');
-  const [note, setNote] = useState('');
+  // UX B1 (FIN-04): the date and note start from the saved draft (never a fixed date), and edits belong
+  // to one draft: when the draft changes, the screen starts again from what is saved.
+  const [edits, setEdits] = useState<DraftEdits | null>(null);
   const [error, setError] = useState<unknown>(null);
   const { persona } = useSession();
   if (q.isError) return <ErrorState error={q.error} onRetry={() => void q.refetch()} />;
@@ -347,15 +363,46 @@ export function PoliciesPage() {
   const d = q.data;
   const draft = d.versions.find((v) => v.status === 'draft');
   const mineDraft = draft && draft.createdBy === persona?.principalId;
-  const editing = rules ?? (draft ? draft.rules.map((r) => ({ subject: r.subject, minAmount: r.minAmount?.amount ?? '', maxAmount: r.maxAmount?.amount ?? '', approvers: r.approvers, approvalsRequired: r.approvalsRequired })) : null);
+  const mine = draft && edits?.draftId === draft.id ? edits : null;
+  const saved: DraftRule[] = draft ? draft.rules.map((r) => ({ subject: r.subject, minAmount: r.minAmount?.amount ?? '', maxAmount: r.maxAmount?.amount ?? '', approvers: r.approvers, approvalsRequired: r.approvalsRequired })) : [];
+  const editing = draft ? (mine?.rules ?? saved) : null;
+  const from = mine?.from ?? draft?.effectiveFrom ?? '';
+  const note = mine?.note ?? draft?.note ?? '';
+  const edit = (change: Omit<DraftEdits, 'draftId'>) => draft && setEdits({ ...(mine ?? { draftId: draft.id }), ...change });
+  const setRules = (next: DraftRule[]) => edit({ rules: next });
+  // Unsaved: what is on screen differs from what is stored (rules, date or note).
+  const dirty = !!draft && !!editing && (ruleKey(editing) !== ruleKey(saved) || from !== draft.effectiveFrom || note.trim() !== draft.note);
+  const onScreen = () => ({ rules: (editing ?? []).map((r) => ({ ...r, minAmount: r.minAmount || undefined, maxAmount: r.maxAmount || undefined })), effectiveFrom: from, note });
   const run = async (method: 'POST' | 'PATCH', path: string, body: unknown, message: string) => {
     setError(null);
     try {
       await act.mutateAsync({ method, path, body });
+      // The stored version first, then the screen starts from it (no flash of the old values).
+      await q.refetch();
+      setEdits(null);
       toast.success(message);
-      setRules(null);
-      void q.refetch();
     } catch (e) {
+      setError(e);
+    }
+  };
+  // UX B1 (FIN-04): "Send for approval" sends exactly what is on screen: unsaved changes are saved first
+  // (and nothing is sent if saving fails); the server refuses the send if the stored draft is not that.
+  const send = async (id: string) => {
+    setError(null);
+    const body = onScreen();
+    try {
+      if (dirty) await act.mutateAsync({ method: 'PATCH', path: `/approval-policies/${id}`, body });
+    } catch (e) {
+      setError(e);
+      return;
+    }
+    try {
+      await act.mutateAsync({ method: 'POST', path: `/approval-policies/${id}/submit`, body: { expected: body } });
+      await q.refetch();
+      setEdits(null);
+      toast.success(t('governance:policy.submitted'));
+    } catch (e) {
+      void q.refetch();
       setError(e);
     }
   };
@@ -424,7 +471,8 @@ export function PoliciesPage() {
               ))}
             </ul>
           ) : tab === 'draft' && draft && editing ? (
-            <section className="space-y-4 pt-4" data-testid="policy-draft">
+            <section className="space-y-4 pt-4" data-testid="policy-draft" data-dirty={dirty ? 'true' : 'false'}>
+              <UnsavedGuard when={!!mineDraft && dirty} />
               {!mineDraft && <p className="text-sm text-muted">{t('governance:policy.draftOf', { name: draft.createdByName })}</p>}
               {editing.map((r, i) => (
                 <div key={i} className="grid grid-cols-1 gap-3 rounded-tile border border-border/70 bg-panel p-4 @3xl:grid-cols-2" data-testid="draft-rule">
@@ -467,13 +515,18 @@ export function PoliciesPage() {
                   <Button variant="secondary" size="sm" icon={Plus} onPress={() => setRules([...editing, { subject: 'cash_voucher', minAmount: '', maxAmount: '', approvers: [{ kind: 'office', office: 'treasurer' }], approvalsRequired: 1 }])}>
                     {t('governance:policy.addRule')}
                   </Button>
-                  <PlainTextField label={t('governance:policy.effectiveFrom')} value={from} onChange={setFrom} dir="ltr" testId="draft-from" />
-                  <PlainTextArea label={t('governance:policy.note')} value={note || draft.note} onChange={setNote} testId="draft-note" />
+                  <PlainTextField label={t('governance:policy.effectiveFrom')} value={from} onChange={(v) => edit({ from: v })} dir="ltr" testId="draft-from" />
+                  <PlainTextArea label={t('governance:policy.note')} value={note} onChange={(v) => edit({ note: v })} testId="draft-note" />
+                  {dirty && (
+                    <InlineAlert tone="info" data-testid="draft-unsaved">
+                      {t('governance:policy.unsaved')}
+                    </InlineAlert>
+                  )}
                   <div className="flex flex-wrap gap-2">
-                    <Button variant="secondary" isPending={act.isPending} onPress={() => void run('PATCH', `/approval-policies/${draft.id}`, { rules: editing.map((r) => ({ ...r, minAmount: r.minAmount || undefined, maxAmount: r.maxAmount || undefined })), effectiveFrom: from, note: note || draft.note }, t('governance:policy.saved'))} data-testid="draft-save">
+                    <Button variant="secondary" isPending={act.isPending} onPress={() => void run('PATCH', `/approval-policies/${draft.id}`, onScreen(), t('governance:policy.saved'))} data-testid="draft-save">
                       {t('governance:policy.save')}
                     </Button>
-                    <Button variant="primary" icon={Send} isPending={act.isPending} onPress={() => void run('POST', `/approval-policies/${draft.id}/submit`, {}, t('governance:policy.submitted'))} data-testid="draft-submit">
+                    <Button variant="primary" icon={Send} isPending={act.isPending} onPress={() => void send(draft.id)} data-testid="draft-submit">
                       {t('governance:policy.submit')}
                     </Button>
                     <Button variant="quiet" icon={Trash2} onPress={() => void run('POST', `/approval-policies/${draft.id}/discard`, {}, t('governance:policy.discarded'))} data-testid="draft-discard">

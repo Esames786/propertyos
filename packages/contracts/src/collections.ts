@@ -155,7 +155,10 @@ export interface SubmissionRow {
 export interface SubmissionQueue {
   items: SubmissionRow[];
   counts: Record<SubmissionState, number>;
-  /** Amount awaiting a decision (submitted, under review, needs information). */
+  /**
+   * Amount waiting for the office or the bank (submitted, under review, awaiting bank evidence,
+   * exception pending). UX B1 (COL-04): a proof sent back to the resident is not counted.
+   */
   pending: Money;
 }
 
@@ -426,12 +429,17 @@ export interface PaymentRow {
   unapplied: Money;
   receiptRef: string;
   reconciled: boolean;
+  /** UX B1 (COL-02): reversed after an approval; listed as the audit trail, never counted as received. */
   reversed?: boolean;
 }
 
 export interface PaymentList {
   items: PaymentRow[];
-  totals: { amount: Money; allocated: Money; unapplied: Money; count: number };
+  /**
+   * UX B1 (COL-02): amount, allocated, unapplied credit and count cover live payments only; `reversed`
+   * is how many listed rows were reversed (shown, not counted).
+   */
+  totals: { amount: Money; allocated: Money; unapplied: Money; count: number; reversed: number };
 }
 
 export interface PaymentDetail {
@@ -715,6 +723,12 @@ export interface ResidentPosition {
   pendingVerification: Money;
   status: ResidentBillStatus;
   dueOn?: string;
+  /**
+   * UX B1 (RES-03): the resident's latest proof the server counts as waiting for the office or the bank
+   * (submitted, under review, awaiting bank evidence, exception pending); never one sent back for more
+   * information, verified or rejected, and never another payer's.
+   */
+  pendingSubmissionId?: string;
 }
 
 export interface ResidentPayee {
@@ -758,6 +772,8 @@ export interface ResidentReceiptSummary {
   amount: Money;
   receivedOn: string;
   method: CollectionMethod;
+  /** UX B1 (RES-01): the payment was reversed (the receipt is kept and shown as reversed, never as paid). */
+  reversed?: { on: string; reason: string };
 }
 
 export interface DuesHome {
@@ -802,7 +818,8 @@ export interface DuesBillDetail {
   bill: ResidentBill;
   position: ResidentPosition;
   payee: ResidentPayee | null;
-  payments: Array<{ paymentRef: string; receiptId: string; receiptRef: string; amount: Money; receivedOn: string }>;
+  /** UX B1 (RES-01): a reversed payment stays listed (history) with its reversal; it settles nothing. */
+  payments: Array<{ paymentRef: string; receiptId: string; receiptRef: string; amount: Money; receivedOn: string; reversed?: { on: string; reason: string } }>;
 }
 
 export interface DuesPayInfo {

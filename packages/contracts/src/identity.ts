@@ -374,6 +374,11 @@ export interface MyProperty {
   accountNo: string;
   /** What this person owes for this flat now (their own liability), as a decimal string. */
   balance: string;
+  /**
+   * UX B1 (RES-02): this person's unapplied credit on the flat's account (payments received and not
+   * settling any line yet; a reversed payment leaves none), as a decimal string. 0.00 when none.
+   */
+  credit: string;
   balanceState: 'paid_up' | 'due' | 'overdue' | 'credit';
 }
 

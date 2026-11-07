@@ -197,6 +197,18 @@ function rulesFrom(ctx: HandlerContext, raw: unknown): ApprovalRule[] {
   });
 }
 
+/** A policy's rules as what they decide (subject, band, approvers, number required), ids aside. */
+const ruleFacts = (rules: readonly ApprovalRule[]) =>
+  JSON.stringify(rules.map((r) => [r.subject, r.minAmount?.amount ?? null, r.maxAmount?.amount ?? null, r.approvers.map((a) => (a.kind === 'office' ? `office:${a.office}` : `role:${a.roleId}`)), r.approvalsRequired]));
+
+/**
+ * UX B1 (FIN-04): is the stored draft exactly what its author had on screen (normalised as a save
+ * would store it)? An invalid "expected" version is refused like an invalid save (422).
+ */
+function sameDraft(ctx: HandlerContext, v: ApprovalPolicyVersion, expected: { rules?: unknown; effectiveFrom?: unknown; note?: unknown }): boolean {
+  return ruleFacts(rulesFrom(ctx, expected.rules)) === ruleFacts(v.rules) && String(expected.effectiveFrom ?? '') === v.effectiveFrom && text(expected.note, 300) === v.note;
+}
+
 // ---------------------------------------------------------------------------------------------
 // Committee
 // ---------------------------------------------------------------------------------------------
@@ -348,6 +360,11 @@ export const FINANCE_GOVERNANCE_HANDLERS: readonly Handler[] = [
       if (v!.status === 'pending') return policyOverview(ctx, s);
       if (v!.status !== 'draft') refuse(ctx, 409, 'policy_not_draft');
       if (v!.createdBy !== me(ctx).principalId) refuse(ctx, 403, 'not_preparer');
+      // UX B1 (FIN-04): the author sends what was on their screen; if the stored draft is not exactly
+      // that (rules, effective date and note), nothing is sent and nothing changes, so approvers never
+      // approve a different policy from the one its author saw. (Without `expected`: as before.)
+      const expected = body<{ expected?: { rules?: unknown; effectiveFrom?: unknown; note?: unknown } }>(ctx).expected;
+      if (expected !== undefined && !sameDraft(ctx, v!, expected)) refuse(ctx, 409, 'policy_changed');
       required(ctx, 'note', v!.note, 5);
       const who = me(ctx);
       const approval = raiseApproval(s.state, { subject: 'approval_policy', subjectId: v!.id, subjectRef: `v${v!.version}`, summary: { key: 'approval_policy', values: { version: String(v!.version), from: v!.effectiveFrom } }, href: FIN_ROUTES.policies('versions'), requester: { principalId: who.principalId, name: who.name }, on: ctx.at, at: stamp(ctx) });

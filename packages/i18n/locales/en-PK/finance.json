@@ -245,7 +245,8 @@
       "cheque_deposited": "Cheque deposited",
       "proof_pending": "Proof pending",
       "voucher_approved": "Approved voucher, not posted",
-      "cash_awaiting_count": "Office cash awaiting count"
+      "cash_awaiting_count": "Office cash awaiting count",
+      "voucher_draft": "Your draft, not sent"
     },
     "describe": {
       "transfer_awaiting": "{{from}} → {{to}}: waiting for approval",
@@ -256,7 +257,8 @@
       "voucher_approved": "{{purpose}}: approved, waiting to be posted",
       "voucher_awaiting": "{{purpose}}: waiting for approval",
       "proof_pending": "Transfer proof from {{payer}}",
-      "cash_awaiting_count": "Cash recorded by {{name}} for {{payers}}, waiting for a second count"
+      "cash_awaiting_count": "Cash recorded by {{name}} for {{payers}}, waiting for a second count",
+      "voucher_draft": "{{purpose}}: draft, not sent for approval yet"
     }
   },
   "voucherCategory": {
@@ -336,7 +338,10 @@
     "attached": "Attached: {{name}}",
     "noEvidence": "No document attached yet. A voucher needs one.",
     "createdSubmitted": "{{ref}} sent for approval",
-    "createdDraft": "{{ref}} saved as a draft"
+    "createdDraft": "{{ref}} saved as a draft",
+    "edit": "Edit the draft",
+    "saveChanges": "Save changes",
+    "draftNote": "This draft is saved. Finish it, then send it for approval: it is not money until it is approved and posted."
   },
   "count": {
     "open": "Count cash",
@@ -895,7 +900,8 @@
     "cheque_stale": "Older than six months (stale).",
     "allocationAtCount": "Office cash is allocated when a second person has counted it (oldest bills first); an allocation cannot be chosen at the counter.",
     "witness_required": "Every office cash payment is counted by a second person (owner decision D-46); a single counter cannot be chosen.",
-    "idempotencyKeyReused": "This request’s key was already used for a different request. Nothing was changed; send it again as a new request."
+    "idempotencyKeyReused": "This request’s key was already used for a different request. Nothing was changed; send it again as a new request.",
+    "policy_changed": "This draft changed since you opened it, so nothing was sent. Open it again, check it and send it."
   },
   "cashAwaiting": {
     "title": "{{amount}} in office cash waiting for a second count",

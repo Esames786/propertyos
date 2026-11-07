@@ -886,18 +886,24 @@
   "creditNote": {
     "title": "Credit note for {{ref}}",
     "subtitle": "Correct a posted invoice without editing it",
-    "rule": "Enter what to credit on each line (at most what is still open) and why. The invoice stays as issued; the credit note and the statement show the correction.",
+    "rule": "Enter what to credit on each line and why: at most what is still open (billed, less what was paid and what was already credited). Money already paid is never credited here. The invoice stays as issued; the credit note and the statement show the correction.",
     "open": "Open {{amount}} of {{total}}",
     "amount": "Credit",
     "reason": "Reason",
     "issue": "Issue credit note",
     "done": "Credit note {{ref}} of {{amount}} issued.",
+    "keyReused": "An earlier attempt from this form already issued a credit note with other details, so this one was not issued. The invoice is shown as it is now: check its credit notes before issuing another.",
+    "retrySame": "No answer arrived, so it is not known whether the credit note was issued. Press “Issue credit note” again without changing anything: if it was issued, you will see that credit note, never a second one.",
     "problems": {
       "reason": "Give a reason of a few words.",
       "amount": "Enter an amount above 0.",
-      "overOpen": "At most {{open}} on this line.",
-      "noLines": "Enter an amount on at least one line."
-    }
+      "overOpen": "At most {{open}} is still open on this line ({{unit}}): the rest is paid or already credited.",
+      "noLines": "Enter an amount on at least one line.",
+      "duplicateLine": "This line ({{unit}}) was sent more than once. Enter one amount per line; nothing was issued.",
+      "linesMismatch": "The lines sent are not all lines of this invoice. Nothing was issued: open the invoice again and retry."
+    },
+    "breakdown": "Billed {{billed}} · paid {{paid}} · credited {{credited}} · open {{open}}",
+    "nothingOpen": "Nothing open to credit on this line: it is paid or already credited."
   },
   "quote": "“{{text}}”",
   "currency": "Rs"

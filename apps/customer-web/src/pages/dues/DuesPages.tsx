@@ -1,6 +1,6 @@
 import { ApiError, type DuesBillDetail, type DuesBills, type Receipt, type ResidentBill, type ResidentSubmissionDetail, type Statement } from '@repo/contracts';
 import { Badge, Breadcrumbs, Button, dynamicT, EmptyState, ErrorState, InlineAlert, Link, NotFoundState, PlainTextArea, PlainTextField, useApiMutation, useApiQuery, useQueryParam, useT, useToast } from '@repo/ui';
-import { ArrowRight, CheckCircle2, FileText, Printer, ReceiptText, Upload } from 'lucide-react';
+import { ArrowRight, CheckCircle2, FileText, Printer, ReceiptText, Undo2, Upload } from 'lucide-react';
 import { useRef, useState, type ChangeEvent, type ReactNode } from 'react';
 import { DUES } from '../../nav.config';
 import { Amount, PortalSkeleton, usePortalFormat } from '../portal/shared';
@@ -13,7 +13,8 @@ function NotYours({ error, children }: { error: unknown; children: ReactNode }) 
   return <>{children}</>;
 }
 
-const settlementStatus = (b: ResidentBill) => (b.overdue ? 'overdue' : b.settlement === 'paid' || b.settlement === 'credited' ? 'paid' : b.settlement === 'partially_paid' ? 'partially_paid' : 'unpaid');
+// UX B1 (RES-12): a bill settled by a credit note was not paid: it says so ("Settled by credit note").
+const settlementStatus = (b: ResidentBill) => (b.overdue ? 'overdue' : b.settlement === 'paid' ? 'paid' : b.settlement === 'credited' ? 'credited' : b.settlement === 'partially_paid' ? 'partially_paid' : 'unpaid');
 
 /** PORTAL-004, dues edition: every bill of the resident's own liability, newest first, with what is left. */
 export function DuesBillsPage() {
@@ -36,12 +37,13 @@ export function DuesBillsPage() {
           {bills.map((b) => (
             <li key={b.invoiceId}>
               <Link href={DUES.bill(b.invoiceId)} variant="plain" className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-card bg-panel p-4 shadow-card hover:bg-raised sm:p-5" data-testid="dues-bill-row" data-source={b.source}>
-                <span className="min-w-0 flex-1">
+                {/* UX B1 (RES-12 screen, 320 px at 200 % text): the bill's words keep 12em; the amount and chip move below when needed. */}
+                <span className="min-w-0 grow basis-[12em]">
                   <span className="block text-xs font-semibold tracking-[0.08em] text-muted uppercase">{b.source === 'opening_balance' ? t('dues:bills.opening') : t('dues:bills.monthly')}</span>
                   <span className="block text-lg font-bold text-text">{b.source === 'opening_balance' ? t('dues:bills.openingTitle', { date: fmt.date(b.issuedOn) }) : fmt.monthYear(`${b.period}-01`)}</span>
-                  <span className="block text-xs text-muted"><bdi dir="ltr" className="ltr-ref">{b.ref}</bdi> · <bdi dir="ltr" className="ltr-ref">{b.flats.join(', ')}</bdi> · {t('dues:home.dueOn', { date: fmt.date(b.dueOn) })}</span>
+                  <span className="block text-xs text-muted"><bdi dir="ltr" className="ltr-ref whitespace-nowrap">{b.ref}</bdi> · <bdi dir="ltr" className="ltr-ref whitespace-nowrap">{b.flats.join(', ')}</bdi> · {t('dues:home.dueOn', { date: fmt.date(b.dueOn) })}</span>
                 </span>
-                <span className="flex flex-col items-end gap-1">
+                <span className="ms-auto flex flex-col items-end gap-1">
                   <span className="text-xl font-bold text-text"><Amount value={b.total.amount} /></span>
                   {Number(b.open.amount) > 0 && Number(b.open.amount) !== Number(b.total.amount) && <span className="text-xs text-muted">{t('dues:bills.left', { amount: fmt.money(b.open.amount) })}</span>}
                   <BillStatusChip status={settlementStatus(b)} />
@@ -79,42 +81,44 @@ export function DuesBillPage() {
         <BillStatusChip status={settlementStatus(bill)} />
       </header>
       <section aria-label={t('dues:bill.charges')} className="rounded-card bg-panel p-5 shadow-card">
-        <table className="w-full text-sm" data-testid="dues-bill-lines">
-          <caption className="sr-only">{t('dues:bill.charges')}</caption>
-          <thead>
-            <tr className="border-b border-border text-xs text-muted">
-              <th scope="col" className="py-2 pe-3 text-start font-medium">{t('dues:bill.charge')}</th>
-              <th scope="col" className="py-2 text-end font-medium">{t('dues:bill.amount')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {bill.lines.map((l) => (
-              <tr key={l.lineId} className="border-b border-border/60" data-testid="dues-bill-line" data-category={l.category ?? l.kind}>
-                <th scope="row" className="py-2.5 pe-3 text-start font-normal text-text">
-                  {l.kind === 'opening_balance' ? t('dues:bill.opening') : t(`billing:categories.${l.category ?? 'maintenance'}`)}
-                  <span className="block text-xs text-muted">{t('dues:home.flat')} <bdi dir="ltr" className="ltr-ref">{l.unitCode}</bdi>{Number(l.credited.amount) > 0 && <> · {t('dues:bill.credited', { amount: fmt.money(l.credited.amount) })}</>}{Number(l.paid.amount) > 0 && <> · {t('dues:bill.paidPart', { amount: fmt.money(l.paid.amount) })}</>}</span>
-                </th>
-                <td className="py-2.5 text-end font-semibold text-text"><Amount value={l.amount.amount} /></td>
-              </tr>
-            ))}
-          </tbody>
-          <tfoot>
-            <tr>
-              <th scope="row" className="pt-3 pe-3 text-start font-semibold text-text">{t('dues:bill.total')}</th>
-              <td className="pt-3 text-end text-lg font-bold text-text"><Amount value={bill.total.amount} /></td>
-            </tr>
-            {Number(bill.credited.amount) > 0 && (
-              <tr><th scope="row" className="pt-1 pe-3 text-start font-normal text-muted">{t('dues:bill.creditNotes')}</th><td className="pt-1 text-end text-success">− <Amount value={bill.credited.amount} /></td></tr>
-            )}
-            {Number(bill.paid.amount) > 0 && (
-              <tr><th scope="row" className="pt-1 pe-3 text-start font-normal text-muted">{t('dues:bill.paid')}</th><td className="pt-1 text-end text-success">− <Amount value={bill.paid.amount} /></td></tr>
-            )}
-            <tr>
-              <th scope="row" className="pt-2 pe-3 text-start font-semibold text-text">{t('dues:bill.left')}</th>
-              <td className="pt-2 text-end font-bold text-text" data-testid="dues-bill-open"><Amount value={bill.open.amount} /></td>
-            </tr>
-          </tfoot>
-        </table>
+        {/*
+          UX B1 (RES-01 screen, 320 px at 200 % text): the charges are a list, not a table, so a phone with
+          large text never pushes an amount off the screen; each amount wraps below its charge when there
+          is no room beside it (the currency before any digit), and flat codes stay whole.
+        */}
+        <ul className="text-sm" data-testid="dues-bill-lines">
+          {bill.lines.map((l) => (
+            <li key={l.lineId} className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-border/60 py-2.5" data-testid="dues-bill-line" data-category={l.category ?? l.kind}>
+              <span className="min-w-0 text-text">
+                {l.kind === 'opening_balance' ? t('dues:bill.opening') : t(`billing:categories.${l.category ?? 'maintenance'}`)}
+                <span className="block text-xs text-muted">{t('dues:home.flat')} <bdi dir="ltr" className="ltr-ref whitespace-nowrap">{l.unitCode}</bdi>{Number(l.credited.amount) > 0 && <> · {t('dues:bill.credited', { amount: fmt.money(l.credited.amount) })}</>}{Number(l.paid.amount) > 0 && <> · {t('dues:bill.paidPart', { amount: fmt.money(l.paid.amount) })}</>}</span>
+              </span>
+              <span className="ms-auto font-semibold text-text"><Amount value={l.amount.amount} wrap /></span>
+            </li>
+          ))}
+        </ul>
+        <dl className="mt-3 space-y-1 text-sm">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+            <dt className="font-semibold text-text">{t('dues:bill.total')}</dt>
+            <dd className="ms-auto text-lg font-bold text-text"><Amount value={bill.total.amount} wrap /></dd>
+          </div>
+          {Number(bill.credited.amount) > 0 && (
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+              <dt className="text-muted">{t('dues:bill.creditNotes')}</dt>
+              <dd className="ms-auto text-success">− <Amount value={bill.credited.amount} wrap /></dd>
+            </div>
+          )}
+          {Number(bill.paid.amount) > 0 && (
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+              <dt className="text-muted">{t('dues:bill.paid')}</dt>
+              <dd className="ms-auto text-success">− <Amount value={bill.paid.amount} wrap /></dd>
+            </div>
+          )}
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 pt-1">
+            <dt className="font-semibold text-text">{t('dues:bill.left')}</dt>
+            <dd className="ms-auto font-bold text-text" data-testid="dues-bill-open"><Amount value={bill.open.amount} wrap /></dd>
+          </div>
+        </dl>
       </section>
       <section aria-label={t('dues:bill.position')} className="space-y-2 rounded-card border border-border bg-raised p-5 text-sm" data-testid="dues-bill-position">
         <p className="font-semibold text-text">{t('dues:bill.position')}</p>
@@ -125,23 +129,46 @@ export function DuesBillPage() {
         <section aria-label={t('dues:bill.payments')} className="space-y-2">
           <h2 className="text-lg font-bold text-text">{t('dues:bill.payments')}</h2>
           <ul className="space-y-2">
-            {payments.map((p) => (
-              <li key={p.receiptId}>
-                <Link href={DUES.receipt(p.receiptId)} variant="plain" className="flex items-center gap-3 rounded-tile border border-success/30 bg-success-soft/40 p-4">
-                  <ReceiptText aria-hidden className="size-5 text-success" />
-                  <span className="min-w-0 flex-1 text-sm text-text">{t('dues:home.receipt', { ref: p.receiptRef })} · {fmt.date(p.receivedOn)}</span>
-                  <Amount value={p.amount.amount} className="font-semibold text-success" />
-                </Link>
-              </li>
-            ))}
+            {payments.map((p) =>
+              p.reversed ? (
+                // UX B1 (RES-01): kept as history, said in words; it settles nothing on this bill.
+                <li key={p.receiptId}>
+                  <Link href={DUES.receipt(p.receiptId)} variant="plain" className="flex flex-wrap items-center gap-3 rounded-tile border border-border bg-panel p-4" data-testid="dues-bill-payment" data-reversed="true">
+                    <Undo2 aria-hidden className="size-5 shrink-0 text-error" />
+                    <span className="min-w-0 grow basis-[10em] text-sm text-text">
+                      <span className="block">{t('dues:home.receipt', { ref: p.receiptRef })} · {fmt.date(p.receivedOn)}</span>
+                      <span className="block font-medium text-error">{t('dues:bill.reversedPayment', { date: fmt.date(p.reversed.on) })}</span>
+                    </span>
+                    <Amount value={p.amount.amount} className="ms-auto font-semibold text-muted line-through" />
+                  </Link>
+                </li>
+              ) : (
+                <li key={p.receiptId}>
+                  <Link href={DUES.receipt(p.receiptId)} variant="plain" className="flex flex-wrap items-center gap-3 rounded-tile border border-success/30 bg-success-soft/40 p-4" data-testid="dues-bill-payment">
+                    <ReceiptText aria-hidden className="size-5 shrink-0 text-success" />
+                    <span className="min-w-0 grow basis-[10em] text-sm text-text">{t('dues:home.receipt', { ref: p.receiptRef })} · {fmt.date(p.receivedOn)}</span>
+                    <Amount value={p.amount.amount} className="ms-auto font-semibold text-success" />
+                  </Link>
+                </li>
+              ),
+            )}
           </ul>
         </section>
       )}
-      {Number(position.totalPayable.amount) > 0 && (
-        <Link href={DUES.pay} variant="plain" className="inline-flex min-h-12 items-center gap-2 rounded-control bg-primary px-5 text-base font-semibold text-on-primary" data-testid="dues-bill-pay">
-          {t('dues:home.pay', { amount: fmt.money(position.totalPayable.amount) })}
+      {/* UX B1 (RES-12): while a proof covering the total waits for the office, the bill opens that proof
+          (as Home does), never "Pay" again; the server says which proof it counts (RES-03). */}
+      {position.status === 'pending_verification' ? (
+        <Link href={position.pendingSubmissionId ? DUES.submission(position.pendingSubmissionId) : DUES.history} variant="plain" className="inline-flex min-h-12 items-center gap-2 rounded-control border border-border-control bg-panel px-5 text-base font-semibold text-text" data-testid="dues-bill-pending-open">
+          {position.pendingSubmissionId ? t('dues:home.seeProof') : t('dues:home.seeProofs')}
           <ArrowRight aria-hidden className="size-4 rtl:rotate-180" />
         </Link>
+      ) : (
+        Number(position.totalPayable.amount) > 0 && (
+          <Link href={DUES.pay} variant="plain" className="inline-flex min-h-12 items-center gap-2 rounded-control bg-primary px-5 text-base font-semibold text-on-primary" data-testid="dues-bill-pay">
+            {t('dues:home.pay', { amount: fmt.money(position.totalPayable.amount) })}
+            <ArrowRight aria-hidden className="size-4 rtl:rotate-180" />
+          </Link>
+        )
       )}
     </div>
   );
@@ -169,16 +196,23 @@ export function DuesHistoryPage() {
           <ul className="space-y-2">
             {payments.map((p) => (
               <li key={p.id}>
-                <Link href={DUES.receipt(p.receiptId)} variant="plain" className="flex flex-wrap items-center gap-3 rounded-tile border border-success/30 bg-success-soft/40 p-4 hover:bg-success-soft" data-testid="history-receipt" data-ref={p.receiptRef}>
-                  <CheckCircle2 aria-hidden className="size-5 text-success" />
-                  <span className="min-w-0 flex-1">
+                <Link
+                  href={DUES.receipt(p.receiptId)}
+                  variant="plain"
+                  className={p.reversed ? 'flex flex-wrap items-center gap-3 rounded-tile border border-border bg-panel p-4 hover:bg-raised' : 'flex flex-wrap items-center gap-3 rounded-tile border border-success/30 bg-success-soft/40 p-4 hover:bg-success-soft'}
+                  data-testid="history-receipt"
+                  data-ref={p.receiptRef}
+                  data-reversed={p.reversed ? 'true' : undefined}
+                >
+                  {p.reversed ? <Undo2 aria-hidden className="size-5 shrink-0 text-error" /> : <CheckCircle2 aria-hidden className="size-5 shrink-0 text-success" />}
+                  <span className="min-w-0 grow basis-[10em]">
                     <span className="block font-semibold text-text">
                       {t('dues:home.receipt', { ref: p.receiptRef })}
                       {p.reversed ? <span className="ms-2 text-sm font-medium text-error" data-testid="history-receipt-reversed">{t('dues:history.reversed')}</span> : null}
                     </span>
                     <span className="block text-xs text-muted">{t(`dues:method.${p.method}`)} · {fmt.date(p.receivedOn)}{Number(p.unapplied.amount) > 0 && <> · {t('dues:history.credit', { amount: fmt.money(p.unapplied.amount) })}</>}</span>
                   </span>
-                  <Amount value={p.amount.amount} className="font-semibold text-success" />
+                  <Amount value={p.amount.amount} className={p.reversed ? 'ms-auto font-semibold text-muted line-through' : 'ms-auto font-semibold text-success'} />
                 </Link>
               </li>
             ))}
@@ -355,37 +389,49 @@ export function DuesReceiptPage() {
   if (q.isError) return <NotYours error={q.error}><ErrorState error={q.error} onRetry={() => void q.refetch()} /></NotYours>;
   if (!q.data) return <PortalSkeleton title={t('dues:receipt.title')} />;
   const r = q.data;
+  const reversed = r.reversed;
   return (
-    <div className="@container space-y-5" data-testid="dues-receipt-page" data-ref={r.ref}>
+    <div className="@container space-y-5" data-testid="dues-receipt-page" data-ref={r.ref} data-reversed={reversed ? 'true' : 'false'}>
       <Breadcrumbs items={[{ label: t('dues:nav.history'), href: DUES.history }, { label: r.ref }]} />
       <article className="mx-auto max-w-2xl space-y-5 rounded-card border border-border bg-panel p-6 shadow-card" aria-labelledby="page-title">
         <header className="flex flex-wrap items-start justify-between gap-3 border-b border-border pb-4">
           <div>
-            <Badge tone="success" icon={CheckCircle2}>{t('dues:receipt.paid')}</Badge>
+            {reversed ? (
+              <Badge tone="error" icon={Undo2} data-testid="receipt-status" data-status="reversed">{t('dues:receipt.reversed')}</Badge>
+            ) : (
+              <Badge tone="success" icon={CheckCircle2} data-testid="receipt-status" data-status="paid">{t('dues:receipt.paid')}</Badge>
+            )}
             <h1 id="page-title" tabIndex={-1} className="mt-2 text-xl font-bold text-text outline-none">{t('dues:receipt.title')}</h1>
             <p className="text-sm text-muted"><bdi>{r.legalEntityName}</bdi> · <bdi>{r.siteName}</bdi></p>
           </div>
           <p className="text-end text-sm"><span className="block text-muted">{t('dues:receipt.number')}</span><bdi dir="ltr" className="ltr-ref font-semibold text-text">{r.ref}</bdi></p>
         </header>
+        {reversed && (
+          <InlineAlert tone="warning" title={t('dues:receipt.reversedOn', { date: fmt.date(reversed.on) })} data-testid="receipt-reversed">
+            <p>{t('dues:receipt.reasonLabel')} <bdi>{t('billing:quote', { text: reversed.reason })}</bdi></p>
+            <p className="mt-1">{t('dues:receipt.reversedBody')}</p>
+          </InlineAlert>
+        )}
         <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
           <div><dt className="text-muted">{t('dues:receipt.from')}</dt><dd className="font-semibold text-text"><bdi>{r.payerName}</bdi></dd></div>
-          <div><dt className="text-muted">{t('dues:receipt.account')}</dt><dd className="font-semibold text-text"><bdi dir="ltr" className="ltr-ref">{r.accountNo}</bdi> · <bdi dir="ltr" className="ltr-ref">{r.flats.join(', ')}</bdi></dd></div>
+          <div><dt className="text-muted">{t('dues:receipt.account')}</dt><dd className="font-semibold text-text"><bdi dir="ltr" className="ltr-ref">{r.accountNo}</bdi> · <bdi dir="ltr" className={r.flats.length === 1 ? 'ltr-ref whitespace-nowrap' : 'ltr-ref'}>{r.flats.join(', ')}</bdi></dd></div>
           <div><dt className="text-muted">{t('dues:receipt.method')}</dt><dd className="font-semibold text-text">{t(`dues:method.${r.method}`)}</dd></div>
           <div><dt className="text-muted">{t('dues:receipt.received')}</dt><dd className="font-semibold text-text">{fmt.date(r.receivedOn)}</dd></div>
         </dl>
         <p className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-y border-border py-4">
-          <span className="text-base font-semibold text-text">{t('dues:receipt.amount')}</span>
-          <span className="text-2xl font-bold text-success" data-testid="receipt-amount"><Amount value={r.amount.amount} /></span>
+          <span className="text-base font-semibold text-text">{reversed ? t('dues:receipt.amountReversed') : t('dues:receipt.amount')}</span>
+          <span className={reversed ? 'text-2xl font-bold text-muted line-through' : 'text-2xl font-bold text-success'} data-testid="receipt-amount"><Amount value={r.amount.amount} wrap /></span>
         </p>
-        <ul className="space-y-1 text-sm" data-testid="receipt-settles">
+        {reversed && <p className="text-sm font-semibold text-text" data-testid="receipt-no-longer">{t('dues:receipt.noLongerSettles')}</p>}
+        <ul className={reversed ? 'space-y-1 text-sm text-muted line-through' : 'space-y-1 text-sm'} data-testid="receipt-settles">
           {r.allocations.map((a) => (
             <li key={a.lineId} className="flex flex-wrap justify-between gap-x-3">
-              <span className="text-text">{a.kind === 'opening_balance' ? t('dues:bill.opening') : t(`billing:categories.${a.category ?? 'maintenance'}`)} · <bdi dir="ltr" className="ltr-ref">{a.unitCode}</bdi> · {fmt.monthYear(`${a.period}-01`)}</span>
+              <span className="text-text">{a.kind === 'opening_balance' ? t('dues:bill.opening') : t(`billing:categories.${a.category ?? 'maintenance'}`)} · <bdi dir="ltr" className="ltr-ref whitespace-nowrap">{a.unitCode}</bdi> · {fmt.monthYear(`${a.period}-01`)}</span>
               <Amount value={a.amount.amount} className="font-medium" />
             </li>
           ))}
           {Number(r.unapplied.amount) > 0 && (
-            <li className="flex justify-between gap-3 text-info"><span>{t('dues:receipt.credit')}</span><Amount value={r.unapplied.amount} /></li>
+            <li className={reversed ? 'flex flex-wrap justify-between gap-x-3' : 'flex justify-between gap-3 text-info'}><span>{reversed ? t('dues:receipt.creditGone') : t('dues:receipt.credit')}</span><Amount value={r.unapplied.amount} /></li>
           )}
         </ul>
         <footer className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted">

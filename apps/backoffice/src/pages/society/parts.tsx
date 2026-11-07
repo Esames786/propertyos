@@ -84,7 +84,7 @@ export function StatementView({ accountId, flat, payer, period, onPeriod, testId
                     </td>
                   </tr>
                   {q.data.entries.map((e) => (
-                    <tr key={e.refId} className="border-b border-border/60" data-testid="statement-entry" data-kind={e.kind}>
+                    <tr key={`${e.kind}-${e.refId}`} className="border-b border-border/60" data-testid="statement-entry" data-kind={e.kind}>
                       <td className="py-2.5 whitespace-nowrap">
                         <DateTime value={e.on} style="calendar" />
                       </td>
@@ -107,7 +107,7 @@ export function StatementView({ accountId, flat, payer, period, onPeriod, testId
               </table>
               <ol className="space-y-2 @2xl:hidden">
                 {q.data.entries.map((e) => (
-                  <li key={e.refId} className="rounded-tile border border-border px-3 py-2.5" data-testid="statement-entry-card" data-kind={e.kind}>
+                  <li key={`${e.kind}-${e.refId}`} className="rounded-tile border border-border px-3 py-2.5" data-testid="statement-entry-card" data-kind={e.kind}>
                     <div className="flex items-start justify-between gap-3">
                       <EntryLabel kind={e.kind} refText={e.ref} refId={e.refId} period={e.period ? fmt.period(e.period) : undefined} payer={e.payerName} />
                       <span className={cn('shrink-0 text-sm font-semibold', e.credit && 'text-success')}>

@@ -1,5 +1,5 @@
 import type { CashCount, CloseCheck, FinanceAccountRow, FinanceOverview, Money } from '@repo/contracts';
-import { PENDING_STATES } from '../collections-read';
+import { PENDING_STATES, WAITING_STATES } from '../collections-read';
 import { isPosted } from '../billing-run';
 import { balances, type SocietyView } from '../state';
 import { balanceOn, cashbookView, cashEvents, financeAccounts, inTransitOf, knownPeriods, periodState, type CashEvent } from './cashbook';
@@ -99,7 +99,10 @@ export function financeOverview(view: SocietyView, today: string, period: string
   const collected = of(['resident_dues', 'cheque'], 'in');
   const reversed = of(['reversal'], 'out').filter((e) => e.source === 'payment_reversal');
   const outstandingByAccount = [...balances(view).values()].filter((v) => v > 0n);
-  const pendingProofs = state.submissions.filter((x) => PENDING_STATES.includes(x.state));
+  // UX B1 (COL-04): "Proofs waiting" counts what HOME-001 and COL-001 count (never a proof sent back to the
+  // resident), and opens the inbox filter that lists exactly that set. The month close still blocks on
+  // every unsettled proof (`proofs_waiting` above).
+  const pendingProofs = state.submissions.filter((x) => WAITING_STATES.includes(x.state));
   const cheques = f.cheques.filter((c) => ['received', 'deposited', 'exception_pending'].includes(c.status));
   const awaiting = f.transfers.filter((t) => t.status === 'approved_instruction' || t.status === 'awaiting_approval');
   const unmatched = state.bank.lines.filter((l) => l.state === 'unmatched');
@@ -117,7 +120,7 @@ export function financeOverview(view: SocietyView, today: string, period: string
     otherIncome: { amount: money(sum(of(['other_income'], 'in').map((e) => e.amount))), count: of(['other_income'], 'in').length, href: FIN_ROUTES.cashbook({ period, category: 'other_income' }) },
     expenses: { amount: money(sum(of(['expense'], 'out').map((e) => e.amount))), count: of(['expense'], 'out').length, href: FIN_ROUTES.cashbook({ period, category: 'expense' }) },
     outstanding: { amount: money(sum(outstandingByAccount)), accounts: outstandingByAccount.length, href: FIN_ROUTES.aging() },
-    pendingVerification: { amount: money(sum(pendingProofs.map((x) => paisa(x.current.amount)))), count: pendingProofs.length, href: FIN_ROUTES.inbox('pending') },
+    pendingVerification: { amount: money(sum(pendingProofs.map((x) => paisa(x.current.amount)))), count: pendingProofs.length, href: FIN_ROUTES.inbox('waiting') },
     cashInTransit: { amount: money(inTransitOf(state)), count: f.transfers.filter((t) => t.status === 'in_transit').length, href: FIN_ROUTES.transfers('in_transit') },
     // D-46: office collections waiting for a second person's count (single office payments included).
     cashAwaitingCount: { amount: money(sum(batchesToCount(state).map((b) => paisa(cashOfBatch(b))))), count: batchesToCount(state).length, href: FIN_ROUTES.batches('submitted') },

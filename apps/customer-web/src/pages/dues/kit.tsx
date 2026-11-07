@@ -1,6 +1,6 @@
 import type { ResidentBillStatus, SubmissionState } from '@repo/contracts';
 import { Badge, cn, Stepper, useT, useTransport, type StatusTone, type StepperStep } from '@repo/ui';
-import { CheckCircle2, CircleAlert, Clock3, FileQuestion, Hourglass, Link2, Link2Off, ScanSearch, Smile, XCircle, type LucideIcon } from 'lucide-react';
+import { CheckCircle2, CircleAlert, Clock3, FileMinus2, FileQuestion, Hourglass, Link2, Link2Off, ScanSearch, Smile, XCircle, type LucideIcon } from 'lucide-react';
 import { useCallback, useSyncExternalStore } from 'react';
 
 /**
@@ -8,16 +8,20 @@ import { useCallback, useSyncExternalStore } from 'react';
  * proof is "Pending verification" until finance verifies it, never "Paid".
  */
 
-const STATUS: Record<ResidentBillStatus, [StatusTone, LucideIcon]> = {
+/** UX B1 (RES-12): a bill settled by a credit note has its own words: it was not paid. */
+type BillChipStatus = ResidentBillStatus | 'credited';
+
+const STATUS: Record<BillChipStatus, [StatusTone, LucideIcon]> = {
   unpaid: ['warning', Clock3],
   overdue: ['error', CircleAlert],
   partially_paid: ['warning', Hourglass],
   paid: ['success', CheckCircle2],
+  credited: ['neutral', FileMinus2],
   pending_verification: ['info', Hourglass],
   nothing_due: ['success', Smile],
 };
 
-export function BillStatusChip({ status, className }: { status: ResidentBillStatus; className?: string }) {
+export function BillStatusChip({ status, className }: { status: BillChipStatus; className?: string }) {
   const { t } = useT();
   const [tone, icon] = STATUS[status];
   return (

@@ -174,7 +174,8 @@
     "submit": "Send for approval",
     "submitted": "Sent for approval under the version in force",
     "discard": "Discard the draft",
-    "discarded": "Draft discarded"
+    "discarded": "Draft discarded",
+    "unsaved": "You have changes that are not saved. \"Send for approval\" saves them first, then sends exactly what you see."
   },
   "delegation": {
     "intro": "While you are away, someone else can decide in your place: for the subjects you choose, between two dates, recorded and audited.",

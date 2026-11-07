@@ -1,7 +1,7 @@
 import type { DuesHome as Home, ResidentPosition } from '@repo/contracts';
 import { buttonClass, cn, DirectionalIcon, ErrorState, Link, useApiQuery, useT } from '@repo/ui';
 import { emitTourEvent } from '@repo/ui/onboarding';
-import { ArrowRight, Building2, CalendarClock, ChevronRight, FileQuestion, History, Landmark, ReceiptText, ScrollText, Type, Wallet } from 'lucide-react';
+import { ArrowRight, Building2, CalendarClock, ChevronRight, FileQuestion, History, Landmark, ReceiptText, ScrollText, Type, Undo2, Wallet } from 'lucide-react';
 import { useId } from 'react';
 import { DUES } from '../../nav.config';
 import { HomeAttention } from '../operations/HomeAttention';
@@ -28,7 +28,6 @@ function HomeView({ data }: { data: Home }) {
   const first = data.resident.name.split(/\s+/)[0] ?? '';
   const p = data.position;
   const needsAction = data.submissions.find((s) => s.state === 'needs_information');
-  const pending = data.submissions.filter((s) => s.state === 'submitted' || s.state === 'under_review');
   return (
     <div className="@container space-y-6 sm:space-y-8" data-testid="dues-home" data-status={p.status}>
       <header className="space-y-2 motion-safe:animate-rise-in">
@@ -53,7 +52,7 @@ function HomeView({ data }: { data: Home }) {
         </p>
       </header>
 
-      <BillHero position={p} fmt={fmt} pendingId={pending[0]?.id} />
+      <BillHero position={p} fmt={fmt} />
 
       {/* D-46: cash handed in at the office counts only once a second person has confirmed it. */}
       {(data.cashAwaitingCount ?? []).map((c, i) => (
@@ -87,7 +86,7 @@ function HomeView({ data }: { data: Home }) {
   );
 }
 
-function BillHero({ position: p, fmt, pendingId }: { position: ResidentPosition; fmt: ReturnType<typeof usePortalFormat>; pendingId?: string }) {
+function BillHero({ position: p, fmt }: { position: ResidentPosition; fmt: ReturnType<typeof usePortalFormat> }) {
   const { t } = useT();
   const titleId = useId();
   const bill = p.current;
@@ -164,9 +163,11 @@ function BillHero({ position: p, fmt, pendingId }: { position: ResidentPosition;
               {t('dues:home.pay', { amount: fmt.money(p.totalPayable.amount).replace(' ', ' ') })}
             </Link>
           )}
-          {p.status === 'pending_verification' && pendingId && (
-            <Link href={DUES.submission(pendingId)} variant="plain" className={cn(buttonClass('secondary', 'lg'), 'justify-center gap-2 py-2 text-center whitespace-normal')} data-tour-id="dues-pay" data-testid="dues-pending-open">
-              {t('dues:home.seeProof')}
+          {/* UX B1 (RES-03): the server says which proof it counts as pending (also waiting for the bank or an
+              exception); with none to name, the proofs list opens, so there is never only "See the bill". */}
+          {p.status === 'pending_verification' && (
+            <Link href={p.pendingSubmissionId ? DUES.submission(p.pendingSubmissionId) : DUES.history} variant="plain" className={cn(buttonClass('secondary', 'lg'), 'justify-center gap-2 py-2 text-center whitespace-normal')} data-tour-id="dues-pay" data-testid="dues-pending-open">
+              {p.pendingSubmissionId ? t('dues:home.seeProof') : t('dues:home.seeProofs')}
               <DirectionalIcon icon={ArrowRight} className="size-4" />
             </Link>
           )}
@@ -212,14 +213,23 @@ function Activity({ data, fmt }: { data: Home; fmt: ReturnType<typeof usePortalF
         ))}
         {data.receipts.map((r) => (
           <li key={r.id}>
-            <Link href={DUES.receipt(r.id)} variant="plain" className="flex items-start gap-3 rounded-tile border border-success/30 bg-success-soft/40 p-4 hover:bg-success-soft" data-testid="dues-receipt" data-ref={r.ref}>
-              <ReceiptText aria-hidden className="mt-0.5 size-5 shrink-0 text-success" />
+            {/* UX B1 (RES-01): a reversed receipt is never drawn as a success: it says "Reversed on …". */}
+            <Link
+              href={DUES.receipt(r.id)}
+              variant="plain"
+              className={r.reversed ? 'flex items-start gap-3 rounded-tile border border-border bg-panel p-4 hover:bg-raised' : 'flex items-start gap-3 rounded-tile border border-success/30 bg-success-soft/40 p-4 hover:bg-success-soft'}
+              data-testid="dues-receipt"
+              data-ref={r.ref}
+              data-reversed={r.reversed ? 'true' : 'false'}
+            >
+              {r.reversed ? <Undo2 aria-hidden className="mt-0.5 size-5 shrink-0 text-error" /> : <ReceiptText aria-hidden className="mt-0.5 size-5 shrink-0 text-success" />}
               <span className="min-w-0 flex-1">
                 {/* The amount sits beside the reference while there is room and drops below it at large text sizes. */}
                 <span className="flex flex-wrap items-baseline justify-between gap-x-3">
                   <span className="min-w-0 flex-1 basis-36 font-semibold [overflow-wrap:break-word] text-text">{t('dues:home.receipt', { ref: r.ref })}</span>
-                  <span className="font-semibold text-success"><Amount value={r.amount.amount} /></span>
+                  <span className={r.reversed ? 'font-semibold text-muted line-through' : 'font-semibold text-success'}><Amount value={r.amount.amount} /></span>
                 </span>
+                {r.reversed && <span className="block text-sm font-medium text-error" data-testid="dues-receipt-reversed">{t('dues:home.receiptReversed', { date: fmt.date(r.reversed.on) })}</span>}
                 <span className="block text-xs text-muted">{t(`dues:method.${r.method}`)} · {fmt.date(r.receivedOn)}</span>
               </span>
             </Link>

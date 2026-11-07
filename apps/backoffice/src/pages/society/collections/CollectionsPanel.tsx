@@ -1,6 +1,6 @@
 import type { CollectionsSummary, Money as MoneyValue } from '@repo/contracts';
-import { cn, DirectionalIcon, Link, Money, StatTile, useT } from '@repo/ui';
-import { ArrowRight, Banknote, CalendarClock, ChevronRight, FileCheck2, Hand, HandCoins, Hourglass, Landmark, PiggyBank, ReceiptText, TriangleAlert, Wallet } from 'lucide-react';
+import { Badge, cn, DirectionalIcon, Link, Money, StatTile, useT } from '@repo/ui';
+import { ArrowRight, Banknote, CalendarClock, ChevronRight, FileCheck2, Hand, HandCoins, Hourglass, Landmark, PiggyBank, ReceiptText, TriangleAlert, Undo2, Wallet } from 'lucide-react';
 import { useId } from 'react';
 import { COLLECTIONS, SOCIETY } from '../../../nav.config';
 import { useSocietyFormat } from '../kit';
@@ -285,16 +285,18 @@ function Recent({ data, className }: { data: CollectionsSummary; className?: str
         <ul className="-mx-2 mt-3 divide-y divide-border">
           {data.recent.map((p) => (
             <li key={p.id}>
-              <Link href={COLLECTIONS.payment(p.id)} variant="plain" className="flex items-center gap-3 rounded-control px-2 py-2.5 hover:bg-raised" data-testid="recent-payment">
-                <span className="min-w-0 flex-1">
+              {/* UX B1 (COL-02, and 320 px at 200 % text): the payer's words keep 9em; the amount and its badge move below when needed. */}
+              <Link href={COLLECTIONS.payment(p.id)} variant="plain" className="flex flex-wrap items-center gap-3 rounded-control px-2 py-2.5 hover:bg-raised" data-testid="recent-payment" data-reversed={p.reversed ? 'true' : 'false'}>
+                <span className="min-w-0 grow basis-[9em]">
                   <span className="block truncate text-sm font-semibold text-text"><bdi>{p.payerName}</bdi></span>
                   <span className="block text-xs text-muted">
-                    <bdi dir="ltr" className="ltr-ref">{p.flats.join(', ') || p.accountNo}</bdi> · {fmt.date(p.receivedOn)}
+                    <bdi dir="ltr" className="ltr-ref whitespace-nowrap">{p.flats.join(', ') || p.accountNo}</bdi> · {fmt.date(p.receivedOn)}
                   </span>
                 </span>
-                <span className="flex flex-col items-end gap-1">
-                  <Money value={p.amount} className="text-sm font-semibold" />
-                  <MethodBadge method={p.method} />
+                {/* UX B1 (COL-02): a reversed payment is badged in words and its amount is not shown as received. */}
+                <span className="ms-auto flex flex-col items-end gap-1">
+                  <Money value={p.amount} className={cn('text-sm font-semibold', p.reversed && 'text-muted line-through')} />
+                  {p.reversed ? <Badge tone="error" icon={Undo2} data-testid="recent-payment-reversed">{t('collections:payment.reversedBadge')}</Badge> : <MethodBadge method={p.method} />}
                 </span>
               </Link>
             </li>

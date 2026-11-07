@@ -49,18 +49,25 @@ export function MyPropertiesPage() {
         {q.data.map((p) => (
           <li key={p.flatId}>
             <Link href={PROPERTY(p.flatId)} variant="plain" className="flex h-full flex-col gap-3 rounded-card border border-border/70 bg-panel p-5 shadow-card hover:border-primary/40" data-testid="property-card" data-flat={p.flatCode}>
-              <span className="flex items-start gap-3">
-                <span aria-hidden className="grid size-11 shrink-0 place-items-center rounded-tile bg-primary-soft text-primary">
-                  <House className="size-5" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-lg font-bold text-text">
-                    <bdi dir="ltr" className="ltr-ref">
-                      {p.flatCode}
-                    </bdi>
+              {/*
+                UX B1 (RES-02 screen, 320 px at 200 % text): the flat code stays whole. The icon and the title keep
+                at least 12em together (em follows the text size); when the status badge does not fit beside them,
+                it moves below instead of squeezing the title or covering the flat code.
+              */}
+              <span className="flex flex-wrap items-start justify-between gap-3">
+                <span className="flex min-w-0 grow basis-[12em] items-start gap-3">
+                  <span aria-hidden className="grid size-11 shrink-0 place-items-center rounded-tile bg-primary-soft text-primary">
+                    <House className="size-5" />
                   </span>
-                  <span className="block text-sm text-muted">
-                    <bdi>{p.buildingName}</bdi> · <Roles roles={p.roles} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-lg font-bold text-text">
+                      <bdi dir="ltr" className="ltr-ref whitespace-nowrap">
+                        {p.flatCode}
+                      </bdi>
+                    </span>
+                    <span className="block text-sm text-muted">
+                      <bdi>{p.buildingName}</bdi> · <Roles roles={p.roles} />
+                    </span>
                   </span>
                 </span>
                 <Badge tone={BALANCE_TONE[p.balanceState]}>{t(`identity:properties.balanceState.${p.balanceState}`)}</Badge>
@@ -68,8 +75,9 @@ export function MyPropertiesPage() {
               <span className="text-xs text-muted">{t('identity:properties.facts', { type: p.typeName, area: fmt.count(p.areaSqft), floor: p.floor })}</span>
               <span className="mt-auto flex flex-wrap items-end justify-between gap-2 border-t border-border pt-3">
                 <span>
-                  <span className="block text-figure-sm font-bold [overflow-wrap:anywhere] text-text">
-                    {p.balanceState === 'credit' ? t('identity:properties.inCredit', { amount: fmt.money(p.balance.replace('-', '')) }) : Number(p.balance) > 0 ? t('identity:properties.owes', { amount: fmt.money(p.balance) }) : t('identity:properties.nothingOwed')}
+                  {/* UX B1 (RES-02): the credit is its own figure from the server (balance means "owes"). */}
+                  <span className="block text-xl font-bold [overflow-wrap:break-word] text-text @md:text-figure-sm" data-testid="property-balance" data-state={p.balanceState}>
+                    {p.balanceState === 'credit' ? t('identity:properties.inCredit', { amount: fmt.money(p.credit) }) : Number(p.balance) > 0 ? t('identity:properties.owes', { amount: fmt.money(p.balance) }) : t('identity:properties.nothingOwed')}
                   </span>
                   <span className="block text-xs text-muted">
                     {t('identity:properties.account', { account: p.accountNo })} · {t('identity:properties.since', { date: fmt.date(p.since) })}

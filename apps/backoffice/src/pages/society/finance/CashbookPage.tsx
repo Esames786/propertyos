@@ -39,7 +39,7 @@ import {
   useT,
   useToast,
 } from '@repo/ui';
-import { ArrowDownLeft, ArrowUpRight, Ban, CheckCircle2, Coins, FilePlus2, Hourglass, Lock, LockOpen, Paperclip, ReceiptText, Scale, Send, TriangleAlert, Undo2, Wallet } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, Ban, CheckCircle2, Coins, FilePlus2, Hourglass, Lock, LockOpen, Paperclip, PencilLine, ReceiptText, Scale, Send, TriangleAlert, Undo2, Wallet } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { FileTrigger } from 'react-aria-components';
 import { FINANCE } from '../../../nav.config';
@@ -232,8 +232,9 @@ export default function CashbookPage() {
         </section>
       </div>
 
-      {d.actions.voucher && <VoucherDrawer isOpen={drawer === 'voucher' || !!voucher} voucherId={voucher} onClose={() => setParams({ drawer: null, voucher: null })} />}
-      {!d.actions.voucher && voucher && <VoucherDrawer isOpen voucherId={voucher} onClose={() => setParams({ voucher: null })} />}
+      {/* UX B1 (FIN-03): one router navigation shows a record in the drawer (address and drawer always agree). */}
+      {d.actions.voucher && <VoucherDrawer isOpen={drawer === 'voucher' || !!voucher} voucherId={voucher} onClose={() => setParams({ drawer: null, voucher: null })} onShow={(id) => setParams({ drawer: null, voucher: id })} />}
+      {!d.actions.voucher && voucher && <VoucherDrawer isOpen voucherId={voucher} onClose={() => setParams({ voucher: null })} onShow={(id) => setParams({ voucher: id })} />}
       <CloseDrawer isOpen={drawer === 'close'} period={d.period} onClose={() => setParams({ drawer: null })} />
       <CountDrawer isOpen={drawer === 'count'} onClose={() => setParams({ drawer: null })} accounts={d.accounts.filter((a) => a.kind !== 'bank')} />
     </div>
@@ -361,7 +362,12 @@ interface VoucherDraft {
 
 const blank = (today: string): VoucherDraft => ({ accountId: '', direction: 'payment', category: '', amount: '', onDate: today, purpose: '', counterparty: '', evidence: null });
 
-export function VoucherDrawer({ isOpen, voucherId, onClose }: { isOpen: boolean; voucherId: string | null; onClose: () => void }) {
+/**
+ * UX B1 (FIN-03): `onShow(id)` opens a record in this drawer with one router navigation (`?voucher=<id>`),
+ * so the address and the drawer always show the same voucher: a saved draft stays open to finish
+ * (edit, send), and a reversal opens the new reversal voucher.
+ */
+export function VoucherDrawer({ isOpen, voucherId, onClose, onShow }: { isOpen: boolean; voucherId: string | null; onClose: () => void; onShow: (id: string) => void }) {
   const { t } = useT();
   const fmt = useSocietyFormat();
   const toast = useToast();
@@ -373,6 +379,9 @@ export function VoucherDrawer({ isOpen, voucherId, onClose }: { isOpen: boolean;
   const [draft, setDraft] = useState<VoucherDraft>(blank(today));
   const [error, setError] = useState<unknown>(null);
   const [reverseOpen, setReverseOpen] = useState(false);
+  // UX B1 (FIN-03): a draft opened here can be edited (PATCH, the preparer only; the server decides).
+  const [editing, setEditing] = useState(false);
+  useEffect(() => setEditing(false), [voucherId, isOpen]);
   // Issue #18 (FIN-02): one key per logical create: kept for its own retries, renewed after it
   // succeeded and whenever the drawer closes (so the next "New voucher" is a new request).
   const [key, renewKey] = useCreateKey('cv');
@@ -405,10 +414,29 @@ export function VoucherDrawer({ isOpen, voucherId, onClose }: { isOpen: boolean;
       setDraft(blank(today));
       // The toast names the voucher this create made (never an earlier one).
       toast.success(t(submit ? 'finance:voucher.createdSubmitted' : 'finance:voucher.createdDraft', { ref: r.voucher.ref }));
-      window.history.replaceState(null, '', FINANCE.voucher(r.voucher.id));
-      onClose();
+      // UX B1 (FIN-03): a draft stays open on its own record (`?voucher=<id>`) to be finished and sent;
+      // a voucher sent for approval closes the drawer, as before. Both through the router, never around it.
+      if (submit) onClose();
+      else onShow(r.voucher.id);
     } catch (e) {
       if (isKeyReused(e)) renewKey();
+      setError(e);
+    }
+  };
+  const startEdit = (x: NonNullable<typeof v>) => {
+    setError(null);
+    setDraft({ accountId: x.accountId, direction: x.direction, category: x.category, amount: x.amount.amount, onDate: x.onDate, purpose: x.purpose, counterparty: x.counterparty.name, evidence: x.evidence });
+    setEditing(true);
+  };
+  const saveEdit = async (id: string) => {
+    setError(null);
+    try {
+      await save.mutateAsync({ method: 'PATCH', path: `/finance/vouchers/${id}`, body: { ...draft } });
+      toast.success(t('finance:voucher.saved'));
+      await detail.refetch();
+      setDraft(blank(today));
+      setEditing(false);
+    } catch (e) {
       setError(e);
     }
   };
@@ -421,25 +449,37 @@ export function VoucherDrawer({ isOpen, voucherId, onClose }: { isOpen: boolean;
       subtitle={v ? <VoucherBadge state={v.status} testId="voucher-state" /> : t('finance:voucher.subtitle')}
       testId="voucher-drawer"
       footer={
-        v ? (
-          <div className="flex flex-wrap gap-2">
+        v && editing ? (
+          <>
+            <Button variant="quiet" onPress={() => setEditing(false)} data-testid="voucher-edit-cancel">{t('common:actions.cancel')}</Button>
+            <Button variant="primary" isPending={save.isPending} onPress={() => void saveEdit(v.id)} className={WRAP} data-testid="voucher-edit-save">
+              {t('finance:voucher.saveChanges')}
+            </Button>
+          </>
+        ) : v ? (
+          <div className="flex min-w-0 flex-wrap gap-2">
+            {detail.data?.actions.edit && (
+              <Button variant="secondary" icon={PencilLine} onPress={() => startEdit(v)} className={WRAP} data-testid="voucher-edit">
+                {t('finance:voucher.edit')}
+              </Button>
+            )}
             {detail.data?.actions.submit && (
-              <Button variant="primary" icon={Send} isPending={save.isPending} onPress={() => void act(`/finance/vouchers/${v.id}/submit`, {}, t('finance:voucher.submitted'))} data-testid="voucher-submit">
+              <Button variant="primary" icon={Send} isPending={save.isPending} onPress={() => void act(`/finance/vouchers/${v.id}/submit`, {}, t('finance:voucher.submitted'))} className={WRAP} data-testid="voucher-submit">
                 {t('finance:voucher.submit')}
               </Button>
             )}
             {detail.data?.actions.post && (
-              <Button variant="primary" icon={CheckCircle2} isPending={save.isPending} onPress={() => void act(`/finance/vouchers/${v.id}/post`, {}, t('finance:voucher.posted'))} data-testid="voucher-post">
+              <Button variant="primary" icon={CheckCircle2} isPending={save.isPending} onPress={() => void act(`/finance/vouchers/${v.id}/post`, {}, t('finance:voucher.posted'))} className={WRAP} data-testid="voucher-post">
                 {t('finance:voucher.post')}
               </Button>
             )}
             {detail.data?.actions.withdraw && (
-              <Button variant="quiet" icon={Ban} onPress={() => void act(`/finance/vouchers/${v.id}/withdraw`, {}, t('finance:voucher.withdrawn'))} data-testid="voucher-withdraw">
+              <Button variant="quiet" icon={Ban} onPress={() => void act(`/finance/vouchers/${v.id}/withdraw`, {}, t('finance:voucher.withdrawn'))} className={WRAP} data-testid="voucher-withdraw">
                 {t('finance:voucher.withdraw')}
               </Button>
             )}
             {detail.data?.actions.reverse && (
-              <Button variant="secondary" icon={Undo2} onPress={() => setReverseOpen(true)} data-testid="voucher-reverse">
+              <Button variant="secondary" icon={Undo2} onPress={() => setReverseOpen(true)} className={WRAP} data-testid="voucher-reverse">
                 {t('finance:voucher.reverse')}
               </Button>
             )}
@@ -460,8 +500,13 @@ export function VoucherDrawer({ isOpen, voucherId, onClose }: { isOpen: boolean;
     >
       {voucherId && !v ? (
         detail.isError ? <ErrorState error={detail.error} /> : <Loading lines={6} />
-      ) : v ? (
-        <div className="space-y-5" data-testid="voucher-detail">
+      ) : v && !editing ? (
+        <div className="space-y-5" data-testid="voucher-detail" data-voucher={v.id} data-status={v.status}>
+          {v.status === 'draft' && detail.data?.actions.submit && (
+            <InlineAlert tone="info" title={t('finance:voucher.saved')} data-testid="voucher-draft-note">
+              <p>{t('finance:voucher.draftNote')}</p>
+            </InlineAlert>
+          )}
           {detail.data?.periodState === 'closed' && (
             <InlineAlert tone="warning" title={t('finance:voucher.periodClosed')}>
               <p>{t('finance:voucher.periodClosedBody')}</p>
@@ -521,7 +566,8 @@ export function VoucherDrawer({ isOpen, voucherId, onClose }: { isOpen: boolean;
             reasonLabel={t('finance:voucher.reverseReason')}
             onConfirm={async (reason) => {
               const r = await act(`/finance/vouchers/${v.id}/reverse`, { reason }, t('finance:voucher.reversalPrepared'));
-              if (r) window.history.replaceState(null, '', FINANCE.voucher(r.voucher.id));
+              // UX B1 (FIN-03): the address and the drawer move to the new reversal voucher together.
+              if (r) onShow(r.voucher.id);
             }}
           />
         </div>

@@ -300,6 +300,12 @@ export interface InvoiceDetail {
   payments: Array<{ id: string; ref: string; receiptId: string; receiptRef: string; amount: Money; receivedOn: string; method: CollectionMethod }>;
   /** The account's statement balance today (the previous balance is not an invoice line). */
   accountBalance: Money;
+  /**
+   * UX B1 (COL-01, owner decision OD-1 pending; recommended default applied): what each line may still
+   * be credited: billed − paid (live allocations only; a reversed payment pays nothing) − already
+   * credited. The credit-note POST checks the same figure, so the drawer and the server never disagree.
+   */
+  creditable: Array<{ lineId: string; billed: Money; paid: Money; credited: Money; open: Money }>;
   actions: { creditNote: boolean; edit: false };
 }
 

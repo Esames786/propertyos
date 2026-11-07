@@ -3,6 +3,7 @@ export { AppProviders } from './providers/AppProviders';
 export { NavigationProvider, useNavigation, useQueryParam, useQueryParams, type AppLocation, type NavigateOptions } from './navigation/RouterAdapter';
 export { TransportProvider, useTransport, useApiQuery, queryOwner, MOCK_MODE_KEY, type MockMode, type TransportFactory } from './data/TransportProvider';
 export { isKeyReused, useApiMutation, useApiPrefetch, useCreateKey } from './data/useApi';
+export { useKeyedCreate } from './data/useApi';
 export { SessionProvider, useSession, useCan, type SignOutNotice } from './permissions/SessionProvider';
 export { useSignOut } from './permissions/useSignOut';
 export { describeDevice } from './lib/device';
