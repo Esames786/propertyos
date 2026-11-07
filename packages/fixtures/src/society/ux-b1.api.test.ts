@@ -611,9 +611,10 @@ describe('GitHub Issue #19: one credit note can never credit a line twice or cre
     const after = await t.read();
     expect([t.maintenance, t.security, t.lift, t.water].map((l) => t.open(after, l.id))).toEqual(['400.00', '0.00', '200.00', '400.00']);
     expect(after.invoice.outstanding.amount).toBe('1000.00');
-    // This endpoint has no request-key replay (it is not one of Issue #18's six creates). The rule that keeps
-    // a retry safe: every request is checked against what is still open after every earlier credit note, so
-    // the same request sent again is refused as soon as it would pass the cap, and changes nothing.
+    // Every new request (no key, or a key not used yet) is checked against what is still open after every
+    // earlier credit note, so the same content sent again is refused as soon as it would pass the cap, and
+    // changes nothing. (Issue #21: the same key with the same request answers with the note it issued;
+    // credit-note-idempotency.api.test.ts.)
     const again = await refusedUnchanged(t.s, () => t.s.as(AYESHA).post(`/billing/invoices/${t.invoiceId}/credit-notes`, body, { key: 'cn-retry-1' }));
     expect(again.errors).toEqual({
       [`lines.${t.maintenance.id}`]: [{ code: 'billing:creditNote.problems.overOpen', params: { open: '400.00', unit: 'A-101' } }],
@@ -623,7 +624,7 @@ describe('GitHub Issue #19: one credit note can never credit a line twice or cre
     // repeating it until refused can never take a line below zero.
     const small = { reason: REASON_CN, lines: [{ lineId: t.maintenance.id, amount: '300' }] };
     expect((await t.s.as(AYESHA).post<CreditNote>(`/billing/invoices/${t.invoiceId}/credit-notes`, small, { key: 'cn-retry-2' })).ref).toBe('ANR-CN-0002');
-    expect((await refusedUnchanged(t.s, () => t.s.as(AYESHA).post(`/billing/invoices/${t.invoiceId}/credit-notes`, small, { key: 'cn-retry-2' }))).errors).toEqual({
+    expect((await refusedUnchanged(t.s, () => t.s.as(AYESHA).post(`/billing/invoices/${t.invoiceId}/credit-notes`, small, { key: 'cn-retry-3' }))).errors).toEqual({
       [`lines.${t.maintenance.id}`]: [{ code: 'billing:creditNote.problems.overOpen', params: { open: '100.00', unit: 'A-101' } }],
     });
     const end = await t.read();

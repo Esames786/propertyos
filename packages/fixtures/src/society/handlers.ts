@@ -55,6 +55,7 @@ import { cashAwaitingCount } from './finance/pending-cash';
 import { committable, FLAT_COLUMNS, fingerprint, OPENING_COLUMNS, rowsOf, validateFlats, validateOpening } from './import';
 import { factOn, payerOn } from './model';
 import { auditEntries } from './finance/bank-scope';
+import { remember, replayOf } from './finance/common';
 import { formatRef } from './numbering';
 import { initialSociety } from './scenario';
 import {
@@ -436,6 +437,35 @@ function amountOf(ctx: HandlerContext, field: string, raw: unknown): Money {
   const v = String(raw ?? '').trim().replace(/,/g, '');
   if (!AMOUNT.test(v) || toPaisa(v) <= 0n) invalidField(ctx, field, 'billing:rules.problems.amount');
   return money(toPaisa(v));
+}
+
+/**
+ * GitHub Issue #21: the invoice a credit-note request key is bound to, in its full scope: organisation,
+ * legal entity, site, billing account and the invoice itself.
+ */
+const creditNoteTarget = (ctx: HandlerContext, s: Society, invoice: { id: string; legalEntityId: string; billingAccountId: string }) =>
+  [ctx.tenantId ?? '', invoice.legalEntityId, s.siteId, invoice.billingAccountId, invoice.id].join('|');
+
+/**
+ * GitHub Issue #21: a credit-note request as its key's fingerprint sees it, i.e. what the record is made
+ * of. The reason as stored (trimmed; its words and case are kept). Each entry's line id and amount, money
+ * normalised to paisa ("1,000", "1000" and "1000.00" are one amount; "", "0" and "0.00" all mean "this
+ * line is not credited", as the checks below read them). The entries are sorted: a credit note is a set
+ * of per-line credits; Issue #19 lets each line appear at most once, and neither the cap, the amounts,
+ * the invoice's figures nor the audit depend on the order. A malformed entry or list is kept as sent, so
+ * it never equals an accepted request. Other body fields (the key itself, anything unknown) are not part
+ * of the record and not part of the fingerprint.
+ */
+function creditNoteRequest(reason: string, lines: unknown) {
+  if (!Array.isArray(lines)) return { reason, lines: { notAList: lines ?? null } };
+  const entry = (e: unknown) => {
+    if (e === null || typeof e !== 'object') return JSON.stringify({ malformed: e ?? null });
+    const { lineId, amount } = e as { lineId?: unknown; amount?: unknown };
+    const raw = String(amount ?? '').trim().replace(/,/g, '');
+    const paisa = raw === '' || raw === '0' || raw === '0.00' ? '' : AMOUNT.test(raw) ? toPaisa(raw).toString() : raw;
+    return JSON.stringify([typeof lineId === 'string' ? lineId : { notText: lineId ?? null }, paisa]);
+  };
+  return { reason, lines: lines.map(entry).sort() };
 }
 
 function periodFrom(ctx: HandlerContext, s: Society, raw: unknown): string {
@@ -1395,6 +1425,17 @@ export const SOCIETY_HANDLERS: readonly Handler[] = [
       authorize(ctx, 'receivables', recordOf(s, { billingAccountId: invoice.billingAccountId }), 'credit_note.create');
       const body = (ctx.req.body ?? {}) as { reason?: string; lines?: unknown };
       const reason = String(body.reason ?? '').trim();
+      // GitHub Issue #21: a request key is bound to this operation, this person, this invoice in its
+      // scope and this request (`creditNoteRequest`). Checked after the authority checks above (a person
+      // who lost the right or the scope gets the refusal a stranger gets, never the earlier note) and
+      // before the body checks below: the identical request again answers with the credit note it issued
+      // (same id, number and amounts; no new number, audit entry or change), even after the open amount
+      // has changed; any other use of the key is one 409 that names nothing, with nothing changed.
+      // Without a key, or with a key not used yet, every Issue #19 check runs as before.
+      const target = creditNoteTarget(ctx, s, invoice);
+      const request = creditNoteRequest(reason, body.lines);
+      const again = replayOf(ctx, s, 'credit_note.create', target, request);
+      if (again) return s.state.creditNotes.find((c) => c.id === again && c.invoiceId === invoice.id && c.billingAccountId === invoice.billingAccountId) ?? notFound(ctx);
       const errors: Record<string, Array<{ code: string; params?: Record<string, string> }>> = {};
       if (reason.length < 5) errors.reason = [{ code: 'billing:creditNote.problems.reason' }];
       // GitHub Issue #19: every entry must name a line of THIS invoice, each line at most once. Checked as a
@@ -1452,6 +1493,9 @@ export const SOCIETY_HANDLERS: readonly Handler[] = [
       };
       s.state.creditNotes.push(cn);
       log(ctx, s, 'creditNoteIssued', { kind: 'invoice', id: invoice.id, label: invoice.ref }, { flats: [...new Set(lines.map((l) => l.unitCode))], values: { ref: cn.ref, amount: cn.amount.amount, reason } });
+      // Issue #21: the key is bound together with the number, the record and the audit entry (a refused
+      // request above binds nothing, so its key can still be used for a first, valid request).
+      remember(ctx, s, 'credit_note.create', target, request, cn.id);
       save(ctx);
       return cn;
     },

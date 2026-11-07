@@ -56,8 +56,11 @@ export function assertOpen(ctx: HandlerContext, s: Society, date: string, what: 
  * scoped finder, never trusting the stored id alone.
  *
  * The key is the body's `idempotencyKey` (the S.1 contract), else the request's own key.
+ *
+ * GitHub Issue #21: credit notes (`credit_note.create`, the invoice's credit-note POST in
+ * `society/handlers.ts`) share this map, so a key used by any of these creates is refused by the others.
  */
-export type FinanceIdemOp = 'voucher.create' | 'transfer.create' | 'office_cash.record' | 'batch.create' | 'cheque.receive' | 'ownership.create';
+export type FinanceIdemOp = 'voucher.create' | 'transfer.create' | 'office_cash.record' | 'batch.create' | 'cheque.receive' | 'ownership.create' | 'credit_note.create';
 
 export const idemKey = (ctx: HandlerContext): string | undefined => text(body<{ idempotencyKey: string }>(ctx).idempotencyKey, 80) || text(ctx.req.idempotencyKey, 80) || undefined;
 

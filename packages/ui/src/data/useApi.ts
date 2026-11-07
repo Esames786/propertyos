@@ -40,6 +40,34 @@ export function useCreateKey(prefix: string): readonly [key: string, renew: () =
 export const isKeyReused = (e: unknown): boolean => e instanceof ApiError && e.problem.code === 'idempotency_key_reused';
 
 /**
+ * GitHub Issue #21: a create sent under one key per logical create (`useCreateKey`), as the request's
+ * key and in the body. The key stays until the create succeeds: pressing again after a network failure
+ * is the same create (if the first attempt reached the server, the server answers with what it created
+ * then, never a second record), and so is pressing again after a refusal (a refused request binds no
+ * key). It is renewed after a success and after the server refused it as used by another request; a new
+ * form (a new mount) starts with a new key.
+ */
+export function useKeyedCreate<TResult>(prefix: string) {
+  const mutation = useApiMutation<TResult>();
+  const [key, renew] = useCreateKey(prefix);
+  const { mutateAsync } = mutation;
+  const send = useCallback(
+    async (request: Omit<ApiRequest<Record<string, unknown>>, 'idempotencyKey'> & { body: Record<string, unknown> }) => {
+      try {
+        const result = await mutateAsync({ ...request, body: { ...request.body, idempotencyKey: key }, idempotencyKey: key });
+        renew();
+        return result;
+      } catch (e) {
+        if (isKeyReused(e)) renew();
+        throw e;
+      }
+    },
+    [key, mutateAsync, renew],
+  );
+  return { send, key, isPending: mutation.isPending, error: mutation.error, isError: mutation.isError };
+}
+
+/**
  * Warms the cache for a screen the user is about to open (e.g. while a demo is being prepared).
  * Uses the same key shape as `useApiQuery`; call it after the session for `personaId` is active.
  */
