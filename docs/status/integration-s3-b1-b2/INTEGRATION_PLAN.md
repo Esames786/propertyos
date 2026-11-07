@@ -2,6 +2,7 @@
 
 **Status: plan only.** Nothing has been integrated. No integration branch exists yet, and neither unfinished branch (B1, B2) has been merged anywhere.
 **Prepared:** 7 November 2026, by the coordinator, from the pushed branches and static checks only (no build or test run, so the shared machine stays free for the B1 and B2 closures).
+**Updated:** 7 November 2026, after the closures were pushed: B1 final `682216f` (Issue #19, approved by GPT) and B2 final `7ac865f` (Issue #20, awaiting review). The §3 dry run was repeated with them and is still clean; §5.1 is resolved by path A; §8 uses the final figures.
 **Branch of this document:** `docs/integration-plan-s3-b1-b2`, based on the accepted S.3 commit `ae3b3a1`. It adds this file only.
 
 ## 1. Inputs
@@ -10,8 +11,9 @@
 |---|---|---|---|
 | Base (S.1 security hotfix) | `fix/s1-bank-feed-and-idempotency` | `04b6fde` | Accepted, Issue #18 closed |
 | S.3 Rentals | `feature/gate-s3-rentals` | **`ae3b3a1`** (contains `04b6fde` via merge `0dd9723`) | **Accepted, Issue #17 closed** |
-| UX B1 money truth | `fix/ux-b1-money-truth` | `6b1d7f9` | Substantially accepted; **HOLD for Issue #19** (duplicate credit-note lines), closure in progress |
-| UX B2 accessibility | `fix/ux-b2-accessibility` | `a0897b9` (code) + `0884f03` (report) | Eight fixes accepted at source level; **follow-up Issue #20** (focus rings product-wide; Rentals tile names), closure in progress |
+| UX B1 money truth | `fix/ux-b1-money-truth` | **`682216f`** (Issue #19 closure on `6b1d7f9`) | **Approved by GPT, Issue #19 closed** |
+| UX B2 accessibility | `fix/ux-b2-accessibility` | **`7ac865f`** (Issue #20 closure on `a0897b9` + `0884f03`) | Eight fixes accepted at source level; **Issue #20 closure pushed, awaiting GPT review** |
+| Credit-note idempotency (later input) | `fix/credit-note-idempotency` | from `682216f` | Issue #21, in progress. **Not part of this integration** unless accepted before it starts; if accepted later, it is merged on top as its own step with its own complete run |
 
 B1 and B2 are both built on `04b6fde`. S.3 contains `04b6fde`. All three therefore share one base, and each merge below brings in only that branch's own work.
 
@@ -68,6 +70,11 @@ B2 makes a tile's accessible name: label, value, change, context. The context is
   - The three contexts become the hint only.
   - The visible small line then loses the exact amount; the compact value stays. This is a visible change and needs GPT's agreement.
   - S.3's visible-text assertions (`s3.spec.ts:90–91`) still match, because they check the hint text.
+
+**Outcome: path A landed in B2 `7ac865f`.** `StatTile` now reads a context that starts with the same figure as the tile's spoken or displayed value from after that figure. A "figure" must contain a digit and end at a space or punctuation in both strings, so contexts that merely mention another number are left alone.
+- **Expected names:** `rent-kpi-rent` and `rent-kpi-due` read "label, amount, hint". `rent-kpi-payable` reads "label, amount. hint", because the rest of its context is already in its value.
+- **Tests:** B2 unit-tests LeasesPage's exact five tiles in EN and UR, with the real money formatters and S.3's hints, and every B2 tile keeps its name.
+- **So the integration needs no Rentals change.** The check below stays, as the proof on the merged code.
 
 **Check in either path.** An integration test reads every `rent-kpi-*` tile's accessible name in EN and UR. It asserts:
 - the exact amount appears **once**;
@@ -159,14 +166,16 @@ It runs at 1440 px and at 320 px with 200 % text, with axe.
 
 The totals add up the three branches' own tests on the shared base. Each closure adds its own new tests on top (marked "+ closures").
 
+Final commits: S.3 `ae3b3a1`, B1 `682216f`, B2 `7ac865f`. Each branch's own reported totals, minus the base, give its share.
+
 | Check | Base `04b6fde` | + S.3 | + B1 | + B2 | Expected integrated |
 |---|---|---|---|---|---|
-| i18n keys per locale | 10,294 | +590 | +25 | +2 | **10,911** + closures |
-| Vitest | 1,517 | +104 | +18 | +14 | **1,653** + closures + integration |
-| Chromium e2e | 400 | +17 | +9 | +32 | **458** + closures + integration |
-| Evidence tests in the run | – | 12 | 9 | 14 | **35** + integration spec |
-| Firefox / WebKit smoke | 22 / 22 | +3 / +3 | +3 / +3 | +5 / +5 | **33 / 33** + closures |
-| Axe scans (approx.) | ~1,426 | +80 | +42 | +32 | **~1,580** + closures |
+| i18n keys per locale | 10,294 | +590 | +27 | +2 | **10,913** |
+| Vitest | 1,517 | +104 | +23 | +19 | **1,663** + integration |
+| Chromium e2e | 400 | +17 | +9 | +56 | **482** + integration |
+| Evidence tests in the run | – | 12 | 9 | 16 | **37** + integration spec |
+| Firefox / WebKit smoke | 22 / 22 | +3 / +3 | +3 / +3 | +6 / +6 | **34 / 34** |
+| Axe scans (approx.) | ~1,426 | +80 | +42 | +38 | **~1,586** + integration |
 | Screen register (rows / distinct) | 439 / 354 | +10 / +8 | notes only | – | **449 / 362** |
 
 **Timing.** A complete Chromium run of about 500 tests should take 45–60 minutes at 3 workers on AC power. A much longer run means load or standby: check before trusting it.
@@ -188,7 +197,8 @@ The totals add up the three branches' own tests on the shared base. Each closure
 ## 10. Risks and rollback
 
 - **Global CSS:** B2's product-wide focus change is the widest change in the set. It should only affect keyboard focus, so pointer flows and screenshots without focus should not change. Any unexpected visual change in §5.3 is a finding, not something to absorb.
-- **Contention:** more tests (about 500) means a longer run and more exposure to the two timing-sensitive intermittents.
+- **Focus rings on Rentals:** B2 `7ac865f` measured ring contrast in the default colour scheme only, on office, CRM, HQ and resident controls, not on Rentals screens or organisation palettes. The integration focus checks add Rentals controls: the lease tiles, the statement list and a Rentals drawer.
+- **Contention:** more tests (about 520) means a longer run and more exposure to the two timing-sensitive intermittents.
 - **Drift:** if either closure changes a §4 file again, redo §4 before merging.
 - **Rollback:** the integration branch is disposable. Delete it and start again from `ae3b3a1`; the three source branches are never modified.
 
@@ -205,7 +215,7 @@ The totals add up the three branches' own tests on the shared base. Each closure
 
 | Ref | Question | Recommended |
 |---|---|---|
-| INT-1 | Rentals tile names: path A (in `StatTile`, via Issue #20) or path B (Rentals call sites, visible change)? | A; B only if A proves fragile |
+| INT-1 | Rentals tile names: path A (in `StatTile`, via Issue #20) or path B (Rentals call sites, visible change)? | **A, landed in `7ac865f`**; confirm when reviewing Issue #20 |
 | INT-2 | Keep accepted evidence folders as reviewed, with integration captures in their own folder? | Yes |
 | INT-3 | One integration after both closures, or staged? | One, unless a closure is delayed by more than a day |
 | INT-4 | Record R-INT-1…4 as binding requirements for S.3's G1 (settlement subject)? | Yes |
