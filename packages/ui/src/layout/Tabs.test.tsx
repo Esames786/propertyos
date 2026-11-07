@@ -39,4 +39,17 @@ describe('UrlTabs', () => {
     expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['Tab 0', 'Tab 9']);
     vi.restoreAllMocks();
   });
+
+  it('SH-10: a panel without focusable content is a Tab stop and shows its keyboard focus', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<UrlTabs label="Record" items={items.slice(0, 3)}>{(id) => <p>panel {id}</p>}</UrlTabs>);
+    const panel = screen.getByRole('tabpanel');
+    expect(panel.className).toMatch(/data-focus-visible:outline-2/);
+    expect(panel.className).toMatch(/data-focus-visible:outline-focus/);
+    await user.tab();
+    expect(screen.getByRole('tab', { name: 'Tab 0' })).toHaveFocus();
+    await user.tab();
+    expect(panel).toHaveFocus();
+    expect(panel).toHaveAttribute('data-focus-visible', 'true');
+  });
 });

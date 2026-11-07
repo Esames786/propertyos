@@ -175,7 +175,7 @@ function CollectionsRow({ data, fmt, period }: { data: Dashboard; fmt: SocietyFo
           hue="emerald"
           label={t('billing:dashboard.billed', { period })}
           value={billed.invoices ? fmt.compact(billed.billed) : t('billing:dashboard.notBilled')}
-          accessibleValue={billed.invoices ? `${fmt.money(billed.billed)}, ${t('billing:dashboard.invoices', { count: billed.invoices })}` : t('billing:dashboard.notBilled')}
+          accessibleValue={billed.invoices ? fmt.money(billed.billed) : t('billing:dashboard.notBilled')}
           context={billed.invoices ? t('billing:dashboard.billedContext', { invoices: fmt.count(billed.invoices), exempt: fmt.count(billed.exempt) }) : billed.run ? t('billing:dashboard.runIs', { state: t(`billing:runState.${billed.run.state}`) }) : t('billing:dashboard.noRunYet')}
           href={billed.href}
         />
@@ -185,7 +185,7 @@ function CollectionsRow({ data, fmt, period }: { data: Dashboard; fmt: SocietyFo
           hue="sky"
           label={t('billing:dashboard.outstanding')}
           value={fmt.compact(data.outstanding.amount)}
-          accessibleValue={`${fmt.money(data.outstanding.amount)}, ${t('billing:dashboard.accounts', { count: data.outstanding.accounts })}`}
+          accessibleValue={fmt.money(data.outstanding.amount)}
           context={t('billing:dashboard.accounts', { count: data.outstanding.accounts })}
           href={data.outstanding.href}
         />
@@ -195,7 +195,7 @@ function CollectionsRow({ data, fmt, period }: { data: Dashboard; fmt: SocietyFo
           hue="gold"
           label={t('billing:dashboard.arrears')}
           value={fmt.compact(data.arrears.amount)}
-          accessibleValue={`${fmt.money(data.arrears.amount)}, ${t('billing:dashboard.accounts', { count: data.arrears.accounts })}`}
+          accessibleValue={fmt.money(data.arrears.amount)}
           context={t('billing:dashboard.arrearsContext', { count: data.arrears.accounts })}
           href={data.arrears.href}
         />

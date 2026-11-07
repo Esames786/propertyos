@@ -353,7 +353,7 @@ function Resubmit({ submissionId, defaults }: { submissionId: string; defaults: 
       <div className="flex flex-wrap items-center gap-3 rounded-tile border-2 border-dashed border-border-control p-4">
         <Button variant="secondary" icon={Upload} onPress={() => input.current?.click()} data-testid="resubmit-file-pick">{file ? t('dues:pay.fileChange') : t('dues:pay.filePick')}</Button>
         <span className="min-w-0 flex-1 text-sm text-muted" aria-live="polite">{file ? <bdi dir="ltr" className="ltr-ref font-medium text-text">{file.name}</bdi> : t('dues:pay.fileHint')}</span>
-        <input ref={input} type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={(e: ChangeEvent<HTMLInputElement>) => setFile(e.target.files?.[0] ?? null)} aria-label={t('dues:pay.file')} className="sr-only" data-testid="resubmit-file" />
+        <input ref={input} type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={(e: ChangeEvent<HTMLInputElement>) => setFile(e.target.files?.[0] ?? null)} aria-label={t('dues:pay.file')} className="sr-only" tabIndex={-1} data-testid="resubmit-file" />
       </div>
       <PlainTextArea label={t('dues:pay.note')} value={note} onChange={setNote} optional rows={2} testId="resubmit-note" />
       {error ? <InlineAlert tone="error" role="alert">{error instanceof ApiError ? dt(error.problem.messageKey) : t('errors:network.unavailable')}</InlineAlert> : null}

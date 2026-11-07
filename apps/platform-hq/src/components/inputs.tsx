@@ -147,11 +147,11 @@ export function DateInput({ value, onChange, optional, ...b }: Base & { value: s
         <Dialog className="outline-none">
           <Calendar>
             <header className="mb-2 flex items-center justify-between gap-2">
-              <AriaButton slot="previous" aria-label={t('common:actions.back')} className="grid size-9 place-items-center rounded-control data-hovered:bg-sunken">
+              <AriaButton slot="previous" aria-label={t('common:calendar.previousMonth')} className="grid size-9 place-items-center rounded-control data-hovered:bg-sunken">
                 <DirectionalIcon icon={ChevronLeft} className="size-4" />
               </AriaButton>
               <Heading className="text-sm font-semibold" />
-              <AriaButton slot="next" aria-label={t('common:actions.next')} className="grid size-9 place-items-center rounded-control data-hovered:bg-sunken">
+              <AriaButton slot="next" aria-label={t('common:calendar.nextMonth')} className="grid size-9 place-items-center rounded-control data-hovered:bg-sunken">
                 <DirectionalIcon icon={ChevronRight} className="size-4" />
               </AriaButton>
             </header>

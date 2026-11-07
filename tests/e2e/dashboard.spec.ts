@@ -164,7 +164,8 @@ test.describe('Management dashboard (HOME-001)', () => {
   test('KPI tiles and inventory rows are links to the screens behind the numbers', async ({ page }) => {
     await seed(page);
     await openDashboard(page);
-    await expect(page.getByTestId('kpi-collected')).toHaveAttribute('aria-label', /^Collected, Rs\s[\d.]+B, (up|down) [\d.]+% on the previous 6 months$/);
+    // UX B2 (SH-02): the tile's context line ("…% of … scheduled") is now part of its name, once.
+    await expect(page.getByTestId('kpi-collected')).toHaveAttribute('aria-label', /^Collected, Rs\s[\d.]+B, (up|down) [\d.]+% on the previous 6 months, [\d.]+% of Rs\s[\d.]+[KMB] scheduled$/);
     await page.getByTestId('stack-row').first().click();
     await expect(page).toHaveURL(/\/backoffice\/inv\/unit-matrix\?record=twr_lh_a/);
   });

@@ -1,6 +1,6 @@
 import { ArrowDownRight, ArrowUpRight, Minus } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 import { Link } from 'react-aria-components';
 import { Sparkline } from '../charts/Sparkline';
 import { cn } from '../lib/cn';
@@ -22,10 +22,47 @@ const TONE = {
   neutral: 'bg-sunken text-muted',
 };
 
+/** Where a repeated leading amount ends: end of text, a space, or punctuation followed by a space. */
+const BOUNDARY = /^(?:$|\s|[·.,;:،۔–—-](?:\s|$))/;
+
+/** The longest shared start of `a` and `b` that ends on a boundary in both and holds a digit (an amount or count). */
+function sharedFigure(a: string, b: string) {
+  let n = 0;
+  while (n < a.length && n < b.length && a[n] === b[n]) n++;
+  for (; n > 0; n--) {
+    const head = a.slice(0, n).trimEnd();
+    if (/\d/.test(head) && BOUNDARY.test(a.slice(head.length)) && BOUNDARY.test(b.slice(head.length))) return head;
+  }
+  return '';
+}
+
+/**
+ * The context line as it goes into the tile's name, or undefined when it adds nothing. A context the
+ * value already says is left out (payroll: the context is the amount); one that starts with the same
+ * figure as the accessible or the displayed value is read from after that figure, so the amount is
+ * said once ("Rs 1,234.00, a contract figure, not money received"), in English and Urdu alike.
+ */
+function contextForName(context: string, accessibleValue: string, shown?: string) {
+  let text = context.trim();
+  if (!text || accessibleValue.includes(text)) return undefined;
+  for (const value of [accessibleValue, shown?.trim() ?? '']) {
+    const figure = value && sharedFigure(value, text);
+    if (figure) {
+      text = text.slice(figure.length).replace(/^[\s·.,;:،۔–—-]+/, '');
+      break;
+    }
+  }
+  return text && !accessibleValue.includes(text) ? text : undefined;
+}
+
 /**
  * Stat tile: label · value · delta vs a named period · context line · 12-point trend.
  * Proportional figures for the big number (tabular only in columns). The whole tile is one link
- * to the screen behind the number; its accessible name is the label, value and change in words.
+ * to the screen behind the number; its accessible name is the label, value, change in words and
+ * context line, each once (SH-02). A context that the caller already folded into `accessibleValue`
+ * is not repeated; a context that starts with the tile's amount (S.3: "Rs 1,234.00 · a contract
+ * figure…") is read without that amount; a context that is not plain text becomes the link's
+ * description.
  */
 export function StatTile({
   label,
@@ -41,7 +78,7 @@ export function StatTile({
 }: {
   label: string;
   value: ReactNode;
-  /** The value as plain text (the visible one may be animating). */
+  /** The value as plain text (the visible one may be animating). The context line is added by the tile. */
   accessibleValue: string;
   delta?: StatDelta;
   context?: ReactNode;
@@ -53,10 +90,14 @@ export function StatTile({
   testId?: string;
 }) {
   const DeltaIcon = delta?.direction === 'up' ? ArrowUpRight : delta?.direction === 'down' ? ArrowDownRight : Minus;
+  const contextId = useId();
+  const contextText = typeof context === 'string' ? contextForName(context, accessibleValue, typeof value === 'string' ? value : undefined) : undefined;
+  const describedBy = context && typeof context !== 'string' ? contextId : undefined;
   return (
     <Link
       href={href}
-      aria-label={[label, accessibleValue, delta?.description].filter(Boolean).join(', ')}
+      aria-label={[label, accessibleValue, delta?.description, contextText].filter(Boolean).join(', ')}
+      aria-describedby={describedBy}
       data-testid={testId}
       className={cn(
         'group relative flex w-full min-w-0 flex-col justify-between gap-4 overflow-hidden rounded-card border border-border/70 bg-panel p-5 shadow-card outline-none',
@@ -79,10 +120,19 @@ export function StatTile({
           </span>
         )}
       </div>
-      <div aria-hidden className="min-w-0">
-        <div className="text-3xl leading-none font-bold tracking-tight whitespace-nowrap text-text">{value}</div>
+      <div aria-hidden className="@container min-w-0">
+        {/* 320 px with 200 % text: the value was cut off by the tile's clip (S.1 hotfix report, residual 5).
+            It now never grows past about a fifth of the tile's width per glyph height, so "Rs 355.8K" and
+            "Rs 12.6 ہزار" stay whole on one line; at ordinary sizes text-3xl is the smaller of the two. */}
+        <div className="text-[length:min(var(--text-3xl),19cqi)] leading-none font-bold tracking-tight whitespace-nowrap text-text">{value}</div>
         <div className="mt-3 flex items-end justify-between gap-3">
-          {context ? <div className="min-w-0 text-xs leading-snug text-muted">{context}</div> : <span />}
+          {context ? (
+            <div id={describedBy} className="min-w-0 text-xs leading-snug text-muted">
+              {context}
+            </div>
+          ) : (
+            <span />
+          )}
           {trend && (
             <span className="shrink-0">
               <Sparkline values={trend} width={84} height={30} />

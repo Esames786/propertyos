@@ -39,6 +39,10 @@
     "reset": "Reset",
     "done": "Done"
   },
+  "calendar": {
+    "previousMonth": "Previous month",
+    "nextMonth": "Next month"
+  },
   "state": {
     "loading": "Loading…",
     "saving": "Saving…",

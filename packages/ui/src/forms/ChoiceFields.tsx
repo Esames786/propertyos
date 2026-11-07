@@ -2,7 +2,9 @@ import { Check, ChevronDown, CircleAlert } from 'lucide-react';
 import type { ReactNode } from 'react';
 import {
   Button as AriaButton,
-  Checkbox as AriaCheckbox,
+  CheckboxButton,
+  CheckboxField as AriaCheckboxField,
+  FieldError,
   ListBox,
   ListBoxItem,
   Popover,
@@ -11,6 +13,7 @@ import {
   Select,
   SelectValue,
   Switch as AriaSwitch,
+  Text,
 } from 'react-aria-components';
 import { useController } from 'react-hook-form';
 import { cn } from '../lib/cn';
@@ -26,42 +29,52 @@ export interface Option {
   isDisabled?: boolean;
 }
 
+// Issue #20: the box (here), the radio circle and the switch track draw the keyboard ring; their
+// labels carry `outline-none` so the base [data-focus-visible] ring does not add a second one.
 const boxClass =
   'grid size-5 shrink-0 place-items-center rounded-sm border-2 border-border-control bg-panel text-on-primary group-data-selected:border-primary group-data-selected:bg-primary group-data-invalid:border-error group-data-focus-visible:outline-2 group-data-focus-visible:outline-offset-2 group-data-focus-visible:outline-focus';
 
+/**
+ * SH-12: the description and the error are React Aria slots of the checkbox field, so the checkbox
+ * is described by both (aria-describedby) and marked invalid (aria-invalid) when the error shows.
+ */
 export function CheckboxField({ name, label, description }: { name: string; label: string; description?: string }) {
   const { id } = useFieldMeta(name, label);
   const { field, fieldState } = useController({ name });
   return (
-    <div className={fieldWrap}>
-      <AriaCheckbox
-        id={id}
-        name={name}
-        isSelected={!!field.value}
-        onChange={field.onChange}
-        onBlur={field.onBlur}
-        isInvalid={!!fieldState.error}
-        validationBehavior="aria"
-        className="group flex cursor-default items-start gap-3 text-sm text-text pointer-coarse:py-1"
-      >
+    <AriaCheckboxField
+      id={id}
+      name={name}
+      isSelected={!!field.value}
+      onChange={field.onChange}
+      onBlur={field.onBlur}
+      isInvalid={!!fieldState.error}
+      validationBehavior="aria"
+      className={fieldWrap}
+    >
+      <CheckboxButton className="group flex cursor-default items-start gap-3 text-sm text-text outline-none pointer-coarse:py-1">
         <span className={boxClass}>
           <Check aria-hidden className="size-3.5 opacity-0 group-data-selected:opacity-100" strokeWidth={3} />
         </span>
         <span>{label}</span>
-      </AriaCheckbox>
-      {description && <p className={cn(descriptionClass, 'ms-8')}>{description}</p>}
+      </CheckboxButton>
+      {description && (
+        <Text slot="description" className={cn(descriptionClass, 'ms-8')}>
+          {description}
+        </Text>
+      )}
       {fieldState.error?.message && <ErrorLine messageKey={fieldState.error.message} />}
-    </div>
+    </AriaCheckboxField>
   );
 }
 
 function ErrorLine({ messageKey }: { messageKey: string }) {
   const { t } = useT();
   return (
-    <p className={cn(errorClass, 'ms-8')}>
+    <FieldError className={cn(errorClass, 'ms-8')}>
       <CircleAlert aria-hidden className="mt-0.5 size-4 shrink-0" />
       <span>{t(messageKey as 'forms:errors.required')}</span>
-    </p>
+    </FieldError>
   );
 }
 
@@ -108,7 +121,7 @@ export function RadioGroupField({
 
 export function RadioOption({ option }: { option: Option }) {
   return (
-    <Radio value={option.id} isDisabled={option.isDisabled} className="group flex cursor-default items-start gap-3 text-sm text-text pointer-coarse:py-1">
+    <Radio value={option.id} isDisabled={option.isDisabled} className="group flex cursor-default items-start gap-3 text-sm text-text outline-none pointer-coarse:py-1">
       <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-pill border-2 border-border-control bg-panel group-data-selected:border-primary group-data-focus-visible:outline-2 group-data-focus-visible:outline-offset-2 group-data-focus-visible:outline-focus">
         <span className="size-2.5 rounded-pill bg-primary opacity-0 group-data-selected:opacity-100" />
       </span>
@@ -136,7 +149,7 @@ export function Switch({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <AriaSwitch isSelected={isSelected} onChange={onChange} data-testid={testId} className="group flex cursor-default items-center gap-3 text-sm font-medium text-text pointer-coarse:py-1">
+      <AriaSwitch isSelected={isSelected} onChange={onChange} data-testid={testId} className="group flex cursor-default items-center gap-3 text-sm font-medium text-text outline-none pointer-coarse:py-1">
         <span className="relative h-6 w-11 shrink-0 rounded-pill border-2 border-border-control bg-sunken transition-colors duration-[var(--motion-fast)] group-data-selected:border-primary group-data-selected:bg-primary group-data-focus-visible:outline-2 group-data-focus-visible:outline-offset-2 group-data-focus-visible:outline-focus">
           <span className="absolute top-0.5 start-0.5 size-4 rounded-pill bg-panel shadow-card transition-transform duration-[var(--motion-fast)] group-data-selected:translate-x-5 rtl:group-data-selected:-translate-x-5" />
         </span>
@@ -187,7 +200,8 @@ export function SelectControl({
       onSelectionChange={(key) => onChange(key === null ? null : String(key))}
       isDisabled={isDisabled}
       isRequired={!optional}
-      isInvalid={isInvalid}
+      // SH-04: an error key marks the field invalid (as PlainTextField does), so its message shows.
+      isInvalid={isInvalid ?? !!errorKey}
       validationBehavior="aria"
       // React Aria has no Urdu strings; its default "Select an item" would stay English.
       placeholder={placeholder ?? t('forms:selectPlaceholder')}

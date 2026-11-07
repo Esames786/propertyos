@@ -1,12 +1,15 @@
 import { isValidPkPhone, useLocale } from '@repo/i18n';
 import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { renderWithProviders } from '../test/render';
 import { Form, zodResolver } from './Form';
 import { CnicField, PhoneField, TextField } from './TextFields';
+import { CheckboxField, SelectControl } from './ChoiceFields';
+import { DateField } from './DateField';
 
 const schema = z.object({
   fullName: z.string().trim().min(1, 'forms:errors.required'),
@@ -78,5 +81,82 @@ describe('Form + fields', () => {
   it('marks optional fields in the visible label', () => {
     renderWithProviders(<DemoForm />);
     expect(screen.getByText('(optional)')).toBeInTheDocument();
+  });
+});
+
+// UX batch B2: errors and descriptions tied to their controls; calendar buttons named for what they do.
+describe('B2 shared field fixes', () => {
+  it('SH-04: SelectControl with an error key shows the message under the field, marks it invalid and describes the trigger', () => {
+    renderWithProviders(<SelectControl label="Flat" value={null} onChange={() => undefined} options={[{ id: 'a', label: 'A-101' }]} errorKey="forms:errors.selectOne" testId="flat" />);
+    expect(screen.getByText('Choose an option.')).toBeInTheDocument();
+    expect(screen.getByTestId('flat')).toHaveAttribute('data-invalid', 'true');
+    const trigger = screen.getByRole('button', { name: /flat/i });
+    expect(trigger).toHaveAccessibleDescription(/Choose an option\./);
+  });
+
+  it('SH-04: without an error key the field is not invalid and shows no message; an explicit isInvalid still wins', () => {
+    const { unmount } = renderWithProviders(<SelectControl label="Flat" value={null} onChange={() => undefined} options={[{ id: 'a', label: 'A-101' }]} testId="flat" />);
+    expect(screen.getByTestId('flat')).not.toHaveAttribute('data-invalid');
+    expect(screen.queryByText('Choose an option.')).toBeNull();
+    unmount();
+    renderWithProviders(<SelectControl label="Flat" value={null} onChange={() => undefined} options={[{ id: 'a', label: 'A-101' }]} isInvalid={false} errorKey="forms:errors.selectOne" testId="flat" />);
+    expect(screen.getByTestId('flat')).not.toHaveAttribute('data-invalid');
+  });
+
+  function ConsentForm() {
+    const methods = useForm({ resolver: zodResolver(z.object({ consent: z.boolean().refine((v) => v, 'forms:errors.required') })), defaultValues: { consent: false } });
+    return (
+      <Form methods={methods} onSubmit={() => undefined}>
+        <CheckboxField name="consent" label="I agree to be contacted" description="We call only about this enquiry." />
+        <button type="submit">submit</button>
+      </Form>
+    );
+  }
+
+  it('SH-12: CheckboxField ties its description and its error to the checkbox and marks it invalid', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<ConsentForm />);
+    const box = screen.getByRole('checkbox', { name: 'I agree to be contacted' });
+    expect(box).toHaveAccessibleDescription('We call only about this enquiry.');
+    expect(box).not.toHaveAttribute('aria-invalid');
+    await user.click(screen.getByRole('button', { name: 'submit' }));
+    await waitFor(() => expect(box).toHaveAttribute('aria-invalid', 'true'));
+    expect(box).toHaveAccessibleDescription(/We call only about this enquiry\..*This field is required\./);
+    await user.click(box);
+    expect(box).toBeChecked();
+  });
+
+  function VisitForm() {
+    const methods = useForm({ defaultValues: { on: '2026-11-05' } });
+    const { setLocale } = useLocale();
+    const [, force] = useState(0);
+    return (
+      <>
+        <button type="button" onClick={() => (setLocale('ur-PK'), force((n) => n + 1))}>
+          urdu
+        </button>
+        <Form methods={methods} onSubmit={() => undefined}>
+          <DateField name="on" label="Visit date" />
+        </Form>
+      </>
+    );
+  }
+
+  it('SH-11: the calendar month buttons are named "Previous month" and "Next month", and in Urdu', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<VisitForm />);
+    const group = screen.getByRole('group', { name: /visit date/i });
+    await user.click(within(group).getAllByRole('button').at(-1)!);
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByRole('button', { name: 'Previous month' })).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Next month' })).toBeInTheDocument();
+    expect(within(dialog).queryByRole('button', { name: 'Back' })).toBeNull();
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await act(async () => screen.getByRole('button', { name: 'urdu' }).click());
+    await user.click(within(screen.getByRole('group')).getAllByRole('button').at(-1)!);
+    const ur = await screen.findByRole('dialog');
+    expect(within(ur).getByRole('button', { name: 'پچھلا مہینہ' })).toBeInTheDocument();
+    expect(within(ur).getByRole('button', { name: 'اگلا مہینہ' })).toBeInTheDocument();
   });
 });

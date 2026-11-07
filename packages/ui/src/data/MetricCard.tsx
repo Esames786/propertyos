@@ -1,5 +1,5 @@
 import { ChevronRight, type LucideIcon } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 import { Link } from 'react-aria-components';
 import { cn } from '../lib/cn';
 import { DirectionalIcon } from '../primitives/DirectionalIcon';
@@ -15,7 +15,8 @@ const VALUE_TONE = {
 
 /**
  * Metric card: icon square · label · big bold value · one context line. With `href` the whole
- * card is one link (lifts on hover) whose accessible name is label, value and context in order.
+ * card is one link (lifts on hover) whose accessible name is label, value and context in order;
+ * without it, `accessibleValue` is read as visually hidden text in place of the hidden visual value.
  * Colour on the value is always backed by the label and context text (never colour alone).
  */
 export function MetricCard({
@@ -44,6 +45,10 @@ export function MetricCard({
   tourId?: string;
   className?: string;
 }) {
+  // N-B2-5 (Issue #20): a linked card named by `accessibleValue` whose caption is markup (not text)
+  // gets the caption as its description, as StatTile does, so it is not lost from the name.
+  const captionId = useId();
+  const describedBy = href && accessibleValue && caption && typeof caption !== 'string' ? captionId : undefined;
   // Narrow cards (two-up on phones) stack the icon above the text; wider cards put it beside.
   const body = (
     <span className="flex w-full min-w-0 flex-col gap-2.5 @[15rem]:flex-row @[15rem]:items-start @[15rem]:gap-3.5">
@@ -53,7 +58,14 @@ export function MetricCard({
         <span aria-hidden={accessibleValue ? true : undefined} className={cn('mt-0.5 block text-lead leading-tight font-bold tracking-tight whitespace-nowrap tabular @[15rem]:text-2xl', VALUE_TONE[valueTone])}>
           {value}
         </span>
-        {caption && <span className="mt-0.5 block text-xs text-muted">{caption}</span>}
+        {/* SH-02: a card that is not a link has no accessible name to carry the plain value, so it is
+            read here instead (label, value, caption in reading order); the link's name carries it. */}
+        {accessibleValue && !href && <span className="sr-only">{accessibleValue}</span>}
+        {caption && (
+          <span id={describedBy} className="mt-0.5 block text-xs text-muted">
+            {caption}
+          </span>
+        )}
       </span>
       {href && (
         <DirectionalIcon
@@ -80,6 +92,7 @@ export function MetricCard({
       data-testid={testId}
       data-tour-id={tourId}
       aria-label={accessibleValue ? [label, accessibleValue, typeof caption === 'string' ? caption : undefined].filter(Boolean).join(', ') : undefined}
+      aria-describedby={describedBy}
       className={cn(
         frame,
         'outline-none transition-[translate,box-shadow] duration-[var(--motion-regular)] ease-[var(--ease-emphasized)]',

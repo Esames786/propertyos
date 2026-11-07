@@ -46,7 +46,7 @@ export function CollectionsPanel({ data, headingLevel = 2, testId = 'collections
           hue="emerald"
           label={t('collections:summary.billed', { period })}
           value={data.billed.invoices ? fmt.compact(data.billed.amount) : t('collections:summary.notBilled')}
-          accessibleValue={`${fmt.money(data.billed.amount)}, ${t('collections:summary.invoices', { count: data.billed.invoices })}`}
+          accessibleValue={fmt.money(data.billed.amount)}
           context={t('collections:summary.invoices', { count: data.billed.invoices })}
           href={data.billed.href}
         />
@@ -56,7 +56,7 @@ export function CollectionsPanel({ data, headingLevel = 2, testId = 'collections
           hue="teal"
           label={t('collections:summary.collected')}
           value={fmt.compact(data.collected.amount)}
-          accessibleValue={`${fmt.money(data.collected.amount)}, ${t('collections:summary.payments', { count: data.collected.payments })}, ${t('collections:summary.rate', { rate: Math.round(data.rate * 100), period })}`}
+          accessibleValue={`${fmt.money(data.collected.amount)}, ${t('collections:summary.payments', { count: data.collected.payments })}`}
           context={t('collections:summary.rate', { rate: Math.round(data.rate * 100), period })}
           href={data.collected.href}
         />
@@ -66,7 +66,7 @@ export function CollectionsPanel({ data, headingLevel = 2, testId = 'collections
           hue="sky"
           label={t('collections:summary.pending')}
           value={fmt.compact(data.pending.amount)}
-          accessibleValue={`${fmt.money(data.pending.amount)}, ${t('collections:summary.proofs', { count: data.pending.submissions })}`}
+          accessibleValue={fmt.money(data.pending.amount)}
           context={t('collections:summary.proofs', { count: data.pending.submissions })}
           href={data.pending.href}
         />
@@ -76,7 +76,7 @@ export function CollectionsPanel({ data, headingLevel = 2, testId = 'collections
           hue="gold"
           label={t('collections:summary.arrears')}
           value={fmt.compact(data.arrears.amount)}
-          accessibleValue={`${fmt.money(data.arrears.amount)}, ${t('collections:summary.accounts', { count: data.arrears.accounts })}`}
+          accessibleValue={fmt.money(data.arrears.amount)}
           context={t('collections:summary.arrearsContext', { count: data.arrears.accounts, outstanding: fmt.money(data.outstanding.amount) })}
           href={data.arrears.href}
         />
