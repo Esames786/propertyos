@@ -51,6 +51,7 @@ export { Spinner } from './primitives/Spinner';
 // Data display
 export { Money } from './data/Money';
 export { DateTime } from './data/DateTime';
+export { DateTimeRange } from './data/DateTimeRange';
 export { Reference } from './data/Reference';
 export { StatusLabel, Badge, DemoBadge, type StatusTone } from './data/StatusLabel';
 export { KeyValueList } from './data/KeyValueList';
