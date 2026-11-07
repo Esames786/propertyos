@@ -1,6 +1,76 @@
 # UX batch B2: test, accessibility and localisation results
 
-**Run date:** 6 November 2026. Only tests that were actually executed are reported, with every interim failure.
+Only tests that were actually executed are reported, with every interim failure. The Issue #20
+follow-up (7 November 2026) comes first; the original B2 results (6 November) follow unchanged.
+
+## Issue #20 follow-up: final results (the committed code)
+
+**Machine.** Ports 6373–6375 (`E2E_PORT_OFFSET=1200`), production builds served on 127.0.0.1 and ::1,
+each listener checked to be this worktree's current build.
+- While agent B held `D:\laragon2\www\.e2e-busy` (from 22:11Z until it released it), my browser work was
+  single-spec with 1 worker.
+- I held the lock from 23:18:14Z to 00:01:22Z.
+- The laptop was on AC for both long runs; CPU 8 % at the start of the combined run.
+
+| Check | Command | Result |
+|---|---|---|
+| Build | `build.sh` (three apps) | OK |
+| Built CSS | `test-results-b2/scratch/css-layers.cjs` on each app's bundle | `:focus-visible,[data-focus-visible]{--tw-outline-style:solid}` at top level, unlayered, in all three; `.outline-none` and the focus utilities in `@layer utilities`; the container rule in `@layer base` |
+| Typecheck | `npx tsc -p tsconfig.json --noEmit` | clean |
+| Lint (ESLint, logical CSS, i18n parity) | `npm run lint` | clean; 2 locales × 26 namespaces, 10,296 keys each (no new keys) |
+| Unit and component | `npx vitest run` | **1,536 / 1,536** (55 files), 33 s. New since B2: 5 tests in `MetricCard.test.tsx` (S.3 patterns EN and UR, displayed value, untouched contexts, N-B2-5) |
+| **Complete combined Chromium run** | `E2E_PORT_OFFSET=1200 npx playwright test --project=e2e --project=evidence tests/e2e tests/evidence/uxb2.evidence.spec.ts --workers=3 --retries=0 --reporter=list,json` | **472 / 472** in 38.2 min: every gate's e2e (400), `ux-b2.spec.ts` (32), `ux-b2-focus.spec.ts` (24), B2 evidence (16). No failure, flaky test, retry or skip |
+| Axe | from that run's JSON | **1,464 scans, 40,493 rule passes, 0 violations** (focus spec: 6 scans, 0) |
+| Firefox + WebKit smoke (full) | `--project=firefox-smoke --project=webkit-smoke --workers=3 --retries=0` | **56 / 56** in 3.5 min: **Firefox 28 / 28, WebKit 28 / 28** |
+| Evidence | `docs/status/ux-b2/screenshots` | 48 screenshots (18 new: r01–r09 keyboard focus, EN and UR). Widths checked; phone and 200 % shots looked at. Three B2 screenshots were re-written by the run: t01 ×2 now show one ring instead of two; m03 Urdu has a tiny rendering difference. `git status docs/status` shows changes only under `ux-b2/` |
+
+Known intermittents in this round: D.1 `identity.spec.ts:327` and WebKit S.2a "a new guard…" both
+passed. One pass does not show that either is fixed or that either is caused by the base.
+
+### Ring measurements
+
+Rows are attached to the run's JSON (`rings-*.txt`). For the office (66 rows: EN and UR × 1440 /
+390 dark + high contrast / 320 at 200 %):
+- **every control: outline solid, 2 px (3 px for the base ring in high contrast);**
+- **94–100 % of the ring's pixels change by ≥ 3:1 against the unfocused pixels, median 7.94:1 to
+  14.67:1;**
+- **no second ring.**
+
+Clipping: only the technician choice in the Urdu drawer at 320 px / 200 % (72 % of its path clipped by
+the drawer body, N-B2-3). CRM, HQ and resident controls are asserted at ≥ 90 % (the resident Pay
+action ≥ 50 %, by design).
+
+| Engine | Keyboard (header Search, stat tile, drawer choice, tab, resident bar) | Mouse press (stat tile, tab) |
+|---|---|---|
+| Chromium | focus-visible, solid 2 px, 94–100 % ≥ 3:1 | focused, not focus-visible, no ring |
+| Firefox | same (tab 94 %) | same |
+| WebKit (Windows build) | same (tab 93 %) | same: the press focuses the control (unlike Safari on macOS) but shows no ring |
+
+Emulated forced colours (Chromium): the office header controls and stat tile still draw their rings.
+
+### Issue #20 interim failures (all of them, in order)
+
+1. Focus spec run 1, 17 / 23:
+   - (a) Axe at 390 px in dark + high contrast on the society dashboard: `color-contrast`, 2 nodes (1.92:1). This is **N-B2-7**: the same nodes and ratio appear on the base `04b6fde` (probe on a temporary base worktree, EN and UR). That mode now scans Request 360.
+   - (b) Header Search at 320 / 200 % in Urdu: 25 % of ring pixels.
+   - (c) Resident bar at 320 / 200 % in English: 77 %.
+   - (d) HQ tenant rows are hidden on phones.
+2. Run 2, 18 / 23:
+   - Round controls had been sampled at four points. The path now follows the corner radius, and each sample takes the strongest of its five-pixel neighbourhood.
+   - HQ uses the tenant cards on phones.
+   - The Pay action reached 57 % (its raised circle covers the ring).
+3. Run 3, 20 / 23: Urdu header Search still 20 %. **Cause:** a right-to-left page that overflows sideways (N-B2-2) is screenshotted shifted from client coordinates. Fixed with a marker. The Pay action threshold became 0.5, with the reason in the test.
+4. Run 4, 22 / 23: the Urdu drawer choice at 320 / 200 % reached 28 %. **Cause:** the drawer body clips the choice's ring (N-B2-3). The helper now reports ancestor clipping and samples only the visible part. Clipping is allowed only for drawer controls at 320 / 200 %, and asserted 0 elsewhere.
+5. Run 5, 21 / 23: a tab panel taller than the screen had been counted as clipped. Now only ancestor clipping counts.
+6. Run 6: 23 / 23. Then the forced-colours test was added: 1 / 1.
+7. Smoke (Firefox and WebKit, 1 worker): the WebKit Issue #20 test saw 0 % ring pixels. **Cause:** the WebKit project renders at `deviceScaleFactor` 2; geometry is now scaled by `devicePixelRatio`. Re-run: both engines pass.
+
+No existing test was changed in this round. The B2 smoke and evidence specs gained tests; nothing was
+skipped, retried or loosened.
+
+---
+
+# Original B2 results (6 November 2026)
 
 ## Environment
 

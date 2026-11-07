@@ -29,6 +29,8 @@ export interface Option {
   isDisabled?: boolean;
 }
 
+// Issue #20: the box (here), the radio circle and the switch track draw the keyboard ring; their
+// labels carry `outline-none` so the base [data-focus-visible] ring does not add a second one.
 const boxClass =
   'grid size-5 shrink-0 place-items-center rounded-sm border-2 border-border-control bg-panel text-on-primary group-data-selected:border-primary group-data-selected:bg-primary group-data-invalid:border-error group-data-focus-visible:outline-2 group-data-focus-visible:outline-offset-2 group-data-focus-visible:outline-focus';
 
@@ -50,7 +52,7 @@ export function CheckboxField({ name, label, description }: { name: string; labe
       validationBehavior="aria"
       className={fieldWrap}
     >
-      <CheckboxButton className="group flex cursor-default items-start gap-3 text-sm text-text pointer-coarse:py-1">
+      <CheckboxButton className="group flex cursor-default items-start gap-3 text-sm text-text outline-none pointer-coarse:py-1">
         <span className={boxClass}>
           <Check aria-hidden className="size-3.5 opacity-0 group-data-selected:opacity-100" strokeWidth={3} />
         </span>
@@ -119,7 +121,7 @@ export function RadioGroupField({
 
 export function RadioOption({ option }: { option: Option }) {
   return (
-    <Radio value={option.id} isDisabled={option.isDisabled} className="group flex cursor-default items-start gap-3 text-sm text-text pointer-coarse:py-1">
+    <Radio value={option.id} isDisabled={option.isDisabled} className="group flex cursor-default items-start gap-3 text-sm text-text outline-none pointer-coarse:py-1">
       <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-pill border-2 border-border-control bg-panel group-data-selected:border-primary group-data-focus-visible:outline-2 group-data-focus-visible:outline-offset-2 group-data-focus-visible:outline-focus">
         <span className="size-2.5 rounded-pill bg-primary opacity-0 group-data-selected:opacity-100" />
       </span>
@@ -147,7 +149,7 @@ export function Switch({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <AriaSwitch isSelected={isSelected} onChange={onChange} data-testid={testId} className="group flex cursor-default items-center gap-3 text-sm font-medium text-text pointer-coarse:py-1">
+      <AriaSwitch isSelected={isSelected} onChange={onChange} data-testid={testId} className="group flex cursor-default items-center gap-3 text-sm font-medium text-text outline-none pointer-coarse:py-1">
         <span className="relative h-6 w-11 shrink-0 rounded-pill border-2 border-border-control bg-sunken transition-colors duration-[var(--motion-fast)] group-data-selected:border-primary group-data-selected:bg-primary group-data-focus-visible:outline-2 group-data-focus-visible:outline-offset-2 group-data-focus-visible:outline-focus">
           <span className="absolute top-0.5 start-0.5 size-4 rounded-pill bg-panel shadow-card transition-transform duration-[var(--motion-fast)] group-data-selected:translate-x-5 rtl:group-data-selected:-translate-x-5" />
         </span>

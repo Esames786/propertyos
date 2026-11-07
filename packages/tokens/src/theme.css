@@ -726,6 +726,17 @@
     outline-offset: var(--focus-ring-offset);
   }
 
+  /*
+   * Issue #20: React Aria also marks containers (Tabs, the tab list, a Select, a radio group) with
+   * data-focus-visible while keyboard focus is inside them. The focused control draws its own ring,
+   * so such a container does not draw a second one around it. Labels (radio, checkbox, switch: the
+   * label is the visible control) and groups (a date field's box around its segments) keep theirs.
+   * Base layer: any ring a component sets with a utility class still wins.
+   */
+  [data-focus-visible]:not(label, [role='group']):has(:focus-visible, [data-focus-visible]) {
+    outline-style: none;
+  }
+
   /* On filled primary surfaces add an inner light ring so focus never blends in */
   .on-primary:focus-visible,
   .on-primary[data-focus-visible] {
@@ -769,6 +780,21 @@
   .scrollbar-none::-webkit-scrollbar {
     display: none;
   }
+}
+
+/*
+ * Issue #20 (B2 observation N-B2-1): keyboard focus rings. Tailwind 4's `outline-none` sets
+ * `--tw-outline-style: none` on the element, and every `focus-visible:outline-2` /
+ * `data-focus-visible:outline-2` draws `outline-style: var(--tw-outline-style)`, so the ring a
+ * control asks for on keyboard focus was never drawn (88 class strings). While an element has
+ * keyboard-visible focus the style variable is restored to solid. This rule is deliberately outside
+ * every cascade layer so it outranks `.outline-none` in the utilities layer. It sets only the
+ * variable: an element without a focus outline utility keeps `outline-style: none`, and pointer focus
+ * (no :focus-visible, no data-focus-visible) is untouched.
+ */
+:focus-visible,
+[data-focus-visible] {
+  --tw-outline-style: solid;
 }
 
 /*

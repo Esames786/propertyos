@@ -210,3 +210,71 @@ for (const locale of LOCALES) {
     await page.close();
   });
 }
+
+/** Issue #20: keyboard focus by the keyboard (Tab first, so it is keyboard focus), then the element. */
+async function kbd(page: Page, testId: string | ((p: Page) => ReturnType<Page['getByTestId']>)) {
+  const loc = typeof testId === 'string' ? page.getByTestId(testId).first() : testId(page).first();
+  await loc.scrollIntoViewIfNeeded();
+  await page.keyboard.press('Tab');
+  await loc.focus();
+  await expect(loc).toBeFocused();
+  await settle(page, 300);
+}
+
+for (const locale of LOCALES) {
+  test(`Issue #20 ${lang(locale)}: keyboard focus rings at 1440, 390 (dark, high contrast) and 320 px with 200 % text`, async ({ browser }) => {
+    test.setTimeout(240_000);
+    const page = await society(browser, VIEWPORTS.desktop, { staff: IMRAN, locale });
+    await page.goto(`${BO}/backoffice`);
+    await page.getByTestId('society-dashboard').waitFor();
+    await kbd(page, 'search-button');
+    await shot(page, `r01-focus-header-search-1440-${lang(locale)}`);
+    await kbd(page, 'kpi-billed');
+    await shot(page, `r02-focus-stat-tile-1440-${lang(locale)}`);
+    const id = await requestId(page, 'Water seepage');
+    await page.goto(`${BO}/backoffice/mnt/maintenance-360-workspace?record=${id}`);
+    await page.getByTestId('request-workspace').waitFor();
+    await kbd(page, (p) => p.getByRole('tab', { selected: true }));
+    await shot(page, `r03-focus-tab-1440-${lang(locale)}`);
+    await page.goto(`${BO}/backoffice/mnt/maintenance-360-workspace?record=${id}&drawer=assign`);
+    await page.getByTestId('assign-drawer').waitFor();
+    await kbd(page, 'technician-option');
+    await shot(page, `r04-focus-drawer-choice-1440-${lang(locale)}`);
+    await page.close();
+
+    const dark = await society(browser, VIEWPORTS.phone, { staff: IMRAN, locale });
+    await dark.goto(`${BO}/backoffice/global/accessibility-preferences`);
+    await dark.getByTestId('hub-theme-dark').click();
+    await dark.getByTestId('hub-contrast-high').click();
+    await expect.poll(() => dark.evaluate(() => document.documentElement.getAttribute('data-contrast'))).toBe('high');
+    await dark.goto(`${BO}/backoffice`);
+    await dark.getByTestId('society-dashboard').waitFor();
+    await kbd(dark, (p) => p.getByTestId('bottom-nav').getByRole('link'));
+    await shot(dark, `r05-focus-bottom-bar-dark-contrast-390-${lang(locale)}`);
+    await kbd(dark, 'kpi-billed');
+    await shot(dark, `r06-focus-stat-tile-dark-contrast-390-${lang(locale)}`);
+    await dark.close();
+
+    const big = await society(browser, PHONE, { staff: IMRAN, locale }, 2);
+    const id2 = await requestId(big, 'Water seepage');
+    await big.goto(`${BO}/backoffice/mnt/maintenance-360-workspace?record=${id2}&drawer=assign`);
+    await big.getByTestId('assign-drawer').waitFor();
+    await kbd(big, (p) => p.getByTestId('assign-day').getByRole('button'));
+    await shot(big, `r07-focus-drawer-select-200pct-320-${lang(locale)}`);
+    await big.close();
+
+    const res = await society(browser, VIEWPORTS.phone, { resident: 'alnoor_resident_a101', locale });
+    await res.goto(`${CU}/customer/portal/home`);
+    await res.getByTestId('dues-home').waitFor();
+    await kbd(res, (p) => p.getByTestId('portal-bottom-nav').getByRole('link'));
+    await shot(res, `r08-focus-resident-bottom-bar-390-${lang(locale)}`);
+    await res.close();
+
+    const hq = await plain(browser, VIEWPORTS.desktop, { app: 'platform', persona: 'supreme_admin', locale });
+    await hq.goto(`${HQ}/hq/tenants`);
+    await hq.locator('[data-testid^="open-tnt_"]').first().waitFor();
+    await kbd(hq, (p) => p.locator('[data-testid^="open-tnt_"]'));
+    await shot(hq, `r09-focus-hq-tenant-row-1440-${lang(locale)}`);
+    await hq.close();
+  });
+}

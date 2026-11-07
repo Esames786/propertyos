@@ -22,12 +22,47 @@ const TONE = {
   neutral: 'bg-sunken text-muted',
 };
 
+/** Where a repeated leading amount ends: end of text, a space, or punctuation followed by a space. */
+const BOUNDARY = /^(?:$|\s|[·.,;:،۔–—-](?:\s|$))/;
+
+/** The longest shared start of `a` and `b` that ends on a boundary in both and holds a digit (an amount or count). */
+function sharedFigure(a: string, b: string) {
+  let n = 0;
+  while (n < a.length && n < b.length && a[n] === b[n]) n++;
+  for (; n > 0; n--) {
+    const head = a.slice(0, n).trimEnd();
+    if (/\d/.test(head) && BOUNDARY.test(a.slice(head.length)) && BOUNDARY.test(b.slice(head.length))) return head;
+  }
+  return '';
+}
+
+/**
+ * The context line as it goes into the tile's name, or undefined when it adds nothing. A context the
+ * value already says is left out (payroll: the context is the amount); one that starts with the same
+ * figure as the accessible or the displayed value is read from after that figure, so the amount is
+ * said once ("Rs 1,234.00, a contract figure, not money received"), in English and Urdu alike.
+ */
+function contextForName(context: string, accessibleValue: string, shown?: string) {
+  let text = context.trim();
+  if (!text || accessibleValue.includes(text)) return undefined;
+  for (const value of [accessibleValue, shown?.trim() ?? '']) {
+    const figure = value && sharedFigure(value, text);
+    if (figure) {
+      text = text.slice(figure.length).replace(/^[\s·.,;:،۔–—-]+/, '');
+      break;
+    }
+  }
+  return text && !accessibleValue.includes(text) ? text : undefined;
+}
+
 /**
  * Stat tile: label · value · delta vs a named period · context line · 12-point trend.
  * Proportional figures for the big number (tabular only in columns). The whole tile is one link
  * to the screen behind the number; its accessible name is the label, value, change in words and
  * context line, each once (SH-02). A context that the caller already folded into `accessibleValue`
- * is not repeated; a context that is not plain text becomes the link's description.
+ * is not repeated; a context that starts with the tile's amount (S.3: "Rs 1,234.00 · a contract
+ * figure…") is read without that amount; a context that is not plain text becomes the link's
+ * description.
  */
 export function StatTile({
   label,
@@ -56,7 +91,7 @@ export function StatTile({
 }) {
   const DeltaIcon = delta?.direction === 'up' ? ArrowUpRight : delta?.direction === 'down' ? ArrowDownRight : Minus;
   const contextId = useId();
-  const contextText = typeof context === 'string' && context.trim() && !accessibleValue.includes(context) ? context : undefined;
+  const contextText = typeof context === 'string' ? contextForName(context, accessibleValue, typeof value === 'string' ? value : undefined) : undefined;
   const describedBy = context && typeof context !== 'string' ? contextId : undefined;
   return (
     <Link

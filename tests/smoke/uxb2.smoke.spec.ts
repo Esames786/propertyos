@@ -1,5 +1,6 @@
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import { BO, CU, expect, seed, test } from '../support/fixtures';
+import { ringOf } from '../support/focus';
 import { seedSociety, societyApi } from '../support/society';
 
 /**
@@ -127,5 +128,54 @@ test('SH-11: the calendar month buttons are named "Previous month" and "Next mon
   const calendar = page.getByRole('dialog').filter({ has: page.getByRole('grid') });
   await expect(calendar.getByRole('button', { name: 'Previous month', exact: true })).toBeVisible();
   await expect(calendar.getByRole('button', { name: 'Next month', exact: true })).toBeVisible();
+  expect(appErrors(consoleErrors)).toEqual([]);
+});
+
+/**
+ * Issue #20 (N-B2-1): keyboard focus rings are drawn in this engine too, and a mouse press draws none.
+ * Each engine has its own focus-visible heuristics; the computed style, the pixels on the ring band
+ * (focused against unfocused colour, at least 3:1) and the single-ring rule are checked here.
+ */
+test('Issue #20: keyboard focus draws one visible ring (office header, stat tile, tab, drawer choice; resident bottom bar); a mouse press draws none', async ({ page, consoleErrors }) => {
+  test.setTimeout(240_000);
+  await calm(page);
+  await seedSociety(page, { staff: 'alnoor_manager', resident: 'alnoor_resident_a101' });
+  const decoder = await page.context().newPage();
+  await page.goto(`${BO}/backoffice/mnt/maintenance-list`);
+  await expect(page.getByTestId('request-row').first()).toBeVisible();
+  const seepage = await requestId(page, 'Water seepage');
+  const rows: string[] = [];
+  const keyboard = async (label: string, loc: Locator) => {
+    const r = await ringOf(page, decoder, loc.first());
+    rows.push(`${label}: fv=${r.focusVisible} ${r.style} ${r.width}px, ${Math.round(r.changed3 * 100)} % ≥ 3:1, median ${r.median}, others ${r.otherRings.length}`);
+    expect(r.focusVisible, label).toBe(true);
+    expect(r.style, label).toBe('solid');
+    expect(r.width, label).toBeGreaterThanOrEqual(2);
+    expect(r.changed3, `${label}: ring pixels`).toBeGreaterThanOrEqual(0.9);
+    expect(r.otherRings, `${label}: one ring`).toEqual([]);
+  };
+  const pointer = async (label: string, loc: Locator) => {
+    const r = await ringOf(page, decoder, loc.first(), 'pointer');
+    rows.push(`${label} (mouse): focused=${r.focused} fv=${r.focusVisible} ${r.style}, ${Math.round(r.changed3 * 100)} %`);
+    expect(r.focusVisible, label).toBe(false);
+    expect(r.changed3, `${label}: no ring pixels`).toBeLessThanOrEqual(0.1);
+  };
+  await page.goto(`${BO}/backoffice`);
+  await expect(page.getByTestId('society-dashboard')).toBeVisible();
+  await keyboard('header search', page.getByTestId('search-button'));
+  await keyboard('stat tile', page.getByTestId('kpi-billed'));
+  await pointer('stat tile', page.getByTestId('kpi-billed'));
+  await page.goto(`${BO}/backoffice/mnt/maintenance-360-workspace?record=${seepage}&drawer=assign`);
+  await expect(page.getByTestId('assign-drawer')).toBeVisible();
+  await keyboard('drawer choice', page.getByTestId('technician-option'));
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('assign-drawer')).toBeHidden();
+  await keyboard('tab', page.getByRole('tab', { selected: true }));
+  await pointer('tab', page.getByRole('tab', { selected: true }));
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`${CU}/customer/portal/home`);
+  await expect(page.getByTestId('dues-home')).toBeVisible();
+  await keyboard('resident bottom bar', page.getByTestId('portal-bottom-nav').getByRole('link').first());
+  await test.info().attach('rings.txt', { body: rows.join('\n'), contentType: 'text/plain' });
   expect(appErrors(consoleErrors)).toEqual([]);
 });

@@ -15,7 +15,8 @@ need a person.
 | VoiceOver (iOS Safari) | M1, M2, M4, M5 on a phone | not performed | needs an iPhone |
 | TalkBack (Android Chrome) | M1, M2, M4, M5, in Urdu at 200 % text | not performed | needs an Android phone |
 | Urdu wording by a native reader | `common:calendar.previousMonth` "پچھلا مہینہ", `common:calendar.nextMonth` "اگلا مہینہ" (the only new strings) | not performed | needs a person |
-| Windows High Contrast (forced colours) | the palette Cancel button, the refusal alert's focus ring, the tab panel's focus ring | not performed | needs a person |
+| Windows High Contrast (forced colours) | the palette Cancel button, the refusal alert's focus ring, the tab panel's focus ring; Issue #20 rings (F7) | not performed | needs a person |
+| Issue #20 focus rings by eye | F1–F9 below | not performed | needs a sighted keyboard user |
 | Real phones at 320–390 px | palette Cancel with the soft keyboard up; a refusal inside a full-height drawer | not performed (automated in Chromium, Firefox and WebKit) | needs devices |
 
 ## Set-up
@@ -46,10 +47,29 @@ press the drawer's main button. For the dialogs, a reason shorter than 10 charac
 | M7 | SH-11 | CRM → a lead → **Schedule a visit** → open the calendar; Tab to the month buttons. HQ → Policies → New version → Effective from → **Open calendar**. | "**Previous month, button**", the month heading, "**Next month, button**" (before B2: "Back" and "Next"). | "**پچھلا مہینہ**، بٹن" and "**اگلا مہینہ**، بٹن" (native reader to confirm the wording). |
 | M8 | SH-12 | Office → Lab → Forms → the consent checkbox → submit without ticking. | (FormsLab only, not in client flows.) The checkbox reads its description and, after submit, "invalid entry, This field is required." | Same in Urdu. |
 
+## Issue #20: keyboard focus rings (for a sighted keyboard user; no screen reader needed)
+
+**Status: not performed.** The automated checks measure the computed style, the pixels on the ring
+and its contrast (see test-results.md, "Issue #20"). A person still has to judge whether each ring is
+easy to see, in context, on a real screen.
+
+| # | Where | Steps | Expected |
+|---|-------|-------|----------|
+| F1 | Office (Imran), 1440 px, English then Urdu | Click the page background, then press Tab slowly through the header (menu, organisation, Search, help, notifications, language, avatar), the sidebar, the "Money for …" figures, "Open collections". | Every stop shows **one** ring: a 2 px dark-green outline about 2 px outside the control (inside the edge for sidebar items and the drawer body). No stop is invisible; no ring is drawn twice (for example around a whole tab area and the tab). In Urdu the order runs right to left and the rings look the same. |
+| F2 | The same, with the mouse | Click Search, a figure tile, a tab, a drawer choice. | **No ring** appears for a click (text boxes are the exception: like everywhere in the product, a focused text box shows its ring however it was focused). |
+| F3 | Request 360 (any repair) | Tab to the tabs, use the arrow keys, Tab into the panel; open **Assign**, Tab through the drawer (scroll area, technician choices, day, time, notes, buttons); open the day list with the arrow keys. | Tabs, the panel and every drawer control show one ring. With the list open, the highlighted day is shown by its background only and nothing else draws a ring; Escape returns to the day field with its ring. The disabled Save of the completion drawer is skipped by Tab. |
+| F4 | Lead 360 (Larkspur manager) → Schedule a visit → calendar | Tab to the calendar; arrow through days; Tab to "Previous month" / "Next month". | The focused day and the month buttons show a ring. |
+| F5 | Dark mode and high contrast (Preferences → Theme: Dark; Contrast: High), 390 px | Repeat F1 and F3 on a phone-sized window, including the bottom bar. | Rings are bright yellow on black and clearly visible; bottom-bar items show the ring inside their edge. |
+| F6 | 320 px window at 200 % text (Preferences → Text size), English and Urdu | Repeat F1 and F3. | Rings stay visible. Known: in a drawer the scrolling area is very short at this size (N-B2-3), so a tall choice shows only the sides and the bottom of its ring until scrolled. |
+| F7 | **Windows High Contrast / forced colours** (Settings → Accessibility → Contrast themes → e.g. "Night sky" or "Desert"), Edge or Chrome, English and Urdu | Repeat F1 and F3. | Every focused control shows a ring in the theme's highlight colour; nothing relies on colour alone. (Emulated forced colours are tested automatically; a real Windows theme is not.) |
+| F8 | Resident app (Kamran), phone | Tab through the header, the bill, the bottom bar and the round **Pay** action; open Requests and Tab to a repair card. | One ring per stop. On **Pay** the raised circle covers the top of the ring by design; the sides and bottom show. |
+| F9 | Platform HQ (Supreme Admin) | Tab through the header, the figures and the tenant list (table on desktop, cards on a phone). | One ring per stop. |
+
 ## Known gaps a tester will meet (not B2)
 
-- Most keyboard focus rings in the product are **not drawn** (Tailwind 4 `outline-none` cancels
-  `focus-visible:outline-2`); see test-results.md, interim 3(c) (observation N-B2-1). Only the tab panel and the
-  palette's Cancel were repaired here. A sighted keyboard tester will notice this everywhere else.
+- Keyboard focus rings were not drawn in most of the product (N-B2-1). **Issue #20 restores them**
+  product-wide (F1–F9 above). Chart columns show focus with their own outline stroke, not a CSS ring.
 - `ConfirmDialog` still loses a refused reason on other screens (X-09, batch B3); only the three
   Request 360 dialogs opt in to staying open.
+- In dark mode with high contrast, the society dashboard's aging bar labels are black on dark green
+  (1.92:1, N-B2-7, also on the base `04b6fde`).
