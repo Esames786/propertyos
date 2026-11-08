@@ -123,7 +123,12 @@ export function CommandPalette() {
     if (can('lead.create'))
       list.push({ id: 'practice', label: t('common:command.practiceLead'), icon: GraduationCap, run: () => navigate(`${location.pathname}?drawer=${PRACTICE_LEAD_DRAWER}`) });
     const q = norm(query.trim());
-    return q ? list.filter((a) => norm(a.label).includes(q)) : list;
+    const matching = q ? list.filter((a) => norm(a.label).includes(q)) : list;
+    // Gate E.13 (provisional; reconcile at Wave 1 integration): the office app's universal search
+    // (GLOBAL-002) for every kind of record, last in the list so Enter keeps choosing the first match.
+    if (query.trim().length >= 2 && links.start.startsWith('/backoffice/'))
+      matching.push({ id: 'search-everywhere', label: t('workspace:hub.search.everywhere', { query: query.trim() }), icon: Search, run: () => navigate(`/backoffice/global/unified-search-results?q=${encodeURIComponent(query.trim())}`) });
+    return matching;
   }, [t, otherLocale, setLocale, navigate, location.pathname, links, essentials, tour, can, query]);
 
   const records = debounced.length >= 2 ? (search.data?.records ?? []) : [];

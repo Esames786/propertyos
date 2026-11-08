@@ -4,6 +4,8 @@ import { useMemo } from 'react';
 import { Navigate, Outlet, useLocation, useMatches, useSearchParams } from 'react-router';
 import { ACCESS_DATE, COLLECTIONS, LINKS, NAV_ITEMS, SOCIETY } from '../nav.config';
 import type { RouteHandle } from './handle';
+// Gate E.13 (provisional; reconcile with E.0 at Wave 1 integration): recent records (GLOBAL-005).
+import { recordFromAddress, useRecordVisit } from '../pages/developer/workspace/visit';
 
 /**
  * Signed-in backoffice frame. Without a demo identity, first-time visitors go to Get started and
@@ -39,6 +41,9 @@ export function ShellLayout() {
   const record = recordCheck.data?.record ? recordCheck.data : null;
   const decision: AccessDecision = !area.allowed ? area : record && !record.decision.allowed ? record.decision : { allowed: true };
   const deniedModule = !area.allowed ? target.module : record?.module;
+  // Gate E.13 (provisional): a record the person may open becomes one of their recent records (the
+  // server re-checks it and ignores anything else; practice mode leaves no trace).
+  useRecordVisit(persona && area.allowed && !(recordId !== null && recordCheck.isPending) && decision.allowed ? recordFromAddress(location.pathname, recordId) : null);
   const pageTitle = !decision.allowed
     ? dynamicT(t)(`errors:access.${OUTCOME_TITLE[decision.reason] ?? 'role'}.title`)
     : handle

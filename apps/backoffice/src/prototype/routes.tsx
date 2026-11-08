@@ -16,6 +16,9 @@ import type { RouteHandle } from './handle';
 import { RootLayout } from './RootLayout';
 import { ShellLayout } from './ShellLayout';
 import { StandaloneLayout } from './StandaloneLayout';
+// Gate E.13 (provisional; reconcile with E.0 at Wave 1 integration): local route modules of the connected workspace and documents.
+import { WORKSPACE_ROUTES } from '../pages/developer/workspace/routes';
+import { DOCUMENT_ROUTES } from '../pages/developer/documents/routes';
 
 /**
  * Prototype route table (React Router 7, data mode). Pages are code-split and receive plain props;
@@ -618,6 +621,9 @@ const shellChildren: RouteObject[] = [
   { path: 'global/language-switcher', ...preferences('language') },
   { path: 'global/accessibility-preferences', ...preferences('accessibility') },
   { path: 'settings/onboarding', ...preferences('tours') },
+  // Gate E.13 (provisional): GLOBAL-002/005/006, HOME-002/004/005 and DOC-002…006 (pages/developer/{workspace,documents}).
+  ...WORKSPACE_ROUTES,
+  ...DOCUMENT_ROUTES,
   {
     path: '*',
     loader: registerLoader,

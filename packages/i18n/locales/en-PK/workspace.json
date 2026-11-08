@@ -111,6 +111,243 @@
     "portal.use": "Use the resident portal",
     "construction.view": "See construction progress",
     "workorder.update": "Update work orders",
-    "visitors.manage": "Manage gate and visitors"
+    "visitors.manage": "Manage gate and visitors",
+    "document.view": "See documents of records you can open",
+    "document.upload": "Upload documents and versions",
+    "document_template.manage": "Draft templates and policies",
+    "document_template.approve": "Approve templates and policies"
+  },
+  "hub": {
+    "nav": {
+      "label": "Connected workspace",
+      "home": "Home",
+      "search": "Search",
+      "recent": "Recent",
+      "favourites": "Favourites",
+      "tasks": "My tasks",
+      "queue": "Work queue",
+      "activity": "Activity",
+      "documents": "Documents",
+      "expiring": "Expiring",
+      "templates": "Templates"
+    },
+    "types": {
+      "lead": "Lead",
+      "party": "Customer",
+      "unit": "Unit",
+      "project": "Project",
+      "invoice": "Invoice",
+      "document": "Document",
+      "template": "Template or policy",
+      "lease": "Lease",
+      "request": "Request",
+      "maintenance": "Maintenance",
+      "pass": "Visitor pass",
+      "vehicle": "Vehicle",
+      "notice": "Notice",
+      "tenant": "Organisation"
+    },
+    "typesPlural": {
+      "lead": "Leads",
+      "party": "Customers and people",
+      "unit": "Units and flats",
+      "project": "Projects",
+      "invoice": "Invoices",
+      "document": "Documents",
+      "template": "Templates and policies",
+      "lease": "Leases",
+      "request": "Requests",
+      "maintenance": "Maintenance",
+      "pass": "Visitor passes",
+      "vehicle": "Vehicles",
+      "notice": "Notices",
+      "tenant": "Organisations"
+    },
+    "today": "Today",
+    "sessionNote": "Kept for this sign-in only: signing out or switching identity clears this list. A record you can no longer open disappears from it.",
+    "favourite": {
+      "add": "Add {{title}} to favourites",
+      "remove": "Remove {{title}} from favourites",
+      "added": "{{title}} added to favourites",
+      "removed": "{{title}} removed from favourites"
+    },
+    "shortcuts": {
+      "title": "Keyboard shortcuts",
+      "stateOn": "On",
+      "stateOff": "Off",
+      "hint": "Single keys work on this page when you are not typing. Ctrl+K still opens search everywhere.",
+      "toggle": "Use keyboard shortcuts",
+      "focusSearch": "Go to the search field",
+      "focusFilter": "Go to the filter field"
+    },
+    "search": {
+      "title": "Search everything",
+      "intro": "Every kind of record you can open, in one place: leads, customers, units, projects, invoices, documents, templates and more. Records you cannot open are never shown or counted.",
+      "label": "Search for",
+      "placeholder": "A name, reference, unit, phone or file",
+      "hint": "At least 2 characters. Results update as you type.",
+      "submit": "Search",
+      "kinds": "Kind of record",
+      "allKinds": "All kinds",
+      "shown_one": "{{count}} record shown for “{{query}}”",
+      "shown_other": "{{count}} records shown for “{{query}}”",
+      "startTitle": "What are you looking for?",
+      "startBody": "Type at least 2 characters, or open a record you used recently or marked as a favourite.",
+      "noneTitle": "Nothing found for “{{query}}”",
+      "noneBody": "Check the spelling or try a reference, a unit or a phone number. Only records you can open are searched.",
+      "showAll": "Show all {{kind}}",
+      "pages": "Pages of results",
+      "previous": "Previous",
+      "next": "Next",
+      "page": "Page {{page}}",
+      "everywhere": "Search everywhere for “{{query}}”"
+    },
+    "saved": {
+      "filter": "Filter this list",
+      "noneFiltered": "Nothing in this list matches"
+    },
+    "recent": {
+      "title": "Recent records",
+      "intro": "The records you opened, newest first. Open one again in a click, or mark it as a favourite.",
+      "clear": "Clear recent records",
+      "clearTitle": "Clear your recent records?",
+      "clearEffect": "Your list of recently opened records is emptied. The records themselves are not changed.",
+      "cleared": "Recent records cleared",
+      "remove": "Remove {{title}} from recent records",
+      "removeShort": "Remove",
+      "removed": "{{title}} removed from recent records",
+      "viewed_one": "Opened {{when}} · {{count}} time",
+      "viewed_other": "Opened {{when}} · {{count}} times",
+      "none": "No recent records yet",
+      "noneBody": "Records you open (a lead, a unit, a document …) appear here."
+    },
+    "favourites": {
+      "title": "Favourites",
+      "intro": "Records you marked with the star, up to {{limit}}. Use the star on any search result, recent record, task or document.",
+      "added": "Added {{when}}",
+      "none": "No favourites yet",
+      "noneBody": "Mark a record with the star to keep it one click away."
+    },
+    "tasks": {
+      "title": "My tasks",
+      "intro": "Your own work from every area you use, soonest first. Each task opens where the work is done.",
+      "urgencyLabel": "When",
+      "urgency": {
+        "all": "All",
+        "overdue": "Overdue",
+        "today": "Today",
+        "soon": "Next 3 days",
+        "later": "Later"
+      },
+      "group": {
+        "overdue": "Overdue",
+        "today": "Due today",
+        "soon": "In the next 3 days",
+        "later": "Later"
+      },
+      "kindLabel": "Kind of work",
+      "allKinds": "All kinds of work",
+      "kind": {
+        "follow_up": "Follow-up",
+        "site_visit": "Site visit",
+        "hold_expiry": "Unit hold ends",
+        "document_expiry": "Document expiry",
+        "template_approval": "Draft version {{version}} awaits approval",
+        "template_returned": "Draft version {{version}} was returned",
+        "society_task": "Society task",
+        "society_approval": "Waiting for approval"
+      },
+      "kindName": {
+        "follow_up": "Follow-ups",
+        "site_visit": "Site visits",
+        "hold_expiry": "Unit holds",
+        "document_expiry": "Document expiry",
+        "template_approval": "Template approvals",
+        "template_returned": "Returned drafts",
+        "society_task": "Society tasks",
+        "society_approval": "Society approvals"
+      },
+      "action": {
+        "follow_up": "Log follow-up",
+        "site_visit": "Open visits",
+        "hold_expiry": "Review hold",
+        "document_expiry": "Upload renewal",
+        "template_approval": "Review draft",
+        "template_returned": "Revise draft",
+        "society_task": "Open",
+        "society_approval": "Review"
+      },
+      "approvalItem": "{{label}}",
+      "due": "Due {{when}}",
+      "owner": "With {{name}}",
+      "ownerYou": "Yours",
+      "ownerNobody": "Waiting for another person",
+      "returnedNote": "Reason: {{note}}",
+      "none": "Nothing waiting for you",
+      "noneFiltered": "No work matches these filters",
+      "noneBody": "Only work on records you can open is listed and counted."
+    },
+    "queue": {
+      "title": "Work queue",
+      "intro": "Your team’s open work within your projects and areas: follow-ups, visits, holds, expiring documents and approvals. Filter it and act directly.",
+      "ownerLabel": "Whose work",
+      "owner": {
+        "all": "Everyone",
+        "mine": "Mine",
+        "others": "Other people’s",
+        "unassigned": "Waiting for someone"
+      },
+      "projectLabel": "Project",
+      "allProjects": "All projects",
+      "search": "Search the queue",
+      "none": "The queue is empty",
+      "noneBody": "Work on records outside your scope is not listed or counted."
+    },
+    "activity": {
+      "title": "Recent activity",
+      "intro": "What happened on the records you can open, newest first. Activity on records you cannot open is never shown.",
+      "rangeLabel": "Period",
+      "range": {
+        "today": "Today",
+        "7d": "Last 7 days",
+        "30d": "Last 30 days"
+      },
+      "whoLabel": "Who",
+      "who": {
+        "all": "Everyone",
+        "mine": "Only me"
+      },
+      "groupLabel": "Area",
+      "group": {
+        "all": "All areas",
+        "crm": "Sales",
+        "documents": "Documents",
+        "templates": "Templates and policies"
+      },
+      "you": "You",
+      "more": "Show older activity",
+      "none": "No activity in this period",
+      "noneBody": "Choose a longer period, or open a record to start working."
+    },
+    "related": {
+      "rel": {
+        "customer": "Customer",
+        "project": "Project",
+        "otherLeads": "Other leads of this customer",
+        "leads": "Leads",
+        "invoices": "Invoices",
+        "linkedTo": "Linked record"
+      },
+      "documents_one": "Documents ({{count}})",
+      "documents_other": "Documents ({{count}})",
+      "upload": "Upload a document",
+      "noDocuments": "No documents on this record yet.",
+      "version": "v{{n}}",
+      "none": "No related records",
+      "noneBody": "Records you cannot open are not shown."
+    },
+    "problems": {
+      "favouritesFull": "You have 50 favourites. Remove one to add another."
+    }
   }
 }
