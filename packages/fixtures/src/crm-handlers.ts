@@ -1,4 +1,5 @@
 import {
+  decide,
   LEAD_SOURCES,
   PIPELINE_STAGES,
   PIPELINE_STATUSES,
@@ -17,11 +18,13 @@ import {
   type SalesSummary,
   type ScheduleVisitInput,
   type SiteVisit,
+  type UnitHoldView,
   type VisitStatus,
 } from '@repo/contracts';
 import { normalizePkPhone } from '@repo/i18n/format';
 import { leadHistory, ownerName, projectName, unitDetail, unitSummary } from './crm-data';
-import { authorize, can, forbid, invalid, isScopeOnly, matches, notFound, projectRecord, requires, unitPermitted, type Handler, type HandlerContext } from './handler-types';
+import { activeHolds, holdActive, holdClock, holdUntil, releasableBy, type StoredHold } from './crm-holds';
+import { can, decideRecord, forbid, invalid, isScopeOnly, matches, notFound, projectRecord, refused, requires, unitPermitted, type Handler, type HandlerContext } from './handler-types';
 import { FIXTURE_NOW, pad } from './seed';
 
 /**
@@ -33,14 +36,6 @@ import { FIXTURE_NOW, pad } from './seed';
 
 const PAGE_SIZE = 12;
 const DAY = 86_400_000;
-
-/** A stale hold is no longer inventory-held. Legacy holds without an owner remain non-releasable. */
-function activeHolds(ctx: HandlerContext) {
-  return Object.fromEntries(Object.entries(ctx.demo.holds()).filter(([, hold]) =>
-    Number.isFinite(Date.parse(hold.until)) && Date.parse(hold.until) > Date.now(),
-  ));
-}
-
 
 interface CrmSection {
   parties: Party[];
@@ -71,12 +66,44 @@ function permittedUnit(ctx: HandlerContext, unitId: string | undefined) {
   return unit && unitPermitted(ctx, unit) ? unit : undefined;
 }
 
-/** A unit named in a request: not found outside this tenant, refused on an unlicensed site. */
+/**
+ * A unit named in a request (§4.2 order of checks, Gate E.0 Issue #22):
+ * 1. the inventory permission, before any id is looked up, so a caller without it gets the same
+ *    refusal whatever the id names;
+ * 2. an id never issued in this organisation and a unit outside the caller's data scope answer
+ *    alike: the same 404 `not_found`, never `out_of_scope` (no id oracle);
+ * 3. a unit of the organisation's own site whose inventory is not licensed keeps its CP2 licensing
+ *    outcome (`site_not_licensed`, `site_context_missing`; security.spec). Whether those, too, should
+ *    become 404 is owner decision E-28; unchanged here.
+ */
 function requestedUnit(ctx: HandlerContext, unitId: string | undefined) {
+  const base = ctx.access ? decide(ctx.access, { module: 'inventory', permission: 'unit.view', at: ctx.at, suspension: ctx.suspension }) : null;
+  if (!base) forbid(ctx);
+  if (!base.allowed) refused(base, ctx.correlationId);
   const unit = ctx.data.units.find((u) => u.id === unitId);
   if (!unit) notFound(ctx);
-  authorize(ctx, 'inventory', projectRecord(ctx, unit.projectId), 'unit.view');
+  const decision = decideRecord(ctx, 'inventory', projectRecord(ctx, unit.projectId), 'unit.view');
+  if (!decision.allowed) {
+    if (decision.reason === 'out_of_scope') notFound(ctx);
+    refused(decision, ctx.correlationId);
+  }
   return unit;
+}
+
+/**
+ * The holds in force at `now`, as this reader may see them (§4.4 projection): the lead a unit is held
+ * for is named only to someone who may see that lead (lead permission and project scope); only the
+ * person who placed a hold is told they may release it.
+ */
+function holdViews(ctx: HandlerContext, live: Readonly<Record<string, StoredHold>>): Record<string, UnitHoldView> {
+  const leads = can(ctx, 'lead.view') ? ctx.demo.leads(ctx.data.leads) : [];
+  return Object.fromEntries(
+    Object.entries(live).map(([unitId, h]) => {
+      const lead = leads.find((l) => l.id === h.leadId);
+      const named = !!lead && isScopeOnly(ctx, lead.projectId);
+      return [unitId, { ...(named ? { leadRef: h.leadRef } : {}), until: h.until, ...(releasableBy(h, ctx.persona?.principalId) ? { releasable: true as const } : {}) }];
+    }),
+  );
 }
 
 function listItem(ctx: HandlerContext, lead: Lead): LeadListItem {
@@ -145,13 +172,17 @@ function activityEvent(ctx: HandlerContext, kind: ActivityEvent['kind'], message
   return { id: ctx.demo.nextId('act'), at: new Date().toISOString(), actorName: ctx.persona?.displayName ?? 'System', messageKey, params, kind };
 }
 
+/**
+ * A lead named in a path or body (Gate E.0 F-2, Issue #22; §4.2 order of checks).
+ * - The permission comes first, before any lookup: a caller without `lead.view` (for example someone
+ *   who may hold units but not read leads) gets the same 403 for every id, known or invented.
+ * - Then an id never issued and a lead outside the caller's projects or the header project answer
+ *   alike: the same 404 `not_found`, so a site-limited salesperson cannot learn that a lead exists.
+ */
 function findLead(ctx: HandlerContext, id: string): Lead {
-  const lead = ctx.demo.leads(ctx.data.leads).find((l) => l.id === id);
-  if (!lead) notFound(ctx);
-  // Gate E.0 F-2: an existing lead outside this project's scope must answer exactly as
-  // a never-issued lead id. Permission absence is still refused by the route gate.
   if (!can(ctx, 'lead.view')) forbid(ctx);
-  if (!ctx.allowsProject(lead.projectId)) notFound(ctx);
+  const lead = ctx.demo.leads(ctx.data.leads).find((l) => l.id === id);
+  if (!lead || !ctx.allowsProject(lead.projectId)) notFound(ctx);
   return lead;
 }
 
@@ -287,8 +318,9 @@ export const CRM_HANDLERS: readonly Handler[] = [
     handle: (ctx): LeadDetail => {
       const lead = findLead(ctx, ctx.params.leadId!) as Lead & { interestUnitId?: string };
       const party = partyById(ctx, lead.partyId)!;
-      const holds = activeHolds(ctx);
-      const holdView = Object.fromEntries(Object.entries(holds).map(([k, v]) => [k, { leadRef: v.leadRef, until: v.until }]));
+      // One clock reading per request; matching and every unit card use the same active-hold projection.
+      const holds = activeHolds(ctx.demo.holds(), holdClock());
+      const holdView = holdViews(ctx, holds);
       const interest = permittedUnit(ctx, lead.interestUnitId);
       const budget = Number(lead.budget.amount);
       // Within 15 % of the budget; without a budget, the project's available units in price order.
@@ -426,8 +458,7 @@ export const CRM_HANDLERS: readonly Handler[] = [
     access: requires('inventory', 'unit.view', 'operational'),
     handle: (ctx) => {
       const unit = requestedUnit(ctx, ctx.params.unitId);
-      const holds = Object.fromEntries(Object.entries(activeHolds(ctx)).map(([k, v]) => [k, { leadRef: v.leadRef, until: v.until }]));
-      return unitDetail(ctx.data, unit, holds);
+      return unitDetail(ctx.data, unit, holdViews(ctx, activeHolds(ctx.demo.holds(), holdClock())));
     },
   },
   {
@@ -435,11 +466,18 @@ export const CRM_HANDLERS: readonly Handler[] = [
     pattern: /^\/units\/(?<unitId>[\w-]+)\/hold$/,
     access: requires('sales', 'unit.hold', 'operational'),
     handle: (ctx) => {
+      // One clock reading: the availability check and the expiry written use the same instant.
+      const now = holdClock();
       const unit = requestedUnit(ctx, ctx.params.unitId);
       const lead = findLead(ctx, (ctx.req.body as { leadId?: string })?.leadId ?? '');
-      if (unit.status !== 'available' || activeHolds(ctx)[unit.id]) invalid(ctx, 'unit', 'forms:errors.unitUnavailable');
-      const until = new Date(Date.now() + 2 * DAY).toISOString();
-      ctx.demo.hold(unit.id, { leadId: lead.id, leadRef: lead.ref, until, principalId: ctx.persona?.principalId ?? '' });
+      // A hold is for a lead of the unit's own project, so whoever may see the unit may see whom it is
+      // held for (both are visible to this caller, so the message names nothing hidden).
+      if (lead.projectId !== unit.projectId) invalid(ctx, 'unit', 'forms:errors.unitUnavailable');
+      // An expired hold no longer blocks; an active one (anyone's) gives the same "unavailable" answer.
+      if (unit.status !== 'available' || holdActive(ctx.demo.holds()[unit.id], now)) invalid(ctx, 'unit', 'forms:errors.unitUnavailable');
+      const until = holdUntil(now);
+      // The initiating principal is recorded: only they may release it (Issue #23).
+      ctx.demo.hold(unit.id, { leadId: lead.id, leadRef: lead.ref, until, ...(ctx.persona?.principalId ? { principalId: ctx.persona.principalId } : {}) });
       ctx.demo.addActivity(lead.id, activityEvent(ctx, 'status', 'activity.unitHeld', { unit: unit.ref, until }));
       return { ok: true, until };
     },
@@ -449,11 +487,13 @@ export const CRM_HANDLERS: readonly Handler[] = [
     pattern: /^\/units\/(?<unitId>[\w-]+)\/release$/,
     access: requires('sales', 'unit.hold', 'operational'),
     handle: (ctx) => {
+      const now = holdClock();
       const unit = requestedUnit(ctx, ctx.params.unitId);
-      const hold = activeHolds(ctx)[unit.id];
-      // A different principal, an expired hold and an unknown hold are indistinguishable.
-      // A pre-hardening legacy hold has no owner and cannot be released by guessing its ID.
-      if (!hold || !hold.principalId || hold.principalId !== ctx.persona?.principalId) notFound(ctx);
+      const hold = ctx.demo.holds()[unit.id];
+      // Issue #23: no hold, an expired hold, someone else's hold and a legacy hold without a recorded
+      // initiator all answer like a unit that is not held: the same 404, and nothing changes. There is
+      // no override (owner decision E-11).
+      if (!holdActive(hold, now) || !releasableBy(hold, ctx.persona?.principalId)) notFound(ctx);
       ctx.demo.release(unit.id);
       ctx.demo.addActivity(hold.leadId, activityEvent(ctx, 'status', 'activity.unitReleased', { unit: unit.ref }));
       return { ok: true };

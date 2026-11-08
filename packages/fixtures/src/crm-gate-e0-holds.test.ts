@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { UnitDetail } from '@repo/contracts';
 import { DemoStore } from './demo-store';
 import { datasetFor } from './datasets';
@@ -33,11 +33,18 @@ async function problem(promise: Promise<unknown>) {
 }
 
 describe('Gate E.0 F-4 — held inventory is time-bound and released only by its maker', () => {
+  // E.0 validation: a fixed fake clock, so the 2020 and 2099 expiries below never depend on the day the suite runs.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-08T10:00:00.000Z'));
+  });
+  afterEach(() => vi.useRealTimers());
+
   it('an active hold is visible, blocks another hold, and its maker can release it', async () => {
     const { api, demo } = fixture();
     await hold(api);
     const h = demo.partition('tnt_larkspur').holds()[unit.id]!;
-    expect(h.principalId).toBeTruthy();
+    expect(h.principalId).toBe('usr_lsp_0001');
     const view = await api.request<UnitDetail>({ method: 'GET', path });
     expect(view.status).toBe('held');
     expect(await problem(hold(api))).toMatchObject({ status: 422, code: 'validation_failed', changed: false });

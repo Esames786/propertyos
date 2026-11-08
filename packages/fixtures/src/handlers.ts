@@ -1,5 +1,6 @@
 import { ApiError, type AccessDecision, type ModuleKey, type Party, type Permission, type RecordAccess, type SearchRecord, type SearchResponse } from '@repo/contracts';
 import { CRM_HANDLERS } from './crm-handlers';
+import { activeHolds, holdClock } from './crm-holds';
 import { buildDashboard } from './dashboard';
 import { authorize, can, decideRecord, forbid, invoiceRecord, isScopeOnly, matches, projectRecord, requires, unitPermitted, visitor, type Handler, type HandlerContext } from './handler-types';
 import { FINANCE_HANDLERS } from './finance-handlers';
@@ -145,7 +146,8 @@ const CORE_HANDLERS: readonly Handler[] = [
       if (floorId !== undefined && floorProject === undefined) forbid(ctx);
       inventoryProject(ctx, floorProject);
       inventoryProject(ctx, projectId === undefined ? undefined : String(projectId));
-      const holds = ctx.demo.holds();
+      // Gate E.0 (Issue #23): the same active-hold projection as unit 360 and lead matching.
+      const holds = activeHolds(ctx.demo.holds(), holdClock());
       return ctx.data.units
         .filter(
           (u) =>

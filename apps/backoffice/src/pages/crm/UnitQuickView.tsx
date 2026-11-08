@@ -16,7 +16,8 @@ export function UnitQuickView({ unitId, lead, onClose }: { unitId: string | null
   const unit = useApiQuery<UnitDetail>(unitId ? { method: 'GET', path: `/units/${unitId}` } : null);
   const act = useApiMutation<{ ok: boolean; until?: string }>();
   const u = unit.data;
-  const heldForThisLead = !!u?.hold && u.hold.leadRef === lead.ref;
+  // Gate E.0 (Issue #23): only the person who placed the hold may release it; the server says so.
+  const releasable = !!u?.hold?.releasable && u.hold.leadRef === lead.ref;
 
   const hold = async () => {
     if (!u) return;
@@ -45,7 +46,7 @@ export function UnitQuickView({ unitId, lead, onClose }: { unitId: string | null
       footer={
         u &&
         can('unit.hold') &&
-        (heldForThisLead ? (
+        (releasable ? (
           <Button variant="secondary" icon={LockOpen} onPress={release} isPending={act.isPending} data-testid="unit-release">
             {t('crm:unit.release')}
           </Button>
@@ -67,7 +68,7 @@ export function UnitQuickView({ unitId, lead, onClose }: { unitId: string | null
             <StatusLabel kind="unit" status={u.status} />
             {u.hold && (
               <Badge tone="warning" icon={Clock3}>
-                {t('crm:unit.heldFor', { lead: u.hold.leadRef, until: f.when(u.hold.until) })}
+                {u.hold.leadRef ? t('crm:unit.heldFor', { lead: u.hold.leadRef, until: f.when(u.hold.until) }) : t('crm:unit.heldUntil', { until: f.when(u.hold.until) })}
               </Badge>
             )}
           </div>
