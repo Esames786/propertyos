@@ -52,7 +52,7 @@ async function stage(page: Page): Promise<{ setupId: string; unit: string }> {
   await become(page, 'sales');
   await go(page, '/backoffice/inv/unit-matrix?project=prj_heights&tower=twr_lh_c', 'unit-matrix');
   const m = await societyApi<{ groups: Array<{ floors: Array<{ cells: Array<{ id: string; match: boolean }> }> }> }>(page, '/inventory/matrix', 'GET', {}, { project: 'prj_heights', tower: 'twr_lh_c', bucket: 'available' });
-  const unit = m.ok ? m.res.groups[0]!.floors.flatMap((f) => f.cells).find((c) => c.match)!.id : '';
+  const unit = m.ok ? (m.res.groups.flatMap((g) => g.floors.flatMap((f) => f.cells)).find((c) => c.match)?.id ?? '') : '';
   const leads = await societyApi<Array<{ id: string }>>(page, `/inventory/units/${unit}/hold-leads`);
   if (leads.ok && leads.res[0]) await societyApi(page, `/inventory/units/${unit}/hold`, 'POST', { leadId: leads.res[0].id });
   await become(page, 'lk_project_officer');

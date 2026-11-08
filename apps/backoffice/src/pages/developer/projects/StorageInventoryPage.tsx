@@ -158,7 +158,7 @@ function AllocateDrawer({ s, onClose }: { s: StorageUnitView; onClose: () => voi
     <Drawer
       isOpen
       onOpenChange={(o) => !o && onClose()}
-      title={t('projects:storage.allocateTitle', { ref: s.ref })}
+      title={t('projects:storage.allocateTitle', { ref: unbroken(s.ref) })}
       subtitle={s.projectName}
       testId="storage-allocate-drawer"
       footer={
@@ -192,7 +192,7 @@ function ReleaseDialog({ s, onClose }: { s: StorageUnitView; onClose: () => void
     <ConfirmDialog
       isOpen
       onOpenChange={(o) => !o && onClose()}
-      title={t('projects:storage.releaseTitle', { ref: s.ref })}
+      title={t('projects:storage.releaseTitle', { ref: unbroken(s.ref) })}
       effect={t('projects:storage.releaseEffect', { ref: s.ref, unit: s.allocation?.unitRef ?? '' })}
       confirmLabel={t('projects:storage.release')}
       reasonLabel={t('projects:storage.releaseReason')}

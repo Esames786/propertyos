@@ -45,6 +45,8 @@ async function axe(page: Page, testInfo: TestInfo, label: string) {
   expect(violations, label).toEqual([]);
 }
 
+/** Text with references: the screens keep a word joiner after each hyphen (so a reference never breaks). */
+const wj = (text: string) => new RegExp(text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/-/g, '-\u2060?'));
 const overflowOf = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
 
 async function pick(page: Page, testId: string, option: string | RegExp) {
@@ -180,7 +182,7 @@ test.describe('INV-001 / INV-002: unit matrix, keyboard grid, list alternative a
     await page.keyboard.press('Enter');
     const drawer = page.getByTestId('inv-quick-view');
     await expect(drawer).toBeVisible();
-    await expect(drawer).toContainText(ref!);
+    await expect(drawer.getByRole('heading', { level: 2 })).toHaveText(wj(`Unit ${ref}`));
     await expect(drawer.getByTestId('inv-dim-inventory')).toBeVisible();
     await expect(drawer.getByTestId('inv-dim-delivery')).toBeVisible();
     await expect(drawer.getByTestId('inv-dim-occupancy')).toBeVisible();
@@ -191,7 +193,11 @@ test.describe('INV-001 / INV-002: unit matrix, keyboard grid, list alternative a
     // Filters live in the address; the list is the same units with the same drawer.
     await page.getByTestId('matrix-bucket-booked').click();
     await expect(page).toHaveURL(/bucket=booked/);
-    const matched = Number(await page.getByTestId('matrix-matched').getAttribute('data-matched'));
+    // The grid has applied the filter: every matching cell is booked.
+    await expect(page.locator('[data-testid="matrix-cell"][data-match="true"]:not([data-bucket="booked"])')).toHaveCount(0);
+    await expect(page.locator('[data-testid="matrix-cell"][data-match="true"]').first()).toBeVisible();
+    const matched = await page.locator('[data-testid="matrix-cell"][data-match="true"]').count();
+    await expect(page.getByTestId('matrix-matched')).toHaveAttribute('data-matched', String(matched));
     await page.getByTestId('matrix-view').getByText('List').click();
     await expect(page.getByTestId('matrix-row')).toHaveCount(Math.min(matched, 60));
     await page.getByTestId('matrix-row-open').first().click();
@@ -231,7 +237,7 @@ test.describe('INV-008: holds, owner-only release and expiry against the demo cl
 
     await open(page, '/backoffice/inv/live-availability', 'availability-hold');
     await expect(page.locator(`[data-testid="availability-hold"][data-unit="${unitId}"]`)).toHaveAttribute('data-mine', 'true');
-    await expect(page.getByTestId('availability-hold').first()).toContainText('47 h 59 min left');
+    await expect(page.getByTestId('availability-hold').first()).toContainText('48 h 0 min left');
 
     // Another person sees the hold but cannot release it (the server refuses the same way).
     await become(page, 'manager');

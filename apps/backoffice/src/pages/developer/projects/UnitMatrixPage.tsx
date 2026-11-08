@@ -264,10 +264,13 @@ function UnitGrid({ g, onOpen }: { g: MatrixGroup; onOpen: (id: string) => void 
                   )}
                 >
                   <span className="flex w-full items-center justify-between gap-1 text-xs font-semibold tabular-nums">
-                    <bdi dir="ltr">{shortRef(c.ref)}</bdi>
+                    {/* A solid backing keeps the words readable on the hatched and dotted patterns. */}
+                    <bdi dir="ltr" className="rounded-sm bg-panel/85 px-0.5">
+                      {shortRef(c.ref)}
+                    </bdi>
                     {c.storage > 0 && <Package aria-hidden className="size-3.5 shrink-0" />}
                   </span>
-                  <span className="text-xs leading-tight [overflow-wrap:anywhere]">{status}</span>
+                  <span className="rounded-sm bg-panel/85 px-0.5 text-xs leading-tight [overflow-wrap:anywhere]">{status}</span>
                 </button>
               </div>
             );

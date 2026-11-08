@@ -34,6 +34,19 @@ export const HEIGHTS_STORAGE_CLERK: Persona = {
   projectScope: ['prj_heights'],
 };
 
+/** A test-only second preparer (organisation-wide, project.manage): someone else's draft is not theirs to change. */
+export const SECOND_OFFICER: Persona = {
+  id: 'test_e2_officer2' as Persona['id'],
+  tenantId: 'tnt_larkspur',
+  principalId: 'usr_test_e2_officer2',
+  app: 'backoffice',
+  displayName: 'Test Officer (E.2 test principal)',
+  roleKey: 'projects:roles.projectOfficer',
+  email: 'officer2@example.com',
+  permissions: ['project.context.use', 'unit.view', 'project.view', 'project.manage'],
+  projectScope: 'all',
+};
+
 export function invSession(options: { personas?: readonly Persona[] } = {}) {
   const store = memory();
   const demo = new DemoStore(store);

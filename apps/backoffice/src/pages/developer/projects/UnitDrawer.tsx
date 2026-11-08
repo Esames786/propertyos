@@ -24,8 +24,14 @@ export function UnitDrawer({ unitId, onClose }: { unitId: string | null; onClose
     <Drawer
       isOpen={!!unitId}
       onOpenChange={(open) => !open && onClose()}
-      title={u ? t('projects:unit.title', { ref: u.ref }) : notFound ? t('projects:common.notFoundTitle') : t('projects:common.loading')}
-      subtitle={u ? t('projects:unit.subtitle', { project: u.project.name, where: where(u) }) : undefined}
+      title={u ? t('projects:unit.title', { ref: unbroken(u.ref) }) : notFound ? t('projects:common.notFoundTitle') : t('projects:common.loading')}
+      subtitle={
+        u ? (
+          <span>
+            <bdi>{u.project.name}</bdi> · {where(u)}
+          </span>
+        ) : undefined
+      }
       testId="inv-quick-view"
       size="lg"
       footer={u ? <HoldActions u={u} /> : undefined}
@@ -62,7 +68,7 @@ function UnitBody({ u }: { u: UnitInventoryDetail }) {
         <BucketBadge bucket={u.bucket} testId="inv-unit-bucket" />
         {seeded && <SeedBadge />}
       </div>
-      <section aria-labelledby="inv-dim" className="space-y-2">
+      <section aria-labelledby="inv-dim" className="@container space-y-2">
         <h3 id="inv-dim" className="text-sm font-semibold text-text">
           {t('projects:unit.dimensions')}
         </h3>
@@ -75,7 +81,7 @@ function UnitBody({ u }: { u: UnitInventoryDetail }) {
           ]}
         />
       </section>
-      <section aria-labelledby="inv-facts" className="space-y-2">
+      <section aria-labelledby="inv-facts" className="@container space-y-2">
         <h3 id="inv-facts" className="text-sm font-semibold text-text">
           {t('projects:unit.facts')}
         </h3>

@@ -2,7 +2,7 @@ import type { AvailabilitySnapshot, Project360, ProjectSetupList, ProjectSetupRe
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LEADS } from '../../records';
 import { UNITS } from '../../inventory';
-import { HEIGHTS_STORAGE_CLERK, invSession, minus, plus, projectsOnly, refusal, type InvSession } from './inv-test-kit';
+import { HEIGHTS_STORAGE_CLERK, invSession, minus, plus, projectsOnly, refusal, SECOND_OFFICER, type InvSession } from './inv-test-kit';
 
 /**
  * Gate E.2 API tests (provisional, plan §4.2–4.5): scope, no id oracle, owner-only release and hold
@@ -19,7 +19,7 @@ const same = (r: Awaited<ReturnType<typeof refusal>>) => JSON.stringify(r);
 
 let api: InvSession;
 beforeEach(() => {
-  api = invSession({ personas: [HEIGHTS_STORAGE_CLERK] });
+  api = invSession({ personas: [HEIGHTS_STORAGE_CLERK, SECOND_OFFICER] });
 });
 afterEach(() => {
   vi.useRealTimers();
@@ -435,10 +435,26 @@ describe('PRJ-003 project setup: draft → submitted → activated by someone el
     expect(await refusedUnchanged(() => api.post(`/projects/${r.id}/setup/basics`, { value: basics }))).toMatchObject({ status: 409, code: 'setup_locked' });
   });
 
+  it('only the person who prepared a draft changes or submits it; another preparer is refused and nothing changes', async () => {
+    api.as('lk_project_officer');
+    const r = await api.post<ProjectSetupRecord>('/projects', { basics: { ...basics, code: 'LW' } });
+    api.as('test_e2_officer2');
+    const view = await api.get<ProjectSetupRecord>(`/projects/${r.id}/setup`);
+    expect(view).toMatchObject({ mine: false, canEdit: false, canSubmit: false });
+    expect(await refusedUnchanged(() => api.post(`/projects/${r.id}/setup/basics`, { value: { ...basics, code: 'LX' } }))).toMatchObject({ status: 403, code: 'not_maker' });
+    expect(await refusedUnchanged(() => api.post(`/projects/${r.id}/setup/site`, { value: { siteId: 'site_lk_heights' } }))).toMatchObject({ status: 403, code: 'not_maker' });
+    expect(await refusedUnchanged(() => api.post(`/projects/${r.id}/submit`))).toMatchObject({ status: 403, code: 'not_maker' });
+  });
+
   it('who may see setup: setup people only; a project-scoped reader gets the answer of an unknown id', async () => {
     const r = await prepared();
     expect(await refusal(api.as('sales').get('/projects/setup'))).toMatchObject({ status: 403, code: 'permission_missing' });
     expect(await refusal(api.as('manager').get('/projects/setup'))).toMatchObject({ status: 403, code: 'permission_missing' });
+    // Readers of the projects area see active projects only: a draft is neither listed nor counted for them.
+    const portfolio = await api.as('manager').get<ProjectsPortfolio>('/projects/portfolio');
+    expect(portfolio.inSetup).toBe(0);
+    expect(JSON.stringify(portfolio)).not.toContain(r.id);
+    expect(await refusal(api.get(`/projects/${r.id}`))).toMatchObject({ status: 404 });
     api.as('lk_projects_director').change('lk_projects_director', projectsOnly('prj_heights'));
     const hidden = await refusal(api.get(`/projects/${r.id}/setup`));
     const unknown = await refusal(api.get('/projects/psu_999/setup'));
