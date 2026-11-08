@@ -1,35 +1,27 @@
-# UX B10 (Issue #24) checkpoint
+# UX B10 (Issue #24) checkpoint — final
 
 Agent F, worktree `D:\laragon2\www\propertyos-b10`, branch `fix/ux-b10-reflow-focus` from `373d0cf`.
-Ports 7973–7975 (`E2E_PORT_OFFSET=2800`), test output `test-results-b10/`, scripts in `test-results-b10/scratch/`.
+Ports 7973–7975 (`E2E_PORT_OFFSET=2800`), test output `test-results-b10/` (not committed), scripts in `test-results-b10/scratch/`.
 
-## Done
-- Reproduced both P1 findings on the base build (`test-results-b10/scratch/diag/`, survey `test-results-b10/survey-base.tsv`):
-  - F-INT-1: 33 of 440 StatTile label measurements cut at 200 % text, 17 tiles on all 7 StatTile screens, incl. `rent-kpi-payable` EN/UR.
-  - F-INT-3: Tab from Close to Cancel left Cancel flush with the overlay's bottom edge; `ringOf` clipped 0.37 (EN).
-- Fixes, committed locally as `9f76e99`:
-  - `packages/ui/src/data/StatTile.tsx`: no clamp; header row `flex-wrap`; label group `flex-1`; `data-stat-label`.
-  - `packages/ui/src/overlays/Dialog.tsx`: `scroll-p-4` on the modal overlay (the dialog's scroll container).
-- Tests (same commit): `tests/support/ring-edges.ts`, `tests/e2e/ux-b10.spec.ts` (24), `tests/evidence/uxb10.evidence.spec.ts` (4 tests, 14 PNGs),
-  `tests/smoke/uxb10.smoke.spec.ts` (2 per browser), `packages/ui/src/data/StatTile.b10.test.tsx` (2), `tests/e2e/int-s3b.spec.ts` (2 lines).
-- Dev runs (not final): ux-b10 + int-s3b + uxb10 evidence 37/37 (Chromium); smoke 3/4 then the Firefox Urdu label check was corrected
-  (Firefox counts Urdu glyph ink in scrollHeight; the check is now "the label does not clip" + sideways bounds); one smoke rerun stalled
-  in Firefox on battery and was stopped (no result).
-- The harness refused a new `REPORT.md` / `test-results.md` for this agent: their text goes into the hand-off.
+**Status: done and pushed; STOPPED for GPT and owner review.** The harness refused a new `REPORT.md` / `test-results.md`
+for this agent; the full report and test results are in Agent F's hand-off to the coordinator.
 
-- Mutants (`test-results-b10/scratch/mutants.sh`, results `test-results-b10/mut/`), both restored byte-identical to HEAD:
-  - M1 clamp back: caught, Vitest 1/14 failed (StatTile.b10), browser 16/18 failed (all 16 F-INT-1 tests; the 2 §5.1 name tests pass, as expected).
-  - M2 scroll padding removed: caught, Vitest 1/14 failed, browser 3/10 failed (int-s3b "Rentals keyboard rings, 200pct-320, en" and
-    ux-b10 F-INT-3 Rentals EN light and dark: "Tab 2 Cancel: the whole ring is visible").
-  - First attempt of both: builds failed (ENOTEMPTY: the previews hold dist open); the script now stops previews before building.
-- Battery fell to 8 % at 19:31 (no AC since the start): heavy work stopped.
+## Code
+- `packages/ui/src/data/StatTile.tsx` (F-INT-1): no label clamp or clipping; header row `flex-wrap`; label group `flex-1`
+  (badge drops below only when the label's longest word cannot fit beside it); `data-stat-label`.
+- `packages/ui/src/overlays/Dialog.tsx` (F-INT-3): `scroll-p-4` on the modal overlay, the scroll container of every dialog.
 
-## Next
-1. On AC: mutants M3–M7 (`sh test-results-b10/scratch/mutants.sh M3 M4 M5 M6 M7`).
-2. On AC, holding the lock: static checks + full Vitest, then `test-results-b10/scratch/final.sh` (complete Chromium e2e + all
-   non-historical evidence, PNG compare + restore, full Firefox + WebKit smoke).
-3. Commit this folder's screenshots, push the branch, hand off.
+## Tests
+`tests/e2e/ux-b10.spec.ts` (24), `tests/support/ring-edges.ts`, `tests/evidence/uxb10.evidence.spec.ts` (4 tests, 14 PNGs in
+`screenshots/`), `tests/smoke/uxb10.smoke.spec.ts` (2 per browser), `packages/ui/src/data/StatTile.b10.test.tsx` (2),
+`tests/e2e/int-s3b.spec.ts` (label locator; no clip allowance for the confirm dialog).
 
-## Resume
-`. test-results-b10/scratch/env.sh`; `sh test-results-b10/scratch/build.sh`; `sh test-results-b10/scratch/preview.sh &`;
-`sh test-results-b10/scratch/serve-check.sh`; check power with `test-results-b10/scratch/power.ps1`.
+## Final results (code `9f76e99`)
+- tsc clean; lint, logical CSS, i18n parity clean (10,915 keys × 2).
+- Vitest 1,683 / 1,684 under 96 % CPU; the one failure (`finance.api.test.ts`, 5 s timeout, fixtures untouched by B10) passes alone 17 / 17.
+- Chromium complete (all e2e + all 17 non-historical evidence specs), 3 workers, retries off, on AC: 712 / 717 in 2.2 h.
+  5 timeouts: `dashboard.spec.ts:210` and `s2a.spec.ts:572` EN/UR over budget under load (pass alone: 3/3, 2/2);
+  `gatec2.evidence.spec.ts:578` and `:621` click the resident bottom bar's statements link that Gate D.2 removed (pre-existing).
+- axe 1,616 scans, 0 violations. Smoke Firefox + WebKit 74 / 74.
+- Mutants: M1 clamp back (16 browser + 1 unit failing), M2 scroll padding removed (3 browser + 1 unit failing); both restored byte-identical.
+- Accepted evidence: 1,195 files rewritten by the run, compared with HEAD, restored (`git status` clean afterwards).
