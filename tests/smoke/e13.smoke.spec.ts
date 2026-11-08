@@ -61,7 +61,7 @@ test('the Heights clerk never sees a Gardens document; a hidden one reads like a
   await start(page, CLERK);
   await page.goto(`${BO}/backoffice/doc/document-preview`);
   await expect(page.getByTestId('document-row')).toHaveCount(8);
-  expect(await page.locator('main').innerText()).not.toContain('Larkspur Gardens');
+  expect((await page.locator('main').innerText()).replace(/\u2060/g, '')).not.toContain('Larkspur Gardens');
   const hidden = await societyApi(page, '/documents/doc_lsp_0004');
   const unknown = await societyApi(page, '/documents/doc_lsp_9999');
   expect(hidden).toEqual(unknown);

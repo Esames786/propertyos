@@ -4,7 +4,7 @@ import { FilePlus2, FileText, Paperclip, Trash2, Upload } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
 import { FileTrigger, Button as AriaButton } from 'react-aria-components';
 import { ProblemAlert } from '../../society/kit';
-import { DateInput, useFieldError } from '../../society/hr/hkit';
+import { unbroken, DateInput, useFieldError } from '../../society/hr/hkit';
 import { ACCEPT, DemoFileBadge, readDemoFile, RecordPicker, sizeText, type DemoFile } from './dkit';
 
 /**
@@ -109,7 +109,7 @@ export function UploadDrawer({ isOpen, onOpenChange, mode, onDone }: { isOpen: b
       isOpen={isOpen}
       onOpenChange={onOpenChange}
       title={mode.kind === 'new' ? t('documents:upload.title') : t('documents:upload.versionTitle')}
-      subtitle={mode.kind === 'version' ? <bdi>{mode.doc.title}</bdi> : t('documents:upload.subtitle')}
+      subtitle={mode.kind === 'version' ? <bdi>{unbroken(mode.doc.title)}</bdi> : t('documents:upload.subtitle')}
       testId="upload-drawer"
       footer={
         <div className="flex flex-wrap justify-end gap-2">
@@ -156,12 +156,13 @@ export function UploadDrawer({ isOpen, onOpenChange, mode, onDone }: { isOpen: b
           </p>
           <div className="flex flex-wrap items-center gap-2">
             <FileTrigger acceptedFileTypes={ACCEPT} onSelect={(files) => void choose(files)}>
-              <AriaButton className="inline-flex min-h-10 items-center gap-2 rounded-control border border-border-control bg-panel px-4 text-sm font-medium text-text outline-none data-hovered:bg-raised data-focus-visible:outline-2 data-focus-visible:outline-offset-2 data-focus-visible:outline-focus pointer-coarse:min-h-11" data-testid="upload-choose">
+              <AriaButton className="inline-flex min-h-10 max-w-full items-center gap-2 rounded-control whitespace-normal text-center border border-border-control bg-panel px-4 text-sm font-medium text-text outline-none data-hovered:bg-raised data-focus-visible:outline-2 data-focus-visible:outline-offset-2 data-focus-visible:outline-focus pointer-coarse:min-h-11" data-testid="upload-choose">
                 <Paperclip aria-hidden className="size-4" />
                 {file ? t('documents:upload.chooseAnother') : t('documents:upload.choose')}
               </AriaButton>
             </FileTrigger>
             <Button
+              className="max-w-full whitespace-normal text-center"
               variant="quiet"
               size="sm"
               icon={FileText}
@@ -181,7 +182,7 @@ export function UploadDrawer({ isOpen, onOpenChange, mode, onDone }: { isOpen: b
             <p className="flex flex-wrap items-center gap-2 rounded-control border border-border p-2 text-sm" data-testid="upload-file">
               <FilePlus2 aria-hidden className="size-4 text-muted" />
               <bdi dir="ltr" className="min-w-0 [overflow-wrap:anywhere]">
-                {file.fileName}
+                {unbroken(file.fileName)}
               </bdi>
               <span className="text-xs text-muted">{sizeText(file.sizeBytes)}</span>
               <Button className="max-w-full whitespace-normal text-center" variant="quiet" size="sm" icon={Trash2} onPress={() => setFile(null)} data-testid="upload-file-remove">

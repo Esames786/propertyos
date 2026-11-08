@@ -144,8 +144,9 @@ test.describe('E.13 positive journeys', () => {
     await expect(page).toHaveURL(/owner=others/);
     const rows = page.getByTestId('task-row');
     await expect(rows.first()).toBeVisible();
-    for (const mine of await rows.evaluateAll((els) => els.map((e) => e.getAttribute('data-mine')))) expect(mine).toBe('false');
+    await expect(page.locator('[data-testid="task-row"][data-mine="true"]')).toHaveCount(0);
     await page.getByTestId('task-urgency-overdue').click();
+    await expect(page.locator('[data-testid="task-row"]:not([data-urgency="overdue"])')).toHaveCount(0);
     const first = page.locator('[data-testid="task-row"][data-kind="follow_up"]').first();
     const record = await first.getAttribute('data-record');
     await first.getByTestId('task-action').click();
@@ -156,10 +157,12 @@ test.describe('E.13 positive journeys', () => {
   test('my tasks are mine only (Bilal) and each count opens its items', async ({ page, consoleErrors }) => {
     await start(page, 'sales');
     await open(page, '/backoffice/home/my-tasks', 'my-tasks');
-    for (const mine of await page.getByTestId('task-row').evaluateAll((els) => els.map((e) => e.getAttribute('data-mine')))) expect(mine).toBe('true');
+    await expect(page.getByTestId('task-row').first()).toBeVisible();
+    await expect(page.locator('[data-testid="task-row"][data-mine="false"]')).toHaveCount(0);
     await page.getByTestId('task-urgency-today').click();
     await expect(page).toHaveURL(/urgency=today/);
-    for (const u of await page.getByTestId('task-row').evaluateAll((els) => els.map((e) => e.getAttribute('data-urgency')))) expect(u).toBe('today');
+    await expect(page.locator('[data-testid="task-row"]:not([data-urgency="today"])')).toHaveCount(0);
+    await expect(page.locator('[data-testid="task-row"][data-urgency="today"]').first()).toBeVisible();
     expect(consoleErrors).toEqual([]);
   });
 
@@ -196,16 +199,16 @@ test.describe('E.13 access, scope and partitioning', () => {
     await start(page, CLERK);
     await open(page, '/backoffice/doc/document-preview', 'documents-finder');
     await expect(page.getByTestId('document-row')).toHaveCount(8);
-    const text = await page.locator('main').innerText();
+    const text = (await page.locator('main').innerText()).replace(/\u2060/g, '');
     for (const hidden of ['Larkspur Gardens', 'master plan', 'Hina Chaudhry', 'Fatima Siddiqui', 'LG-P1-002']) expect(text).not.toContain(hidden);
     await open(page, '/backoffice/doc/document-preview?record=doc_lsp_0004', 'document-unavailable');
-    const hidden = await page.locator('main').innerText();
+    const hidden = (await page.locator('main').innerText()).replace(/\u2060/g, '');
     await open(page, '/backoffice/doc/document-preview?record=doc_lsp_9999', 'document-unavailable');
-    expect(await page.locator('main').innerText()).toBe(hidden);
+    expect((await page.locator('main').innerText()).replace(/\u2060/g, '')).toBe(hidden);
     await open(page, '/backoffice/doc/templates-and-policies', 'templates');
     await expect(page.locator('[data-testid="template-row"][data-template="dtp_lsp_004"]')).toHaveCount(0);
     await open(page, '/backoffice/home/recent-activity?range=30d', 'recent-activity');
-    expect(await page.locator('main').innerText()).not.toMatch(/Larkspur Gardens|Block C road|corner plot/);
+    expect((await page.locator('main').innerText()).replace(/\u2060/g, '')).not.toMatch(/Larkspur Gardens|Block C road|corner plot/);
     expect(consoleErrors).toEqual([]);
   });
 
@@ -220,7 +223,7 @@ test.describe('E.13 access, scope and partitioning', () => {
     await expect(page.getByTestId('favourite-row')).toHaveCount(0);
     await open(page, '/backoffice/global/recent-records', 'recent-records');
     await expect(page.locator('[data-testid="recent-row"][data-record="led_0006"]')).toHaveCount(0);
-    expect(await page.locator('main').innerText()).not.toContain('Hina Chaudhry');
+    expect((await page.locator('main').innerText()).replace(/\u2060/g, '')).not.toContain('Hina Chaudhry');
     expect(consoleErrors).toEqual([]);
   });
 
@@ -237,11 +240,11 @@ test.describe('E.13 access, scope and partitioning', () => {
     await open(page, '/backoffice/global/favorites', 'favourites');
     await expect(page.getByTestId('favourite-row')).toHaveCount(0);
     await expect(page.getByTestId('state-empty')).toBeVisible();
-    expect(await page.locator('main').innerText()).not.toMatch(/master plan|DOC-LSP-0004|1 favourite/i);
+    expect((await page.locator('main').innerText()).replace(/\u2060/g, '')).not.toMatch(/master plan|DOC-LSP-0004|1 favourite/i);
     await open(page, '/backoffice/global/recent-records', 'recent-records');
     await expect(page.locator('[data-testid="recent-row"][data-record="doc_lsp_0004"]')).toHaveCount(0);
     await open(page, '/backoffice/home/work-queue', 'work-queue');
-    expect(await page.locator('main').innerText()).not.toMatch(/Larkspur Gardens/);
+    expect((await page.locator('main').innerText()).replace(/\u2060/g, '')).not.toMatch(/Larkspur Gardens/);
     expect(consoleErrors).toEqual([]);
   });
 });
@@ -365,16 +368,16 @@ for (const locale of ['en-PK', 'ur-PK'] as const) {
       await page.addInitScript(({ key }) => localStorage.setItem(key, JSON.stringify({ version: 2, textScale: 2, chosenAt: '2026-10-26T00:00:00Z', updatedAt: '2026-10-26T00:00:00Z' })), { key: OFFICE_DISPLAY(PRINCIPAL[CONTROLLER]!) });
       for (const [name, , path, ready] of SCREENS) {
         await open(page, path, ready);
-        expect(await layoutProblems(page), `${name} ${lang(locale)} 200 %`).toEqual([]);
-        expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), `${name} overflow`).toBeLessThanOrEqual(1);
+        expect.soft(await layoutProblems(page), `${name} ${lang(locale)} 200 %`).toEqual([]);
+        expect.soft(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), `${name} overflow`).toBeLessThanOrEqual(1);
       }
       await open(page, '/backoffice/doc/document-preview?drawer=upload', 'upload-drawer');
-      expect(await layoutProblems(page.getByTestId('upload-drawer')), `upload drawer ${lang(locale)}`).toEqual([]);
+      expect.soft(await layoutProblems(page.getByTestId('upload-drawer')), `upload drawer ${lang(locale)}`).toEqual([]);
       for (const [name, , path, ready] of [SCREENS[2]!, SCREENS[4]!, SCREENS[7]!]) {
         await open(page, path, ready);
         const stops = await focusWalk(page, { header: HEADER, bar: BAR, max: 60 });
         expect(stops.length, `${name}: controls reached`).toBeGreaterThan(2);
-        expect(stops.filter((s) => s.issue), `${name} ${lang(locale)}`).toEqual([]);
+        expect.soft(stops.filter((s) => s.issue), `${name} ${lang(locale)}`).toEqual([]);
       }
       expect(consoleErrors).toEqual([]);
     });

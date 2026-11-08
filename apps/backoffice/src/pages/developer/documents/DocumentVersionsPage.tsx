@@ -2,7 +2,7 @@ import { ApiError, type DocumentVersionView } from '@repo/contracts';
 import { Badge, Button, ErrorState, Link, NotFoundState, PageHeader, Panel, SelectControl, useNavigation, useQueryParam, useQueryParams, useT } from '@repo/ui';
 import { Equal, Eye, GitCompareArrows, Upload } from 'lucide-react';
 import { Loading } from '../../society/kit';
-import { LinkButton } from '../../society/hr/hkit';
+import { unbroken, LinkButton } from '../../society/hr/hkit';
 import { HUB, HubNav, useHubFormat } from '../workspace/wkit';
 import { ExpiryBadge, KindBadge, sizeText } from './dkit';
 import { DocumentFinder, useDocument, VersionList } from './DocumentPreviewPage';
@@ -46,7 +46,7 @@ function VersionsWorkspace({ id }: { id: string }) {
   const left = d.versions.find((v) => String(v.n) === a) ?? d.versions[1] ?? newest;
   const right = d.versions.find((v) => String(v.n) === b) ?? newest;
   const rows: Row[] = [
-    { key: 'fileName', value: (v) => v.fileName },
+    { key: 'fileName', value: (v) => unbroken(v.fileName) },
     { key: 'size', value: (v) => sizeText(v.sizeBytes) },
     { key: 'uploaded', value: (v) => `${f.when(v.uploadedAt)} · ${v.uploadedByName}` },
     { key: 'note', value: (v) => v.note || '—' },
@@ -58,10 +58,10 @@ function VersionsWorkspace({ id }: { id: string }) {
   return (
     <div className="@container space-y-5" data-testid="versions-workspace" data-doc={d.id}>
       <PageHeader
-        title={t('documents:versions.title', { title: d.title })}
+        title={t('documents:versions.title', { title: unbroken(d.title) })}
         breadcrumbs={[
           { label: t('documents:finder.title'), href: HUB.documents },
-          { label: d.title, href: HUB.document(d.id) },
+          { label: unbroken(d.title), href: HUB.document(d.id) },
           { label: t('documents:versions.crumb') },
         ]}
         badge={

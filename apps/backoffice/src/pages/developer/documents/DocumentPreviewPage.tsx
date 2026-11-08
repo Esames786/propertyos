@@ -192,7 +192,7 @@ export function PreviewPane({ detail }: { detail: DocumentDetail }) {
         ) : p.kind === 'page' && p.page ? (
           <article className="mx-auto max-w-2xl space-y-3 p-6 pt-12" aria-label={t('documents:preview.pageLabel', { title: detail.title })}>
             <h2 className="text-lg font-semibold text-text [overflow-wrap:anywhere]">
-              <bdi>{p.page.heading}</bdi>
+              <bdi>{unbroken(p.page.heading)}</bdi>
             </h2>
             <p className="rounded-control border border-demo/30 bg-demo-soft px-2 py-1 text-xs text-demo">{t('documents:preview.fictional')}</p>
             <dl className="grid grid-cols-1 gap-x-4 gap-y-1 text-sm @md:grid-cols-[auto_1fr]">
@@ -202,7 +202,7 @@ export function PreviewPane({ detail }: { detail: DocumentDetail }) {
               </dd>
               <dt className="text-muted">{t('documents:facts.linkedTo')}</dt>
               <dd className="[overflow-wrap:anywhere]">
-                <bdi>{detail.record.title}</bdi>
+                <bdi>{unbroken(detail.record.title)}</bdi>
               </dd>
               {p.page.lines.map((line, i) => (
                 <div key={i} className="contents">
@@ -225,7 +225,7 @@ export function PreviewPane({ detail }: { detail: DocumentDetail }) {
         )}
       </div>
       <figcaption className="text-xs text-muted">
-        <bdi dir="ltr">{v.fileName}</bdi> · {sizeText(v.sizeBytes)} · {t('documents:updated', { when: f.when(v.uploadedAt), name: v.uploadedByName })}
+        <bdi dir="ltr">{unbroken(v.fileName)}</bdi> · {sizeText(v.sizeBytes)} · {t('documents:updated', { when: f.when(v.uploadedAt), name: v.uploadedByName })}
       </figcaption>
     </figure>
   );
@@ -276,10 +276,10 @@ function DocumentWorkspace({ id }: { id: string }) {
   return (
     <div className="@container space-y-5" data-testid="document-workspace" data-doc={d.id}>
       <PageHeader
-        title={d.title}
+        title={unbroken(d.title)}
         breadcrumbs={[
           { label: t('documents:finder.title'), href: HUB.documents },
-          { label: d.record.title, href: d.record.href },
+          { label: unbroken(d.record.title), href: d.record.href },
           { label: d.ref },
         ]}
         badge={
@@ -310,7 +310,7 @@ function DocumentWorkspace({ id }: { id: string }) {
         <InlineAlert tone={d.expiry === 'expired' ? 'error' : 'warning'} title={d.expiry === 'expired' ? t('documents:workspace.expiredTitle') : t('documents:workspace.expiringTitle', { count: d.daysLeft ?? 0 })} data-testid="document-expiry-alert">
           <p>{t('documents:workspace.expiryBody', { date: f.date(d.expiresOn!) })}</p>
           {d.canUpload && (
-            <Button className="mt-2" variant="secondary" size="sm" icon={Upload} onPress={() => setDrawer('version')} data-testid="document-renew">
+            <Button className="mt-2 max-w-full whitespace-normal text-center" variant="secondary" size="sm" icon={Upload} onPress={() => setDrawer('version')} data-testid="document-renew">
               {t('documents:workspace.renew')}
             </Button>
           )}
@@ -334,7 +334,7 @@ function DocumentWorkspace({ id }: { id: string }) {
               <Panel title={t('documents:workspace.linkedRecord')}>
                 <p className="text-sm">
                   <Link href={d.record.href} data-testid="document-linked-record">
-                    <bdi>{d.record.title}</bdi>
+                    <bdi>{unbroken(d.record.title)}</bdi>
                   </Link>
                 </p>
                 <RecordLine record={d.record} />
@@ -383,7 +383,7 @@ function DocumentWorkspace({ id }: { id: string }) {
                       label: t('documents:facts.linkedTo'),
                       value: (
                         <Link href={d.record.href}>
-                          <bdi>{d.record.title}</bdi>
+                          <bdi>{unbroken(d.record.title)}</bdi>
                         </Link>
                       ),
                     },
@@ -399,7 +399,7 @@ function DocumentWorkspace({ id }: { id: string }) {
                       {d.siblings.map((s) => (
                         <li key={s.id} className="text-sm [overflow-wrap:anywhere]">
                           <Link href={s.href}>
-                            <bdi>{s.title}</bdi>
+                            <bdi>{unbroken(s.title)}</bdi>
                           </Link>
                         </li>
                       ))}
@@ -434,7 +434,7 @@ export function VersionList({ detail, onPreview }: { detail: DocumentDetail; onP
                 )}
               </p>
               <p className="text-xs text-muted [overflow-wrap:anywhere]">
-                <bdi dir="ltr">{v.fileName}</bdi> · {sizeText(v.sizeBytes)} · {t('documents:updated', { when: f.when(v.uploadedAt), name: v.uploadedByName })}
+                <bdi dir="ltr">{unbroken(v.fileName)}</bdi> · {sizeText(v.sizeBytes)} · {t('documents:updated', { when: f.when(v.uploadedAt), name: v.uploadedByName })}
               </p>
               {v.note && (
                 <p className="text-sm text-text">

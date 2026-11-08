@@ -3,7 +3,7 @@ import { Badge, dynamicT, EmptyState, ErrorState, FilterPills, PageHeader, Plain
 import { AlarmClock, ArrowRight, CalendarClock, CircleDashed, Clock3, TriangleAlert, type LucideIcon } from 'lucide-react';
 import { useMemo, useRef } from 'react';
 import { Loading } from '../../society/kit';
-import { LinkButton } from '../../society/hr/hkit';
+import { unbroken, LinkButton } from '../../society/hr/hkit';
 import { HubNav, RecordLine, ShortcutsHelp, TYPE_ICON, useFavourites, useHubFormat, useShortcuts, FavouriteButton, type Shortcut } from './wkit';
 
 /**
@@ -45,7 +45,7 @@ function TaskRow({ task, favourites }: { task: TaskItem; favourites: ReturnType<
       <div className="min-w-0 flex-1 space-y-1">
         <p className="text-xs font-medium text-muted">{dt(`workspace:hub.tasks.kind.${task.kind}`, { ...task.detail, ...task.params })}</p>
         <p className="text-sm font-semibold text-text [overflow-wrap:anywhere]">
-          <bdi>{title}</bdi>
+          <bdi>{unbroken(title)}</bdi>
         </p>
         {task.record && <RecordLine record={task.record} />}
         <p className="flex flex-wrap items-center gap-2 text-xs text-muted">
@@ -56,7 +56,7 @@ function TaskRow({ task, favourites }: { task: TaskItem; favourites: ReturnType<
         {task.detail?.note && <p className="text-xs text-muted">{t('workspace:hub.tasks.returnedNote', { note: task.detail.note })}</p>}
       </div>
       </div>
-      <div className="ms-auto flex shrink-0 flex-wrap items-center justify-end gap-1">
+      <div className="ms-auto flex max-w-full min-w-0 shrink-0 flex-wrap items-center justify-end gap-1">
         <LinkButton href={task.actionHref} size="sm" variant="secondary" icon={ArrowRight} testId="task-action">
           {t(`workspace:hub.tasks.action.${task.kind}`)}
         </LinkButton>

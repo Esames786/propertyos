@@ -200,7 +200,7 @@ export function RecordRow({
       <div className="min-w-0 flex-1 space-y-0.5">
         <Title className="text-sm font-semibold text-text [overflow-wrap:anywhere]">
           <Link href={record.href} data-testid={`${testId}-link`}>
-            <bdi>{record.title}</bdi>
+            <bdi>{unbroken(record.title)}</bdi>
           </Link>
         </Title>
         <RecordLine record={record} />
@@ -208,7 +208,7 @@ export function RecordRow({
       </div>
       </div>
       {(actions || favourite) && (
-        <div className="ms-auto flex shrink-0 flex-wrap items-center justify-end gap-1">
+        <div className="ms-auto flex max-w-full min-w-0 shrink-0 flex-wrap items-center justify-end gap-1">
           {actions}
           {favourite && <FavouriteButton record={record} isFavourite={favourite.isFavourite} onToggle={favourite.onToggle} />}
         </div>

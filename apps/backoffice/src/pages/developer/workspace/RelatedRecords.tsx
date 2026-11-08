@@ -2,7 +2,7 @@ import type { RelatedResponse } from '@repo/contracts';
 import { dynamicT, EmptyState, ErrorState, Link, Panel, useApiQuery, useT } from '@repo/ui';
 import { FilePlus2, FileText } from 'lucide-react';
 import { Loading } from '../../society/kit';
-import { LinkButton } from '../../society/hr/hkit';
+import { unbroken, LinkButton } from '../../society/hr/hkit';
 import { NOWRAP, HUB, RecordRow, useFavourites } from './wkit';
 
 /**
@@ -55,7 +55,7 @@ export function RelatedRecords({ recordId, exclude, headingLevel = 2 }: { record
                     <FileText aria-hidden className="mt-0.5 size-4 shrink-0 text-muted" />
                     <span className="min-w-0 [overflow-wrap:anywhere]">
                       <Link href={x.href} data-testid="related-document">
-                        <bdi>{x.title}</bdi>
+                        <bdi>{unbroken(x.title)}</bdi>
                       </Link>{' '}
                       <span className="text-xs text-muted">
                         · <bdi dir="ltr" className={NOWRAP}>{x.ref}</bdi> · {t('workspace:hub.related.version', { n: x.version })} · {t(`documents:expiry.${x.expiry}` as 'documents:expiry.none')}

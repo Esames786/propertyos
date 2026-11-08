@@ -76,20 +76,20 @@ export function DocumentRow({ doc, actions, testId = 'document-row' }: { doc: Do
       <div className="min-w-0 flex-1 space-y-1">
         <p className="flex flex-wrap items-center gap-2">
           <Link href={doc.href} className="font-semibold [overflow-wrap:anywhere]" data-testid={`${testId}-link`}>
-            <bdi>{doc.title}</bdi>
+            <bdi>{unbroken(doc.title)}</bdi>
           </Link>
           <KindBadge kind={doc.kind} />
           <ExpiryBadge doc={doc} />
         </p>
         <p className="text-xs text-muted [overflow-wrap:anywhere]">
-          <bdi dir="ltr" className={NOWRAP}>{unbroken(doc.ref)}</bdi> · {t('documents:version', { n: doc.version })} · <bdi dir="ltr">{doc.fileName}</bdi> · {sizeText(doc.sizeBytes)}
+          <bdi dir="ltr" className={NOWRAP}>{unbroken(doc.ref)}</bdi> · {t('documents:version', { n: doc.version })} · <bdi dir="ltr">{unbroken(doc.fileName)}</bdi> · {sizeText(doc.sizeBytes)}
         </p>
         <p className="flex min-w-0 items-start gap-1.5 text-xs text-muted">
           <LinkedIcon aria-hidden className="mt-0.5 size-3.5 shrink-0" />
           <span className="min-w-0">
             {t('documents:linkedTo')}{' '}
             <Link href={doc.record.href}>
-              <bdi>{doc.record.title}</bdi>
+              <bdi>{unbroken(doc.record.title)}</bdi>
             </Link>
             <RecordLine record={doc.record} />
           </span>

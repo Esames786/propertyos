@@ -2,6 +2,7 @@ import { ACTIVITY_RANGES, type ActivityItem, type ActivityResponse } from '@repo
 import { Button, dynamicT, EmptyState, ErrorState, FilterPills, Link, PageHeader, SegmentedControl, useApiQuery, useQueryParam, useQueryParams, useT } from '@repo/ui';
 import { ChevronDown } from 'lucide-react';
 import { Loading } from '../../society/kit';
+import { unbroken } from '../../society/hr/hkit';
 import { byDay, DayHeading, DEMO_TODAY, HubNav, RecordLine, TYPE_ICON, useHubFormat } from './wkit';
 
 /**
@@ -40,7 +41,7 @@ function ActivityRow({ item }: { item: ActivityItem }) {
         </p>
         <p className="text-sm [overflow-wrap:anywhere]">
           <Link href={item.record.href} data-testid="activity-record">
-            <bdi>{item.record.title}</bdi>
+            <bdi>{unbroken(item.record.title)}</bdi>
           </Link>
         </p>
         <RecordLine record={item.record} />
