@@ -1,5 +1,5 @@
 import { ApiError, AVAILABILITY_BUCKETS, type AvailabilitySnapshot } from '@repo/contracts';
-import { Badge, Button, DateTime, EmptyState, ErrorState, Link, NotFoundState, PageHeader, Panel, SelectControl, StatTile, useApiQuery, useIsTabletUp, useQueryParam, useQueryParams, useT } from '@repo/ui';
+import { Badge, Button, EmptyState, ErrorState, Link, NotFoundState, PageHeader, Panel, SelectControl, StatTile, useApiQuery, useIsTabletUp, useQueryParam, useQueryParams, useT } from '@repo/ui';
 import { BadgeCheck, Ban, Bookmark, CheckCircle2, Clock3, History, Lock, RefreshCw } from 'lucide-react';
 import { Loading, ScrollRegion } from '../../society/kit';
 import { LinkButton } from '../../society/hr/hkit';
@@ -188,9 +188,6 @@ export default function LiveAvailabilityPage() {
         </p>
       </Panel>
       <SeedNote />
-      <p className="text-xs text-muted">
-        <DateTime value={d.asOf} style="dateTime" />
-      </p>
       <ProvisionalNote />
       <UnitDrawer unitId={unit} onClose={() => set({ unit: null })} />
     </div>

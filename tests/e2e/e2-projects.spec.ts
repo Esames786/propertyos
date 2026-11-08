@@ -192,7 +192,7 @@ test.describe('INV-001 / INV-002: unit matrix, keyboard grid, list alternative a
     await page.getByTestId('matrix-bucket-booked').click();
     await expect(page).toHaveURL(/bucket=booked/);
     const matched = Number(await page.getByTestId('matrix-matched').getAttribute('data-matched'));
-    await page.getByTestId('matrix-view-list').click();
+    await page.getByTestId('matrix-view').getByText('List').click();
     await expect(page.getByTestId('matrix-row')).toHaveCount(Math.min(matched, 60));
     await page.getByTestId('matrix-row-open').first().click();
     await expect(page.getByTestId('inv-unit')).toHaveAttribute('data-bucket', 'booked');
@@ -223,7 +223,7 @@ test.describe('INV-008: holds, owner-only release and expiry against the demo cl
     await expect(drawer.getByTestId('inv-hold-form')).toBeVisible();
     await searchPick(page, 'inv-hold-lead', 'LD');
     await drawer.getByTestId('inv-hold').click();
-    await expect(page.getByTestId('toast-success')).toContainText('is held for');
+    await expect(page.getByTestId('toast-success').filter({ hasText: 'is held for' })).toBeVisible();
     await expect(drawer.getByTestId('inv-hold')).toHaveCount(0);
     await expect(drawer.getByTestId('inv-unit')).toHaveAttribute('data-bucket', 'held');
     await expect(drawer.getByTestId('inv-release')).toBeVisible();
@@ -236,7 +236,7 @@ test.describe('INV-008: holds, owner-only release and expiry against the demo cl
     // Another person sees the hold but cannot release it (the server refuses the same way).
     await become(page, 'manager');
     await open(page, `/backoffice/inv/live-availability?unit=${unitId}`, 'inv-unit');
-    await expect(page.getByTestId('inv-hold')).toBeVisible();
+    await expect(page.getByTestId('inv-hold-section')).toHaveAttribute('data-source', 'live');
     await expect(page.getByTestId('inv-release')).toHaveCount(0);
     expect(await api(page, `/inventory/units/${unitId}/release`, 'POST')).toMatchObject({ ok: false, status: 404 });
     await page.keyboard.press('Escape');
@@ -277,7 +277,7 @@ test.describe('INV-010: storage allocation and release', () => {
     await searchPick(page, 'storage-target', 'LH');
     await drawer.getByTestId('storage-note').fill('Requested at booking (demo)');
     await drawer.getByTestId('storage-allocate-confirm').click();
-    await expect(page.getByTestId('toast-success')).toContainText('is allocated to');
+    await expect(page.getByTestId('toast-success').filter({ hasText: 'is allocated to' })).toBeVisible();
     await expect(card).toHaveAttribute('data-state', 'allocated');
     await expect(card.getByTestId('storage-allocation')).toContainText('Hina Baig');
     // Not twice: the server refuses a second allocation of the same locker.
@@ -291,7 +291,7 @@ test.describe('INV-010: storage allocation and release', () => {
     const dialog = page.getByRole('alertdialog');
     await dialog.locator('textarea').fill('Buyer chose another locker (demo)');
     await dialog.getByRole('button', { name: 'Release' }).click();
-    await expect(page.getByTestId('toast-success')).toContainText('was released');
+    await expect(page.getByTestId('toast-success').filter({ hasText: 'was released' })).toBeVisible();
     await expect(card).toHaveAttribute('data-state', 'available');
     await card.getByTestId('storage-history-toggle').click();
     await expect(card.getByTestId('storage-history').locator('li')).toHaveCount(2);
@@ -370,27 +370,27 @@ const SCREENS: Array<[string, string, string]> = [
 ];
 
 for (const locale of ['en-PK', 'ur-PK'] as const) {
-  test(`axe at 1440 and 390 (${lang(locale)}): every E.2 screen and the quick view, no violations, nothing clipped`, async ({ page, consoleErrors }, testInfo) => {
-    test.setTimeout(180_000);
-    await start(page, 'manager', locale);
-    for (const width of [1440, 390]) {
+  for (const width of [1440, 390] as const) {
+    test(`axe at ${width} (${lang(locale)}): every E.2 screen and the quick view, no violations, nothing clipped`, async ({ page, consoleErrors }, testInfo) => {
+      test.setTimeout(240_000);
       await page.setViewportSize({ width, height: width === 1440 ? 900 : 844 });
+      await start(page, 'manager', locale);
       for (const [name, path, ready] of SCREENS) {
         await open(page, path, ready);
         await axe(page, testInfo, `${name}-${width}-${locale}`);
         expect(await layoutProblems(page), `${name} ${width} ${lang(locale)}`).toEqual([]);
         expect(await overflowOf(page), `${name} ${width}`).toBeLessThanOrEqual(1);
       }
-      await open(page, '/backoffice/inv/unit-matrix?project=prj_heights&unit=unt_lh_a_0101', 'inv-unit');
+      await open(page, '/backoffice/inv/unit-matrix?project=prj_heights&tower=twr_lh_a&unit=unt_lh_a_0101', 'inv-unit');
       await axe(page, testInfo, `quick-view-${width}-${locale}`);
       expect(await layoutProblems(page.getByTestId('inv-quick-view')), `quick view ${width} ${lang(locale)}`).toEqual([]);
-    }
-    await become(page, 'lk_project_officer');
-    await page.setViewportSize({ width: 1440, height: 900 });
-    await open(page, '/backoffice/prj/project-setup?new=1', 'setup-name');
-    await axe(page, testInfo, `setup-1440-${locale}`);
-    expect(consoleErrors).toEqual([]);
-  });
+      await become(page, 'lk_project_officer');
+      await open(page, '/backoffice/prj/project-setup?new=1', 'setup-name');
+      await axe(page, testInfo, `setup-${width}-${locale}`);
+      expect(await layoutProblems(page), `setup ${width} ${lang(locale)}`).toEqual([]);
+      expect(consoleErrors).toEqual([]);
+    });
+  }
 
   test(`320 px at 200 % text (${lang(locale)}): lists instead of grids and tables, no sideways scroll, nothing clipped`, async ({ page, consoleErrors }) => {
     test.setTimeout(180_000);

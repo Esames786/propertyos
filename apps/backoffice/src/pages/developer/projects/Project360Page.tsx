@@ -1,4 +1,4 @@
-import { ApiError, type InventoryGroupRow, type Project360, type Project360Tab, type Project360TabInfo } from '@repo/contracts';
+import { ApiError, type InventoryGroupRow, type Project360, type Project360Tab, type Project360TabInfo, type ProjectsPortfolio } from '@repo/contracts';
 import { Badge, DateTime, EmptyState, ErrorState, KeyValueList, Link, NotFoundState, PageHeader, Panel, StatTile, UrlTabs, useApiQuery, useQueryParam, useT, dynamicT, InlineAlert } from '@repo/ui';
 import { BadgeCheck, Bookmark, CalendarClock, CheckCircle2, Grid3x3, Lock, PackageX } from 'lucide-react';
 import { Loading } from '../../society/kit';
@@ -15,7 +15,7 @@ export default function Project360Page() {
   const { t } = useT();
   const [record] = useQueryParam('record');
   const q = useApiQuery<Project360>(record ? { method: 'GET', path: `/projects/${record}` } : null, { retry: false });
-  if (!record) return <NotFoundState headingLevel={1} actions={<LinkButton href={PRJ.list()}>{t('projects:p360.back')}</LinkButton>} />;
+  if (!record) return <ChooseProject />;
   if (q.isError) {
     if (q.error instanceof ApiError && q.error.problem.status === 404) return <NotFoundState headingLevel={1} actions={<LinkButton href={PRJ.list()}>{t('projects:p360.back')}</LinkButton>} />;
     return <ErrorState error={q.error} onRetry={() => void q.refetch()} />;
@@ -52,6 +52,36 @@ export default function Project360Page() {
         {(id) => <TabBody d={d} tab={d.tabs.find((x) => x.id === id)!} />}
       </UrlTabs>
       <ProvisionalNote />
+    </div>
+  );
+}
+
+/** The register address without a project: choose one of the projects the reader may open. */
+function ChooseProject() {
+  const { t } = useT();
+  const q = useApiQuery<ProjectsPortfolio>({ method: 'GET', path: '/projects/portfolio' });
+  return (
+    <div className="space-y-5" data-testid="project-360-choose">
+      <PageHeader title={t('projects:p360.title')} description={t('projects:p360.choose')} breadcrumbs={[{ label: t('projects:list.title'), href: PRJ.list() }, { label: t('projects:p360.title') }]} />
+      <AreaNav current="projects" />
+      {q.isError ? (
+        <ErrorState error={q.error} onRetry={() => void q.refetch()} />
+      ) : !q.data ? (
+        <Loading lines={4} />
+      ) : (
+        <ul className="space-y-2">
+          {q.data.items.map((p) => (
+            <li key={p.id}>
+              <Link href={p.href} className="font-medium" data-testid="p360-choose-project">
+                <bdi>{p.name}</bdi>
+              </Link>{' '}
+              <span className="text-sm text-muted">
+                · <bdi dir="ltr">{unbroken(p.ref)}</bdi> · <bdi>{p.city}</bdi>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

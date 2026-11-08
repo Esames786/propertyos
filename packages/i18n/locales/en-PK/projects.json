@@ -158,6 +158,7 @@
   },
   "p360": {
     "title": "Project 360",
+    "choose": "Choose a project to open its 360 view.",
     "back": "All projects",
     "facts": "Project facts",
     "code": "Code",

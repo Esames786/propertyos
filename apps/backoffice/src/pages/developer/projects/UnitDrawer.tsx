@@ -82,7 +82,7 @@ function UnitBody({ u }: { u: UnitInventoryDetail }) {
         <KeyValueList
           className="@container"
           items={[
-            { label: t('projects:unit.type'), value: t(`crm:types.${u.type}`) },
+            { label: t('projects:unit.type'), value: unbroken(t(`crm:types.${u.type}`)) },
             { label: t('projects:unit.area'), value: <bdi dir="ltr">{f.area(u.areaSqft)}</bdi> },
             { label: t('projects:unit.price'), value: <span><bdi dir="ltr" className="font-semibold">{f.moneyExact(u.price)}</bdi><span className="block text-xs text-muted">{t('projects:unit.priceNote')}</span></span> },
           ]}
@@ -137,7 +137,7 @@ function HoldSection({ u }: { u: UnitInventoryDetail }) {
   const f = useInvFormat();
   const h = u.hold;
   return (
-    <section aria-labelledby="inv-hold" className="space-y-2" data-testid="inv-hold" data-source={h?.source ?? 'none'}>
+    <section aria-labelledby="inv-hold" className="space-y-2" data-testid="inv-hold-section" data-source={h?.source ?? 'none'}>
       <h3 id="inv-hold" className="text-sm font-semibold text-text">
         {t('projects:unit.holdTitle')}
       </h3>

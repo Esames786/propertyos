@@ -313,7 +313,7 @@ function UnitList({ m, onOpen }: { m: UnitMatrix; onOpen: (id: string) => void }
                     </button>
                   </th>
                   <td className="px-2 py-2">{whereOf(c)}</td>
-                  <td className="px-2 py-2">{t(`crm:types.${c.type}`)}</td>
+                  <td className="px-2 py-2">{unbroken(t(`crm:types.${c.type}`))}</td>
                   <td className="px-2 py-2">
                     <bdi dir="ltr">{f.area(c.areaSqft)}</bdi>
                   </td>
@@ -341,7 +341,7 @@ function UnitList({ m, onOpen }: { m: UnitMatrix; onOpen: (id: string) => void }
                   <BucketBadge bucket={c.bucket} />
                 </span>
                 <span className="text-sm break-words text-muted">
-                  {whereOf(c)} · {t(`crm:types.${c.type}`)} · <bdi dir="ltr">{f.area(c.areaSqft)}</bdi>
+                  {whereOf(c)} · {unbroken(t(`crm:types.${c.type}`))} · <bdi dir="ltr">{f.area(c.areaSqft)}</bdi>
                 </span>
                 <span className="text-sm text-text">
                   <bdi dir="ltr">{f.money(c.price)}</bdi>
