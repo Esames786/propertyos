@@ -20,8 +20,14 @@ Worktree `D:\laragon2\www\propertyos-e0`, branch `feature/gate-e0-foundation-val
    - Tests: `developer/foundation.test.ts`, `idempotency.test.ts`, `projection.test.ts`, `gate-e-access.test.ts`; `tests/e2e/e0-foundation.spec.ts`; `tests/evidence/gatee0.evidence.spec.ts`. Mutations 32/32 (`test-results-e0/mutations-part2.log`).
    - The harness refuses new report `.md` files here: REPORT.md and test-results.md are delivered in the hand-off text instead.
 
-## Next
-Complete Chromium run + FF/WK smoke under the lock **on AC** (`sh test-results-e0/scratch/final.sh`, previews running), PNG width check, push, hand-off.
+   - Committed `7c6e569`. On that tree (on battery, heavily throttled): typecheck 0, lint 0 (i18n 10,942 keys × 2, parity OK), production build OK. Full Vitest 1,713/1,751: all 38 failures `Test timed out in 5000ms` in unrelated society/HR/payroll/rentals suites (battery 5 %, CPU throttled); the previous full run on the same foundation code had no timeout. **Must be re-run on AC.**
+
+## Next (all on AC)
+1. Full Vitest again (expect 1,751/1,751), twice.
+2. `sh test-results-e0/scratch/preview.sh &` then `sh test-results-e0/scratch/serve-check.sh` (dist is current for `7c6e569`).
+3. Targeted: `tests/e2e/e0-foundation.spec.ts` and `tests/evidence/gatee0.evidence.spec.ts` (1 worker), then `sh test-results-e0/scratch/final.sh` (lock, complete Chromium + evidence, PNG restore of other gates, FF/WK smoke).
+4. `node test-results-e0/scratch/png-widths.cjs docs/status/gate-e0/screenshots`; look at each PNG; commit the screenshots.
+5. Push `feature/gate-e0-foundation-validation`, `git ls-remote`, hand-off (REPORT/test-results text in the hand-off: the harness refuses new report .md files).
 
 ## How to resume
 `. test-results-e0/scratch/env.sh`; build `sh test-results-e0/scratch/build.sh`; serve `sh test-results-e0/scratch/preview.sh &`; check `sh test-results-e0/scratch/serve-check.sh`; stop `powershell -File test-results-e0/scratch/stop-previews.ps1`. Mutation runner: `node test-results-e0/mutate.cjs <spec.json> <out.json>`.
