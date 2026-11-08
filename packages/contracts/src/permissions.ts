@@ -132,6 +132,12 @@ export const PERMISSIONS = [
   'owner_payout.prepare',
   'owner_payout.approve',
   'rentals.configure',
+  // Gate E.7 (provisional; reconcile with E.0 at Wave 1 integration). Names as the Gate E plan gives
+  // them (§6 E.7 table, decision E-07): reading the ledger; preparing, submitting and posting journals;
+  // approving journals someone else prepared (the checker). Bank import keeps bank.view / bank.reconcile.
+  'gl.view',
+  'gl.post',
+  'journal.approve',
   // Platform HQ (central plane, V3.1). Operators are a separate principal type from tenant staff.
   'platform.dashboard.view',
   'platform.tenants.view',

@@ -35,6 +35,10 @@ export interface Persona {
     | 'rb_landlord_tahira'
     | 'rb_landlord_kashif'
     | 'rb_tenant_adeel'
+    /** Gate E.7 (provisional; reconcile with E.0): Larkspur's ledger people (accounts officer, finance controller, treasury officer). */
+    | 'lk_accounts'
+    | 'lk_controller'
+    | 'lk_treasury'
     /** Gate D.1: a resident who joined by invitation (generated from the society register). */
     | `res_${string}`;
   tenantId: string;

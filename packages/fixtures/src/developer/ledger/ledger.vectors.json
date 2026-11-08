@@ -1,0 +1,78 @@
+{
+  "description": "Gate E.7 golden vectors (fictional money, paisa-exact). The seeded Larkspur ledger is entered through the journal path; reports are three readings of the same posted lines and tie exactly. Checked by ledger.test.ts.",
+  "entity": "le_larkspur",
+  "seed": {
+    "journals": [
+      { "ref": "LKE-JV-2026-0001", "date": "2026-07-01", "state": "posted", "total": "175000000.00" },
+      { "ref": "LKE-JV-2026-0002", "date": "2026-09-20", "state": "posted", "total": "1200000.00" },
+      { "ref": "LKE-JV-2026-0003", "date": "2026-10-05", "state": "posted", "total": "450000.00" },
+      { "ref": "LKE-JV-2026-0004", "date": "2026-10-08", "state": "posted", "total": "450000.00", "reversedBy": "LKE-JV-2026-0005" },
+      { "ref": "LKE-JV-2026-0005", "date": "2026-10-09", "state": "posted", "total": "450000.00", "reverses": "LKE-JV-2026-0004" },
+      { "ref": "LKE-JV-2026-0006", "date": "2026-10-12", "state": "posted", "total": "2500000.00" },
+      { "ref": "LKE-JV-2026-0007", "date": "2026-10-20", "state": "submitted", "total": "300000.00" },
+      { "ref": "LKE-JV-2026-0008", "date": "2026-10-23", "state": "draft", "total": "600000.00" }
+    ],
+    "periods": { "2026-07": "closed", "2026-08": "closed", "2026-09": "closed", "2026-10": "open" },
+    "chartVersion": 2,
+    "cashAtBank": { "1000": "0.00", "1010": "0.00" }
+  },
+  "reports": [
+    {
+      "asOf": "2026-07-31",
+      "trialBalance": { "debit": "175000000.00", "credit": "175000000.00", "journals": 1 },
+      "profitAndLoss": { "from": "2026-07-01", "income": "0.00", "expenses": "0.00", "result": "0.00" },
+      "balanceSheet": { "assets": "175000000.00", "liabilities": "15000000.00", "equity": "160000000.00", "currentResult": "0.00" }
+    },
+    {
+      "asOf": "2026-09-30",
+      "trialBalance": { "debit": "176200000.00", "credit": "176200000.00", "journals": 2 },
+      "profitAndLoss": { "from": "2026-07-01", "income": "0.00", "expenses": "1200000.00", "result": "-1200000.00" },
+      "balanceSheet": { "assets": "175000000.00", "liabilities": "16200000.00", "equity": "160000000.00", "currentResult": "-1200000.00" }
+    },
+    {
+      "asOf": "2026-10-26",
+      "trialBalance": { "debit": "176650000.00", "credit": "176650000.00", "journals": 6 },
+      "profitAndLoss": { "from": "2026-07-01", "income": "0.00", "expenses": "1650000.00", "result": "-1650000.00" },
+      "balanceSheet": { "assets": "175000000.00", "liabilities": "16650000.00", "equity": "160000000.00", "currentResult": "-1650000.00" }
+    }
+  ],
+  "balanced": [
+    { "name": "two lines, equal sides", "lines": [{ "code": "5200", "debit": "125000.00" }, { "code": "2200", "credit": "125000.00" }], "problem": null },
+    { "name": "split credit, paisa", "lines": [{ "code": "5300", "debit": "1000.01" }, { "code": "2200", "credit": "500.00" }, { "code": "2000", "credit": "500.01" }], "problem": null },
+    { "name": "one paisa short", "lines": [{ "code": "5200", "debit": "125000.00" }, { "code": "2200", "credit": "124999.99" }], "problem": "ledger:problems.unbalanced" },
+    { "name": "a line on both sides", "lines": [{ "code": "5200", "debit": "10.00", "credit": "10.00" }, { "code": "2200", "credit": "0.00" }], "problem": "ledger:problems.amountOneSide" },
+    { "name": "one line", "lines": [{ "code": "5200", "debit": "10.00" }], "problem": "ledger:problems.linesFew" },
+    { "name": "cash at bank needs evidence (E-17)", "lines": [{ "code": "1000", "debit": "10.00" }, { "code": "3000", "credit": "10.00" }], "problem": "ledger:problems.accountLockedCash" },
+    { "name": "no revenue recognition (E-15)", "lines": [{ "code": "1100", "debit": "10.00" }, { "code": "4000", "credit": "10.00" }], "problem": "ledger:problems.accountLockedRevenue" },
+    { "name": "three decimals", "lines": [{ "code": "5200", "debit": "10.005" }, { "code": "2200", "credit": "10.005" }], "problem": "ledger:problems.amountInvalid" }
+  ],
+  "scenario": {
+    "description": "Accounts officer drafts and submits; the controller approves and posts; the officer requests the reversal; the controller approves and posts it.",
+    "journal": { "date": "2026-10-24", "memo": "Demo accrual — security services, October (fictional)", "lines": [{ "code": "5200", "debit": "125000.00" }, { "code": "2200", "credit": "125000.00" }] },
+    "afterPost": { "trialBalance": "176775000.00", "expenses": "1775000.00", "result": "-1775000.00", "liabilities": "16775000.00", "assets": "175000000.00" },
+    "afterReversal": { "trialBalance": "176650000.00", "expenses": "1650000.00", "result": "-1650000.00", "liabilities": "16650000.00", "assets": "175000000.00" }
+  },
+  "periodLock": [
+    { "date": "2026-06-30", "problem": "ledger:problems.dateBeforeBooks" },
+    { "date": "2026-07-15", "closed": true },
+    { "date": "2026-09-30", "closed": true },
+    { "date": "2026-10-01", "closed": false },
+    { "date": "2026-10-27", "problem": "ledger:problems.dateFuture" }
+  ],
+  "ruleVersions": [
+    { "rule": "LKE-PR-003", "date": "2026-06-30", "version": null },
+    { "rule": "LKE-PR-003", "date": "2026-10-31", "version": 1 },
+    { "rule": "LKE-PR-003", "date": "2026-11-01", "version": 2 },
+    { "rule": "LKE-PR-001", "date": "2026-11-01", "version": 1 }
+  ],
+  "idempotentPosting": [
+    { "source": { "type": "supplier_bill", "id": "bill_demo_1" }, "rule": "LKE-PR-003", "date": "2026-10-31", "key": "supplier_bill:bill_demo_1|prl_lke_003|v1" },
+    { "source": { "type": "supplier_bill", "id": "bill_demo_1" }, "rule": "LKE-PR-003", "date": "2026-10-20", "key": "supplier_bill:bill_demo_1|prl_lke_003|v1" },
+    { "source": { "type": "supplier_bill", "id": "bill_demo_1" }, "rule": "LKE-PR-003", "date": "2026-11-02", "key": "supplier_bill:bill_demo_1|prl_lke_003|v2" }
+  ],
+  "importDuplicates": [
+    { "sample": 1, "statuses": ["duplicate_prior", "duplicate_prior", "new", "new", "duplicate_in_file", "invalid", "new"], "counts": { "rows": 7, "new": 3, "duplicateInFile": 1, "duplicatePrior": 2, "invalid": 1 }, "credits": "470000.00", "debits": "2500.00" },
+    { "sample": 2, "afterSample": 1, "statuses": ["duplicate_prior", "duplicate_prior", "new", "new"], "counts": { "rows": 4, "new": 2, "duplicateInFile": 0, "duplicatePrior": 2, "invalid": 0 }, "credits": "270000.00", "debits": "0.00" },
+    { "sample": 1, "afterSample": 1, "statuses": ["duplicate_prior", "duplicate_prior", "duplicate_prior", "duplicate_prior", "duplicate_in_file", "invalid", "duplicate_prior"], "counts": { "rows": 7, "new": 0, "duplicateInFile": 1, "duplicatePrior": 5, "invalid": 1 }, "credits": "0.00", "debits": "0.00" }
+  ]
+}

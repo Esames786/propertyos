@@ -266,6 +266,14 @@ export const PERSONAS: readonly Persona[] = [
   { id: 'rb_landlord_tahira', tenantId: RIVERBEND.id, principalId: 'usr_rb_c0001', app: 'customer', displayName: 'Tahira Rehman', roleKey: 'common:persona.landlord', email: 'tahira.rehman@example.com', permissions: ['portal.use'], projectScope: 'all', partyId: 'pty_rb_0001' },
   { id: 'rb_landlord_kashif', tenantId: RIVERBEND.id, principalId: 'usr_rb_c0002', app: 'customer', displayName: 'Kashif Mirza', roleKey: 'common:persona.landlord_company', email: 'kashif.mirza@example.com', permissions: ['portal.use'], projectScope: 'all', partyId: 'pty_rb_0002' },
   { id: 'rb_tenant_adeel', tenantId: RIVERBEND.id, principalId: 'usr_rb_c0003', app: 'customer', displayName: 'Adeel Shah', roleKey: 'common:persona.lessee', email: 'adeel.shah@example.com', permissions: ['portal.use'], projectScope: 'all', partyId: 'pty_rb_0010' },
+  // Gate E.7 (provisional; reconcile with E.0 at Wave 1 integration, decision E-06): three new fictional
+  // Larkspur people for the developer ledger and bank import, each holding a new Larkspur role (see
+  // role-templates.ts). No existing person or role gains a permission. Saad prepares journals and holds
+  // no bank permission; Mehreen approves and posts what someone else prepared, closes periods and
+  // approves statement imports; Kashan uploads statement imports.
+  { id: 'lk_accounts', tenantId: TENANT.id, principalId: 'usr_lsp_0011', app: 'backoffice', displayName: 'Saad Hameed', email: 'saad.hameed@example.com', ...holds(TENANT.id, 'ledger_accounts_officer'), projectScope: 'all' },
+  { id: 'lk_controller', tenantId: TENANT.id, principalId: 'usr_lsp_0012', app: 'backoffice', displayName: 'Mehreen Aslam', email: 'mehreen.aslam@example.com', ...holds(TENANT.id, 'ledger_finance_controller'), projectScope: 'all' },
+  { id: 'lk_treasury', tenantId: TENANT.id, principalId: 'usr_lsp_0013', app: 'backoffice', displayName: 'Kashan Wasti', email: 'kashan.wasti@example.com', ...holds(TENANT.id, 'ledger_treasury_officer'), projectScope: 'all' },
   // Al-Noor residents (customer app). Each sees only what their verified links reach and, within a
   // shared account, only the flats they are liable for (per-unit liability, A2 §4.5).
   ...ALNOOR_RESIDENTS.map(

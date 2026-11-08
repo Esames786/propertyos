@@ -185,9 +185,23 @@ const RIVERBEND_ROLES: readonly TenantRoleTemplate[] = [
   ...starterRoles('tnt_riverbend', 'portfolio_manager').filter((r) => r.id === 'technician' || r.id === 'security'),
 ];
 
+/**
+ * Gate E.7 (provisional; reconcile with E.0 at Wave 1 integration, decision E-06): Larkspur's own new
+ * roles for the developer ledger and the bank statement import, each held by a new fictional person
+ * (people.ts). The starter sets and every existing role are unchanged. Every maker-checker pair sits
+ * with two people: the accounts officer prepares journals (and holds no bank permission at all); the
+ * finance controller approves and posts journals someone else prepared, closes accounting periods and
+ * approves statement imports; the treasury officer uploads statement imports for approval.
+ */
+const LARKSPUR_LEDGER_ROLES: readonly TenantRoleTemplate[] = [
+  { id: 'ledger_accounts_officer', tenantId: 'tnt_larkspur', starter: null, labelKey: 'common:roles.accounts_officer', permissions: ['gl.view', 'gl.post'], holders: ['lk_accounts'] },
+  { id: 'ledger_finance_controller', tenantId: 'tnt_larkspur', starter: null, labelKey: 'common:roles.finance_controller', permissions: ['gl.view', 'gl.post', 'journal.approve', 'period.close', 'bank.view', 'bank.reconcile'], holders: ['lk_controller'] },
+  { id: 'ledger_treasury_officer', tenantId: 'tnt_larkspur', starter: null, labelKey: 'ledger:roles.treasury_officer', permissions: ['bank.view', 'bank.reconcile'], holders: ['lk_treasury'] },
+];
+
 const TENANT_ROLES: Readonly<Record<string, readonly TenantRoleTemplate[]>> = {
   tnt_riverbend: RIVERBEND_ROLES,
-  tnt_larkspur: starterRoles('tnt_larkspur', 'developer', { administration: ['manager'], sales: ['sales'], finance: ['finance'] }),
+  tnt_larkspur: [...starterRoles('tnt_larkspur', 'developer', { administration: ['manager'], sales: ['sales'], finance: ['finance'] }), ...LARKSPUR_LEDGER_ROLES],
   tnt_crescent: starterRoles('tnt_crescent', 'developer', { administration: ['cb_manager'] }),
   tnt_shalimar: starterRoles('tnt_shalimar', 'association', { administrator: ['society_admin'] }).map((r) => (r.id === 'manager' ? SHALIMAR_FACILITY_MANAGER : r)),
   tnt_cedar: starterRoles('tnt_cedar', 'custom', { treasurer: ['cedar_treasurer'] }),
