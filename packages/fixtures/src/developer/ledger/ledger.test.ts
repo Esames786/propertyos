@@ -161,6 +161,14 @@ describe('Gate E.7 ledger vectors', () => {
     }
   });
 
+  it('the engine itself refuses to store an unbalanced or empty journal (defence in depth)', () => {
+    const s = seeded();
+    const before = s.journals.length;
+    expect(() => addJournal(s, { entityId: E, date: '2026-10-24', memo: 'Unbalanced', lines: [{ accountId: acc('5200'), debit: 10000n, credit: 0n }, { accountId: acc('2200'), debit: 0n, credit: 9999n }] }, SAAD, 'x')).toThrow();
+    expect(() => addJournal(s, { entityId: E, date: '2026-10-24', memo: 'Empty', lines: [{ accountId: acc('5200'), debit: 0n, credit: 0n }, { accountId: acc('2200'), debit: 0n, credit: 0n }] }, SAAD, 'x')).toThrow();
+    expect(s.journals).toHaveLength(before);
+  });
+
   it('a posting into a closed period is refused by the engine as well', () => {
     const s = seeded();
     const n = normaliseJournal(s, E, { date: '2026-09-15', memo: 'Late accrual', lines: lines([{ code: '5200', debit: '1.00' }, { code: '2200', credit: '1.00' }]) }, LEDGER_TODAY);

@@ -12,6 +12,8 @@ import { RouteError } from './RouteError';
 import { CommandPaletteRoute } from './CommandPaletteRoute';
 import { registerLoader, RegisterResolver, type RegisterData } from './register';
 import { PAYOUTS_TARGET, RENT_VIEW, ROLL_TARGET, SETTINGS_TARGET, STATEMENTS_TARGET } from '../pages/rentals/rkit';
+// Gate E.7 (provisional; reconcile with E.0 at Wave 1 integration): the ledger and bank-import area module.
+import { LEDGER_ROUTES } from '../pages/developer/ledger/routes';
 import type { RouteHandle } from './handle';
 import { RootLayout } from './RootLayout';
 import { ShellLayout } from './ShellLayout';
@@ -517,6 +519,8 @@ const shellChildren: RouteObject[] = [
   { path: 'own/transfers-list', loader: registerLoader, element: <S1Screen page={OwnershipTransfersPage} target={CLEARANCE} />, handle: h({ title: (t) => t('nav:pages.ownershipTransfers') }) },
   { path: 'own/transfer-review-approval', loader: registerLoader, element: <S1Record page={OwnershipById} target={CLEARANCE} />, handle: h({ title: (t) => t('nav:pages.ownershipTransfer') }) },
   { path: 'bank/transfers', loader: registerLoader, element: <S1Screen page={TransfersPage} target={BANKING} />, handle: h({ title: (t) => t('nav:pages.transfers') }) },
+  // Gate E.7 (provisional; reconcile with E.0 at Wave 1 integration): ACC-001…010 and BANK-005.
+  ...LEDGER_ROUTES,
   // Gate D.2: maintenance and community issues (MNT-001…008, MNT-012/013).
   { path: 'mnt/maintenance-dashboard', loader: registerLoader, element: <OpsScreen page={MaintenanceDashboardPage} target={MAINT} />, handle: h({ title: (t) => t('nav:pages.maintenance') }) },
   { path: 'mnt/maintenance-list', loader: registerLoader, element: <OpsScreen page={RequestsListPage} target={MAINT} />, handle: h({ title: (t) => t('nav:pages.requests') }) },
