@@ -33,6 +33,9 @@ export type PersonaId =
   | 'rb_landlord_tahira'
   | 'rb_landlord_kashif'
   | 'rb_tenant_adeel'
+  // Gate E.2 (provisional): Larkspur's project setup maker and checker.
+  | 'lk_project_officer'
+  | 'lk_projects_director'
   | 'supreme_admin'
   | 'commercial_approver'
   | 'platform_support';

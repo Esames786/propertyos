@@ -185,9 +185,20 @@ const RIVERBEND_ROLES: readonly TenantRoleTemplate[] = [
   ...starterRoles('tnt_riverbend', 'portfolio_manager').filter((r) => r.id === 'technician' || r.id === 'security'),
 ];
 
+/**
+ * Gate E.2 (provisional; reconcile with E.0's roles and personas at Wave 1 integration, decisions E-06
+ * and E-07). Larkspur's own two roles for the project setup maker-checker pair: the projects and
+ * inventory officer prepares a project and allocates storage; the projects director approves a project
+ * someone else prepared. No starter set and no existing Larkspur role gains a permission.
+ */
+const LARKSPUR_E2_ROLES: readonly TenantRoleTemplate[] = [
+  { id: 'project_officer', tenantId: 'tnt_larkspur', starter: null, labelKey: 'projects:roles.projectOfficer', permissions: ['project.context.use', 'quickcreate.use', 'unit.view', 'project.view', 'project.manage', 'storage.manage'], holders: ['lk_project_officer'] },
+  { id: 'projects_director', tenantId: 'tnt_larkspur', starter: null, labelKey: 'projects:roles.projectsDirector', permissions: ['project.context.use', 'unit.view', 'project.view', 'project.approve'], holders: ['lk_projects_director'] },
+];
+
 const TENANT_ROLES: Readonly<Record<string, readonly TenantRoleTemplate[]>> = {
   tnt_riverbend: RIVERBEND_ROLES,
-  tnt_larkspur: starterRoles('tnt_larkspur', 'developer', { administration: ['manager'], sales: ['sales'], finance: ['finance'] }),
+  tnt_larkspur: [...starterRoles('tnt_larkspur', 'developer', { administration: ['manager'], sales: ['sales'], finance: ['finance'] }), ...LARKSPUR_E2_ROLES],
   tnt_crescent: starterRoles('tnt_crescent', 'developer', { administration: ['cb_manager'] }),
   tnt_shalimar: starterRoles('tnt_shalimar', 'association', { administrator: ['society_admin'] }).map((r) => (r.id === 'manager' ? SHALIMAR_FACILITY_MANAGER : r)),
   tnt_cedar: starterRoles('tnt_cedar', 'custom', { treasurer: ['cedar_treasurer'] }),

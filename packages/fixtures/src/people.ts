@@ -121,6 +121,11 @@ export const PERSONAS: readonly Persona[] = [
     ...holds(TENANT.id, 'finance'),
     projectScope: 'all',
   },
+  // Gate E.2 (provisional; reconcile with E.0's personas at Wave 1 integration, decision E-06): the
+  // project setup maker (who also allocates storage) and the checker who activates a project someone
+  // else prepared. Both fictional; neither holds a sales, lead or money permission.
+  { id: 'lk_project_officer', tenantId: TENANT.id, principalId: 'usr_lsp_0004', app: 'backoffice', displayName: 'Hina Baig', email: 'hina.baig@example.com', ...holds(TENANT.id, 'project_officer'), projectScope: 'all' },
+  { id: 'lk_projects_director', tenantId: TENANT.id, principalId: 'usr_lsp_0005', app: 'backoffice', displayName: 'Kashan Lodhi', email: 'kashan.lodhi@example.com', ...holds(TENANT.id, 'projects_director'), projectScope: 'all' },
   {
     id: 'resident',
     tenantId: TENANT.id,

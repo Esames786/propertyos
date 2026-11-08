@@ -132,6 +132,13 @@ export const PERMISSIONS = [
   'owner_payout.prepare',
   'owner_payout.approve',
   'rentals.configure',
+  // Gate E.2 (provisional; reconcile with E.0 at Wave 1 integration, decision E-07): the register's
+  // `project.view`, and explicit write and approve permissions for project setup (maker-checker) and
+  // storage allocation. No existing role or starter set holds them; only the provisional E.2 personas do.
+  'project.view',
+  'project.manage',
+  'project.approve',
+  'storage.manage',
   // Platform HQ (central plane, V3.1). Operators are a separate principal type from tenant staff.
   'platform.dashboard.view',
   'platform.tenants.view',

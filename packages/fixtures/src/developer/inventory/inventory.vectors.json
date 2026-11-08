@@ -1,0 +1,40 @@
+{
+  "description": "Gate E.2 golden vectors (provisional): unit dimension derivation (A2 §4.2, decision E-10) with an exact round trip to the legacy status; availability buckets; the active-hold rule of Issues #22/#23 (mirrors E.0 crm-holds.ts at 3bc31cb); owner-only release; the seed's bucket totals per project, which must equal the dashboard's InventoryRow buckets.",
+  "dimensions": [
+    { "legacy": "draft", "inventory": "draft", "delivery": "planned", "occupancy": "vacant", "bucket": "unavailable", "bucketWithLiveHold": "unavailable" },
+    { "legacy": "available", "inventory": "available", "delivery": "under_construction", "occupancy": "vacant", "bucket": "available", "bucketWithLiveHold": "held" },
+    { "legacy": "held", "inventory": "held", "delivery": "under_construction", "occupancy": "vacant", "bucket": "held", "bucketWithLiveHold": "held" },
+    { "legacy": "reserved", "inventory": "reserved", "delivery": "under_construction", "occupancy": "vacant", "bucket": "reserved", "bucketWithLiveHold": "reserved" },
+    { "legacy": "booked", "inventory": "booked", "delivery": "under_construction", "occupancy": "vacant", "bucket": "booked", "bucketWithLiveHold": "booked" },
+    { "legacy": "allocated", "inventory": "allocated", "delivery": "under_construction", "occupancy": "vacant", "bucket": "booked", "bucketWithLiveHold": "booked" },
+    { "legacy": "handover_ready", "inventory": "allocated", "delivery": "handover_ready", "occupancy": "vacant", "bucket": "booked", "bucketWithLiveHold": "booked" },
+    { "legacy": "handed_over", "inventory": "allocated", "delivery": "handed_over", "occupancy": "vacant", "bucket": "booked", "bucketWithLiveHold": "booked" },
+    { "legacy": "occupied", "inventory": "allocated", "delivery": "handed_over", "occupancy": "occupied_unrecorded", "bucket": "booked", "bucketWithLiveHold": "booked" },
+    { "legacy": "blocked", "inventory": "blocked", "delivery": "under_construction", "occupancy": "vacant", "bucket": "unavailable", "bucketWithLiveHold": "unavailable" },
+    { "legacy": "disputed", "inventory": "disputed", "delivery": "under_construction", "occupancy": "vacant", "bucket": "unavailable", "bucketWithLiveHold": "unavailable" },
+    { "legacy": "withdrawn", "inventory": "withdrawn", "delivery": "under_construction", "occupancy": "vacant", "bucket": "unavailable", "bucketWithLiveHold": "unavailable" }
+  ],
+  "holdActive": [
+    { "case": "one millisecond before expiry", "until": "2026-11-10T08:00:00.000Z", "now": "2026-11-10T07:59:59.999Z", "active": true },
+    { "case": "exactly at expiry (strictly before is active)", "until": "2026-11-10T08:00:00.000Z", "now": "2026-11-10T08:00:00.000Z", "active": false },
+    { "case": "after expiry", "until": "2026-11-10T08:00:00.000Z", "now": "2026-11-12T00:00:00.000Z", "active": false },
+    { "case": "placed now (48 h ahead)", "until": "2026-11-10T08:00:00.000Z", "now": "2026-11-08T08:00:00.000Z", "active": true },
+    { "case": "unreadable expiry is not a hold", "until": "soon", "now": "2026-11-08T08:00:00.000Z", "active": false },
+    { "case": "empty expiry is not a hold", "until": "", "now": "2026-11-08T08:00:00.000Z", "active": false }
+  ],
+  "holdUntil": [{ "now": "2026-11-08T08:00:00.000Z", "until": "2026-11-10T08:00:00.000Z" }],
+  "release": [
+    { "case": "initiator, in force", "principal": "usr_lsp_0002", "caller": "usr_lsp_0002", "until": "2026-11-10T08:00:00.000Z", "now": "2026-11-09T00:00:00.000Z", "allowed": true },
+    { "case": "another principal", "principal": "usr_lsp_0002", "caller": "usr_lsp_0001", "until": "2026-11-10T08:00:00.000Z", "now": "2026-11-09T00:00:00.000Z", "allowed": false },
+    { "case": "initiator, expired", "principal": "usr_lsp_0002", "caller": "usr_lsp_0002", "until": "2026-11-10T08:00:00.000Z", "now": "2026-11-10T08:00:00.000Z", "allowed": false },
+    { "case": "legacy hold without a principal", "principal": null, "caller": "usr_lsp_0002", "until": "2026-11-10T08:00:00.000Z", "now": "2026-11-09T00:00:00.000Z", "allowed": false },
+    { "case": "empty principal recorded", "principal": "", "caller": "", "until": "2026-11-10T08:00:00.000Z", "now": "2026-11-09T00:00:00.000Z", "allowed": false },
+    { "case": "no caller", "principal": "usr_lsp_0002", "caller": null, "until": "2026-11-10T08:00:00.000Z", "now": "2026-11-09T00:00:00.000Z", "allowed": false }
+  ],
+  "seedTotals": {
+    "prj_heights": { "available": 167, "held": 25, "reserved": 23, "booked": 113, "unavailable": 8, "total": 336 },
+    "prj_gardens": { "available": 76, "held": 8, "reserved": 14, "booked": 61, "unavailable": 1, "total": 160 },
+    "prj_cb_towers": { "available": 27, "held": 2, "reserved": 1, "booked": 17, "unavailable": 1, "total": 48 },
+    "prj_cb_plaza": { "available": 4, "held": 3, "reserved": 4, "booked": 7, "unavailable": 0, "total": 18 }
+  }
+}

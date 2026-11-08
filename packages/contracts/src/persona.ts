@@ -35,6 +35,9 @@ export interface Persona {
     | 'rb_landlord_tahira'
     | 'rb_landlord_kashif'
     | 'rb_tenant_adeel'
+    /** Gate E.2 (provisional; reconcile with E.0's personas at Wave 1 integration, decision E-06): Larkspur's project setup maker and checker. */
+    | 'lk_project_officer'
+    | 'lk_projects_director'
     /** Gate D.1: a resident who joined by invitation (generated from the society register). */
     | `res_${string}`;
   tenantId: string;

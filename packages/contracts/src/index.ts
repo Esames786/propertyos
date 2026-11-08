@@ -22,3 +22,5 @@ export * from './community';
 export * from './hr';
 export * from './payroll';
 export * from './rentals';
+// Gate E.2 (provisional; reconcile with E.0 at Wave 1 integration): projects and inventory.
+export * from './projects';
