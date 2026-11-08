@@ -86,7 +86,8 @@ async function tiles(page: Page): Promise<Tile[]> {
     // The computed accessible name is exactly that label: nothing else is folded in, and no description is attached.
     await expect(tile, id).toHaveAccessibleName(name);
     await expect(tile, id).not.toHaveAttribute('aria-describedby', /.+/);
-    const label = (await tile.locator('span.line-clamp-2').first().innerText()).trim();
+    // B10 (Issue #24): the label element is marked `data-stat-label` (its `line-clamp-2` class, which cut it, is gone).
+    const label = (await tile.locator('[data-stat-label]').first().innerText()).trim();
     const context = (await tile.locator('div.text-xs').first().count()) ? (await tile.locator('div.text-xs').first().innerText()).trim() : '';
     out.push({ id, name, label, context });
   }
@@ -315,8 +316,9 @@ for (const mode of MODES) {
       const dialog = page.getByRole('alertdialog');
       await expect(dialog).toBeVisible();
       if (mode.scale) expect(await layoutProblems(dialog), at('confirm dialog layout')).toEqual([]);
-      // At 320 px with 200 % text the dialog's scrolling body clips part of a button's ring (as B2's N-B2-3 for drawers); the rest must show.
-      for (const b of await dialog.getByRole('button').all()) await expectRing(page, decoder, b, at(`confirm dialog "${(await b.innerText()).trim() || (await b.getAttribute('aria-label')) || 'button'}"`), rows, { allowClip: !!mode.scale });
+      // B10 (Issue #24, F-INT-3): the dialog's scrolling overlay no longer clips a button's ring at 320 px with
+      // 200 % text (it cut 37 % of Cancel's), so no clipping is allowed here in any mode.
+      for (const b of await dialog.getByRole('button').all()) await expectRing(page, decoder, b, at(`confirm dialog "${(await b.innerText()).trim() || (await b.getAttribute('aria-label')) || 'button'}"`), rows);
       await axe(page, testInfo, `int-rent-focus-confirm-${mode.name}-${lang(locale)}`);
       await page.keyboard.press('Escape');
       await expect(dialog).toHaveCount(0);

@@ -106,10 +106,17 @@ export function StatTile({
         'data-focus-visible:outline-2 data-focus-visible:outline-offset-2 data-focus-visible:outline-focus',
       )}
     >
-      <div className="flex items-start justify-between gap-3">
-        <span className="flex min-w-0 items-center gap-3 text-sm text-muted">
+      {/* B10 (Issue #24, F-INT-1): the label is never cut. It wraps onto as many lines as it needs and the tile
+          grows; it was clamped to two lines with "…", which at 200 % text hid part of it (EN and UR). Beside the
+          change badge the label takes the rest of the row as before; only when its longest word cannot fit
+          there (its min-content width) does the badge move onto a line of its own, instead of that word being
+          clipped. */}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <span className="flex flex-1 items-center gap-3 text-sm text-muted">
           {icon && <IconTile icon={icon} hue={hue} size="md" />}
-          <span className="line-clamp-2 leading-snug">{label}</span>
+          <span data-stat-label className="leading-snug">
+            {label}
+          </span>
         </span>
         {delta && (
           <span aria-hidden className={cn('inline-flex shrink-0 items-center gap-0.5 rounded-pill px-2 py-0.5 text-xs font-semibold', TONE[delta.tone])}>
