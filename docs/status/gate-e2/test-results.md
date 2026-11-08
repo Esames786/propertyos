@@ -57,4 +57,15 @@ API tests cover: scope and header filter; Heights-only never sees Gardens (list,
 `tests/evidence/gatee2.evidence.spec.ts` — 6 tests, **6/6 pass**; 50 PNGs in `screenshots/`, every width matching its name (`png-widths`).
 
 ## Complete runs (lock, AC)
-See the hand-off: the complete Chromium run (all e2e + gatee2 evidence) and the full Firefox + WebKit smoke are recorded there with totals and duration.
+Run `final` (`test-results-e2/scratch/final.sh`), HEAD `ea48a8f` (code identical to `5dd0776`), production build `build-7`, previews on 7373–7375 (both loopbacks), shared lock held 18:51–19:43 UTC, AC on throughout (no sleep/standby events).
+
+| Run | Total | Passed | Failed | Duration |
+|---|---:|---:|---:|---|
+| Full Vitest (in the lock window) | 1,716 | 1,715 | 1 | 69 s |
+| Complete Chromium: every e2e spec + `gatee2.evidence` (3 workers, retries off) | 520 | 519 | 1 | 45.2 min |
+| Full Firefox + WebKit smoke (every smoke spec) | 76 | 76 | 0 | 4.7 min |
+
+- Chromium failure: `tests/e2e/identity.spec.ts:327` (the known D.1 intermittent; not edited). Rerun alone `--repeat-each=10`: **10/10 passed** (0/10 failure rate this time).
+- Vitest failure: `rentals.integration.test.ts` "nothing outside tests writes RentalsState.settled" — `Test timed out in 5000ms` (it reads every source file of the repo; the machine was shared by six agents). Rerun alone: failed once more by timeout right after a resume under load, then **4/4 passed** on a quieter machine. Not an assertion failure; not edited.
+- In the complete run: all 19 E.2 e2e tests, all 6 E.2 evidence tests, all 16 register-coverage chunks (the seven E.2 addresses as PARTIAL) and all 8 security tests (incl. the Crescent Bay Towers matrix line) passed; FF/WK `e2.smoke` 6/6.
+- Axe: 1,639 scans in the complete run, **0 violations** (33 of them E.2 scans: EN and UR at 1440 and 390, dark + high contrast).
