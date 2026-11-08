@@ -1,22 +1,23 @@
 # Gate E.7 (accounting & banking) — checkpoint
 
 Agent D, worktree `D:\laragon2\www\propertyos-e7`, branch `feature/gate-e7-ledger-banking` (from `373d0cf`).
-Offset 2400 (ports 7573–7575). Test output `test-results-e7/`.
+Offset 2400 (ports 7573–7575). Test output `test-results-e7/` (scripts in `test-results-e7/scripts/`).
 
-## Done
-- Contracts `packages/contracts/src/ledger.ts`; provisional permissions `gl.view`, `gl.post`, `journal.approve`.
-- Engine, state (seeded through the journal path), handlers, samples, scope/idempotency helpers in
-  `packages/fixtures/src/developer/ledger/`; vectors (`ledger.vectors.json`, 29 tests) and API negative
-  matrix (`ledger.api.test.ts`, 24 tests) green. Commit 1d7d3ac (local); UI commit 048abd4 (local).
-- Personas lk_accounts / lk_controller / lk_treasury + Larkspur ledger roles (role-templates.test.ts constant 6 → 9 for Larkspur).
-- Pages `apps/backoffice/src/pages/developer/ledger/` (11 screens), i18n `ledger.json` EN + UR, routes hook,
-  register rows ACC-001…010 + BANK-005 → PARTIAL, `register:sync` (139 / 54 / 169).
-- Specs written: `tests/e2e/e7-ledger.spec.ts`, `tests/evidence/gatee7.evidence.spec.ts`, `tests/smoke/e7.smoke.spec.ts`.
+## Done (local commits 1d7d3ac … 0fd924d)
+- Contracts, engine, state, handlers, scope/idempotency helpers, vectors (30) and API negative matrix (24): green.
+- 11 screens, EN + UR, routes hook, register rows → PARTIAL (139 / 54 / 169), personas/roles (Larkspur 9 roles).
+- Typecheck clean; lint clean (11,433 keys × 2); full vitest 1,734/1,736 under load (2 unrelated 5 s timeouts, pass alone).
+- Mutations 19/20 caught (survivor: replay scope re-check, equivalent — target entity is re-checked before the key is read).
+- E.7 e2e 17/17 (1 worker); E.7 smoke FF + WK 6/6; E.7 evidence 9/9 (92 PNGs, widths OK).
+- The harness refuses new report .md files: REPORT and test-results go into the hand-off text.
 
-## Next
-1. Typecheck very slow: the PC is on battery (10 % at 14:27Z) and throttled; A/B showed the ledger namespace is not the cause. Browser runs wait for AC.
-2. Lint, full vitest, build; targeted browser runs of the E.7 specs (workers=1), fix.
-3. Mutation checks; docs (REPORT, test-results, MANUAL_VERIFICATION); complete Chromium + FF/WK smoke under the lock on AC; push.
+## Final (9 Nov 2026, lock 22:51:38Z–23:43:54Z, on AC)
+- Complete Chromium run (every e2e spec + gatee7, gatebfinal, gated1 evidence; gateb1/gateb2/stage15r skip by design):
+  **553 passed, 0 failed, 43 skipped**, 47.7 min, 3 workers, retries off; axe 1,710 scans, 0 violations (E.7: 104 / 0).
+- Firefox + WebKit smoke (every smoke spec): **76 / 76**, 4.3 min.
+- Other gates' evidence folders restored after the run (not this gate's to change).
+- Next: push the branch, hand-off, stop previews.
 
 ## How to resume
-Read this file, `git log --oneline 373d0cf..HEAD`, `git status`.
+Read this file, `git log --oneline 373d0cf..HEAD`, `git status`. Previews: `sh test-results-e7/scripts/preview.sh`
+(after `sh test-results-e7/scripts/build.sh`), check with `serve-check.sh`, stop with `stop-previews.ps1`.
