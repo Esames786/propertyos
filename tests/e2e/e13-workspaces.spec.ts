@@ -211,7 +211,7 @@ test.describe('E.13 access, scope and partitioning', () => {
 
   test('favourites and recent records belong to one person: Bilal never sees Nadia’s', async ({ page, consoleErrors }) => {
     await start(page, 'manager');
-    await open(page, '/backoffice/crm/lead-360-workspace?record=led_0006', 'lead-workspace');
+    await open(page, '/backoffice/crm/lead-360-workspace?record=led_0006', 'lead-add-note');
     await open(page, '/backoffice/global/unified-search-results?q=Hina', 'unified-search');
     await page.locator('[data-testid="hub-hit"][data-record="led_0006"]').getByTestId('favourite-toggle').click();
     await expect(page.getByTestId('toast-success')).toBeVisible();
