@@ -346,7 +346,10 @@
       "noDocuments": "No documents on this record yet.",
       "version": "v{{n}}",
       "none": "No related records",
-      "noneBody": "Records you cannot open are not shown."
+      "noneBody": "Records you cannot open are not shown.",
+      "otherDocuments_one": "Other documents on this record ({{count}})",
+      "otherDocuments_other": "Other documents on this record ({{count}})",
+      "noOtherDocuments": "No other documents on this record."
     },
     "problems": {
       "favouritesFull": "You have 50 favourites. Remove one to add another."

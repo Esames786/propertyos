@@ -19,10 +19,12 @@ export function RelatedRecords({ recordId, exclude, headingLevel = 2 }: { record
   if (q.isError) return <ErrorState error={q.error} onRetry={() => void q.refetch()} />;
   if (!q.data) return <Loading lines={4} />;
   const d = q.data;
+  // The document being viewed is not listed again among its record's documents.
+  const documents = d.documents?.filter((x) => x.id !== exclude) ?? null;
   const groups = d.groups.map((g) => ({ ...g, items: g.items.filter((i) => i.id !== exclude) })).filter((g) => g.items.length);
   return (
     <div className="space-y-5" data-testid="related-records">
-      {groups.length === 0 && !d.documents?.length ? <EmptyState title={t('workspace:hub.related.none')} body={t('workspace:hub.related.noneBody')} /> : null}
+      {groups.length === 0 && !documents?.length ? <EmptyState title={t('workspace:hub.related.none')} body={t('workspace:hub.related.noneBody')} /> : null}
       {groups.map((g) => (
         <Panel key={`${g.relationKey}-${g.type}`} title={dt(g.relationKey)} headingLevel={headingLevel}>
           <ul className="space-y-2">
@@ -32,9 +34,9 @@ export function RelatedRecords({ recordId, exclude, headingLevel = 2 }: { record
           </ul>
         </Panel>
       ))}
-      {d.documents && (
+      {documents && (
         <Panel
-          title={t('workspace:hub.related.documents', { count: d.documents.length })}
+          title={t(exclude ? 'workspace:hub.related.otherDocuments' : 'workspace:hub.related.documents', { count: documents.length })}
           headingLevel={headingLevel}
           actions={
             d.canAttach ? (
@@ -44,13 +46,11 @@ export function RelatedRecords({ recordId, exclude, headingLevel = 2 }: { record
             ) : undefined
           }
         >
-          {d.documents.length === 0 ? (
-            <p className="text-sm text-muted">{t('workspace:hub.related.noDocuments')}</p>
+          {documents.length === 0 ? (
+            <p className="text-sm text-muted">{t(exclude ? 'workspace:hub.related.noOtherDocuments' : 'workspace:hub.related.noDocuments')}</p>
           ) : (
             <ul className="space-y-1.5" data-testid="related-documents">
-              {d.documents
-                .filter((x) => x.id !== exclude)
-                .map((x) => (
+              {documents.map((x) => (
                   <li key={x.id} className="flex min-w-0 items-start gap-2 text-sm">
                     <FileText aria-hidden className="mt-0.5 size-4 shrink-0 text-muted" />
                     <span className="min-w-0 [overflow-wrap:anywhere]">
