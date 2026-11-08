@@ -29,6 +29,19 @@ async function become(page: Page, persona: PersonaId) {
   );
 }
 
+/**
+ * Type into a searchable list the way a person does (key by key) and click the option. In WebKit a
+ * programmatic fill followed by a click leaves React Aria's combobox open without a selection (a
+ * driver artefact: typed keys then a click select correctly, checked by hand), so keys are typed.
+ */
+async function pick(page: Page, testId: string, typed: string, option: RegExp) {
+  const box = page.getByTestId(testId).getByRole('combobox');
+  await box.click();
+  await box.pressSequentially(typed, { delay: 40 });
+  await page.getByRole('option', { name: option }).first().click();
+  await expect(page.getByRole('listbox')).toHaveCount(0);
+}
+
 /** A success toast with this text (earlier toasts may still be on screen). */
 const toast = (page: Page, text: string) => expect(page.getByTestId('toast-success').filter({ hasText: text }).first()).toBeVisible();
 
@@ -46,15 +59,14 @@ test('assign → convert → move by menu → visit outcome with a follow-up; Bi
   if (!conv.ok) throw new Error('convertible');
   const lead = conv.res.items.find((l) => l.owner.name === 'Nadia Rahman' && l.projectName === 'Larkspur Heights')!;
   await page.goto(`${BO}/backoffice/crm/lead-assignment?lead=${lead.id}`);
-  await page.getByTestId('assign-assignee').getByRole('combobox').fill('Bilal');
-  await page.getByRole('option', { name: /Bilal Ahmed/ }).first().click();
+  await pick(page, 'assign-assignee', 'Bilal', /Bilal Ahmed/);
+  await expect(page.getByTestId('assign-assignee').getByRole('combobox')).toHaveValue('Bilal Ahmed');
   await page.getByTestId('assign-reason').fill('Covers Tower A');
   await page.getByTestId('assign-submit').click();
   await toast(page, '1 lead assigned to Bilal Ahmed');
   await page.keyboard.press('Escape');
   await page.getByTestId('pipeline-convert').click();
-  await page.getByTestId('convert-lead').getByRole('combobox').fill(lead.ref);
-  await page.getByRole('option', { name: new RegExp(lead.ref) }).first().click();
+  await pick(page, 'convert-lead', lead.ref, new RegExp(lead.ref));
   await page.getByTestId('convert-submit').click();
   await expect(page.getByTestId('opportunity-360')).toHaveAttribute('data-stage', 'qualified');
   await page.getByTestId('opp-move').click();
