@@ -13,7 +13,8 @@ Screen-reader (NVDA, VoiceOver) and real-device checks are **open**: a person st
 claim is made.
 
 ## 1. Universal search (GLOBAL-002)
-- [ ] As Nadia: Ctrl+K, type `LH-A-01`; the last action reads “Search everywhere for “LH-A-01””. Choose it: the
+- [ ] As Nadia: Ctrl+K, type `LH-A-01`; the last action is “Search everywhere” (“Every kind of record for
+      “LH-A-01”” under it; a screen reader reads the name, then the description). Choose it: the
       universal search opens with the query; units are grouped; “Show all units and flats” pages 20 at a time.
 - [ ] Type a single character: “What are you looking for?” (nothing is searched).
 - [ ] As Bilal: search `LG-P1` (Larkspur Gardens plots): nothing found, and no hint that something is hidden.
