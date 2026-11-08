@@ -285,7 +285,9 @@
       "returnedNote": "Reason: {{note}}",
       "none": "Nothing waiting for you",
       "noneFiltered": "No work matches these filters",
-      "noneBody": "Only work on records you can open is listed and counted."
+      "noneBody": "Only work on records you can open is listed and counted.",
+      "showAll_one": "Show all {{count}}",
+      "showAll_other": "Show all {{count}}"
     },
     "queue": {
       "title": "Work queue",

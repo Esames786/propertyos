@@ -163,7 +163,7 @@ for (const locale of ['en-PK', 'ur-PK'] as const) {
     await settle(page);
     for (const [name, path, ready] of [SCREENS[0]!, SCREENS[4]!, SCREENS[7]!, SCREENS[10]!, SCREENS[12]!]) {
       await as(page, CONTROLLER, path, ready);
-      await shot(page, `e13-${name}-390-dark-${lang(locale)}`);
+      await shot(page, `e13-${name}-dark-390-${lang(locale)}`);
     }
     await page.context().close();
   });

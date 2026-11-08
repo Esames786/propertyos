@@ -1,7 +1,7 @@
 import { TASK_URGENCIES, type TaskItem, type TaskKind, type TaskUrgency, type TasksResponse, type WorkQueueResponse } from '@repo/contracts';
-import { Badge, dynamicT, EmptyState, ErrorState, FilterPills, PageHeader, PlainTextField, SelectControl, useApiQuery, useQueryParam, useQueryParams, useT, type StatusTone } from '@repo/ui';
-import { AlarmClock, ArrowRight, CalendarClock, CircleDashed, Clock3, TriangleAlert, type LucideIcon } from 'lucide-react';
-import { useMemo, useRef } from 'react';
+import { Badge, Button, dynamicT, EmptyState, ErrorState, FilterPills, PageHeader, PlainTextField, SelectControl, useApiQuery, useQueryParam, useQueryParams, useT, type StatusTone } from '@repo/ui';
+import { AlarmClock, ArrowRight, CalendarClock, ChevronDown, CircleDashed, Clock3, TriangleAlert, type LucideIcon } from 'lucide-react';
+import { useMemo, useRef, useState } from 'react';
 import { Loading } from '../../society/kit';
 import { unbroken, LinkButton } from '../../society/hr/hkit';
 import { HubNav, RecordLine, ShortcutsHelp, TYPE_ICON, useFavourites, useHubFormat, useShortcuts, FavouriteButton, type Shortcut } from './wkit';
@@ -66,9 +66,13 @@ function TaskRow({ task, favourites }: { task: TaskItem; favourites: ReturnType<
   );
 }
 
+/** Each group shows its first items; the rest open in place (no reload, the count is of what the reader may see). */
+const GROUP_PREVIEW = 12;
+
 function TaskGroups({ items }: { items: readonly TaskItem[] }) {
   const { t } = useT();
   const favourites = useFavourites();
+  const [open, setOpen] = useState<Partial<Record<TaskUrgency, boolean>>>({});
   return (
     <div className="space-y-5" data-testid="task-list">
       {TASK_URGENCIES.filter((u) => items.some((i) => i.urgency === u)).map((u) => (
@@ -77,10 +81,18 @@ function TaskGroups({ items }: { items: readonly TaskItem[] }) {
             {t(`workspace:hub.tasks.group.${u}`)}
           </h2>
           <ul className="space-y-2">
-            {items.filter((i) => i.urgency === u).map((i) => (
-              <TaskRow key={i.id} task={i} favourites={favourites} />
-            ))}
+            {items
+              .filter((i) => i.urgency === u)
+              .slice(0, open[u] ? undefined : GROUP_PREVIEW)
+              .map((i) => (
+                <TaskRow key={i.id} task={i} favourites={favourites} />
+              ))}
           </ul>
+          {!open[u] && items.filter((i) => i.urgency === u).length > GROUP_PREVIEW && (
+            <Button className="max-w-full whitespace-normal text-center" variant="quiet" size="sm" icon={ChevronDown} onPress={() => setOpen((o) => ({ ...o, [u]: true }))} data-testid={`task-more-${u}`}>
+              {t('workspace:hub.tasks.showAll', { count: items.filter((i) => i.urgency === u).length })}
+            </Button>
+          )}
         </section>
       ))}
     </div>
