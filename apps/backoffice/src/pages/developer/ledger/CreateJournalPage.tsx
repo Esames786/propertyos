@@ -22,6 +22,7 @@ interface Line {
   costCentreId: string | null;
 }
 
+const NO_CC = 'none';
 const blank = (key: number): Line => ({ key, accountId: null, debit: '', credit: '', memo: '', costCentreId: null });
 const AMOUNT = /^\d{1,9}(\.\d{1,2})?$/;
 const paisa = (v: string): bigint | null => {
@@ -90,7 +91,7 @@ function JournalForm({ options, existing, onEntity }: { options: JournalFormOpti
     () => options.accounts.map((a) => ({ id: a.id, label: `${a.code} · ${name(a)}`, ...(a.lock ? { isDisabled: true, description: t(`ledger:lock.${a.lock}`) } : {}) })),
     [options.accounts, name, t],
   );
-  const ccOptions = useMemo(() => [{ id: '', label: t('ledger:create.noCostCentre') }, ...options.costCentres.map((c) => ({ id: c.id, label: `${c.code} · ${dt(c.labelKey)}` }))], [options.costCentres, t, dt]);
+  const ccOptions = useMemo(() => [{ id: NO_CC, label: t('ledger:create.noCostCentre') }, ...options.costCentres.map((c) => ({ id: c.id, label: `${c.code} · ${dt(c.labelKey)}` }))], [options.costCentres, t, dt]);
 
   const totals = useMemo(() => {
     let debit = 0n;
@@ -159,7 +160,7 @@ function JournalForm({ options, existing, onEntity }: { options: JournalFormOpti
               </div>
               <div className="grid grid-cols-1 gap-3 @3xl:grid-cols-2">
                 <SelectControl label={t('ledger:create.account')} options={accountOptions} value={l.accountId} onChange={(id) => update(l.key, { accountId: id })} errorKey={lineError(i, 'accountId')} testId={`journal-line-${i}-account`} placeholder={t('ledger:create.chooseAccount')} />
-                <SelectControl label={t('ledger:create.costCentre')} options={ccOptions} value={l.costCentreId ?? ''} onChange={(id) => update(l.key, { costCentreId: id || null })} optional testId={`journal-line-${i}-cc`} />
+                <SelectControl label={t('ledger:create.costCentre')} options={ccOptions} value={l.costCentreId ?? NO_CC} onChange={(id) => update(l.key, { costCentreId: id && id !== NO_CC ? id : null })} optional testId={`journal-line-${i}-cc`} />
                 <PlainTextField label={t('ledger:journal.debit')} value={l.debit} onChange={(v) => update(l.key, { debit: v })} inputMode="decimal" dir="ltr" errorKey={lineError(i, 'debit') ?? lineError(i, 'amount')} testId={`journal-line-${i}-debit`} />
                 <PlainTextField label={t('ledger:journal.credit')} value={l.credit} onChange={(v) => update(l.key, { credit: v })} inputMode="decimal" dir="ltr" errorKey={lineError(i, 'credit')} testId={`journal-line-${i}-credit`} />
                 <PlainTextField label={t('ledger:create.lineMemo')} value={l.memo} onChange={(v) => update(l.key, { memo: v })} optional className="@3xl:col-span-2" testId={`journal-line-${i}-memo`} />
