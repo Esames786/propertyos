@@ -55,7 +55,8 @@ test.describe('Gate E.0: unit holds belong to the person who placed them (Issue 
 
     await page.goto(`${BO}/backoffice/crm/lead-360-workspace?record=${lead.id}&unit=${UNIT}`);
     await expect(quick).toBeVisible();
-    await expect(quick).toContainText(`Held for ${lead.ref} until`);
+    // The reference is kept whole and bidi-isolated with invisible joiners; compare the visible words.
+    await expect.poll(async () => (await quick.getByTestId('unit-hold-badge').innerText()).replace(/[⁠⁨⁩]/g, '')).toContain(`Held for ${lead.ref} until`);
     await expect(quick.getByTestId('unit-release')).toHaveCount(0);
     await expect(quick.getByTestId('unit-hold')).toBeDisabled();
     const { violations } = await scanA11y(page, testInfo, 'e0-quick-view-colleague-hold');
