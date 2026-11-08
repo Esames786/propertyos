@@ -140,7 +140,10 @@ function activityEvent(ctx: HandlerContext, kind: ActivityEvent['kind'], message
 function findLead(ctx: HandlerContext, id: string): Lead {
   const lead = ctx.demo.leads(ctx.data.leads).find((l) => l.id === id);
   if (!lead) notFound(ctx);
-  if (!can(ctx, 'lead.view') || !ctx.allowsProject(lead.projectId)) forbid(ctx);
+  // Gate E.0 F-2: an existing lead outside this project's scope must answer exactly as
+  // a never-issued lead id. Permission absence is still refused by the route gate.
+  if (!can(ctx, 'lead.view')) forbid(ctx);
+  if (!ctx.allowsProject(lead.projectId)) notFound(ctx);
   return lead;
 }
 
