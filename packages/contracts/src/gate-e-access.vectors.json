@@ -1,0 +1,38 @@
+{
+  "description": "Gate E.0 (Wave 1) access vectors: every permission the foundation registers, the module it belongs to (PERMISSION_MODULE), and the maker-checker pairs that must be held by two different people. Owner decision E-07 (names) and E-06 (holders) are open; these are the conservative defaults. Checked by gate-e-access.test.ts (contracts) and developer/foundation.test.ts (fixtures).",
+  "permissions": {
+    "lead.manage": "crm",
+    "lead.assign": "crm",
+    "project.view": "projects",
+    "project.manage": "projects",
+    "project.approve": "projects",
+    "inventory.manage": "inventory",
+    "gl.view": "accounting",
+    "gl.manage": "accounting",
+    "gl.approve": "accounting",
+    "journal.create": "accounting",
+    "journal.approve": "accounting",
+    "gl.post": "accounting",
+    "bank.import": "banking",
+    "bank.import.approve": "banking",
+    "document.view": "core",
+    "document.upload": "core",
+    "document_template.manage": "core",
+    "document_template.approve": "core"
+  },
+  "pairs": [
+    { "subject": "project_activation", "maker": "project.manage", "checker": "project.approve" },
+    { "subject": "journal", "maker": "journal.create", "checker": "journal.approve" },
+    { "subject": "journal_posting", "maker": "journal.create", "checker": "gl.post" },
+    { "subject": "chart_change", "maker": "gl.manage", "checker": "gl.approve" },
+    { "subject": "posting_rule", "maker": "gl.manage", "checker": "gl.approve" },
+    { "subject": "bank_import", "maker": "bank.import", "checker": "bank.import.approve" },
+    { "subject": "document_template", "maker": "document_template.manage", "checker": "document_template.approve" }
+  ],
+  "registerViewPermissions": {
+    "E.1": ["lead.view"],
+    "E.2": ["project.view", "unit.view"],
+    "E.7": ["gl.view", "bank.view"],
+    "E.13": ["document.view"]
+  }
+}

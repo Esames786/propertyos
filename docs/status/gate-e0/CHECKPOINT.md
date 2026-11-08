@@ -13,8 +13,15 @@ Worktree `D:\laragon2\www\propertyos-e0`, branch `feature/gate-e0-foundation-val
    - Mutation checks: 19/19 caught (`test-results-e0/mutations-part1.log`).
    - Checks: typecheck 0, lint 0 (i18n parity), Vitest 1,706/1,706 (65 files); targeted Chromium (1 worker) crm/security/permissions/access/portal 42/42.
 
-## Next (Part 2 — bounded E.0 foundation)
-Contracts `developer.ts`; Wave 1 permissions + `PERMISSION_MODULE`; F-3 `lead.manage`; four Larkspur personas and roles; `developer/state.ts`, `scope.ts`, `multientity.fixture.ts`, `handlers.ts` registration point; `idempotency.ts`, `projection.ts` (+ test kit); `DevScreen`/`DevRecord`, `routes.developer.tsx`; nav items gated by new permissions; tests + mutation checks; full regression under the lock on AC; REPORT.md, test-results.md.
+3. **Part 2 — bounded E.0 foundation** (code complete, committed after this update):
+   - Contracts `developer.ts` (state types, approval subjects, `servesEdition`); 18 Wave 1 permissions + `PERMISSION_MODULE` (`gate-e-access.vectors.json`/`.test.ts`); F-3 `lead.manage` on lead writes (Larkspur administration/sales and Crescent administration hold it: D-E0-01); four fictional Larkspur personas and roles (`lsp_sales_manager`, `lsp_project_manager`, `lsp_accounts`, `lsp_finance_controller`).
+   - Fixtures: `developer/state.ts` (read never stores; `developerStateForWrite`), `developer/scope.ts`, `developer/multientity.fixture.ts`, `developer/handlers.ts` (registration point + E-37 read-only endpoints), `idempotency.ts`, `projection.ts`, `projection.testkit.ts`; `DemoPartition.peekSection`; test-only `MockTransport` `datasetFor`.
+   - Backoffice: `prototype/dev-screen.tsx` (`DevScreen`, `DevRecord`, `devRoute`), `prototype/routes.developer.tsx` (`DEVELOPER_AREAS`), one spread in `routes.tsx`; Accounting nav item for `gl.view` (no `match`).
+   - Tests: `developer/foundation.test.ts`, `idempotency.test.ts`, `projection.test.ts`, `gate-e-access.test.ts`; `tests/e2e/e0-foundation.spec.ts`; `tests/evidence/gatee0.evidence.spec.ts`. Mutations 32/32 (`test-results-e0/mutations-part2.log`).
+   - The harness refuses new report `.md` files here: REPORT.md and test-results.md are delivered in the hand-off text instead.
+
+## Next
+Complete Chromium run + FF/WK smoke under the lock **on AC** (`sh test-results-e0/scratch/final.sh`, previews running), PNG width check, push, hand-off.
 
 ## How to resume
 `. test-results-e0/scratch/env.sh`; build `sh test-results-e0/scratch/build.sh`; serve `sh test-results-e0/scratch/preview.sh &`; check `sh test-results-e0/scratch/serve-check.sh`; stop `powershell -File test-results-e0/scratch/stop-previews.ps1`. Mutation runner: `node test-results-e0/mutate.cjs <spec.json> <out.json>`.

@@ -366,6 +366,28 @@ export const PERMISSION_MODULE: Partial<Record<Permission, ModuleKey>> = {
   'owner_payout.prepare': 'rentals',
   'owner_payout.approve': 'rentals',
   'rentals.configure': 'rentals',
+  // ---- Gate E.0 (developer ERP, Wave 1): every new permission names its module (an unmapped one
+  // would fall back to core in decideTarget, the S.2a lesson; `gate-e-access.test.ts` guards it). ----
+  'lead.manage': 'crm',
+  'lead.assign': 'crm',
+  'project.view': 'projects',
+  'project.manage': 'projects',
+  'project.approve': 'projects',
+  'inventory.manage': 'inventory',
+  'gl.view': 'accounting',
+  'gl.manage': 'accounting',
+  'gl.approve': 'accounting',
+  'journal.create': 'accounting',
+  'journal.approve': 'accounting',
+  'gl.post': 'accounting',
+  'bank.import': 'banking',
+  'bank.import.approve': 'banking',
+  // Documents belong to the record they are linked to; reading one also needs that record (E.13).
+  'document.view': 'core',
+  'document.upload': 'core',
+  'document_template.manage': 'core',
+  'document_template.approve': 'core',
+  // ---- end Gate E.0 ----
 };
 
 /** Something the UI offers (a menu item, action, tour step, link): its module and permission. */

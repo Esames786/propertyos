@@ -350,7 +350,7 @@ export const CRM_HANDLERS: readonly Handler[] = [
   {
     method: 'POST',
     pattern: /^\/leads\/(?<leadId>[\w-]+)\/activity$/,
-    access: requires('crm', 'lead.view', 'operational'),
+    access: requires('crm', 'lead.manage', 'operational'), // Gate E.0 F-3: a write needs the write permission
     handle: (ctx) => {
       const lead = findLead(ctx, ctx.params.leadId!);
       const input = (ctx.req.body ?? {}) as LogActivityInput;
@@ -369,7 +369,7 @@ export const CRM_HANDLERS: readonly Handler[] = [
   {
     method: 'POST',
     pattern: /^\/leads\/(?<leadId>[\w-]+)\/status$/,
-    access: requires('crm', 'lead.view', 'operational'),
+    access: requires('crm', 'lead.manage', 'operational'), // Gate E.0 F-3
     handle: (ctx) => {
       const lead = findLead(ctx, ctx.params.leadId!);
       const status = (ctx.req.body as { status?: LeadStatus })?.status;
@@ -382,7 +382,7 @@ export const CRM_HANDLERS: readonly Handler[] = [
   {
     method: 'POST',
     pattern: /^\/leads\/(?<leadId>[\w-]+)\/follow-up$/,
-    access: requires('crm', 'lead.view', 'operational'),
+    access: requires('crm', 'lead.manage', 'operational'), // Gate E.0 F-3
     handle: (ctx) => {
       const lead = findLead(ctx, ctx.params.leadId!);
       const { at, done } = (ctx.req.body ?? {}) as { at?: string; done?: boolean };

@@ -246,4 +246,9 @@ export class DemoPartition {
   resetSection(name: string): void {
     delete this.overlay.sections[name];
   }
+
+  /** Gate E.0: the feature's stored state if it was ever written, without creating it (reads stay read-only). */
+  peekSection<T extends object>(name: string): T | undefined {
+    return name in this.overlay.sections ? (this.overlay.sections[name] as T) : undefined;
+  }
 }

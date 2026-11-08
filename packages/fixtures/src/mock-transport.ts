@@ -43,6 +43,8 @@ interface MockTransportOptions {
   personas?: readonly Persona[];
   accessFor?: (persona: Persona) => EffectiveAccess | null;
   handlers?: readonly Handler[];
+  /** Tests only (Gate E.0): another dataset for a signed-in tenant (the multi-entity fixture). */
+  datasetFor?: (tenantId: string) => TenantDataset | undefined;
 }
 
 let correlation = 0;
@@ -194,7 +196,7 @@ export class MockTransport implements ApiTransport {
       throw new ApiError({ status: 401, code: 'unauthenticated', messageKey: 'errors:api.unauthenticated', correlationId, changed: false });
     }
     const access = (this.options.accessFor ?? effectiveAccessFor)(persona);
-    const data = datasetFor(persona.tenantId);
+    const data = (this.options.datasetFor ?? datasetFor)(persona.tenantId);
     if (!access || !data || access.tenant.id !== persona.tenantId) {
       throw new ApiError({ status: 403, code: 'no_effective_access', messageKey: 'errors:access.no_effective_access', correlationId, changed: false });
     }

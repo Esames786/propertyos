@@ -41,7 +41,8 @@
     "rentRoll": "Rent roll",
     "ownerStatements": "Owner statements",
     "ownerPayouts": "Owner payouts",
-    "rentalSettings": "Rental settings"
+    "rentalSettings": "Rental settings",
+    "accounting": "Accounting"
   },
   "header": {
     "search": "Search",

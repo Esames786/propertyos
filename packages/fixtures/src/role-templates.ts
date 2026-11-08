@@ -185,10 +185,43 @@ const RIVERBEND_ROLES: readonly TenantRoleTemplate[] = [
   ...starterRoles('tnt_riverbend', 'portfolio_manager').filter((r) => r.id === 'technician' || r.id === 'security'),
 ];
 
+/**
+ * Gate E.0 (owner decisions E-06 and E-07, conservative defaults; listed in docs/status/gate-e0/REPORT.md).
+ * No starter set changes, and no existing person gains a capability:
+ * - **F-3.** Writing to a lead (activity, status, follow-up) now needs `lead.manage`, no longer `lead.view`.
+ *   The three roles that wrote leads through `lead.view` (Larkspur's administration and sales, Crescent Bay's
+ *   administration) hold `lead.manage` as their organisation's own change, so Nadia, Bilal and Zain can do
+ *   exactly what they could before (decision D-E0-01). Shalimar's facility manager keeps `lead.view` alone:
+ *   its licence has no CRM, so nothing it could do changes.
+ * - **Maker-checker holders (E-06).** Larkspur adds four roles of its own for the developer ERP's Wave 1
+ *   pairs, each held by a new fictional person; every pair is split across two people (`gate-e-access.test.ts`).
+ */
+const DEVELOPER_EXTRA: Readonly<Record<string, Readonly<Record<string, readonly Permission[]>>>> = {
+  tnt_larkspur: { administration: ['lead.manage'], sales: ['lead.manage'] },
+  tnt_crescent: { administration: ['lead.manage'] },
+};
+const withDeveloperExtra = (tenantId: string, roles: readonly TenantRoleTemplate[]): TenantRoleTemplate[] =>
+  roles.map((r) => (DEVELOPER_EXTRA[tenantId]?.[r.id] ? { ...r, permissions: [...r.permissions, ...DEVELOPER_EXTRA[tenantId]![r.id]!] } : r));
+
+const larkspurRole = (id: string, labelKey: string, permissions: readonly Permission[], holder: string): TenantRoleTemplate => ({ id, tenantId: 'tnt_larkspur', starter: null, labelKey, permissions, holders: [holder] });
+
+/** Gate E.0: Larkspur's own developer-ERP roles (Wave 1 maker-checker pairs). */
+export const LARKSPUR_ERP_ROLES: readonly TenantRoleTemplate[] = [
+  // Assigns leads to salespeople and works every lead of every project (E.1).
+  larkspurRole('sales_manager', 'common:roles.sales_manager', [...STARTER_PERMISSIONS.sales, 'lead.manage', 'lead.assign', 'project.view', 'document.view', 'document.upload'], 'lsp_sales_manager'),
+  // Maker: drafts project setup, manages storage, drafts document templates (E.2, E.13).
+  larkspurRole('project_manager', 'common:roles.project_manager', [...STARTER_PERMISSIONS.project_management, 'project.view', 'project.manage', 'inventory.manage', 'document.view', 'document.upload', 'document_template.manage'], 'lsp_project_manager'),
+  // Maker: journals, chart and posting-rule drafts, statement imports (E.7).
+  larkspurRole('accounts_officer', 'common:roles.accounts_officer', ['project.context.use', 'gl.view', 'gl.manage', 'journal.create', 'bank.view', 'bank.import', 'document.view', 'document.upload'], 'lsp_accounts'),
+  // Checker: approves and posts what someone else prepared; activates projects (reads their inventory: the
+  // Projects area is gated by unit.view, unchanged); approves templates.
+  larkspurRole('finance_controller', 'common:roles.finance_controller', ['project.context.use', 'reports.view', 'unit.view', 'project.view', 'project.approve', 'gl.view', 'gl.approve', 'journal.approve', 'gl.post', 'bank.view', 'bank.import.approve', 'document.view', 'document_template.approve'], 'lsp_finance_controller'),
+];
+
 const TENANT_ROLES: Readonly<Record<string, readonly TenantRoleTemplate[]>> = {
   tnt_riverbend: RIVERBEND_ROLES,
-  tnt_larkspur: starterRoles('tnt_larkspur', 'developer', { administration: ['manager'], sales: ['sales'], finance: ['finance'] }),
-  tnt_crescent: starterRoles('tnt_crescent', 'developer', { administration: ['cb_manager'] }),
+  tnt_larkspur: [...withDeveloperExtra('tnt_larkspur', starterRoles('tnt_larkspur', 'developer', { administration: ['manager'], sales: ['sales'], finance: ['finance'] })), ...LARKSPUR_ERP_ROLES],
+  tnt_crescent: withDeveloperExtra('tnt_crescent', starterRoles('tnt_crescent', 'developer', { administration: ['cb_manager'] })),
   tnt_shalimar: starterRoles('tnt_shalimar', 'association', { administrator: ['society_admin'] }).map((r) => (r.id === 'manager' ? SHALIMAR_FACILITY_MANAGER : r)),
   tnt_cedar: starterRoles('tnt_cedar', 'custom', { treasurer: ['cedar_treasurer'] }),
   // Al-Noor Residency kept the society starters and named three of them after its committee posts.

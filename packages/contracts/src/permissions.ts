@@ -132,6 +132,37 @@ export const PERMISSIONS = [
   'owner_payout.prepare',
   'owner_payout.approve',
   'rentals.configure',
+  // ---- Gate E.0 (developer ERP, Wave 1 canonical set; owner decision E-07, conservative names) ----
+  // The register's view permissions for E.1/E.2/E.7/E.13, explicit write permissions, and each
+  // maker-checker pair split in two (the maker's and the checker's), so the pair can be held by
+  // different people. No starter set holds any of them (E-06); see role-templates.ts.
+  // E.1 CRM: writing to a lead (activity, status, follow-up; F-3) and assigning leads to people.
+  'lead.manage',
+  'lead.assign',
+  // E.2 projects and inventory: reading projects; drafting project setup (maker) and activating it
+  // (checker); allocating and releasing storage and other inventory records.
+  'project.view',
+  'project.manage',
+  'project.approve',
+  'inventory.manage',
+  // E.7 accounting and banking: reading the ledger; the chart of accounts and posting rules (draft →
+  // approval); journals (create → approve → post, the poster never the maker); statement imports
+  // (import → approval). Period close stays `period.close` (one lock per entity, shared with the cashbook).
+  'gl.view',
+  'gl.manage',
+  'gl.approve',
+  'journal.create',
+  'journal.approve',
+  'gl.post',
+  'bank.import',
+  'bank.import.approve',
+  // E.13 documents: reading (always also limited by the linked record), demo-only uploads and new
+  // versions, and versioned templates and policies (draft → approval).
+  'document.view',
+  'document.upload',
+  'document_template.manage',
+  'document_template.approve',
+  // ---- end Gate E.0 ----
   // Platform HQ (central plane, V3.1). Operators are a separate principal type from tenant staff.
   'platform.dashboard.view',
   'platform.tenants.view',

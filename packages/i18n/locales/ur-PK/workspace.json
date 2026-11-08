@@ -111,6 +111,24 @@
     "portal.use": "رہائشی پورٹل استعمال کریں",
     "construction.view": "تعمیر کی پیش رفت دیکھیں",
     "workorder.update": "ورک آرڈرز اپ ڈیٹ کریں",
-    "visitors.manage": "گیٹ اور مہمانوں کا انتظام"
+    "visitors.manage": "گیٹ اور مہمانوں کا انتظام",
+    "lead.manage": "لیڈز اپ ڈیٹ کریں",
+    "lead.assign": "لیڈز سونپیں",
+    "project.view": "پروجیکٹس دیکھیں",
+    "project.manage": "پروجیکٹ سیٹ اپ تیار کریں",
+    "project.approve": "پروجیکٹ سیٹ اپ منظور کریں",
+    "inventory.manage": "اسٹوریج اور انوینٹری ریکارڈ کا انتظام",
+    "gl.view": "لیجر دیکھیں",
+    "gl.manage": "چارٹ اور پوسٹنگ رولز میں تبدیلی تیار کریں",
+    "gl.approve": "چارٹ اور پوسٹنگ رولز میں تبدیلی منظور کریں",
+    "journal.create": "جرنل تیار کریں",
+    "journal.approve": "جرنل منظور کریں",
+    "gl.post": "منظور شدہ جرنل پوسٹ کریں",
+    "bank.import": "بینک اسٹیٹمنٹ امپورٹ کریں",
+    "bank.import.approve": "بینک اسٹیٹمنٹ امپورٹ منظور کریں",
+    "document.view": "دستاویزات دیکھیں",
+    "document.upload": "دستاویزات شامل کریں",
+    "document_template.manage": "دستاویزی سانچے تیار کریں",
+    "document_template.approve": "دستاویزی سانچے منظور کریں"
   }
 }
