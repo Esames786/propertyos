@@ -17,8 +17,15 @@ Ports 7973–7975 (`E2E_PORT_OFFSET=2800`), test output `test-results-b10/`, scr
   in Firefox on battery and was stopped (no result).
 - The harness refused a new `REPORT.md` / `test-results.md` for this agent: their text goes into the hand-off.
 
+- Mutants (`test-results-b10/scratch/mutants.sh`, results `test-results-b10/mut/`), both restored byte-identical to HEAD:
+  - M1 clamp back: caught, Vitest 1/14 failed (StatTile.b10), browser 16/18 failed (all 16 F-INT-1 tests; the 2 §5.1 name tests pass, as expected).
+  - M2 scroll padding removed: caught, Vitest 1/14 failed, browser 3/10 failed (int-s3b "Rentals keyboard rings, 200pct-320, en" and
+    ux-b10 F-INT-3 Rentals EN light and dark: "Tab 2 Cancel: the whole ring is visible").
+  - First attempt of both: builds failed (ENOTEMPTY: the previews hold dist open); the script now stops previews before building.
+- Battery fell to 8 % at 19:31 (no AC since the start): heavy work stopped.
+
 ## Next
-1. Mutants M1 (clamp back) and M2 (scroll padding removed) running (`test-results-b10/scratch/mutants.sh`); M3–M7 on AC.
+1. On AC: mutants M3–M7 (`sh test-results-b10/scratch/mutants.sh M3 M4 M5 M6 M7`).
 2. On AC, holding the lock: static checks + full Vitest, then `test-results-b10/scratch/final.sh` (complete Chromium e2e + all
    non-historical evidence, PNG compare + restore, full Firefox + WebKit smoke).
 3. Commit this folder's screenshots, push the branch, hand off.
