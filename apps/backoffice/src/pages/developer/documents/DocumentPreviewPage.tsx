@@ -257,7 +257,7 @@ function DocumentWorkspace({ id }: { id: string }) {
   const favourites = useFavourites();
   const q = useDocument(id, version);
   const d = q.data;
-  const fav = useMemo(() => (d ? { id: d.id, title: d.title, favouritable: true } : null), [d?.id, d?.title]);
+  const fav = useMemo(() => (d ? { id: d.id, title: d.title, favouritable: true } : null), [d]);
   const shortcuts = useMemo<Shortcut[]>(
     () =>
       d

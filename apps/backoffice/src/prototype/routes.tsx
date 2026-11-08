@@ -17,8 +17,7 @@ import { RootLayout } from './RootLayout';
 import { ShellLayout } from './ShellLayout';
 import { StandaloneLayout } from './StandaloneLayout';
 // Gate E.13 (provisional; reconcile with E.0 at Wave 1 integration): local route modules of the connected workspace and documents.
-import { WORKSPACE_ROUTES } from '../pages/developer/workspace/routes';
-import { DOCUMENT_ROUTES } from '../pages/developer/documents/routes';
+import { DOCUMENT_ROUTES, WORKSPACE_ROUTES } from './routes.e13';
 
 /**
  * Prototype route table (React Router 7, data mode). Pages are code-split and receive plain props;

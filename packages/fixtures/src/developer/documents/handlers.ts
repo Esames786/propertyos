@@ -125,7 +125,9 @@ function attachTargets(ctx: HandlerContext): AttachTargets {
 // ---------------------------------------------------------------------------------------------
 // Validation (step 6): the caller's own input only
 // ---------------------------------------------------------------------------------------------
-const FILE_NAME = /^[^\\/:*?"<>|\u0000-\u001f]{1,120}$/;
+const FILE_NAME = /^[^\\/:*?"<>|]{1,120}$/;
+/** No control characters in a file name (checked by code point, not a regex range). */
+const printable = (s: string) => [...s].every((c) => c.charCodeAt(0) >= 32 && c.charCodeAt(0) !== 127);
 
 interface FileInput {
   fileName: string;
@@ -145,7 +147,7 @@ function checkFile(ctx: HandlerContext, raw: Partial<FileInput>): FileInput {
   const mimeType = str(raw.mimeType, 100);
   const sizeBytes = Number(raw.sizeBytes);
   const content = typeof raw.content === 'string' ? raw.content : '';
-  if (!fileName || !FILE_NAME.test(fileName)) invalidField(ctx, 'file', 'documents:problems.fileName');
+  if (!fileName || !FILE_NAME.test(fileName) || !printable(fileName)) invalidField(ctx, 'file', 'documents:problems.fileName');
   if (!(DOCUMENT_MIME_TYPES as readonly string[]).includes(mimeType)) invalidField(ctx, 'file', 'documents:problems.fileType');
   if (!Number.isInteger(sizeBytes) || sizeBytes < 1 || sizeBytes > DOCUMENT_MAX_BYTES) invalidField(ctx, 'file', 'documents:problems.fileSize', { max: '1 MB' });
   const prefix = `data:${mimeType};base64,`;
