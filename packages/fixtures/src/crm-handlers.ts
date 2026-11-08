@@ -34,6 +34,14 @@ import { FIXTURE_NOW, pad } from './seed';
 const PAGE_SIZE = 12;
 const DAY = 86_400_000;
 
+/** A stale hold is no longer inventory-held. Legacy holds without an owner remain non-releasable. */
+function activeHolds(ctx: HandlerContext) {
+  return Object.fromEntries(Object.entries(ctx.demo.holds()).filter(([, hold]) =>
+    Number.isFinite(Date.parse(hold.until)) && Date.parse(hold.until) > Date.now(),
+  ));
+}
+
+
 interface CrmSection {
   parties: Party[];
 }
@@ -279,7 +287,7 @@ export const CRM_HANDLERS: readonly Handler[] = [
     handle: (ctx): LeadDetail => {
       const lead = findLead(ctx, ctx.params.leadId!) as Lead & { interestUnitId?: string };
       const party = partyById(ctx, lead.partyId)!;
-      const holds = ctx.demo.holds();
+      const holds = activeHolds(ctx);
       const holdView = Object.fromEntries(Object.entries(holds).map(([k, v]) => [k, { leadRef: v.leadRef, until: v.until }]));
       const interest = permittedUnit(ctx, lead.interestUnitId);
       const budget = Number(lead.budget.amount);
@@ -418,7 +426,7 @@ export const CRM_HANDLERS: readonly Handler[] = [
     access: requires('inventory', 'unit.view', 'operational'),
     handle: (ctx) => {
       const unit = requestedUnit(ctx, ctx.params.unitId);
-      const holds = Object.fromEntries(Object.entries(ctx.demo.holds()).map(([k, v]) => [k, { leadRef: v.leadRef, until: v.until }]));
+      const holds = Object.fromEntries(Object.entries(activeHolds(ctx)).map(([k, v]) => [k, { leadRef: v.leadRef, until: v.until }]));
       return unitDetail(ctx.data, unit, holds);
     },
   },
@@ -429,9 +437,9 @@ export const CRM_HANDLERS: readonly Handler[] = [
     handle: (ctx) => {
       const unit = requestedUnit(ctx, ctx.params.unitId);
       const lead = findLead(ctx, (ctx.req.body as { leadId?: string })?.leadId ?? '');
-      if (unit.status !== 'available' || ctx.demo.holds()[unit.id]) invalid(ctx, 'unit', 'forms:errors.unitUnavailable');
+      if (unit.status !== 'available' || activeHolds(ctx)[unit.id]) invalid(ctx, 'unit', 'forms:errors.unitUnavailable');
       const until = new Date(Date.now() + 2 * DAY).toISOString();
-      ctx.demo.hold(unit.id, { leadId: lead.id, leadRef: lead.ref, until });
+      ctx.demo.hold(unit.id, { leadId: lead.id, leadRef: lead.ref, until, principalId: ctx.persona?.principalId ?? '' });
       ctx.demo.addActivity(lead.id, activityEvent(ctx, 'status', 'activity.unitHeld', { unit: unit.ref, until }));
       return { ok: true, until };
     },
@@ -442,8 +450,10 @@ export const CRM_HANDLERS: readonly Handler[] = [
     access: requires('sales', 'unit.hold', 'operational'),
     handle: (ctx) => {
       const unit = requestedUnit(ctx, ctx.params.unitId);
-      const hold = ctx.demo.holds()[unit.id];
-      if (!hold) notFound(ctx);
+      const hold = activeHolds(ctx)[unit.id];
+      // A different principal, an expired hold and an unknown hold are indistinguishable.
+      // A pre-hardening legacy hold has no owner and cannot be released by guessing its ID.
+      if (!hold || !hold.principalId || hold.principalId !== ctx.persona?.principalId) notFound(ctx);
       ctx.demo.release(unit.id);
       ctx.demo.addActivity(hold.leadId, activityEvent(ctx, 'status', 'activity.unitReleased', { unit: unit.ref }));
       return { ok: true };
