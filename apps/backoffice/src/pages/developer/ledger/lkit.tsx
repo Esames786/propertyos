@@ -75,26 +75,36 @@ export function LedgerNav({ current, entity }: { current: Section | null; entity
   const { allows } = useSession();
   const shown = SECTIONS.filter((s) => allows(s.target));
   if (shown.length < 2) return null;
+  const pills = (compact: boolean) => (
+    <ul className="flex flex-wrap gap-1.5">
+      {shown.map((s) => (
+        <li key={s.id}>
+          <Link
+            href={s.href(entity)}
+            variant="plain"
+            aria-current={s.id === current ? 'page' : undefined}
+            className={cn(
+              'inline-flex min-h-9 items-center rounded-pill border px-3 text-sm font-medium outline-none focus-visible:outline-2 focus-visible:outline-focus',
+              s.id === current ? 'border-primary bg-primary text-on-primary' : 'border-border bg-panel text-text hover:bg-raised',
+            )}
+            data-testid={compact ? `ledger-navc-${s.id}` : `ledger-nav-${s.id}`}
+          >
+            {t(`ledger:nav.${s.id}`)}
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
   return (
     <nav aria-label={t('ledger:nav.label')} className="-mt-2 mb-5" data-testid="ledger-nav">
-      <ul className="flex flex-wrap gap-1.5">
-        {shown.map((s) => (
-          <li key={s.id}>
-            <Link
-              href={s.href(entity)}
-              variant="plain"
-              aria-current={s.id === current ? 'page' : undefined}
-              className={cn(
-                'inline-flex min-h-9 items-center rounded-pill border px-3 text-sm font-medium outline-none focus-visible:outline-2 focus-visible:outline-focus',
-                s.id === current ? 'border-primary bg-primary text-on-primary' : 'border-border bg-panel text-text hover:bg-raised',
-              )}
-              data-testid={`ledger-nav-${s.id}`}
-            >
-              {t(`ledger:nav.${s.id}`)}
-            </Link>
-          </li>
-        ))}
-      </ul>
+      {/* Phones and large text: the nine screens fold into one disclosure, so the screen's own content comes first. */}
+      <details className="@min-[48em]:hidden" data-testid="ledger-nav-compact">
+        <summary className="inline-flex min-h-9 cursor-pointer items-center rounded-pill border border-border bg-panel px-3 text-sm font-medium text-text outline-none focus-visible:outline-2 focus-visible:outline-focus">
+          {current ? t('ledger:nav.compact', { screen: t(`ledger:nav.${current}`) }) : t('ledger:nav.label')}
+        </summary>
+        <div className="mt-2">{pills(true)}</div>
+      </details>
+      <div className="hidden @min-[48em]:block">{pills(false)}</div>
     </nav>
   );
 }

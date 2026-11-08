@@ -56,7 +56,11 @@ async function context(browser: Browser, viewport: { width: number; height: numb
 }
 
 const BAR_HIDDEN = '[data-testid="bottom-nav"] { visibility: hidden !important; }';
-const shot = (page: Page, name: string, full = true) => page.screenshot({ path: `${DIR}/${name}.png`, fullPage: full, ...(full ? { style: BAR_HIDDEN } : {}) });
+/** A full-page capture starts from the top (a sticky header would otherwise be drawn mid-page). */
+async function shot(page: Page, name: string, full = true) {
+  if (full) await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({ path: `${DIR}/${name}.png`, fullPage: full, ...(full ? { style: BAR_HIDDEN } : {}) });
+}
 
 async function api<T = { id: string }>(page: Page, path: string, body: unknown = {}) {
   const r = await societyApi<T>(page, path, 'POST', body);
@@ -194,7 +198,7 @@ test('who sees what: no bank permission, no ledger permission, maker blocked (14
   await page.context().close();
 });
 
-test('320 × 700, Urdu and English, 200 % text: journals, drawer, form, trial balance (as a list), balance sheet, bank import (viewport captures)', async ({ browser }) => {
+test('320 × 700, Urdu and English, 200 % text: journals, drawer, form, trial balance (as a list), balance sheet, bank import (full page)', async ({ browser }) => {
   test.setTimeout(240_000);
   for (const locale of ['ur-PK', 'en-PK'] as Locale[]) {
     const page = await context(browser, { width: 320, height: 700 }, locale, 2);
@@ -207,7 +211,7 @@ test('320 × 700, Urdu and English, 200 % text: journals, drawer, form, trial ba
       ['e06-bank-import', 'lk_treasury', '/backoffice/bank/bank-import?record=bim_lke_0001', 'bank-import-detail'],
     ] as Array<[string, string, string, string]>) {
       await as(page, persona, path, ready);
-      await shot(page, `${name}-200pct-320-${lang(locale)}`, false);
+      await shot(page, `${name}-200pct-320-${lang(locale)}`);
     }
     await page.context().close();
   }

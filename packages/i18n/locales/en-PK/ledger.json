@@ -4,6 +4,7 @@
   },
   "nav": {
     "label": "Accounting screens",
+    "compact": "Accounting screens: {{screen}}",
     "chart": "Chart of accounts",
     "journals": "Journal entries",
     "create": "New journal",
