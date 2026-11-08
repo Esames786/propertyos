@@ -37,7 +37,8 @@ function TaskRow({ task, favourites }: { task: TaskItem; favourites: ReturnType<
   const title = task.record ? task.record.title : dt(task.titleKey ?? '', task.params);
   const owner = task.owner ? (task.owner.mine ? t('workspace:hub.tasks.ownerYou') : t('workspace:hub.tasks.owner', { name: task.owner.name })) : t('workspace:hub.tasks.ownerNobody');
   return (
-    <li className="flex min-w-0 items-start gap-3 rounded-tile border border-border/70 bg-panel p-3 shadow-card" data-testid="task-row" data-kind={task.kind} data-urgency={task.urgency} data-record={task.record?.id ?? ''} data-mine={task.owner?.mine ?? false}>
+    <li className="flex min-w-0 flex-wrap items-start gap-3 rounded-tile border border-border/70 bg-panel p-3 shadow-card" data-testid="task-row" data-kind={task.kind} data-urgency={task.urgency} data-record={task.record?.id ?? ''} data-mine={task.owner?.mine ?? false}>
+      <div className="flex min-w-0 flex-1 basis-[16rem] items-start gap-3">
       <span aria-hidden className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-control bg-primary-soft text-primary">
         <Icon className="size-4" />
       </span>
@@ -54,7 +55,8 @@ function TaskRow({ task, favourites }: { task: TaskItem; favourites: ReturnType<
         </p>
         {task.detail?.note && <p className="text-xs text-muted">{t('workspace:hub.tasks.returnedNote', { note: task.detail.note })}</p>}
       </div>
-      <div className="flex shrink-0 flex-col items-end gap-1 @md:flex-row @md:items-center">
+      </div>
+      <div className="ms-auto flex shrink-0 flex-wrap items-center justify-end gap-1">
         <LinkButton href={task.actionHref} size="sm" variant="secondary" icon={ArrowRight} testId="task-action">
           {t(`workspace:hub.tasks.action.${task.kind}`)}
         </LinkButton>

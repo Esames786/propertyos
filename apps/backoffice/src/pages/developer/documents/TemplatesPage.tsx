@@ -4,7 +4,7 @@ import { BadgeCheck, CalendarClock, CheckCircle2, CircleDashed, FilePlus2, Hourg
 import { useId, useMemo, useRef, useState } from 'react';
 import { Loading, ProblemAlert } from '../../society/kit';
 import { DateInput, unbroken, useFieldError, useProblemToast } from '../../society/hr/hkit';
-import { DEMO_TODAY, FavouriteButton, HUB, HubNav, ShortcutsHelp, useFavourites, useHubFormat, useShortcuts, type Shortcut } from '../workspace/wkit';
+import { NOWRAP, DEMO_TODAY, FavouriteButton, HUB, HubNav, ShortcutsHelp, useFavourites, useHubFormat, useShortcuts, type Shortcut } from '../workspace/wkit';
 
 /**
  * DOC-006 templates and policies (the APR-004 versioned-policy pattern): a version is drafted, then
@@ -55,7 +55,7 @@ function TemplateRow({ item }: { item: TemplateSummary }) {
           )}
         </p>
         <p className="text-xs text-muted [overflow-wrap:anywhere]">
-          <bdi dir="ltr">{unbroken(item.ref)}</bdi> · {item.project ? <bdi>{item.project.name}</bdi> : t('documents:templates.wholeOrg')} ·{' '}
+          <bdi dir="ltr" className={NOWRAP}>{unbroken(item.ref)}</bdi> · {item.project ? <bdi>{item.project.name}</bdi> : t('documents:templates.wholeOrg')} ·{' '}
           {item.effectiveVersion !== null ? t('documents:templates.effectiveVersion', { n: item.effectiveVersion }) : t('documents:templates.noEffective')}
         </p>
       </div>
@@ -89,7 +89,7 @@ function TemplateList() {
         description={t('documents:templates.intro')}
         actions={
           d?.canDraft ? (
-            <Button variant="primary" icon={FilePlus2} onPress={() => setDrawer('new')} data-testid="template-new">
+            <Button className="max-w-full whitespace-normal text-center" variant="primary" icon={FilePlus2} onPress={() => setDrawer('new')} data-testid="template-new">
               {t('documents:templates.new')}
             </Button>
           ) : undefined
@@ -198,7 +198,7 @@ function TemplateWorkspace({ id }: { id: string }) {
         actions={
           <div className="flex flex-wrap items-center gap-2">
             {d.canDraft && (
-              <Button variant="primary" icon={PencilLine} onPress={() => setDrawer('draft')} data-testid="template-draft">
+              <Button className="max-w-full whitespace-normal text-center" variant="primary" icon={PencilLine} onPress={() => setDrawer('draft')} data-testid="template-draft">
                 {t('documents:templates.draft')}
               </Button>
             )}
@@ -247,10 +247,10 @@ function TemplateWorkspace({ id }: { id: string }) {
                 </div>
                 {v.canDecide && (
                   <div className="flex flex-wrap gap-2">
-                    <Button variant="primary" size="sm" icon={BadgeCheck} onPress={() => setDeciding({ v, decision: 'approve' })} data-testid="template-approve">
+                    <Button className="max-w-full whitespace-normal text-center" variant="primary" size="sm" icon={BadgeCheck} onPress={() => setDeciding({ v, decision: 'approve' })} data-testid="template-approve">
                       {t('documents:templates.approve')}
                     </Button>
-                    <Button variant="secondary" size="sm" icon={Undo2} onPress={() => setDeciding({ v, decision: 'return' })} data-testid="template-return">
+                    <Button className="max-w-full whitespace-normal text-center" variant="secondary" size="sm" icon={Undo2} onPress={() => setDeciding({ v, decision: 'return' })} data-testid="template-return">
                       {t('documents:templates.return')}
                     </Button>
                   </div>
@@ -319,9 +319,14 @@ function DraftDrawer({ mode, onClose, onDone }: { mode: DraftMode; onClose: () =
   if (!from || from < DEMO_TODAY) local.effectiveFrom = t('documents:templates.errors.effectiveFrom');
   if (note.trim().length < 3) local.note = t('documents:templates.errors.note');
   const err = (f: string) => (tried ? (local[f] ?? server(f)) : server(f));
+  // One draft per form: a second press while it is sent, or after it succeeded, does nothing.
+  const busy = useRef(false);
+  const done = useRef(false);
   const submit = async () => {
+    if (busy.current || done.current) return;
     setTried(true);
     if (Object.keys(local).length) return announce(t('documents:upload.errors.summary'));
+    busy.current = true;
     try {
       const res = await create.send({
         method: 'POST',
@@ -329,11 +334,14 @@ function DraftDrawer({ mode, onClose, onDone }: { mode: DraftMode; onClose: () =
         body: mode.kind === 'new' ? { name: name.trim(), category, projectId: scope === 'org' ? null : scope, body, effectiveFrom: from, note: note.trim() } : { body, effectiveFrom: from, note: note.trim() },
       });
       const message = mode.kind === 'new' ? t('documents:templates.created', { ref: res.ref }) : t('documents:templates.draftDone', { n: (res.versions?.[0]?.n ?? 0) });
+      done.current = true;
       toast.success(message);
       announce(message);
       onDone(mode.kind === 'new' ? res.href : HUB.templates);
     } catch {
       announce(t('documents:upload.errors.refused'));
+    } finally {
+      busy.current = false;
     }
   };
   return (
@@ -346,10 +354,10 @@ function DraftDrawer({ mode, onClose, onDone }: { mode: DraftMode; onClose: () =
       testId="template-drawer"
       footer={
         <div className="flex flex-wrap justify-end gap-2">
-          <Button variant="quiet" onPress={onClose}>
+          <Button className="max-w-full whitespace-normal text-center" variant="quiet" onPress={onClose}>
             {t('common:actions.cancel')}
           </Button>
-          <Button variant="primary" icon={FilePlus2} isPending={create.isPending} onPress={() => void submit()} data-testid="template-submit">
+          <Button className="max-w-full whitespace-normal text-center" variant="primary" icon={FilePlus2} isPending={create.isPending} onPress={() => void submit()} data-testid="template-submit">
             {t('documents:templates.submit')}
           </Button>
         </div>

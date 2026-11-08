@@ -110,6 +110,10 @@ describe('expiry', () => {
       ['doc_lsp_0008', 35, 'valid'],
     ].filter(([, d]) => (d as number) <= 30));
     expect(soon.counts).toEqual({ expired: 2, '30': 3, '60': 5, '90': 5 });
+    // "Expiring" means within 30 days: 35 days is still valid (the list and every badge agree).
+    const all = await s.get<DocumentsList>('/documents');
+    expect(all.counts.expiry).toEqual({ none: 6, valid: 3, expiring: 3, expired: 2 });
+    expect(all.items.find((d) => d.id === 'doc_lsp_0008')).toMatchObject({ daysLeft: 35, expiry: 'valid' });
   });
 });
 

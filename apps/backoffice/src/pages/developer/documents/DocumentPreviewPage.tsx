@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Loading } from '../../society/kit';
 import { LinkButton, unbroken } from '../../society/hr/hkit';
 import { RelatedRecords } from '../workspace/RelatedRecords';
-import { FavouriteButton, HUB, HubNav, RecordLine, ShortcutsHelp, useFavourites, useHubFormat, useShortcuts, type Shortcut } from '../workspace/wkit';
+import { NOWRAP, FavouriteButton, HUB, HubNav, RecordLine, ShortcutsHelp, useFavourites, useHubFormat, useShortcuts, type Shortcut } from '../workspace/wkit';
 import { DemoFileBadge, DocumentRow, downloadDemo, ExpiryBadge, KindBadge, sizeText } from './dkit';
 import { UploadDrawer } from './UploadDrawer';
 
@@ -54,7 +54,7 @@ export function DocumentFinder({ target }: { target: 'preview' | 'versions' }) {
         description={target === 'preview' ? t('documents:finder.intro') : t('documents:versions.finderIntro')}
         actions={
           d?.canUpload ? (
-            <Button variant="primary" icon={Upload} onPress={() => setDrawer('upload')} data-testid="documents-upload">
+            <Button className="max-w-full whitespace-normal text-center" variant="primary" icon={Upload} onPress={() => setDrawer('upload')} data-testid="documents-upload">
               {t('documents:finder.upload')}
             </Button>
           ) : undefined
@@ -115,7 +115,7 @@ export function DocumentFinder({ target }: { target: 'preview' | 'versions' }) {
               body={t('documents:finder.noneBody')}
               actions={
                 d.canUpload ? (
-                  <Button variant="primary" icon={Upload} onPress={() => setDrawer('upload')}>
+                  <Button className="max-w-full whitespace-normal text-center" variant="primary" icon={Upload} onPress={() => setDrawer('upload')}>
                     {t('documents:finder.upload')}
                   </Button>
                 ) : undefined
@@ -198,7 +198,7 @@ export function PreviewPane({ detail }: { detail: DocumentDetail }) {
             <dl className="grid grid-cols-1 gap-x-4 gap-y-1 text-sm @md:grid-cols-[auto_1fr]">
               <dt className="text-muted">{t('documents:facts.reference')}</dt>
               <dd>
-                <bdi dir="ltr">{unbroken(detail.ref)}</bdi> · {t('documents:version', { n: detail.previewVersion })}
+                <bdi dir="ltr" className={NOWRAP}>{unbroken(detail.ref)}</bdi> · {t('documents:version', { n: detail.previewVersion })}
               </dd>
               <dt className="text-muted">{t('documents:facts.linkedTo')}</dt>
               <dd className="[overflow-wrap:anywhere]">
@@ -292,11 +292,11 @@ function DocumentWorkspace({ id }: { id: string }) {
         actions={
           <div className="flex flex-wrap items-center gap-2">
             {d.canUpload && (
-              <Button variant="primary" icon={Upload} onPress={() => setDrawer('version')} data-testid="document-new-version">
+              <Button className="max-w-full whitespace-normal text-center" variant="primary" icon={Upload} onPress={() => setDrawer('version')} data-testid="document-new-version">
                 {t('documents:actions.newVersion')}
               </Button>
             )}
-            <Button variant="secondary" icon={Download} onPress={() => downloadDemo(d, pageText)} data-testid="document-download">
+            <Button className="max-w-full whitespace-normal text-center" variant="secondary" icon={Download} onPress={() => downloadDemo(d, pageText)} data-testid="document-download">
               {t('documents:actions.download')}
             </Button>
             <LinkButton href={HUB.versions(d.id)} icon={History} variant="quiet" testId="document-versions-link">
@@ -378,7 +378,7 @@ function DocumentWorkspace({ id }: { id: string }) {
                 <KeyValueList
                   items={[
                     { label: t('documents:facts.kind'), value: t(`documents:kinds.${d.kind}`) },
-                    { label: t('documents:facts.reference'), value: <bdi dir="ltr">{unbroken(d.ref)}</bdi> },
+                    { label: t('documents:facts.reference'), value: <bdi dir="ltr" className={NOWRAP}>{unbroken(d.ref)}</bdi> },
                     {
                       label: t('documents:facts.linkedTo'),
                       value: (
@@ -443,7 +443,7 @@ export function VersionList({ detail, onPreview }: { detail: DocumentDetail; onP
               )}
               {v.expiresOn && <p className="text-xs text-muted">{t('documents:versions.expires', { date: f.date(v.expiresOn) })}</p>}
             </div>
-            <Button variant="quiet" size="sm" onPress={() => onPreview(v.n)} data-testid="version-preview">
+            <Button className="max-w-full whitespace-normal text-center" variant="quiet" size="sm" onPress={() => onPreview(v.n)} data-testid="version-preview">
               {t('documents:versions.preview', { n: v.n })}
             </Button>
           </div>

@@ -84,7 +84,7 @@ export default function ExpiringDocumentsPage() {
                   testId="expiring-row"
                   actions={
                     d.canUpload ? (
-                      <Button variant="secondary" size="sm" icon={Upload} onPress={() => setRenewing(doc)} aria-label={t('documents:expiring.renewFor', { title: doc.title })} data-testid="expiring-renew">
+                      <Button className="max-w-full whitespace-normal text-center" variant="secondary" size="sm" icon={Upload} onPress={() => setRenewing(doc)} aria-label={t('documents:expiring.renewFor', { title: doc.title })} data-testid="expiring-renew">
                         {t('documents:expiring.renew')}
                       </Button>
                     ) : undefined

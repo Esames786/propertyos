@@ -115,7 +115,7 @@ export default function RecentActivityPage() {
             </section>
           ))}
           {d.more && (
-            <Button variant="secondary" icon={ChevronDown} onPress={() => set({ limit: String(limit + 40) })} data-testid="activity-more">
+            <Button className="max-w-full whitespace-normal text-center" variant="secondary" icon={ChevronDown} onPress={() => set({ limit: String(limit + 40) })} data-testid="activity-more">
               {t('workspace:hub.activity.more')}
             </Button>
           )}

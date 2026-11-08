@@ -69,6 +69,9 @@ export const TYPE_ICON: Record<WorkspaceRecordType, LucideIcon> = {
   tenant: Landmark,
 };
 
+/** A reference never breaks inside itself: it moves to the next line whole (320 px at 200 % text). */
+export const NOWRAP = 'inline-block whitespace-nowrap [overflow-wrap:normal]';
+
 export function useHubFormat() {
   const { locale } = useLocale();
   return {
@@ -152,7 +155,7 @@ export function RecordLine({ record }: { record: RecordRef }) {
   const dt = dynamicT(t);
   return (
     <span className="block text-xs text-muted [overflow-wrap:anywhere]">
-      {typeLabel(record.type)} · <bdi dir="ltr">{unbroken(record.ref)}</bdi>
+      {typeLabel(record.type)} · <bdi dir="ltr" className={NOWRAP}>{unbroken(record.ref)}</bdi>
       {record.subtitleKey ? ` · ${dt(record.subtitleKey)}` : record.subtitle ? (
         <>
           {' · '}
@@ -188,7 +191,9 @@ export function RecordRow({
   const Icon = TYPE_ICON[record.type] ?? FileText;
   const Title = headingLevel === 2 ? 'h2' : headingLevel === 3 ? 'h3' : 'p';
   return (
-    <li className="flex min-w-0 items-start gap-3 rounded-tile border border-border/70 bg-panel p-3 shadow-card" data-testid={testId} data-record={record.id} data-type={record.type}>
+    // The actions move under the record when the row is narrow (320 px at 200 % text), never squeezing it.
+    <li className="flex min-w-0 flex-wrap items-start gap-3 rounded-tile border border-border/70 bg-panel p-3 shadow-card" data-testid={testId} data-record={record.id} data-type={record.type}>
+      <div className="flex min-w-0 flex-1 basis-[16rem] items-start gap-3">
       <span aria-hidden className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-control bg-primary-soft text-primary">
         <Icon className="size-4" />
       </span>
@@ -201,8 +206,9 @@ export function RecordRow({
         <RecordLine record={record} />
         {meta && <div className="text-xs text-muted">{meta}</div>}
       </div>
+      </div>
       {(actions || favourite) && (
-        <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+        <div className="ms-auto flex shrink-0 flex-wrap items-center justify-end gap-1">
           {actions}
           {favourite && <FavouriteButton record={record} isFavourite={favourite.isFavourite} onToggle={favourite.onToggle} />}
         </div>

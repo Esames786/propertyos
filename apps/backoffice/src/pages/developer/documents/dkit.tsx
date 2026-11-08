@@ -5,7 +5,7 @@ import { Suspense, useEffect, useState, type ComponentType, type LazyExoticCompo
 import { ComboBox, Input, Label, ListBox, ListBoxItem, Popover } from 'react-aria-components';
 import { unbroken } from '../../society/hr/hkit';
 import { LINKS } from '../../../nav.config';
-import { RecordLine, TYPE_ICON, useHubFormat } from '../workspace/wkit';
+import { NOWRAP, RecordLine, TYPE_ICON, useHubFormat } from '../workspace/wkit';
 
 /**
  * Gate E.13 documents kit: the route guard (`document.view`), expiry badges that never rely on colour
@@ -82,7 +82,7 @@ export function DocumentRow({ doc, actions, testId = 'document-row' }: { doc: Do
           <ExpiryBadge doc={doc} />
         </p>
         <p className="text-xs text-muted [overflow-wrap:anywhere]">
-          <bdi dir="ltr">{unbroken(doc.ref)}</bdi> · {t('documents:version', { n: doc.version })} · <bdi dir="ltr">{doc.fileName}</bdi> · {sizeText(doc.sizeBytes)}
+          <bdi dir="ltr" className={NOWRAP}>{unbroken(doc.ref)}</bdi> · {t('documents:version', { n: doc.version })} · <bdi dir="ltr">{doc.fileName}</bdi> · {sizeText(doc.sizeBytes)}
         </p>
         <p className="flex min-w-0 items-start gap-1.5 text-xs text-muted">
           <LinkedIcon aria-hidden className="mt-0.5 size-3.5 shrink-0" />

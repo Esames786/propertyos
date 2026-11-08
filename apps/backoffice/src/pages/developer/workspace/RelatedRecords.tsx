@@ -3,7 +3,7 @@ import { dynamicT, EmptyState, ErrorState, Link, Panel, useApiQuery, useT } from
 import { FilePlus2, FileText } from 'lucide-react';
 import { Loading } from '../../society/kit';
 import { LinkButton } from '../../society/hr/hkit';
-import { HUB, RecordRow, useFavourites } from './wkit';
+import { NOWRAP, HUB, RecordRow, useFavourites } from './wkit';
 
 /**
  * Gate E.13 related-records panel: the record's related records (each resolved for the reader), its
@@ -58,7 +58,7 @@ export function RelatedRecords({ recordId, exclude, headingLevel = 2 }: { record
                         <bdi>{x.title}</bdi>
                       </Link>{' '}
                       <span className="text-xs text-muted">
-                        · <bdi dir="ltr">{x.ref}</bdi> · {t('workspace:hub.related.version', { n: x.version })} · {t(`documents:expiry.${x.expiry}` as 'documents:expiry.none')}
+                        · <bdi dir="ltr" className={NOWRAP}>{x.ref}</bdi> · {t('workspace:hub.related.version', { n: x.version })} · {t(`documents:expiry.${x.expiry}` as 'documents:expiry.none')}
                       </span>
                     </span>
                   </li>

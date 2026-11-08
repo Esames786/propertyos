@@ -62,7 +62,7 @@ export default function UnifiedSearchPage() {
           set({ q: text.trim() ? text.trim() : null, page: null });
         }}
       >
-        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+        <div className="flex w-full min-w-0 flex-col gap-1.5 @lg:w-auto @lg:flex-1">
           <label htmlFor="hub-search-input" className="text-sm font-medium text-text">
             {t('workspace:hub.search.label')}
           </label>
@@ -133,7 +133,7 @@ export default function UnifiedSearchPage() {
                 ))}
               </ul>
               {selected === 'all' && g.more && (
-                <Button variant="quiet" size="sm" icon={ArrowRight} onPress={() => set({ type: g.type, page: null })} data-testid={`hub-more-${g.type}`}>
+                <Button className="max-w-full whitespace-normal text-center" variant="quiet" size="sm" icon={ArrowRight} onPress={() => set({ type: g.type, page: null })} data-testid={`hub-more-${g.type}`}>
                   {t('workspace:hub.search.showAll', { kind: t(`workspace:hub.typesPlural.${g.type}`) })}
                 </Button>
               )}
@@ -141,11 +141,11 @@ export default function UnifiedSearchPage() {
           ))}
           {selected !== 'all' && (page > 1 || d.groups.some((g) => g.more)) && (
             <nav aria-label={t('workspace:hub.search.pages')} className="flex flex-wrap items-center gap-2">
-              <Button variant="secondary" size="sm" icon={ArrowLeft} isDisabled={page <= 1} onPress={() => set({ page: page - 1 > 1 ? String(page - 1) : null })} data-testid="hub-page-prev">
+              <Button className="max-w-full whitespace-normal text-center" variant="secondary" size="sm" icon={ArrowLeft} isDisabled={page <= 1} onPress={() => set({ page: page - 1 > 1 ? String(page - 1) : null })} data-testid="hub-page-prev">
                 {t('workspace:hub.search.previous')}
               </Button>
               <span className="text-sm text-muted">{t('workspace:hub.search.page', { page })}</span>
-              <Button variant="secondary" size="sm" icon={ArrowRight} isDisabled={!d.groups.some((g) => g.more)} onPress={() => set({ page: String(page + 1) })} data-testid="hub-page-next">
+              <Button className="max-w-full whitespace-normal text-center" variant="secondary" size="sm" icon={ArrowRight} isDisabled={!d.groups.some((g) => g.more)} onPress={() => set({ page: String(page + 1) })} data-testid="hub-page-next">
                 {t('workspace:hub.search.next')}
               </Button>
             </nav>

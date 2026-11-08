@@ -76,7 +76,7 @@ async function warm(page: Page) {
   }
   await page.goto(`${BO}/backoffice/doc/document-preview?record=doc_lsp_0001`);
   await page.getByTestId('document-favourite').click();
-  await page.getByTestId('toast-success').waitFor();
+  await page.getByTestId('toast-success').last().waitFor();
 }
 
 test.describe.configure({ mode: 'serial' });
@@ -144,7 +144,7 @@ test('who sees what: the Heights clerk vs the controller; a hidden document read
   // Revocation: Tehmina's favourite on a Gardens document disappears once her scope is narrowed.
   await as(page, CONTROLLER, '/backoffice/doc/document-preview?record=doc_lsp_0004', 'document-workspace');
   await page.getByTestId('document-favourite').click();
-  await page.getByTestId('toast-success').waitFor();
+  await page.getByTestId('toast-success').last().waitFor();
   await as(page, CONTROLLER, '/backoffice/global/favorites', 'favourites');
   await shot(page, 'e13-revoke-before-1440-en');
   await page.evaluate(() => sessionStorage.setItem('demo:site-scope', JSON.stringify({ lsp_doc_controller: ['site_lk_heights'] })));

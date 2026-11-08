@@ -74,7 +74,7 @@ function VersionsWorkspace({ id }: { id: string }) {
         actions={
           <div className="flex flex-wrap gap-2">
             {d.canUpload && (
-              <Button variant="primary" icon={Upload} onPress={() => setDrawer('version')} data-testid="versions-new">
+              <Button className="max-w-full whitespace-normal text-center" variant="primary" icon={Upload} onPress={() => setDrawer('version')} data-testid="versions-new">
                 {t('documents:actions.newVersion')}
               </Button>
             )}

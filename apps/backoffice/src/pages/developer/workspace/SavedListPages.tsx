@@ -82,7 +82,7 @@ export function RecentRecordsPage() {
         description={t('workspace:hub.recent.intro')}
         actions={
           all.length > 0 ? (
-            <Button variant="quiet" icon={Eraser} onPress={() => setConfirm(true)} data-testid="recent-clear">
+            <Button className="max-w-full whitespace-normal text-center" variant="quiet" icon={Eraser} onPress={() => setConfirm(true)} data-testid="recent-clear">
               {t('workspace:hub.recent.clear')}
             </Button>
           ) : undefined
@@ -123,7 +123,7 @@ export function RecentRecordsPage() {
                     meta={t('workspace:hub.recent.viewed', { when: f.when(r.viewedAt), count: r.views })}
                     favourite={{ isFavourite: favourites.isFavourite(r.id), onToggle: () => void favourites.toggle(r) }}
                     actions={
-                      <Button variant="quiet" size="sm" icon={X} onPress={() => void forget(r)} aria-label={t('workspace:hub.recent.remove', { title: r.title })} data-testid="recent-remove">
+                      <Button className="max-w-full whitespace-normal text-center" variant="quiet" size="sm" icon={X} onPress={() => void forget(r)} aria-label={t('workspace:hub.recent.remove', { title: r.title })} data-testid="recent-remove">
                         {t('workspace:hub.recent.removeShort')}
                       </Button>
                     }

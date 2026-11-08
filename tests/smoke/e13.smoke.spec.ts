@@ -27,7 +27,7 @@ test('search → favourite → favourites and recent records', async ({ page, co
   const hit = page.locator('[data-testid="hub-hit"][data-record="led_0004"]');
   await expect(hit).toBeVisible();
   await hit.getByTestId('favourite-toggle').click();
-  await expect(page.getByTestId('toast-success')).toContainText('added to favourites');
+  await expect(page.getByTestId('toast-success').filter({ hasText: 'added to favourites' }).last()).toBeVisible();
   await hit.getByTestId('hub-hit-link').click();
   await expect(page).toHaveURL(/record=led_0004/);
   await page.goto(`${BO}/backoffice/global/favorites`);

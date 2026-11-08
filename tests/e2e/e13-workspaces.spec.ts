@@ -57,7 +57,7 @@ test.describe('E.13 positive journeys', () => {
     await expect(lead).toBeVisible();
     await expect(page).toHaveURL(/q=Amna/);
     await lead.getByTestId('favourite-toggle').click();
-    await expect(page.getByTestId('toast-success')).toContainText('Amna Abbasi added to favourites');
+    await expect(page.getByTestId('toast-success').filter({ hasText: 'Amna Abbasi added to favourites' }).last()).toBeVisible();
     await expect(lead.getByTestId('favourite-toggle')).toHaveAttribute('data-on', 'true');
     await lead.getByTestId('hub-hit-link').click();
     await expect(page).toHaveURL(/lead-360-workspace\?record=led_0004/);
@@ -68,7 +68,7 @@ test.describe('E.13 positive journeys', () => {
     await expect(page.locator('[data-testid="favourite-row"][data-record="led_0004"]')).toBeVisible();
     // Removing the star removes it from the list (a real server change, with feedback).
     await page.locator('[data-testid="favourite-row"][data-record="led_0004"]').getByTestId('favourite-toggle').click();
-    await expect(page.getByTestId('toast-success')).toContainText('removed from favourites');
+    await expect(page.getByTestId('toast-success').filter({ hasText: 'removed from favourites' }).last()).toBeVisible();
     await expect(page.locator('[data-testid="favourite-row"]')).toHaveCount(0);
     expect(consoleErrors).toEqual([]);
   });
@@ -98,7 +98,7 @@ test.describe('E.13 positive journeys', () => {
     await drawer.locator('input[type="file"]').setInputFiles(textFile('visit-note-v1.txt', 'First visit note (demo)'));
     await expect(drawer.getByTestId('upload-file')).toContainText('visit-note-v1.txt');
     await drawer.getByTestId('upload-submit').click();
-    await expect(page.getByTestId('toast-success')).toContainText(/Uploaded DOC-LSP-0015/);
+    await expect(page.getByTestId('toast-success').filter({ hasText: /Uploaded DOC-LSP-0015/ }).last()).toBeVisible();
     await expect(page.getByTestId('document-workspace')).toBeVisible();
     await expect(page.getByTestId('document-preview')).toContainText('First visit note (demo)');
     // v2
@@ -107,7 +107,7 @@ test.describe('E.13 positive journeys', () => {
     await v2.locator('input[type="file"]').setInputFiles(textFile('visit-note-v2.txt', 'Second visit note (demo)'));
     await v2.getByTestId('upload-note').fill('Added the second visit');
     await v2.getByTestId('upload-submit').click();
-    await expect(page.getByTestId('toast-success')).toContainText(/Added version 2 to DOC-LSP-0015/);
+    await expect(page.getByTestId('toast-success').filter({ hasText: /Added version 2 to DOC-LSP-0015/ }).last()).toBeVisible();
     await expect(page.getByTestId('document-preview')).toContainText('Second visit note (demo)');
     await page.getByRole('tab', { name: /Versions \(2\)/ }).click();
     await expect(page.getByTestId('version-row')).toHaveCount(2);
@@ -126,7 +126,7 @@ test.describe('E.13 positive journeys', () => {
     await open(page, '/backoffice/doc/expiring-documents', 'expiring-documents');
     await expect(page.getByTestId('expiring-row')).toHaveCount(3);
     await expect(page.getByTestId('expiring-row').first()).toHaveAttribute('data-doc', 'doc_lsp_0011');
-    await page.getByTestId('expiring-window').getByRole('radio', { name: /Expired/ }).click();
+    await page.getByTestId('expiring-window-expired').click();
     await expect(page.getByTestId('expiring-row')).toHaveCount(2);
     await page.locator('[data-testid="expiring-row"][data-doc="doc_lsp_0003"]').getByTestId('expiring-row-link').click();
     await expect(page.getByTestId('document-expiry-alert')).toContainText('This document has expired');
@@ -145,7 +145,7 @@ test.describe('E.13 positive journeys', () => {
     const rows = page.getByTestId('task-row');
     await expect(rows.first()).toBeVisible();
     for (const mine of await rows.evaluateAll((els) => els.map((e) => e.getAttribute('data-mine')))) expect(mine).toBe('false');
-    await page.getByTestId('task-urgency').getByRole('radio', { name: /Overdue/ }).click();
+    await page.getByTestId('task-urgency-overdue').click();
     const first = page.locator('[data-testid="task-row"][data-kind="follow_up"]').first();
     const record = await first.getAttribute('data-record');
     await first.getByTestId('task-action').click();
@@ -157,7 +157,7 @@ test.describe('E.13 positive journeys', () => {
     await start(page, 'sales');
     await open(page, '/backoffice/home/my-tasks', 'my-tasks');
     for (const mine of await page.getByTestId('task-row').evaluateAll((els) => els.map((e) => e.getAttribute('data-mine')))) expect(mine).toBe('true');
-    await page.getByTestId('task-urgency').getByRole('radio', { name: /Today/ }).click();
+    await page.getByTestId('task-urgency-today').click();
     await expect(page).toHaveURL(/urgency=today/);
     for (const u of await page.getByTestId('task-row').evaluateAll((els) => els.map((e) => e.getAttribute('data-urgency')))) expect(u).toBe('today');
     expect(consoleErrors).toEqual([]);
@@ -173,7 +173,7 @@ test.describe('E.13 positive journeys', () => {
     await open(page, '/backoffice/doc/templates-and-policies?record=dtp_lsp_003', 'template-workspace');
     await page.getByTestId('template-approve').click();
     await page.getByRole('alertdialog').getByRole('button', { name: 'Approve' }).click();
-    await expect(page.getByTestId('toast-success')).toContainText('Version 2 of Site visit safety policy — Larkspur Heights approved');
+    await expect(page.getByTestId('toast-success').filter({ hasText: 'Version 2 of Site visit safety policy — Larkspur Heights approved' }).last()).toBeVisible();
     await expect(page.locator('[data-testid="template-version"][data-n="2"]')).toHaveAttribute('data-state', 'scheduled');
     expect(consoleErrors).toEqual([]);
   });
@@ -214,7 +214,7 @@ test.describe('E.13 access, scope and partitioning', () => {
     await open(page, '/backoffice/crm/lead-360-workspace?record=led_0006', 'lead-add-note');
     await open(page, '/backoffice/global/unified-search-results?q=Hina', 'unified-search');
     await page.locator('[data-testid="hub-hit"][data-record="led_0006"]').getByTestId('favourite-toggle').click();
-    await expect(page.getByTestId('toast-success')).toBeVisible();
+    await expect(page.getByTestId('toast-success').last()).toBeVisible();
     await become(page, 'sales');
     await open(page, '/backoffice/global/favorites', 'favourites');
     await expect(page.getByTestId('favourite-row')).toHaveCount(0);
@@ -228,7 +228,7 @@ test.describe('E.13 access, scope and partitioning', () => {
     await start(page, CONTROLLER);
     await open(page, '/backoffice/doc/document-preview?record=doc_lsp_0004', 'document-workspace');
     await page.getByTestId('document-favourite').click();
-    await expect(page.getByTestId('toast-success')).toContainText('added to favourites');
+    await expect(page.getByTestId('toast-success').filter({ hasText: 'added to favourites' }).last()).toBeVisible();
     await open(page, '/backoffice/global/favorites', 'favourites');
     await expect(page.locator('[data-testid="favourite-row"][data-record="doc_lsp_0004"]')).toBeVisible();
     await expect(page.locator('[data-testid="favourite-row"]')).toHaveCount(1);
@@ -309,7 +309,7 @@ test.describe('E.13 keyboard', () => {
     const star = page.getByTestId('favourite-toggle').first();
     await star.focus();
     await page.keyboard.press('Space');
-    await expect(page.getByTestId('toast-success')).toContainText('added to favourites');
+    await expect(page.getByTestId('toast-success').filter({ hasText: 'added to favourites' }).last()).toBeVisible();
     await expect(star).toHaveAttribute('data-on', 'true');
     expect(consoleErrors).toEqual([]);
   });

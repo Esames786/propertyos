@@ -78,21 +78,29 @@ export function UploadDrawer({ isOpen, onOpenChange, mode, onDone }: { isOpen: b
     announce(t('documents:upload.fileChosen', { name: read.fileName }));
   };
 
+  // One upload per form: a second press while it is sent, or after it succeeded (the drawer is closing), does nothing.
+  const busy = useRef(false);
+  const done = useRef(false);
   const submit = async () => {
+    if (busy.current || done.current) return;
     setTried(true);
     if (Object.keys(local).length) {
       announce(t('documents:upload.errors.summary'));
       return;
     }
+    busy.current = true;
     try {
       const body = mode.kind === 'new' ? { recordId: record!.id, title: title.trim(), kind: kind!, ...file!, expiresOn: expiresOn || null, note: note.trim() } : { ...file!, note: note.trim(), expiresOn: expiresOn || null };
       const created = await create.send({ method: 'POST', path: mode.kind === 'new' ? '/documents' : `/documents/${mode.doc.id}/versions`, body });
       const message = created.replayed ? t('documents:upload.replayed', { ref: created.ref }) : mode.kind === 'new' ? t('documents:upload.done', { ref: created.ref }) : t('documents:upload.versionDone', { ref: created.ref, n: created.version });
+      done.current = true;
       toast.success(message, { reference: created.ref });
       onOpenChange(false);
       onDone?.(created);
     } catch {
       announce(t('documents:upload.errors.refused'));
+    } finally {
+      busy.current = false;
     }
   };
 
@@ -105,10 +113,10 @@ export function UploadDrawer({ isOpen, onOpenChange, mode, onDone }: { isOpen: b
       testId="upload-drawer"
       footer={
         <div className="flex flex-wrap justify-end gap-2">
-          <Button variant="quiet" onPress={() => onOpenChange(false)} data-testid="upload-cancel">
+          <Button className="max-w-full whitespace-normal text-center" variant="quiet" onPress={() => onOpenChange(false)} data-testid="upload-cancel">
             {t('common:actions.cancel')}
           </Button>
-          <Button variant="primary" icon={Upload} isPending={create.isPending} onPress={() => void submit()} data-testid="upload-submit">
+          <Button className="max-w-full whitespace-normal text-center" variant="primary" icon={Upload} isPending={create.isPending} onPress={() => void submit()} data-testid="upload-submit">
             {mode.kind === 'new' ? t('documents:upload.submit') : t('documents:upload.submitVersion')}
           </Button>
         </div>
@@ -176,7 +184,7 @@ export function UploadDrawer({ isOpen, onOpenChange, mode, onDone }: { isOpen: b
                 {file.fileName}
               </bdi>
               <span className="text-xs text-muted">{sizeText(file.sizeBytes)}</span>
-              <Button variant="quiet" size="sm" icon={Trash2} onPress={() => setFile(null)} data-testid="upload-file-remove">
+              <Button className="max-w-full whitespace-normal text-center" variant="quiet" size="sm" icon={Trash2} onPress={() => setFile(null)} data-testid="upload-file-remove">
                 {t('documents:upload.removeFile')}
               </Button>
             </p>
