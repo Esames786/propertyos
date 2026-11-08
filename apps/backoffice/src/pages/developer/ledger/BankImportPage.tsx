@@ -1,10 +1,10 @@
 import { ApiError, type BankImportRowStatus, type BankImportsView, type BankImportView } from '@repo/contracts';
-import { Badge, Button, ConfirmDialog, dynamicT, EmptyState, ErrorState, InlineAlert, Link, Money, NotFoundState, PageHeader, Panel, PlainTextArea, SelectControl, useApiQuery, useKeyedCreate, useQueryParam, useQueryParams, useT, useToast, type StatusTone } from '@repo/ui';
+import { Badge, Button, ConfirmDialog, dynamicT, EmptyState, ErrorState, InlineAlert, Link, NotFoundState, PageHeader, Panel, PlainTextArea, SelectControl, useApiQuery, useKeyedCreate, useQueryParam, useQueryParams, useT, useToast, type StatusTone } from '@repo/ui';
 import { BadgeCheck, Ban, CircleAlert, Copy, Eye, FileWarning, Hourglass, Landmark, PlusCircle, Send, ShieldCheck, Trash2, XCircle, type LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import { Loading, ProblemAlert, ScrollRegion, useSocietyFormat } from '../../society/kit';
-import { fieldErrorKey, useProblemToast } from '../../society/hr/hkit';
-import { ACC, Blocked, EntityBar, History, LedgerNav, ProvisionalNotice, Ref, useEntityParam, WRAP, KEEP } from './lkit';
+import { fieldErrorKey, unbroken, useProblemToast } from '../../society/hr/hkit';
+import { ACC, Blocked, EntityBar, History, LedgerNav, ProvisionalNotice, Ref, useEntityParam, WRAP, KEEP, Amount } from './lkit';
 
 /**
  * BANK-005 Bank import (PARTIAL, Gate E.7 Wave 1). Only holders of the bank permission reach it (the
@@ -91,16 +91,16 @@ export default function BankImportPage() {
             {d.lines.map((l) => (
               <li key={l.id} className="flex flex-wrap items-start justify-between gap-2 py-2 text-sm" data-testid="bank-line" data-txn={l.bankTxnId}>
                 <span className="min-w-0">
-                  <bdi dir="ltr" className="font-mono text-xs">{l.bankTxnId}</bdi> · <LineDate date={l.valueDate} />
+                  <bdi dir="ltr" className="font-mono text-xs">{unbroken(l.bankTxnId)}</bdi> · <LineDate date={l.valueDate} />
                   <span className="block break-words text-muted">
-                    {l.narration} · <bdi>{l.reference}</bdi> · <bdi>{l.counterpartyName}</bdi>
+                    {l.narration} · <bdi>{unbroken(l.reference)}</bdi> · <bdi>{l.counterpartyName}</bdi>
                   </span>
                   <Badge tone="neutral" icon={CircleAlert} data-testid="bank-line-state" data-state={l.state}>
                     {t('ledger:bank.unmatched')}
                   </Badge>
                 </span>
                 <span className="text-end">
-                  <Money value={l.direction === 'debit' ? { ...l.amount, amount: `-${l.amount.amount}` } : l.amount} />
+                  <Amount value={l.direction === 'debit' ? { ...l.amount, amount: `-${l.amount.amount}` } : l.amount} />
                   <span className="block text-xs text-muted">{t(`ledger:bank.direction.${l.direction}`)}</span>
                 </span>
               </li>
@@ -223,7 +223,7 @@ function ImportDetail({ id }: { id: string }) {
           ))}
         </dl>
         <p className="text-sm">
-          {t('ledger:bank.newTotals')} <Money value={v.credits} /> · <Money value={{ ...v.debits, amount: v.debits.amount === '0.00' ? '0.00' : `-${v.debits.amount}` }} />
+          {t('ledger:bank.newTotals')} <Amount value={v.credits} /> · <Amount value={{ ...v.debits, amount: v.debits.amount === '0.00' ? '0.00' : `-${v.debits.amount}` }} />
         </p>
         <ol className="space-y-2" data-testid="bank-import-rows">
           {v.rows.map((r) => {
@@ -233,15 +233,15 @@ function ImportDetail({ id }: { id: string }) {
                 <p className="flex flex-wrap items-center justify-between gap-2">
                   <span className="flex flex-wrap items-center gap-2">
                     <span className="text-xs text-muted">{t('ledger:bank.rowN', { n: r.n })}</span>
-                    <bdi dir="ltr" className="font-mono text-xs">{r.bankTxnId || '—'}</bdi>
+                    <bdi dir="ltr" className="font-mono text-xs">{r.bankTxnId ? unbroken(r.bankTxnId) : '—'}</bdi>
                     <Badge tone={rt} icon={ri}>
                       {t(`ledger:bank.rowStatus.${r.status}`)}
                     </Badge>
                   </span>
-                  <Money value={r.direction === 'debit' ? { ...r.amount, amount: `-${r.amount.amount}` } : r.amount} />
+                  <Amount value={r.direction === 'debit' ? { ...r.amount, amount: `-${r.amount.amount}` } : r.amount} />
                 </p>
                 <p className="break-words text-muted">
-                  <bdi dir="ltr">{r.valueDate}</bdi> · {r.narration} · <bdi>{r.reference}</bdi> · <bdi>{r.counterparty}</bdi>
+                  <bdi dir="ltr">{unbroken(r.valueDate)}</bdi> · {r.narration} · <bdi>{unbroken(r.reference)}</bdi> · <bdi>{r.counterparty}</bdi>
                 </p>
                 {r.problems.length > 0 && <p className="text-error">{r.problems.map((p) => t(`ledger:bank.problem.${p}`)).join(' · ')}</p>}
               </li>

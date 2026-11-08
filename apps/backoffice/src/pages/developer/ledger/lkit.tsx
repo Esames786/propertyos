@@ -6,6 +6,9 @@ import { LINKS } from '../../../nav.config';
 import { unbroken } from '../../society/hr/hkit';
 import { useSocietyFormat } from '../../society/kit';
 
+/** An amount that may wrap after its currency (and, only when wider than the column, inside the figure): lists at 320 px with 200 % text. */
+export { WrapMoney as Amount } from '../../society/finance/fkit';
+
 /**
  * Gate E.7 (provisional, Wave 1): shared pieces of the developer ledger and bank-import screens.
  * Section navigation between the eleven screens, the legal-entity switcher (every read is for one
@@ -126,7 +129,7 @@ export function ProvisionalNotice({ screen }: { screen: 'chart' | 'account' | 'j
   const { t } = useT();
   return (
     <InlineAlert tone="info" title={t('ledger:provisional.title')} data-testid="ledger-provisional">
-      <p className="break-words">{t(`ledger:provisional.${screen}`)}</p>
+      <p className="break-words">{unbroken(t(`ledger:provisional.${screen}`))}</p>
       <p className="mt-1 text-xs break-words text-muted">{t('ledger:provisional.fictional')}</p>
     </InlineAlert>
   );

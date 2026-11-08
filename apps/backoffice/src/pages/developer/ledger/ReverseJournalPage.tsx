@@ -1,11 +1,11 @@
 import { ApiError, type JournalsList, type JournalView } from '@repo/contracts';
-import { Button, EmptyState, ErrorState, Link, Money, NotFoundState, PageHeader, Panel, PlainTextArea, useApiQuery, useKeyedCreate, useNavigation, useQueryParam, useT, useToast } from '@repo/ui';
+import { Button, EmptyState, ErrorState, Link, NotFoundState, PageHeader, Panel, PlainTextArea, useApiQuery, useKeyedCreate, useNavigation, useQueryParam, useT, useToast } from '@repo/ui';
 import { Undo2 } from 'lucide-react';
 import { useState } from 'react';
 import { Loading, ProblemAlert, useSocietyFormat } from '../../society/kit';
 import { DateInput, fieldErrorKey, useFieldError } from '../../society/hr/hkit';
 import { JournalLines } from './JournalsPage';
-import { ACC, Blocked, EntityBar, JournalBadge, LedgerNav, ProvisionalNotice, Ref, useEntityParam, WRAP } from './lkit';
+import { ACC, Blocked, EntityBar, JournalBadge, LedgerNav, ProvisionalNotice, Ref, useEntityParam, WRAP, Amount } from './lkit';
 
 /**
  * ACC-005 Reverse journal (PARTIAL, Gate E.7 Wave 1). A posted journal is never edited: the correction
@@ -47,7 +47,7 @@ function ChooseJournal() {
                   · <bdi>{fmt.date(j.date)}</bdi>
                   <span className="block break-words text-muted">{j.memo}</span>
                 </span>
-                <Money value={j.total} />
+                <Amount value={j.total} />
               </li>
             ))}
           </ul>

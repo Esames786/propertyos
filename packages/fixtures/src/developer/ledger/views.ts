@@ -128,7 +128,9 @@ export function journalView(ctx: HandlerContext, st: LedgerState, j: StoredJourn
     reverse: rev === 'ok' && poster,
   };
   let blocked: JournalView['blocked'];
-  if ((j.state === 'submitted' && checker) || (j.state === 'approved' && poster)) blocked = maker ? 'own_journal' : closed ? 'period_closed' : undefined;
+  // The maker always learns why the next step is not theirs (approval and posting are someone else's).
+  if ((j.state === 'submitted' || j.state === 'approved') && maker) blocked = 'own_journal';
+  else if ((j.state === 'submitted' && checker) || (j.state === 'approved' && poster)) blocked = closed ? 'period_closed' : undefined;
   else if (j.state === 'posted' && poster && rev !== 'ok' && rev !== 'not_posted') blocked = rev;
   return {
     ...journalSummary(st, j),

@@ -1,11 +1,11 @@
 import { JOURNAL_FILTERS, type JournalFilter, type JournalsList, type JournalView } from '@repo/contracts';
-import { Button, ConfirmDialog, Dialog, Drawer, dynamicT, EmptyState, ErrorState, FilterPills, Link, Money, NotFoundState, PageHeader, Panel, PlainCheckbox, PlainTextField, useApiQuery, useKeyedCreate, useQueryParam, useQueryParams, useSession, useT, useToast } from '@repo/ui';
+import { Button, ConfirmDialog, Dialog, Drawer, dynamicT, EmptyState, ErrorState, FilterPills, Link, NotFoundState, PageHeader, Panel, PlainCheckbox, PlainTextField, useApiQuery, useKeyedCreate, useQueryParam, useQueryParams, useSession, useT, useToast } from '@repo/ui';
 import { ArrowRightLeft, BadgeCheck, Ban, FilePlus2, PencilLine, Send, Stamp, Undo2, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import { ApiError } from '@repo/contracts';
 import { Loading, ScrollRegion, useSocietyFormat } from '../../society/kit';
-import { LinkButton, useProblemToast } from '../../society/hr/hkit';
-import { ACC, AccountRef, Blocked, DemoBadge, EntityBar, GL_POST, History, JournalBadge, LedgerNav, ProvisionalNotice, Ref, useAccountName, useEntityParam, WRAP, KEEP } from './lkit';
+import { LinkButton, unbroken, useProblemToast } from '../../society/hr/hkit';
+import { ACC, AccountRef, Blocked, DemoBadge, EntityBar, GL_POST, History, JournalBadge, LedgerNav, ProvisionalNotice, Ref, useAccountName, useEntityParam, WRAP, KEEP, Amount } from './lkit';
 
 /**
  * ACC-003 Journal entries (PARTIAL, Gate E.7 Wave 1). The entity's journals by state, with search;
@@ -51,18 +51,21 @@ export default function JournalsPage() {
                 <li key={j.id} data-testid="journal-row" data-ref={j.ref} data-state={j.state}>
                   <Link href={ACC.journals({ ...(entity ? { entity } : {}), ...(filter !== 'all' ? { filter } : {}), record: j.id })} variant="plain" className="flex flex-wrap items-start justify-between gap-2 rounded-control py-3 outline-none hover:bg-raised focus-visible:outline-2 focus-visible:outline-focus">
                     <span className="min-w-0 space-y-1">
-                      <span className="flex flex-wrap items-center gap-2 text-sm font-semibold text-text">
+                      {/* The reference on its own line in a smaller size: whole at 320 px with 200 % text. */}
+                      <span className="block text-xs font-semibold text-text">
                         <Ref value={j.ref} />
+                      </span>
+                      <span className="flex flex-wrap items-center gap-2">
                         <JournalBadge state={j.state} reversed={j.reversed} />
-                        {j.kind === 'reversal' && <span className="text-xs font-normal text-muted">{t('ledger:journal.reversalOf', { ref: j.reversalOf?.ref ?? '' })}</span>}
                         {j.demo && <DemoBadge />}
                       </span>
+                      {j.kind === 'reversal' && <span className="block text-xs text-muted">{t('ledger:journal.reversalOf', { ref: unbroken(j.reversalOf?.ref ?? '') })}</span>}
                       <span className="block text-sm break-words text-text">{j.memo}</span>
                       <span className="block text-xs text-muted">
                         <JournalDate date={j.date} /> · {t('ledger:journal.maker', { name: j.makerName })}
                       </span>
                     </span>
-                    <Money value={j.total} className="font-semibold" />
+                    <Amount value={j.total} className="font-semibold" />
                   </Link>
                 </li>
               ))}
@@ -94,13 +97,13 @@ export function JournalLines({ view, testId = 'journal-lines' }: { view: Pick<Jo
               <div className="flex flex-wrap justify-between gap-2">
                 <dt className="text-muted">{t('ledger:journal.debit')}</dt>
                 <dd>
-                  <Money value={l.debit} />
+                  <Amount value={l.debit} />
                 </dd>
               </div>
               <div className="flex flex-wrap justify-between gap-2">
                 <dt className="text-muted">{t('ledger:journal.credit')}</dt>
                 <dd>
-                  <Money value={l.credit} />
+                  <Amount value={l.credit} />
                 </dd>
               </div>
             </dl>
@@ -110,7 +113,7 @@ export function JournalLines({ view, testId = 'journal-lines' }: { view: Pick<Jo
         <li className="flex flex-wrap justify-between gap-2 rounded-tile bg-sunken p-3 text-sm font-semibold">
           <span>{t('ledger:journal.totals')}</span>
           <span>
-            <Money value={view.totals.debit} /> / <Money value={view.totals.credit} />
+            <Amount value={view.totals.debit} /> / <Amount value={view.totals.credit} />
           </span>
         </li>
       </ol>
@@ -132,10 +135,10 @@ export function JournalLines({ view, testId = 'journal-lines' }: { view: Pick<Jo
                     {(l.memo || l.costCentreLabelKey) && <LineNote memo={l.memo} cc={l.costCentreLabelKey} />}
                   </td>
                   <td className="py-2 pe-3 text-end">
-                    <Money value={l.debit} />
+                    <Amount value={l.debit} />
                   </td>
                   <td className="py-2 text-end">
-                    <Money value={l.credit} />
+                    <Amount value={l.credit} />
                   </td>
                 </tr>
               ))}
@@ -144,10 +147,10 @@ export function JournalLines({ view, testId = 'journal-lines' }: { view: Pick<Jo
               <tr className="font-semibold">
                 <th scope="row" className="py-2 pe-3 text-start">{t('ledger:journal.totals')}</th>
                 <td className="py-2 pe-3 text-end">
-                  <Money value={view.totals.debit} />
+                  <Amount value={view.totals.debit} />
                 </td>
                 <td className="py-2 text-end">
-                  <Money value={view.totals.credit} />
+                  <Amount value={view.totals.credit} />
                 </td>
               </tr>
             </tfoot>
@@ -335,7 +338,7 @@ function JournalActions({ j }: { j: JournalView }) {
         <div className="space-y-3 text-sm">
           <p>{confirming ? t(`ledger:journal.effect.${confirming}`) : ''}</p>
           <p className="font-semibold">
-            <Money value={j.totals.debit} />
+            <Amount value={j.totals.debit} />
           </p>
           <PlainCheckbox isSelected={ack} onChange={setAck} testId="journal-ack">
             {t('ledger:journal.acknowledge')}

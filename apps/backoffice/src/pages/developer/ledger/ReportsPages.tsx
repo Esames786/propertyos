@@ -1,9 +1,10 @@
 import type { BalanceSheet, LedgerScope, ProfitAndLoss, StatementSection, TrialBalance } from '@repo/contracts';
-import { Badge, EmptyState, ErrorState, InlineAlert, Link, Money, PageHeader, Panel, SelectControl, useApiQuery, useQueryParam, useT } from '@repo/ui';
+import { Badge, EmptyState, ErrorState, InlineAlert, Link, PageHeader, Panel, SelectControl, useApiQuery, useQueryParam, useT } from '@repo/ui';
 import { CheckCircle2, TriangleAlert } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Loading, ScrollRegion, useSocietyFormat } from '../../society/kit';
-import { ACC, AccountRef, EntityBar, LedgerNav, ProvisionalNotice, useAccountName, useEntityParam, KEEP } from './lkit';
+import { unbroken } from '../../society/hr/hkit';
+import { ACC, AccountRef, EntityBar, LedgerNav, ProvisionalNotice, useAccountName, useEntityParam, KEEP, Amount } from './lkit';
 
 /**
  * ACC-006 Trial balance, ACC-007 Profit and loss, ACC-008 Balance sheet (PARTIAL, Gate E.7 Wave 1).
@@ -76,18 +77,18 @@ export function TrialBalancePage() {
                   <dl className="mt-1 grid grid-cols-1 gap-1">
                     <div className="flex flex-wrap justify-between gap-2">
                       <dt className="text-muted">{t('ledger:journal.debit')}</dt>
-                      <dd><Money value={r.debit} /></dd>
+                      <dd><Amount value={r.debit} /></dd>
                     </div>
                     <div className="flex flex-wrap justify-between gap-2">
                       <dt className="text-muted">{t('ledger:journal.credit')}</dt>
-                      <dd><Money value={r.credit} /></dd>
+                      <dd><Amount value={r.credit} /></dd>
                     </div>
                   </dl>
                 </li>
               ))}
               <li className="space-y-1 rounded-tile bg-sunken p-3 text-sm font-semibold">
                 <p>{t('ledger:journal.totals')}</p>
-                <p><Money value={d.totals.debit} /> / <Money value={d.totals.credit} /></p>
+                <p><Amount value={d.totals.debit} /> / <Amount value={d.totals.credit} /></p>
               </li>
             </ol>
             <div className="hidden @min-[48em]:block">
@@ -104,16 +105,16 @@ export function TrialBalancePage() {
                     {d.rows.map((r) => (
                       <tr key={r.accountId} className="border-b border-border/60" data-testid="tb-row" data-code={r.code}>
                         <td className="py-2 pe-3"><AccountRef code={r.code} name={name(r)} href={ACC.account(r.accountId)} /></td>
-                        <td className="py-2 pe-3 text-end"><Money value={r.debit} /></td>
-                        <td className="py-2 text-end"><Money value={r.credit} /></td>
+                        <td className="py-2 pe-3 text-end"><Amount value={r.debit} /></td>
+                        <td className="py-2 text-end"><Amount value={r.credit} /></td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot>
                     <tr className="font-semibold">
                       <th scope="row" className="py-2 pe-3 text-start">{t('ledger:journal.totals')}</th>
-                      <td className="py-2 pe-3 text-end" data-testid="tb-total-debit"><Money value={d.totals.debit} /></td>
-                      <td className="py-2 text-end" data-testid="tb-total-credit"><Money value={d.totals.credit} /></td>
+                      <td className="py-2 pe-3 text-end" data-testid="tb-total-debit"><Amount value={d.totals.debit} /></td>
+                      <td className="py-2 text-end" data-testid="tb-total-credit"><Amount value={d.totals.credit} /></td>
                     </tr>
                   </tfoot>
                 </table>
@@ -151,14 +152,14 @@ function Section({ title, section, testId, total }: { title: string; section: St
           {section.rows.map((r) => (
             <li key={r.accountId} className="flex flex-wrap items-start justify-between gap-2 py-2 text-sm" data-testid="statement-row" data-code={r.code}>
               <span className="min-w-0"><AccountRef code={r.code} name={name(r)} href={ACC.account(r.accountId)} /></span>
-              <Money value={r.amount} />
+              <Amount value={r.amount} />
             </li>
           ))}
         </ul>
       )}
       <p className="flex flex-wrap justify-between gap-2 border-t border-border pt-2 text-sm font-semibold">
         <span>{total}</span>
-        <Money value={section.total} />
+        <Amount value={section.total} />
       </p>
     </section>
   );
@@ -184,8 +185,8 @@ export function ProfitAndLossPage() {
       <PageHeader title={t('ledger:pl.title')} description={t('ledger:pl.intro')} badge={<Badge tone="warning" icon={TriangleAlert}>{t('ledger:pl.managementView')}</Badge>} />
       <LedgerNav current="profitAndLoss" entity={d.entity.id} />
       <ProvisionalNotice screen="reports" />
-      <InlineAlert tone="warning" title={t('ledger:pl.policyTitle')} data-testid="profit-revenue-policy">
-        {t('ledger:pl.policy')}
+      <InlineAlert tone="warning" title={unbroken(t('ledger:pl.policyTitle'))} data-testid="profit-revenue-policy">
+        {unbroken(t('ledger:pl.policy'))}
       </InlineAlert>
       <PeriodBar scope={d} period={d.period} periods={d.periods} asOf={d.to} onEntity={setEntity} onPeriod={setPeriod} />
       <Panel title={t('ledger:pl.rangeTitle', { from: fmt.date(d.from), to: fmt.date(d.to) })}>
@@ -196,7 +197,7 @@ export function ProfitAndLossPage() {
           </Statement>
           <p className="flex flex-wrap justify-between gap-2 rounded-tile bg-sunken p-3 text-base font-bold" data-testid="profit-result">
             <span>{t(Number(d.result.amount) < 0 ? 'ledger:pl.loss' : 'ledger:pl.profit')}</span>
-            <Money value={d.result} />
+            <Amount value={d.result} />
           </p>
         </div>
       </Panel>
@@ -231,11 +232,11 @@ export function BalanceSheetPage() {
             <Section title={t('ledger:bs.equity')} section={d.equity} testId="bs-equity" total={t('ledger:bs.totalEquity')} />
             <p className="flex flex-wrap justify-between gap-2 text-sm" data-testid="bs-result" data-amount={d.currentResult.amount}>
               <span>{t('ledger:bs.currentResult')}</span>
-              <Money value={d.currentResult} />
+              <Amount value={d.currentResult} />
             </p>
             <p className="flex flex-wrap justify-between gap-2 border-t border-border pt-2 text-sm font-semibold" data-testid="bs-right" data-amount={d.liabilitiesEquityResult.amount}>
               <span>{t('ledger:bs.totalRight')}</span>
-              <Money value={d.liabilitiesEquityResult} />
+              <Amount value={d.liabilitiesEquityResult} />
             </p>
           </div>
         </Statement>

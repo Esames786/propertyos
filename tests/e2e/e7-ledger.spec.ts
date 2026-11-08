@@ -56,6 +56,8 @@ async function axe(page: Page, testInfo: TestInfo, label: string) {
 
 const overflowOf = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
 const recordOf = (page: Page) => new URL(page.url()).searchParams.get('record')!;
+/** Text with references: the screens keep a word joiner after each hyphen (so a reference never breaks). */
+const wj = (text: string) => new RegExp(text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/-/g, '-\u2060?'));
 
 async function choose(page: Page, select: string, option: RegExp) {
   await page.getByTestId(select).locator('button').first().click();
@@ -131,7 +133,7 @@ test.describe('Gate E.7 — journals: create, approve by someone else, post, rev
     await page.getByTestId('reverse-reason').fill('Entered in error (demo)');
     await page.getByTestId('reverse-submit').click();
     await expect(drawer(page)).toHaveAttribute('data-state', 'submitted');
-    await expect(page.getByTestId('journal-reversal-of')).toContainText('LKE-JV-2026-0009');
+    await expect(page.getByTestId('journal-reversal-of')).toContainText(wj('LKE-JV-2026-0009'));
     const reversal = recordOf(page);
 
     await office(page, 'lk_controller', `/backoffice/acc/journal-entries?record=${reversal}`, 'journal-detail');

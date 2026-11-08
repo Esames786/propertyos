@@ -1,9 +1,10 @@
 import { ApiError, type GlAccountWorkspace } from '@repo/contracts';
-import { Badge, EmptyState, ErrorState, KeyValueList, Link, Money, NotFoundState, PageHeader, Panel, useApiQuery, useQueryParam, useSession, useT } from '@repo/ui';
+import { Badge, EmptyState, ErrorState, KeyValueList, Link, NotFoundState, PageHeader, Panel, useApiQuery, useQueryParam, useSession, useT } from '@repo/ui';
 import type { ReactNode } from 'react';
 import { Landmark } from 'lucide-react';
 import { Loading, ScrollRegion, useSocietyFormat } from '../../society/kit';
-import { ACC, BANK_VIEW, History, JournalBadge, LedgerNav, LockBadge, ProvisionalNotice, Ref, useAccountName } from './lkit';
+import { unbroken } from '../../society/hr/hkit';
+import { ACC, BANK_VIEW, History, JournalBadge, LedgerNav, LockBadge, ProvisionalNotice, Ref, useAccountName, Amount } from './lkit';
 
 /**
  * ACC-002 Account workspace (PARTIAL, Gate E.7 Wave 1): one ledger account (`?record=`), its balance
@@ -45,7 +46,7 @@ function Workspace({ w }: { w: GlAccountWorkspace }) {
         <Panel title={t('ledger:account.summaryTitle')} className="@4xl:col-span-1">
           <KeyValueList
             items={[
-              { label: t('ledger:account.balance'), value: <span data-testid="account-balance" data-amount={a.normalBalance.amount}><Money value={a.normalBalance} /> · {t(`ledger:normal.${a.normal}`)}</span> },
+              { label: t('ledger:account.balance'), value: <span data-testid="account-balance" data-amount={a.normalBalance.amount}><Amount value={a.normalBalance} /> · {t(`ledger:normal.${a.normal}`)}</span> },
               { label: t('ledger:account.postedLines'), value: fmt.count(a.postedLines) },
               { label: t('ledger:account.pendingLines'), value: fmt.count(a.pendingLines) },
               { label: t('ledger:account.since'), value: a.sinceVersion ? t('ledger:chart.version', { version: a.sinceVersion }) : '—' },
@@ -54,7 +55,7 @@ function Workspace({ w }: { w: GlAccountWorkspace }) {
           {a.lock && (
             <div className="mt-3 space-y-1">
               <LockBadge lock={a.lock} />
-              <p className="text-xs break-words text-muted">{t(`ledger:lock.${a.lock}Hint`)}</p>
+              <p className="text-xs break-words text-muted">{unbroken(t(`ledger:lock.${a.lock}Hint`))}</p>
             </div>
           )}
           {a.bank && (
@@ -75,7 +76,7 @@ function Workspace({ w }: { w: GlAccountWorkspace }) {
         </Panel>
         <Panel title={t('ledger:account.linesTitle')} className="@4xl:col-span-2">
           {w.lines.length === 0 ? (
-            <EmptyState title={t('ledger:account.noLines')} body={a.lock === 'cash_evidence' ? t('ledger:lock.cash_evidenceHint') : undefined} />
+            <EmptyState title={t('ledger:account.noLines')} body={a.lock === 'cash_evidence' ? unbroken(t('ledger:lock.cash_evidenceHint')) : undefined} />
           ) : (
             <>
               <ol className="space-y-2 @min-[56em]:hidden" aria-label={t('ledger:account.linesTitle')} data-testid="account-lines-list">
@@ -90,13 +91,13 @@ function Workspace({ w }: { w: GlAccountWorkspace }) {
                     <p className="break-words text-muted">{l.memo}</p>
                     <dl className="mt-1 grid grid-cols-1 gap-1">
                       <Pair label={t('ledger:journal.debit')}>
-                        <Money value={l.debit} />
+                        <Amount value={l.debit} />
                       </Pair>
                       <Pair label={t('ledger:journal.credit')}>
-                        <Money value={l.credit} />
+                        <Amount value={l.credit} />
                       </Pair>
                       <Pair label={t('ledger:account.running')}>
-                        <Money value={l.running} />
+                        <Amount value={l.running} />
                       </Pair>
                     </dl>
                   </li>
@@ -124,9 +125,9 @@ function Workspace({ w }: { w: GlAccountWorkspace }) {
                             </Link>
                             <span className="block text-xs break-words text-muted">{l.memo}</span>
                           </td>
-                          <td className="py-2 pe-3 text-end"><Money value={l.debit} /></td>
-                          <td className="py-2 pe-3 text-end"><Money value={l.credit} /></td>
-                          <td className="py-2 text-end"><Money value={l.running} /></td>
+                          <td className="py-2 pe-3 text-end"><Amount value={l.debit} /></td>
+                          <td className="py-2 pe-3 text-end"><Amount value={l.credit} /></td>
+                          <td className="py-2 text-end"><Amount value={l.running} /></td>
                         </tr>
                       ))}
                     </tbody>
@@ -151,7 +152,7 @@ function Workspace({ w }: { w: GlAccountWorkspace }) {
                   <JournalBadge state={p.state} />
                 </span>
                 <span>
-                  {p.debit.amount !== '0.00' ? <Money value={p.debit} /> : <Money value={p.credit} />} · {t(p.debit.amount !== '0.00' ? 'ledger:journal.debit' : 'ledger:journal.credit')}
+                  {p.debit.amount !== '0.00' ? <Amount value={p.debit} /> : <Amount value={p.credit} />} · {t(p.debit.amount !== '0.00' ? 'ledger:journal.debit' : 'ledger:journal.credit')}
                 </span>
               </li>
             ))}

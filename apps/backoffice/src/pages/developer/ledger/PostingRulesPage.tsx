@@ -3,7 +3,7 @@ import { Badge, Button, Drawer, dynamicT, ErrorState, InlineAlert, PageHeader, P
 import { Eye, FilePlus2, Hourglass, Play, Scale } from 'lucide-react';
 import { useState } from 'react';
 import { Loading, ProblemAlert, useSocietyFormat } from '../../society/kit';
-import { DateInput, fieldErrorKey, useFieldError } from '../../society/hr/hkit';
+import { DateInput, fieldErrorKey, useFieldError, unbroken } from '../../society/hr/hkit';
 import { JournalLines } from './JournalsPage';
 import { AccountRef, EntityBar, GL_POST, History, LedgerNav, ProvisionalNotice, Ref, useAccountName, useEntityParam, WRAP, KEEP } from './lkit';
 
@@ -28,7 +28,7 @@ export default function PostingRulesPage() {
       <LedgerNav current="rules" entity={entity} />
       <ProvisionalNotice screen="rules" />
       <InlineAlert tone="warning" title={t('ledger:rules.blockedTitle')} data-testid="rules-blocked">
-        {t('ledger:rules.blocked')}
+        {unbroken(t('ledger:rules.blocked'))}
       </InlineAlert>
       <EntityBar scope={d} onChange={setEntity} />
       <p className="text-sm" data-testid="rules-events" data-count={d.proposedEvents}>
@@ -68,7 +68,7 @@ function Rule({ r, entityId, today }: { r: PostingRuleView; entityId: string; to
             {t('ledger:rules.waitingFor')}{' '}
             {r.blockedBy.map((dcs) => (
               <Badge key={dcs} tone="warning" data-decision={dcs}>
-                {dt(`ledger:rules.decision.${dcs.replace('-', '')}`)}
+                {unbroken(dt(`ledger:rules.decision.${dcs.replace('-', '')}`))}
               </Badge>
             ))}
           </p>
@@ -82,7 +82,7 @@ function Rule({ r, entityId, today }: { r: PostingRuleView; entityId: string; to
               {t('ledger:rules.draftVersion')}
             </Button>
           )}
-          <Button className={WRAP} icon={Play} isDisabled disabledReason={t('ledger:rules.applyBlocked', { decisions: r.blockedBy.join(', ') })} data-testid="rule-apply">
+          <Button className={WRAP} icon={Play} isDisabled disabledReason={t('ledger:rules.applyBlocked', { decisions: r.blockedBy.map(unbroken).join(', ') })} data-testid="rule-apply">
             {t('ledger:rules.apply')}
           </Button>
         </div>

@@ -1,10 +1,10 @@
 import { GL_ACCOUNT_TYPES, type ChartView, type GlAccountType, type GlAccountView } from '@repo/contracts';
-import { Badge, Button, ConfirmDialog, Drawer, EmptyState, ErrorState, FilterPills, Money, PageHeader, Panel, PlainTextField, SelectControl, useApiQuery, useKeyedCreate, useQueryParam, useSession, useT, useToast } from '@repo/ui';
+import { Badge, Button, ConfirmDialog, Drawer, EmptyState, ErrorState, FilterPills, PageHeader, Panel, PlainTextField, SelectControl, useApiQuery, useKeyedCreate, useQueryParam, useSession, useT, useToast } from '@repo/ui';
 import { BadgeCheck, FilePlus2, Hourglass, Landmark, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import { Loading, ProblemAlert, useSocietyFormat } from '../../society/kit';
 import { fieldErrorKey, useProblemToast } from '../../society/hr/hkit';
-import { ACC, AccountRef, Blocked, EntityBar, GL_POST, LedgerNav, LockBadge, ProvisionalNotice, useAccountName, useEntityParam, WRAP, KEEP } from './lkit';
+import { ACC, AccountRef, Blocked, EntityBar, GL_POST, LedgerNav, LockBadge, ProvisionalNotice, useAccountName, useEntityParam, WRAP, KEEP, Amount } from './lkit';
 
 /**
  * ACC-001 Chart of accounts (PARTIAL, Gate E.7 Wave 1; decision E-16). An illustrative chart per legal
@@ -126,7 +126,7 @@ function AccountRow({ a }: { a: GlAccountView }) {
         </div>
         {a.state === 'active' && (
           <span className="text-end text-sm">
-            <Money value={a.normalBalance} className="font-semibold" />
+            <Amount value={a.normalBalance} className="font-semibold" />
             <span className="block text-xs text-muted">{t('ledger:chart.postedLines', { count: a.postedLines })}</span>
           </span>
         )}

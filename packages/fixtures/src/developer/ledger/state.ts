@@ -343,7 +343,7 @@ export function seedLarkspur(s: LedgerState): void {
   s.counters['le_larkspur:rule'] = 5;
   // A second, later version of the supplier-bill rule (versions apply by effective date).
   const bills = s.rules[2]!;
-  bills.versions.push({ n: 2, effectiveFrom: '2026-11-01', debitAccountId: accountId('LKE', '5100'), creditAccountId: accountId('LKE', '2000'), draftedBy: SAAD.by, draftedByName: SAAD.byName, draftedAt: pkt('2026-10-19', '12:10'), note: 'Head-office bills to office expenses from November (proposed).' });
+  bills.versions.push({ n: 2, effectiveFrom: '2026-11-01', debitAccountId: accountId('LKE', '5100'), creditAccountId: accountId('LKE', '2000'), draftedBy: SAAD.by, draftedByName: SAAD.byName, draftedAt: pkt('2026-10-19', '12:10'), note: 'Bills of the head office go to office expenses from November (proposed).' });
   bills.history.push({ at: pkt('2026-10-19', '12:10'), by: SAAD.by, byName: SAAD.byName, action: 'rule_version_drafted', values: { version: '2', from: '2026-11-01' } });
 
   // July: opening balances (no cash: cash at bank changes only on evidence).

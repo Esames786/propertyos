@@ -1,10 +1,10 @@
 import { ApiError, type JournalFormOptions, type JournalView } from '@repo/contracts';
-import { Button, dynamicT, ErrorState, IconButton, InlineAlert, Money, NotFoundState, PageHeader, Panel, PlainTextField, SelectControl, useApiQuery, useKeyedCreate, useNavigation, useQueryParam, useT, useToast } from '@repo/ui';
+import { Button, dynamicT, ErrorState, IconButton, InlineAlert, NotFoundState, PageHeader, Panel, PlainTextField, SelectControl, useApiQuery, useKeyedCreate, useNavigation, useQueryParam, useT, useToast } from '@repo/ui';
 import { Plus, Save, Send, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Loading, ProblemAlert } from '../../society/kit';
 import { DateInput, fieldErrorKey, useFieldError } from '../../society/hr/hkit';
-import { ACC, Blocked, EntityBar, LedgerNav, ProvisionalNotice, useAccountName, useEntityParam, WRAP } from './lkit';
+import { ACC, Blocked, EntityBar, LedgerNav, ProvisionalNotice, useAccountName, useEntityParam, WRAP, Amount } from './lkit';
 
 /**
  * ACC-004 Create journal (PARTIAL, Gate E.7 Wave 1). A manual journal of one legal entity: dated in an
@@ -179,19 +179,19 @@ function JournalForm({ options, existing, onEntity }: { options: JournalFormOpti
           <div>
             <dt className="text-muted">{t('ledger:create.totalDebit')}</dt>
             <dd className="font-semibold" data-testid="journal-total-debit">
-              <Money value={money(totals.debit)} />
+              <Amount value={money(totals.debit)} />
             </dd>
           </div>
           <div>
             <dt className="text-muted">{t('ledger:create.totalCredit')}</dt>
             <dd className="font-semibold" data-testid="journal-total-credit">
-              <Money value={money(totals.credit)} />
+              <Amount value={money(totals.credit)} />
             </dd>
           </div>
           <div>
             <dt className="text-muted">{t('ledger:create.difference')}</dt>
             <dd className="font-semibold" data-testid="journal-difference">
-              {balanced ? t('ledger:create.balanced') : <Money value={money(totals.debit - totals.credit)} />}
+              {balanced ? t('ledger:create.balanced') : <Amount value={money(totals.debit - totals.credit)} />}
             </dd>
           </div>
         </dl>

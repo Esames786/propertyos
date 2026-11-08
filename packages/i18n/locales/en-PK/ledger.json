@@ -20,14 +20,14 @@
   },
   "provisional": {
     "title": "Provisional screen (partial)",
-    "chart": "Accounts are added by a draft that someone else approves. The chart is illustrative and waits for the developer foundation (E.0) and an accounting adviser (E-16).",
+    "chart": "Accounts are added by a draft that someone else approves. The chart is illustrative and waits for the developer foundation (E.0) and an accounting adviser (E-⁠16).",
     "account": "Balances come from posted journals only. The workspace waits for the developer foundation (E.0) before it is complete.",
     "journals": "Journals are prepared by one person and approved and posted by someone else. The list waits for the developer foundation (E.0) before it is complete.",
-    "create": "Only manual journals exist in this wave. Cash at bank and revenue accounts are locked until their decisions are taken (E-17, E-15).",
+    "create": "Only manual journals exist in this wave. Cash at bank and revenue accounts are locked until their decisions are taken (E-⁠17, E-⁠15).",
     "reverse": "A posted journal is never edited: it is corrected by a reversal that someone else approves and posts.",
-    "reports": "Computed from the same posted journals. Revenue recognition is not set (E-15), so profit is a management view.",
+    "reports": "Computed from the same posted journals. Revenue recognition is not set (E-⁠15), so profit is a management view.",
     "periods": "One period record per legal entity and month. At integration it is shared with the cashbook.",
-    "rules": "Posting rules are proposals. Nothing is posted from them until an accounting adviser decides E-15, E-16 and E-17.",
+    "rules": "Posting rules are proposals. Nothing is posted from them until an accounting adviser decides E-⁠15, E-⁠16 and E-⁠17.",
     "bank": "Sample statements only. Imported lines are unmatched statement lines: never receipts, never settled.",
     "fictional": "Prototype with fictional money. No bank, payment or transfer is connected."
   },
@@ -50,8 +50,8 @@
   "lock": {
     "cash_evidence": "Locked: needs payment evidence",
     "revenue_policy": "Locked: revenue policy not set",
-    "cash_evidenceHint": "Cash at bank changes only from confirmed payments or settlement confirmations (E-17). None exist in this wave, so no manual journal may touch it.",
-    "revenue_policyHint": "No revenue is recognised until the revenue recognition policy is decided (E-15)."
+    "cash_evidenceHint": "Cash at bank changes only from confirmed payments or settlement confirmations (E-⁠17). None exist in this wave, so no manual journal may touch it.",
+    "revenue_policyHint": "No revenue is recognised until the revenue recognition policy is decided (E-⁠15)."
   },
   "chart": {
     "title": "Chart of accounts",
@@ -319,7 +319,7 @@
     "title": "Profit and loss",
     "intro": "Income and expenses posted in the fiscal year up to the chosen month.",
     "managementView": "Management view",
-    "policyTitle": "Revenue recognition policy not set (E-15)",
+    "policyTitle": "Revenue recognition policy not set (E-⁠15)",
     "policy": "No revenue is recognised in the prototype. Bookings and instalments are not revenue; an accounting adviser decides the policy.",
     "rangeTitle": "{{from}} to {{to}}",
     "income": "Income",
@@ -409,18 +409,18 @@
     "title": "Posting rules",
     "intro": "Which accounts a business event would post to, versioned by date. Proposals only.",
     "blockedTitle": "Proposed — not applied",
-    "blocked": "No journal is created from these rules. An accounting adviser must decide revenue recognition (E-15), the chart (E-16) and automatic posting (E-17) first, and their source screens do not exist yet.",
+    "blocked": "No journal is created from these rules. An accounting adviser must decide revenue recognition (E-⁠15), the chart (E-⁠16) and automatic posting (E-⁠17) first, and their source screens do not exist yet.",
     "events_one": "{{count}} source event is waiting to be proposed.",
     "events_other": "{{count}} source events are waiting to be proposed.",
     "proposed": "Proposed — not applied",
     "source": "Source screens: slice {{slice}} (not built yet)",
     "waitingFor": "Waiting for:",
     "decision": {
-      "E15": "E-15 revenue recognition",
-      "E16": "E-16 chart of accounts",
-      "E17": "E-17 automatic posting",
-      "E18": "E-18 outgoing settlement",
-      "E33": "E-33 payroll posting"
+      "E15": "E-⁠15 revenue recognition",
+      "E16": "E-⁠16 chart of accounts",
+      "E17": "E-⁠17 automatic posting",
+      "E18": "E-⁠18 outgoing settlement",
+      "E33": "E-⁠33 payroll posting"
     },
     "event": {
       "instalment_invoiced": "Instalment invoiced",
@@ -608,8 +608,8 @@
     "linesFew": "A journal needs at least two lines.",
     "linesMany": "A journal has at most {{max}} lines.",
     "accountUnavailable": "Choose an active account of this legal entity.",
-    "accountLockedCash": "Cash at bank changes only from confirmed payments or settlement confirmations (E-17).",
-    "accountLockedRevenue": "No revenue is recognised until the policy is set (E-15).",
+    "accountLockedCash": "Cash at bank changes only from confirmed payments or settlement confirmations (E-⁠17).",
+    "accountLockedRevenue": "No revenue is recognised until the policy is set (E-⁠15).",
     "amountInvalid": "Enter an amount with at most two decimals.",
     "amountOneSide": "Enter an amount on one side only: debit or credit.",
     "costCentreUnavailable": "Choose a cost centre of this legal entity.",
