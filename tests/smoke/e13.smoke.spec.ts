@@ -22,6 +22,8 @@ async function start(page: Page, persona: PersonaId, locale: 'en-PK' | 'ur-PK' =
 const appErrors = (errors: string[]) => errors.filter((e) => !(e.includes('downloadable font: download failed') && e.includes('status=2152398850')));
 
 test('search → favourite → favourites and recent records', async ({ page, consoleErrors }) => {
+  // Firefox and WebKit start slower on Windows (other smoke specs allow the same).
+  test.setTimeout(150_000);
   await start(page, 'manager');
   await page.goto(`${BO}/backoffice/global/unified-search-results?q=Amna`);
   const hit = page.locator('[data-testid="hub-hit"][data-record="led_0004"]');
@@ -30,6 +32,8 @@ test('search → favourite → favourites and recent records', async ({ page, co
   await expect(page.getByTestId('toast-success').filter({ hasText: 'added to favourites' }).last()).toBeVisible();
   await hit.getByTestId('hub-hit-link').click();
   await expect(page).toHaveURL(/record=led_0004/);
+  // Lead 360 has opened (the shell records the visit once the record check has answered).
+  await expect(page.getByTestId('lead-add-note')).toBeVisible();
   await page.goto(`${BO}/backoffice/global/favorites`);
   await expect(page.locator('[data-testid="favourite-row"][data-record="led_0004"]')).toBeVisible();
   await page.goto(`${BO}/backoffice/global/recent-records`);
@@ -38,6 +42,8 @@ test('search → favourite → favourites and recent records', async ({ page, co
 });
 
 test('a demo upload, a second version and the preview of each', async ({ page, consoleErrors }) => {
+  // Firefox and WebKit start slower on Windows (other smoke specs allow the same).
+  test.setTimeout(150_000);
   await start(page, CONTROLLER);
   await page.goto(`${BO}/backoffice/doc/upload-drawer?for=led_0004`);
   const drawer = page.getByTestId('upload-drawer');
@@ -58,6 +64,8 @@ test('a demo upload, a second version and the preview of each', async ({ page, c
 });
 
 test('the Heights clerk never sees a Gardens document; a hidden one reads like an unknown one', async ({ page, consoleErrors }) => {
+  // Firefox and WebKit start slower on Windows (other smoke specs allow the same).
+  test.setTimeout(150_000);
   await start(page, CLERK);
   await page.goto(`${BO}/backoffice/doc/document-preview`);
   await expect(page.getByTestId('document-row')).toHaveCount(8);
@@ -69,6 +77,8 @@ test('the Heights clerk never sees a Gardens document; a hidden one reads like a
 });
 
 test('320 px at 200 % text in Urdu: favourites, the documents list and a document', async ({ page, consoleErrors }) => {
+  // Firefox and WebKit start slower on Windows (other smoke specs allow the same).
+  test.setTimeout(150_000);
   await page.setViewportSize({ width: 320, height: 700 });
   await start(page, CONTROLLER, 'ur-PK');
   await page.addInitScript(() => localStorage.setItem('pref:display:v1:backoffice:tnt_larkspur:usr_lsp_d0001', JSON.stringify({ version: 2, textScale: 2, chosenAt: '2026-10-26T00:00:00Z', updatedAt: '2026-10-26T00:00:00Z' })));

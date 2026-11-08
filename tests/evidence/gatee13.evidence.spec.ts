@@ -37,6 +37,7 @@ async function as(page: Page, persona: PersonaId, path: string, ready: string) {
   await become(page, persona);
   await page.goto(`${BO}${path}`);
   await page.getByTestId(ready).first().waitFor();
+  await page.locator('main [aria-busy="true"]').first().waitFor({ state: 'detached' }).catch(() => undefined);
   await settle(page);
 }
 

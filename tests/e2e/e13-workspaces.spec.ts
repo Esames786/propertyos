@@ -39,6 +39,8 @@ async function become(page: Page, persona: PersonaId) {
 async function open(page: Page, path: string, ready: string) {
   await page.goto(`${BO}${path}`);
   await expect(page.getByTestId(ready).first()).toBeVisible();
+  // The screen's data has arrived (no loading placeholder left), so layout and focus checks see the real page.
+  await expect(page.locator('main [aria-busy="true"]')).toHaveCount(0);
 }
 
 async function axe(page: Page, testInfo: TestInfo, label: string) {
@@ -46,6 +48,8 @@ async function axe(page: Page, testInfo: TestInfo, label: string) {
   expect(violations, label).toEqual([]);
 }
 
+/** Displayed references and file names keep a word joiner after each hyphen (so they never break). */
+const wj = (text: string) => new RegExp(text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/-/g, '-\u2060?'));
 const textFile = (name: string, text: string) => ({ name, mimeType: 'text/plain', buffer: Buffer.from(text, 'utf8') });
 
 test.describe('E.13 positive journeys', () => {
@@ -96,7 +100,7 @@ test.describe('E.13 positive journeys', () => {
     await drawer.getByTestId('upload-kind').getByRole('button').click();
     await page.getByRole('option', { name: 'Correspondence' }).click();
     await drawer.locator('input[type="file"]').setInputFiles(textFile('visit-note-v1.txt', 'First visit note (demo)'));
-    await expect(drawer.getByTestId('upload-file')).toContainText('visit-note-v1.txt');
+    await expect(drawer.getByTestId('upload-file')).toContainText(wj('visit-note-v1.txt'));
     await drawer.getByTestId('upload-submit').click();
     await expect(page.getByTestId('toast-success').filter({ hasText: /Uploaded DOC-LSP-0015/ }).last()).toBeVisible();
     await expect(page.getByTestId('document-workspace')).toBeVisible();

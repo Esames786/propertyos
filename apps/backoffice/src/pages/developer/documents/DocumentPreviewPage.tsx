@@ -224,7 +224,7 @@ export function PreviewPane({ detail }: { detail: DocumentDetail }) {
           <p className="p-6 pt-12 text-sm text-muted">{t('documents:preview.none')}</p>
         )}
       </div>
-      <figcaption className="text-xs text-muted">
+      <figcaption className="text-xs text-muted [overflow-wrap:anywhere]">
         <bdi dir="ltr">{unbroken(v.fileName)}</bdi> · {sizeText(v.sizeBytes)} · {t('documents:updated', { when: f.when(v.uploadedAt), name: v.uploadedByName })}
       </figcaption>
     </figure>
