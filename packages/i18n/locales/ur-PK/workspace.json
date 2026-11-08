@@ -200,7 +200,8 @@
       "previous": "پچھلا",
       "next": "اگلا",
       "page": "صفحہ {{page}}",
-      "everywhere": "“{{query}}” ہر جگہ تلاش کریں"
+      "everywhere": "“{{query}}” کے لیے ہر قسم کا ریکارڈ",
+      "everywhereLabel": "ہر جگہ تلاش کریں"
     },
     "saved": {
       "filter": "اس فہرست کو فلٹر کریں",

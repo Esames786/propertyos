@@ -82,8 +82,9 @@ test.describe('E.13 positive journeys', () => {
     await open(page, '/backoffice/global/favorites', 'favourites');
     await page.keyboard.press('Control+k');
     await page.keyboard.type('LH-A-01');
-    const action = page.getByRole('menuitem', { name: /Search everywhere for “LH-A-01”/ });
+    const action = page.getByRole('menuitem', { name: 'Search everywhere', exact: true });
     await expect(action).toBeVisible();
+    await expect(action).toContainText('Every kind of record for “LH-A-01”');
     await action.click();
     await expect(page).toHaveURL(/unified-search-results\?q=LH-A-01/);
     await expect(page.getByTestId('hub-search-group').first()).toBeVisible();

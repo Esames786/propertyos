@@ -114,7 +114,7 @@ export function CommandPalette() {
   const otherLocale = SUPPORTED_LOCALES.find((l) => l !== locale)!;
   const essentials = tour.available.find((d) => d.id === 'GLOBAL-TOUR-001');
   const actions = useMemo(() => {
-    const list: Array<{ id: string; label: string; icon: LucideIcon; run: () => void }> = [
+    const list: Array<{ id: string; label: string; icon: LucideIcon; run: () => void; detail?: string }> = [
       { id: 'locale', label: t('common:command.switchLanguage', { language: LOCALE_META[otherLocale].nativeName }), icon: Languages, run: () => setLocale(otherLocale) },
       { id: 'help', label: t('common:command.openHelp'), icon: LifeBuoy, run: () => navigate(`${location.pathname}?help=open`) },
       { id: 'prefs', label: t('common:command.openPreferences'), icon: Settings, run: () => navigate(links.preferences) },
@@ -127,7 +127,8 @@ export function CommandPalette() {
     // Gate E.13 (provisional; reconcile at Wave 1 integration): the office app's universal search
     // (GLOBAL-002) for every kind of record, last in the list so Enter keeps choosing the first match.
     if (query.trim().length >= 2 && links.start.startsWith('/backoffice/'))
-      matching.push({ id: 'search-everywhere', label: t('workspace:hub.search.everywhere', { query: query.trim() }), icon: Search, run: () => navigate(`/backoffice/global/unified-search-results?q=${encodeURIComponent(query.trim())}`) });
+      // Its name stays "Search everywhere" (what was typed is its description), so it never takes the name of a screen or record.
+      matching.push({ id: 'search-everywhere', label: t('workspace:hub.search.everywhereLabel'), detail: t('workspace:hub.search.everywhere', { query: query.trim() }), icon: Search, run: () => navigate(`/backoffice/global/unified-search-results?q=${encodeURIComponent(query.trim())}`) });
     return matching;
   }, [t, otherLocale, setLocale, navigate, location.pathname, links, essentials, tour, can, query]);
 
@@ -231,7 +232,16 @@ export function CommandPalette() {
                   {actions.map((a) => (
                     <MenuItem key={a.id} id={`action:${a.id}`} textValue={a.label} className={cn(itemClass)}>
                       <a.icon aria-hidden className="size-4 shrink-0 text-muted" />
-                      <Text slot="label">{a.label}</Text>
+                      {a.detail ? (
+                        <span className="flex min-w-0 flex-1 flex-col">
+                          <Text slot="label">{a.label}</Text>
+                          <Text slot="description" className="text-xs text-muted">
+                            {a.detail}
+                          </Text>
+                        </span>
+                      ) : (
+                        <Text slot="label">{a.label}</Text>
+                      )}
                     </MenuItem>
                   ))}
                 </MenuSection>

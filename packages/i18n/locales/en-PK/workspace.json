@@ -200,7 +200,8 @@
       "previous": "Previous",
       "next": "Next",
       "page": "Page {{page}}",
-      "everywhere": "Search everywhere for “{{query}}”"
+      "everywhere": "Every kind of record for “{{query}}”",
+      "everywhereLabel": "Search everywhere"
     },
     "saved": {
       "filter": "Filter this list",
