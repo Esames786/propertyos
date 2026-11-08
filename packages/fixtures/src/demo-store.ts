@@ -21,7 +21,7 @@ export interface DemoOverlay {
   visits: SiteVisit[];
   visitPatches: Record<string, Partial<SiteVisit>>;
   /** Unit holds placed in this session (unit id → hold). */
-  holds: Record<string, { leadId: string; leadRef: string; until: string }>;
+  holds: Record<string, { leadId: string; leadRef: string; until: string; principalId?: string }>;
   workspace: WorkspaceProfile | null;
   /** Feature-owned state (e.g. the customer portal), created lazily with `section()`. */
   sections: Record<string, unknown>;
