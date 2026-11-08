@@ -49,7 +49,7 @@ const toast = (page: Page, text: string) => expect(page.getByTestId('toast-succe
 const appErrors = (errors: string[]) => errors.filter((e) => !(e.includes('downloadable font: download failed') && e.includes('status=2152398850')));
 
 test('assign → convert → move by menu → visit outcome with a follow-up; Bilal sees only his Heights records', async ({ page, consoleErrors }) => {
-  test.setTimeout(180_000);
+  test.setTimeout(300_000);
   await at(page);
   await seed(page, { persona: 'sales_manager' });
   await page.goto(`${BO}${PIPELINE}`);
@@ -73,8 +73,12 @@ test('assign → convert → move by menu → visit outcome with a follow-up; Bi
   await page.getByTestId('move-to-visit').click();
   await expect(page.getByTestId('opportunity-360')).toHaveAttribute('data-stage', 'visit');
 
+  // The page loads as Bilal before he books the visit (an identity change takes effect on a page load).
   await become(page, 'sales');
-  const visit = await societyApi<{ id: string }>(page, '/visits', 'POST', { leadId: lead.id, at: new Date('2026-10-26T11:00:00+05:00').toISOString() });
+  await page.goto(`${BO}${PIPELINE}`);
+  await expect(page.getByTestId('pipeline-page')).toBeVisible();
+  const visit = await societyApi<{ id: string; ownerName: string }>(page, '/visits', 'POST', { leadId: lead.id, at: new Date('2026-10-26T11:00:00+05:00').toISOString() });
+  expect(visit.ok && visit.res.ownerName).toBe('Bilal Ahmed');
   if (!visit.ok) throw new Error('visit');
   await page.goto(`${BO}/backoffice/crm/visit-workspace?record=${visit.res.id}`);
   await page.getByTestId('visit-record-outcome').click();

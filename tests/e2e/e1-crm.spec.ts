@@ -166,9 +166,11 @@ test.describe('Gate E.1: the journey and the board', () => {
     await expect(ws).toHaveAttribute('data-stage', 'visit');
 
     // 4. Bilal: his visit today at 11:00 (booked through the existing endpoint), outcome and follow-up.
-    await become(page, 'sales');
-    const visit = await api<{ id: string }>(page, '/visits', 'POST', { leadId: lead.id, at: new Date('2026-10-26T11:00:00+05:00').toISOString() });
+    // The page loads as Bilal before he books the visit (an identity change takes effect on a page load).
     await open(page, 'sales', `${CALENDAR}?view=agenda`, 'calendar-results');
+    const visit = await api<{ id: string; ownerName: string }>(page, '/visits', 'POST', { leadId: lead.id, at: new Date('2026-10-26T11:00:00+05:00').toISOString() });
+    expect(visit.ownerName).toBe('Bilal Ahmed');
+    await page.reload();
     const row = page.locator(`[data-testid="agenda-visit"][data-visit="${visit.id}"]`);
     await expect(row).toContainText(lead.displayName);
     await row.getByTestId('agenda-visit-link').click();

@@ -134,9 +134,10 @@ test('the journey: assigned, converted, moved, visited with a follow-up (1440, e
     const opp = await societyApi<{ id: string; version: number }>(page, `/leads/${lead.id}/opportunities`, 'POST', { note: 'Wants a 3-bed on a high floor', expectedCloseOn: '2026-12-15', idempotencyKey: `evidence-${locale}` });
     if (!opp.ok) throw new Error('convert');
     await societyApi(page, `/opportunities/${opp.res.id}/stage`, 'POST', { stage: 'visit', version: opp.res.version });
-    await become(page, 'sales');
-    const visit = await societyApi<{ id: string }>(page, '/visits', 'POST', { leadId: lead.id, at: new Date('2026-10-26T11:00:00+05:00').toISOString() });
-    if (!visit.ok) throw new Error('visit');
+    // Bilal: the page loads as him before he books the visit and records what happened.
+    await as(page, 'sales', PIPELINE, 'pipeline-page');
+    const visit = await societyApi<{ id: string; ownerName: string }>(page, '/visits', 'POST', { leadId: lead.id, at: new Date('2026-10-26T11:00:00+05:00').toISOString() });
+    if (!visit.ok || visit.res.ownerName !== 'Bilal Ahmed') throw new Error('visit');
     await societyApi(page, `/visits/${visit.res.id}/outcome`, 'POST', { outcome: 'completed', interest: 'hot', feedback: 'Liked the corner units on the 9th floor', followUpAt: new Date('2026-10-28T12:00:00+05:00').toISOString(), version: 1 });
     await as(page, 'sales', `/backoffice/crm/visit-workspace?record=${visit.res.id}`, 'visit-outcome');
     await shot(page, `g01-journey-visit-outcome-1440-${lang(locale)}`);
