@@ -28,6 +28,8 @@ import { PAYROLL_HANDLERS } from './payroll/handlers';
 import { HR_RESIDENT_HANDLERS } from './hr/resident';
 import { RENTALS_HANDLERS } from './rentals/handlers';
 import { RENTALS_PORTAL_HANDLERS } from './rentals/portal';
+// Gate E.13 (provisional; reconcile with E.0 at Wave 1 integration): connected workspace and documents.
+import { E13_HANDLERS } from './developer/workspace/handlers';
 
 export type { Handler, HandlerAccess, HandlerContext } from './handler-types';
 
@@ -315,4 +317,7 @@ export const HANDLERS: readonly Handler[] = [...CORE_HANDLERS, ...CRM_HANDLERS, 
   // Gate S.2b: society payroll (PAY-001…007).
   ...PAYROLL_HANDLERS,
   // Gate S.3: rentals (RNT-001…009) and the landlord's view in the resident app (PORTAL-037).
-  ...RENTALS_HANDLERS, ...RENTALS_PORTAL_HANDLERS];
+  ...RENTALS_HANDLERS, ...RENTALS_PORTAL_HANDLERS,
+  // Gate E.13 (provisional; reconcile with E.0 at Wave 1 integration): search, favourites, recent records,
+  // tasks, work queue, activity, related records, documents and templates (developer/workspace, developer/documents).
+  ...E13_HANDLERS];

@@ -133,6 +133,10 @@ export const PERSONAS: readonly Persona[] = [
     projectScope: ['prj_heights'],
     partyId: 'pty_0001',
   },
+  // Gate E.13 (provisional; reconcile with E.0 at Wave 1 integration): Larkspur's fictional document
+  // controller (all projects) and site records clerk (Larkspur Heights only). See role-templates.ts.
+  { id: 'lsp_doc_controller', tenantId: TENANT.id, principalId: 'usr_lsp_d0001', app: 'backoffice', displayName: 'Tehmina Durrani', email: 'tehmina.durrani@example.com', ...holds(TENANT.id, 'document_controller'), projectScope: 'all' },
+  { id: 'lsp_records_clerk', tenantId: TENANT.id, principalId: 'usr_lsp_d0002', app: 'backoffice', displayName: 'Haroon Qadri', email: 'haroon.qadri@example.com', ...holds(TENANT.id, 'records_clerk'), projectScope: ['prj_heights'] },
   // Shalimar Court Residents (Demo) licenses only core + maintenance (Gate B checkpoint 2). Its own
   // "Facility manager" role is generous on purpose: licensing, not the role, keeps developer modules away.
   {

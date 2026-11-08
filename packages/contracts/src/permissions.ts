@@ -132,6 +132,14 @@ export const PERMISSIONS = [
   'owner_payout.prepare',
   'owner_payout.approve',
   'rentals.configure',
+  // Gate E.13 (provisional; reconcile with E.0 at Wave 1 integration). `document.view` is the
+  // register's name (DOC-002…006); a document is seen only with it AND its linked record visible.
+  // Adding a document or a version (`document.upload`) and drafting / approving a template or policy
+  // version are separate, so maker-checker can sit with two people (decision E-07, names provisional).
+  'document.view',
+  'document.upload',
+  'document_template.manage',
+  'document_template.approve',
   // Platform HQ (central plane, V3.1). Operators are a separate principal type from tenant staff.
   'platform.dashboard.view',
   'platform.tenants.view',

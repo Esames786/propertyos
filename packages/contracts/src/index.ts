@@ -22,3 +22,6 @@ export * from './community';
 export * from './hr';
 export * from './payroll';
 export * from './rentals';
+// Gate E.13 (provisional; reconcile with E.0 at Wave 1 integration): connected workspace and documents.
+export * from './productivity';
+export * from './documents';

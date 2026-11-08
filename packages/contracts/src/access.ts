@@ -366,6 +366,12 @@ export const PERMISSION_MODULE: Partial<Record<Permission, ModuleKey>> = {
   'owner_payout.prepare': 'rentals',
   'owner_payout.approve': 'rentals',
   'rentals.configure': 'rentals',
+  // Gate E.13 (provisional; reconcile with E.0 at Wave 1 integration): documents belong to core (the
+  // register's module for DOC-002…006); each document also inherits its linked record's module check.
+  'document.view': 'core',
+  'document.upload': 'core',
+  'document_template.manage': 'core',
+  'document_template.approve': 'core',
 };
 
 /** Something the UI offers (a menu item, action, tour step, link): its module and permission. */

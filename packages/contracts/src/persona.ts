@@ -35,6 +35,9 @@ export interface Persona {
     | 'rb_landlord_tahira'
     | 'rb_landlord_kashif'
     | 'rb_tenant_adeel'
+    /** Gate E.13 (provisional; reconcile with E.0): Larkspur's document controller and site records clerk. */
+    | 'lsp_doc_controller'
+    | 'lsp_records_clerk'
     /** Gate D.1: a resident who joined by invitation (generated from the society register). */
     | `res_${string}`;
   tenantId: string;

@@ -185,9 +185,34 @@ const RIVERBEND_ROLES: readonly TenantRoleTemplate[] = [
   ...starterRoles('tnt_riverbend', 'portfolio_manager').filter((r) => r.id === 'technician' || r.id === 'security'),
 ];
 
+// Gate E.13 (provisional; reconcile with E.0 at Wave 1 integration). Larkspur's own document roles
+// (decision E-06 option b: the organisation's own roles, starter sets unchanged; no existing role or
+// person gains a permission). Documents inherit their record's access, so each role also reads the
+// records its documents hang on. The document controller (all projects) approves template and policy
+// versions; the site records clerk (Larkspur Heights only) uploads and drafts, never approves. Both
+// people are fictional. Listed for the owner as an open decision (who holds documents at Larkspur).
+const LARKSPUR_DOCUMENT_ROLES: readonly TenantRoleTemplate[] = [
+  {
+    id: 'document_controller',
+    tenantId: 'tnt_larkspur',
+    starter: null,
+    labelKey: 'documents:roles.controller',
+    permissions: ['project.context.use', 'lead.view', 'unit.view', 'customer.view', 'document.view', 'document.upload', 'document_template.manage', 'document_template.approve'],
+    holders: ['lsp_doc_controller'],
+  },
+  {
+    id: 'records_clerk',
+    tenantId: 'tnt_larkspur',
+    starter: null,
+    labelKey: 'documents:roles.clerk',
+    permissions: ['project.context.use', 'lead.view', 'unit.view', 'customer.view', 'document.view', 'document.upload', 'document_template.manage'],
+    holders: ['lsp_records_clerk'],
+  },
+];
+
 const TENANT_ROLES: Readonly<Record<string, readonly TenantRoleTemplate[]>> = {
   tnt_riverbend: RIVERBEND_ROLES,
-  tnt_larkspur: starterRoles('tnt_larkspur', 'developer', { administration: ['manager'], sales: ['sales'], finance: ['finance'] }),
+  tnt_larkspur: [...starterRoles('tnt_larkspur', 'developer', { administration: ['manager'], sales: ['sales'], finance: ['finance'] }), ...LARKSPUR_DOCUMENT_ROLES],
   tnt_crescent: starterRoles('tnt_crescent', 'developer', { administration: ['cb_manager'] }),
   tnt_shalimar: starterRoles('tnt_shalimar', 'association', { administrator: ['society_admin'] }).map((r) => (r.id === 'manager' ? SHALIMAR_FACILITY_MANAGER : r)),
   tnt_cedar: starterRoles('tnt_cedar', 'custom', { treasurer: ['cedar_treasurer'] }),
