@@ -121,6 +121,18 @@ export const PERSONAS: readonly Persona[] = [
     ...holds(TENANT.id, 'finance'),
     projectScope: 'all',
   },
+  // Gate E.1 (provisional; reconcile with E.0 at Wave 1 integration): a new fictional sales manager for
+  // the CRM pipeline (decision E-06). Both Larkspur projects; assigns leads and manages opportunities.
+  {
+    id: 'sales_manager',
+    tenantId: TENANT.id,
+    principalId: 'usr_lsp_0004',
+    app: 'backoffice',
+    displayName: 'Samina Latif',
+    email: 'samina.latif@example.com',
+    ...holds(TENANT.id, 'sales_manager'),
+    projectScope: 'all',
+  },
   {
     id: 'resident',
     tenantId: TENANT.id,

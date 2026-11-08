@@ -25,6 +25,8 @@ import enCommunity from '../locales/en-PK/community.json';
 import enHr from '../locales/en-PK/hr.json';
 import enPayroll from '../locales/en-PK/payroll.json';
 import enRentals from '../locales/en-PK/rentals.json';
+// Gate E.1 (provisional; reconcile with E.0 at Wave 1 integration): the CRM pipeline and visits.
+import enSales from '../locales/en-PK/sales.json';
 import urA11y from '../locales/ur-PK/a11y.json';
 import urCommon from '../locales/ur-PK/common.json';
 import urDashboard from '../locales/ur-PK/dashboard.json';
@@ -52,6 +54,7 @@ import urCommunity from '../locales/ur-PK/community.json';
 import urHr from '../locales/ur-PK/hr.json';
 import urPayroll from '../locales/ur-PK/payroll.json';
 import urRentals from '../locales/ur-PK/rentals.json';
+import urSales from '../locales/ur-PK/sales.json';
 
 export const NAMESPACES = [
   'common',
@@ -87,6 +90,8 @@ export const NAMESPACES = [
   'payroll',
   // Gate S.3: rentals (leases, rent roll, owner statements and payouts, settings, the landlord view).
   'rentals',
+  // Gate E.1 (provisional): opportunities, lead assignment, the site-visit calendar and the visit workspace.
+  'sales',
 ] as const;
 
 export type Namespace = (typeof NAMESPACES)[number];
@@ -119,6 +124,7 @@ const en = {
   hr: enHr,
   payroll: enPayroll,
   rentals: enRentals,
+  sales: enSales,
 };
 
 const ur: typeof en = {
@@ -149,6 +155,7 @@ const ur: typeof en = {
   hr: urHr,
   payroll: urPayroll,
   rentals: urRentals,
+  sales: urSales,
 };
 
 export const resources = { 'en-PK': en, 'ur-PK': ur };

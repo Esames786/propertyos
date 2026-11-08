@@ -1,0 +1,71 @@
+{
+  "description": "Gate E.1 golden vectors: opportunity stage transitions (incl. won needing a booking, lost and reopen), conversion once, and per-stage counts and values that equal the filtered lists. Fictional amounts in PKR.",
+  "transitions": [
+    { "name": "qualified moves to site visit", "from": { "stage": "qualified" }, "action": { "kind": "move", "to": "visit" }, "expect": { "ok": true, "stage": "visit" } },
+    { "name": "forward over a stage", "from": { "stage": "visit" }, "action": { "kind": "move", "to": "negotiation" }, "expect": { "ok": true, "stage": "negotiation" } },
+    { "name": "back to an earlier stage", "from": { "stage": "negotiation" }, "action": { "kind": "move", "to": "quotation" }, "expect": { "ok": true, "stage": "quotation" } },
+    { "name": "hold or reservation is a conversation stage", "from": { "stage": "negotiation" }, "action": { "kind": "move", "to": "reservation" }, "expect": { "ok": true, "stage": "reservation" } },
+    { "name": "same stage is refused", "from": { "stage": "visit" }, "action": { "kind": "move", "to": "visit" }, "expect": { "ok": false, "code": "same_stage" } },
+    { "name": "won needs a booking (Gate E.5)", "from": { "stage": "reservation" }, "action": { "kind": "move", "to": "won" }, "expect": { "ok": false, "code": "booking_required" } },
+    { "name": "won is refused from any stage", "from": { "stage": "qualified" }, "action": { "kind": "move", "to": "won" }, "expect": { "ok": false, "code": "booking_required" } },
+    { "name": "lost goes through the lost action (a reason)", "from": { "stage": "visit" }, "action": { "kind": "move", "to": "lost" }, "expect": { "ok": false, "code": "use_lost" } },
+    { "name": "an unknown stage", "from": { "stage": "visit" }, "action": { "kind": "move", "to": "booked" }, "expect": { "ok": false, "code": "invalid_stage" } },
+    { "name": "a lost opportunity does not move", "from": { "stage": "lost", "lostFrom": "quotation" }, "action": { "kind": "move", "to": "visit" }, "expect": { "ok": false, "code": "not_open" } },
+    { "name": "lose with a reason", "from": { "stage": "negotiation" }, "action": { "kind": "lose", "reason": "price" }, "expect": { "ok": true, "stage": "lost", "lostFrom": "negotiation" } },
+    { "name": "lose from qualified", "from": { "stage": "qualified" }, "action": { "kind": "lose", "reason": "not_reachable" }, "expect": { "ok": true, "stage": "lost", "lostFrom": "qualified" } },
+    { "name": "other needs a note", "from": { "stage": "visit" }, "action": { "kind": "lose", "reason": "other" }, "expect": { "ok": false, "code": "note_required" } },
+    { "name": "other with a note", "from": { "stage": "visit" }, "action": { "kind": "lose", "reason": "other", "note": "Moved abroad" }, "expect": { "ok": true, "stage": "lost", "lostFrom": "visit" } },
+    { "name": "an unknown reason", "from": { "stage": "visit" }, "action": { "kind": "lose", "reason": "bored" }, "expect": { "ok": false, "code": "invalid_reason" } },
+    { "name": "lost twice", "from": { "stage": "lost", "lostFrom": "visit" }, "action": { "kind": "lose", "reason": "price" }, "expect": { "ok": false, "code": "not_open" } },
+    { "name": "reopen restores the stage it was lost from", "from": { "stage": "lost", "lostFrom": "quotation" }, "action": { "kind": "reopen", "note": "Customer called back" }, "expect": { "ok": true, "stage": "quotation" } },
+    { "name": "reopen needs a note", "from": { "stage": "lost", "lostFrom": "quotation" }, "action": { "kind": "reopen", "note": "  " }, "expect": { "ok": false, "code": "note_required" } },
+    { "name": "reopen an open opportunity", "from": { "stage": "visit" }, "action": { "kind": "reopen", "note": "Again" }, "expect": { "ok": false, "code": "not_lost" } },
+    { "name": "reopen without a recorded stage starts at qualified", "from": { "stage": "lost" }, "action": { "kind": "reopen", "note": "Imported record" }, "expect": { "ok": true, "stage": "qualified" } }
+  ],
+  "conversion": [
+    { "name": "a qualified lead converts", "leadStatus": "qualified", "hasOpportunity": false, "expect": { "ok": true } },
+    { "name": "conversion happens once", "leadStatus": "qualified", "hasOpportunity": true, "expect": { "ok": false, "code": "already_converted" } },
+    { "name": "a contacted lead is not qualified yet", "leadStatus": "contacted", "hasOpportunity": false, "expect": { "ok": false, "code": "not_qualified" } },
+    { "name": "a new lead", "leadStatus": "new", "hasOpportunity": false, "expect": { "ok": false, "code": "not_qualified" } },
+    { "name": "a converted (booked) lead", "leadStatus": "converted", "hasOpportunity": false, "expect": { "ok": false, "code": "not_qualified" } },
+    { "name": "a lost lead", "leadStatus": "lost", "hasOpportunity": false, "expect": { "ok": false, "code": "not_qualified" } }
+  ],
+  "counts": {
+    "items": [
+      { "stage": "qualified", "value": { "amount": "12500000.00" } },
+      { "stage": "qualified", "value": { "amount": "8750000.50" } },
+      { "stage": "visit", "value": { "amount": "21000000.00" } },
+      { "stage": "quotation", "value": { "amount": "0.00" } },
+      { "stage": "negotiation", "value": { "amount": "33333333.33" } },
+      { "stage": "negotiation", "value": { "amount": "33333333.33" } },
+      { "stage": "negotiation", "value": { "amount": "33333333.34" } },
+      { "stage": "reservation", "value": { "amount": "45000000.00" } },
+      { "stage": "lost", "value": { "amount": "9900000.99" } }
+    ],
+    "expect": {
+      "qualified": { "count": 2, "value": "21250000.50" },
+      "visit": { "count": 1, "value": "21000000.00" },
+      "quotation": { "count": 1, "value": "0.00" },
+      "negotiation": { "count": 3, "value": "100000000.00" },
+      "reservation": { "count": 1, "value": "45000000.00" },
+      "won": { "count": 0, "value": "0.00" },
+      "lost": { "count": 1, "value": "9900000.99" }
+    },
+    "open": { "count": 8 },
+    "all": { "count": 9 }
+  },
+  "sequence": {
+    "description": "One opportunity's life: converted once, moved, lost, reopened, never won.",
+    "start": { "leadStatus": "qualified", "hasOpportunity": false },
+    "steps": [
+      { "action": { "kind": "move", "to": "visit" }, "expect": { "ok": true, "stage": "visit" } },
+      { "action": { "kind": "move", "to": "quotation" }, "expect": { "ok": true, "stage": "quotation" } },
+      { "action": { "kind": "move", "to": "won" }, "expect": { "ok": false, "code": "booking_required" } },
+      { "action": { "kind": "lose", "reason": "competitor" }, "expect": { "ok": true, "stage": "lost", "lostFrom": "quotation" } },
+      { "action": { "kind": "move", "to": "negotiation" }, "expect": { "ok": false, "code": "not_open" } },
+      { "action": { "kind": "reopen", "note": "Competitor fell through" }, "expect": { "ok": true, "stage": "quotation" } },
+      { "action": { "kind": "move", "to": "negotiation" }, "expect": { "ok": true, "stage": "negotiation" } }
+    ],
+    "versions": 6
+  }
+}

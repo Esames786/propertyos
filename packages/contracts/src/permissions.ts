@@ -132,6 +132,13 @@ export const PERMISSIONS = [
   'owner_payout.prepare',
   'owner_payout.approve',
   'rentals.configure',
+  // Gate E.1 (provisional; reconcile with E.0 at Wave 1 integration). Decision E-07 (not approved):
+  // explicit CRM write permissions. `lead.assign` assigns and reassigns leads and, under decision E-05's
+  // default, sees every lead, opportunity and visit of the person's projects (a sales manager);
+  // `lead.manage` converts qualified leads and moves, loses and reopens opportunities. No existing
+  // role holds either (Larkspur's new sales-manager role does; decision E-06).
+  'lead.assign',
+  'lead.manage',
   // Platform HQ (central plane, V3.1). Operators are a separate principal type from tenant staff.
   'platform.dashboard.view',
   'platform.tenants.view',

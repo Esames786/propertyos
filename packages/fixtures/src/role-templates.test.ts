@@ -21,7 +21,8 @@ describe('tenant roles', () => {
   it('every workspace has roles of its own kind; Shalimar defined its own facility manager; Al-Noor added an accounts officer', () => {
     for (const t of TENANT_DIRECTORY) {
       const roles = rolesOf(t.id, t.type);
-      expect(roles.length, t.id).toBe(t.id === 'tnt_alnoor' ? 7 : 6);
+      // Gate E.1 (provisional): Larkspur added its own sales manager (decision E-06).
+      expect(roles.length, t.id).toBe(t.id === 'tnt_alnoor' || t.id === 'tnt_larkspur' ? 7 : 6);
       expect(roles.every((r) => r.tenantId === t.id)).toBe(true);
     }
     expect(rolesOf('tnt_alnoor', 'association').find((r) => r.id === 'accounts_officer')).toMatchObject({ starter: null, holders: ['alnoor_accounts'] });

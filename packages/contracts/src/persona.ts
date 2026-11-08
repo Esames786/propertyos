@@ -35,6 +35,8 @@ export interface Persona {
     | 'rb_landlord_tahira'
     | 'rb_landlord_kashif'
     | 'rb_tenant_adeel'
+    /** Gate E.1 (provisional; reconcile with E.0): Larkspur's sales manager (decision E-06). */
+    | 'sales_manager'
     /** Gate D.1: a resident who joined by invitation (generated from the society register). */
     | `res_${string}`;
   tenantId: string;

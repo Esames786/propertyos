@@ -185,9 +185,22 @@ const RIVERBEND_ROLES: readonly TenantRoleTemplate[] = [
   ...starterRoles('tnt_riverbend', 'portfolio_manager').filter((r) => r.id === 'technician' || r.id === 'security'),
 ];
 
+// Gate E.1 (provisional; reconcile with E.0 at Wave 1 integration). Decisions E-05, E-06 and E-07 (none
+// approved): Larkspur's own "Sales manager" role, added for the CRM pipeline. It holds the sales starter
+// set plus the two new CRM write permissions, so assigning leads and moving opportunities sit with a
+// named new person; no existing role or person gains a permission. The starter sets are unchanged.
+const LARKSPUR_SALES_MANAGER: TenantRoleTemplate = {
+  id: 'sales_manager',
+  tenantId: 'tnt_larkspur',
+  starter: null,
+  labelKey: 'sales:roles.salesManager',
+  permissions: [...STARTER_PERMISSIONS.sales, 'lead.assign', 'lead.manage'],
+  holders: ['sales_manager'],
+};
+
 const TENANT_ROLES: Readonly<Record<string, readonly TenantRoleTemplate[]>> = {
   tnt_riverbend: RIVERBEND_ROLES,
-  tnt_larkspur: starterRoles('tnt_larkspur', 'developer', { administration: ['manager'], sales: ['sales'], finance: ['finance'] }),
+  tnt_larkspur: [...starterRoles('tnt_larkspur', 'developer', { administration: ['manager'], sales: ['sales'], finance: ['finance'] }), LARKSPUR_SALES_MANAGER],
   tnt_crescent: starterRoles('tnt_crescent', 'developer', { administration: ['cb_manager'] }),
   tnt_shalimar: starterRoles('tnt_shalimar', 'association', { administrator: ['society_admin'] }).map((r) => (r.id === 'manager' ? SHALIMAR_FACILITY_MANAGER : r)),
   tnt_cedar: starterRoles('tnt_cedar', 'custom', { treasurer: ['cedar_treasurer'] }),

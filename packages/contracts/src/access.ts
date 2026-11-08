@@ -366,6 +366,9 @@ export const PERMISSION_MODULE: Partial<Record<Permission, ModuleKey>> = {
   'owner_payout.prepare': 'rentals',
   'owner_payout.approve': 'rentals',
   'rentals.configure': 'rentals',
+  // Gate E.1 (provisional; reconcile with E.0 at Wave 1 integration): decision E-07.
+  'lead.assign': 'crm',
+  'lead.manage': 'crm',
 };
 
 /** Something the UI offers (a menu item, action, tour step, link): its module and permission. */
