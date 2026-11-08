@@ -184,7 +184,7 @@ export function UploadDrawer({ isOpen, onOpenChange, mode, onDone }: { isOpen: b
               <bdi dir="ltr" className="min-w-0 [overflow-wrap:anywhere]">
                 {unbroken(file.fileName)}
               </bdi>
-              <span className="text-xs text-muted">{sizeText(file.sizeBytes)}</span>
+              <span className="text-xs text-muted"><bdi dir="ltr">{sizeText(file.sizeBytes)}</bdi></span>
               <Button className="max-w-full whitespace-normal text-center" variant="quiet" size="sm" icon={Trash2} onPress={() => setFile(null)} data-testid="upload-file-remove">
                 {t('documents:upload.removeFile')}
               </Button>

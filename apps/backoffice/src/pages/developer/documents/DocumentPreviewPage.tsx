@@ -225,7 +225,7 @@ export function PreviewPane({ detail }: { detail: DocumentDetail }) {
         )}
       </div>
       <figcaption className="text-xs text-muted [overflow-wrap:anywhere]">
-        <bdi dir="ltr">{unbroken(v.fileName)}</bdi> · {sizeText(v.sizeBytes)} · {t('documents:updated', { when: f.when(v.uploadedAt), name: v.uploadedByName })}
+        <bdi dir="ltr">{unbroken(v.fileName)}</bdi> · <bdi dir="ltr">{sizeText(v.sizeBytes)}</bdi> · {t('documents:updated', { when: f.when(v.uploadedAt), name: v.uploadedByName })}
       </figcaption>
     </figure>
   );
@@ -434,7 +434,7 @@ export function VersionList({ detail, onPreview }: { detail: DocumentDetail; onP
                 )}
               </p>
               <p className="text-xs text-muted [overflow-wrap:anywhere]">
-                <bdi dir="ltr">{unbroken(v.fileName)}</bdi> · {sizeText(v.sizeBytes)} · {t('documents:updated', { when: f.when(v.uploadedAt), name: v.uploadedByName })}
+                <bdi dir="ltr">{unbroken(v.fileName)}</bdi> · <bdi dir="ltr">{sizeText(v.sizeBytes)}</bdi> · {t('documents:updated', { when: f.when(v.uploadedAt), name: v.uploadedByName })}
               </p>
               {v.note && (
                 <p className="text-sm text-text">

@@ -82,7 +82,7 @@ export function DocumentRow({ doc, actions, testId = 'document-row' }: { doc: Do
           <ExpiryBadge doc={doc} />
         </p>
         <p className="text-xs text-muted [overflow-wrap:anywhere]">
-          <bdi dir="ltr" className={NOWRAP}>{unbroken(doc.ref)}</bdi> · {t('documents:version', { n: doc.version })} · <bdi dir="ltr">{unbroken(doc.fileName)}</bdi> · {sizeText(doc.sizeBytes)}
+          <bdi dir="ltr" className={NOWRAP}>{unbroken(doc.ref)}</bdi> · {t('documents:version', { n: doc.version })} · <bdi dir="ltr">{unbroken(doc.fileName)}</bdi> · <bdi dir="ltr">{sizeText(doc.sizeBytes)}</bdi>
         </p>
         <p className="flex min-w-0 items-start gap-1.5 text-xs text-muted">
           <LinkedIcon aria-hidden className="mt-0.5 size-3.5 shrink-0" />
