@@ -43,6 +43,35 @@ test now also asserts that 35 days is "valid", and it is caught. M7 and M13 were
 | M18 | hidden units found by search | Bilal never finds a Gardens unit; narrow vs full |
 
 ## Browser
+### Final run on HEAD `34864b8` (code as of `5313fe7`; later commits are docs only)
+Lock held 23:44:00Z–00:33:27Z (8–9 Nov), on AC (100 %, no sleep or resume events). Previews of that build on
+7773–7775, both loopbacks checked byte for byte. Same configuration as the first run: every e2e spec plus the
+`gatee13`, `stage1` and `gatebfinal` evidence specs, 3 workers, retries off. Output:
+`test-results-e13/final2-*`.
+- **Complete Chromium run: 547 passed, 0 failed, 14 skipped** in **44.5 min**. The 14 skipped tests are
+  `stage1.evidence.spec.ts`, which skips itself by design. Axe: **1,642 scans, 45,335 rule passes,
+  0 violations**; the E.13 spec ran 36 scans with 0 violations. The `access.spec.ts:28` failure from the first
+  run is gone.
+- **Evidence files after the run:**
+  - Accepted `stage1` and `gate-b-final` evidence was restored with `git checkout`; nothing changed outside
+    `gate-e13`.
+  - Two `gate-e13` PNGs were rewritten (`e13-upload-drawer-1440-en`, `-errors-1440-en`). They look identical and
+    differ by under 300 bytes (rendering noise), so they were discarded and not re-committed.
+- **Full Firefox + WebKit smoke: 77 / 78** in 4.2 min. Firefox passed every test. WebKit had one failure:
+  `s2a.smoke.spec.ts:52` "a new guard…", one of the two known intermittents.
+  - **Symptom:** at line 48 the list stayed open for 20 s after the click on the "Security guard" option (HR
+    role search).
+  - **Rerun with `--repeat-each`** (WebKit, 3 workers, retries off, under the lock):
+    - this build, `--repeat-each=10`: 6 / 10 failed;
+    - this build, `--repeat-each=20`: 11 / 20 failed.
+  - **A/B against the untouched base `373d0cf`** (same machine, ports and settings, minutes later, base build
+    served on both loopbacks with no E.13 chunk): **11 / 20 failed**.
+  - All 28 failures have the same signature (`pick` → `listbox` count 1).
+  - **Cause:** the WebKit flake that predates E.13 (recorded in S.1 hotfix, S.3 and the integration of
+    S.3/B1/B2). The failure rate on this branch equals the base rate, and E.13 changes no HR, roster or combobox
+    code. On the HR page `useRecordVisit` sends nothing because there is no record in the address.
+
+### First run (build of `4f56461`, before the palette fix)
 **Complete Chromium run** (lock held 21:56:59–22:51:26Z, on AC; build of `4f56461`; every e2e spec + evidence
 `gatee13`, `stage1`, `gatebfinal`; 3 workers, retries off; `test-results-e13/final-e2e.log`, `.json`):
 **546 passed, 1 failed, 14 skipped** (all 14 = `stage1.evidence.spec.ts`, skipped by design: "historical
