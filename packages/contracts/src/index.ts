@@ -24,3 +24,6 @@ export * from './payroll';
 export * from './rentals';
 // Gate E.0: developer ERP foundation (state contracts, approval subjects, editions).
 export * from './developer';
+
+// Gate E.3: price history without invented price revisions.
+export * from './pricing';
