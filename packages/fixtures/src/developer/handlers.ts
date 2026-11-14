@@ -2,6 +2,7 @@ import type { DevApprovalPolicyVersion, DevCollectionAccount, DevCostCentre, Dev
 import { notFound, requires, type Handler, type HandlerContext } from '../handler-types';
 import { costCentreVisible, entityVisible, requireEntity, type ScopeNeed } from './scope';
 import { developerState } from './state';
+import { PRICE_HISTORY_HANDLERS } from './pricing/handlers';
 
 /**
  * Gate E.0 deliverable 6 (mock API): the developer ERP's handler registration point.
@@ -100,6 +101,6 @@ export const DEVELOPER_CORE_HANDLERS: readonly Handler[] = [
  *   import { LEDGER_HANDLERS } from './ledger/handlers';         // E.7
  *   import { DOCUMENT_HANDLERS } from './documents/handlers';    // E.13
  */
-export const DEVELOPER_AREA_HANDLERS: ReadonlyArray<readonly Handler[]> = [];
+export const DEVELOPER_AREA_HANDLERS: ReadonlyArray<readonly Handler[]> = [PRICE_HISTORY_HANDLERS];
 
 export const DEVELOPER_HANDLERS: readonly Handler[] = [...DEVELOPER_CORE_HANDLERS, ...DEVELOPER_AREA_HANDLERS.flat()];
