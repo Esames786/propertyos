@@ -1,4 +1,5 @@
 import type { RouteObject } from 'react-router';
+import { routes as pricingRoutes } from '../pages/developer/pricing/routes';
 
 /**
  * Gate E.0 deliverable 6: the one place Gate E areas register their screens (plan §7.4: "E.0 adds one
@@ -25,7 +26,7 @@ export interface DeveloperArea {
 }
 
 /** Registered areas (none in E.0: it adds no screens). */
-export const DEVELOPER_AREAS: readonly DeveloperArea[] = [];
+export const DEVELOPER_AREAS: readonly DeveloperArea[] = [{ area: 'pricing', routes: pricingRoutes }];
 
 /** Every registered Gate E route, spread into the backoffice shell by `routes.tsx`. */
 export const DEVELOPER_ROUTES: RouteObject[] = DEVELOPER_AREAS.flatMap((a) => [...a.routes]);
