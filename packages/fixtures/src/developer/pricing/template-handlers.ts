@@ -66,7 +66,7 @@ function requestKey(ctx: HandlerContext): string {
   return key;
 }
 function collision(ctx: HandlerContext): never {
-  throw new ApiError({ status: 409, code: 'idempotency_key_reused', messageKey: 'errors:api.conflict', correlationId: ctx.correlationId, changed: false });
+  throw new ApiError({ status: 409, code: 'idempotency_key_reused', messageKey: 'pricing:templateConflict', correlationId: ctx.correlationId, changed: false });
 }
 function checkReplay(ctx: HandlerContext, key: string, operation: BoundRequest['operation'], target: string, fingerprint: string): PaymentPlanTemplate | undefined {
   const record = state(ctx)?.requests[key];
