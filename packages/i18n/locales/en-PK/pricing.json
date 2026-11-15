@@ -124,5 +124,6 @@
   "policyConflict": "This pricing draft changed or the request key was reused. Reload it before editing again.",
   "policyRefresh": "Reload",
   "policyStart": "Start new draft",
-  "policyVersionCount": "Total draft versions: {{count}}"
+  "policyVersionCount": "Total draft versions: {{count}}",
+  "policyNav": "Related pricing workspaces"
 }
