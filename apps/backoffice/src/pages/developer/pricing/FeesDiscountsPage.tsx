@@ -107,6 +107,7 @@ export default function FeesDiscountsPage() {
       setSelectedId(response.id);
       renewCreate(); renewRevise(); setSaved(true); setPreviewResult(null);
       await list.refetch();
+      if (selectedId) await detail.refetch();
     } catch {
       setSaved(false);
     }
