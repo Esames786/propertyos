@@ -171,5 +171,6 @@
   "commercialNoUnit": "No unit in this project's current scope.",
   "commercialCreate": "New draft",
   "commercialPreviewOnly": "Unapproved calculation — no money was transferred.",
-  "commercialPreviewError": "Excessive discount or invalid draft. Preview refused without changes."
+  "commercialPreviewError": "Excessive discount or invalid draft. Preview refused without changes.",
+  "commercialUnsaved": "Save your draft changes before previewing. The preview uses only the last saved revision."
 }
