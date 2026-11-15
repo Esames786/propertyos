@@ -1,3 +1,4 @@
+import { PricingRelatedLinks } from './PricingRelatedLinks';
 import type { PricingPolicyDraft, PricingPolicyDraftList, PricingPolicyRule } from '@repo/contracts';
 import { Badge, Button, EmptyState, ErrorState, PageHeader, SkeletonBlock, useApiMutation, useApiQuery, useCreateKey, useT } from '@repo/ui';
 import { FileClock, Plus, Save, Trash2 } from 'lucide-react';
@@ -115,6 +116,7 @@ export default function PricingPoliciesPage() {
   return (
     <div className="space-y-6 @container" data-testid="pricing-policies-page">
       <PageHeader title={t('pricing:policyTitle')} description={t('pricing:policyIntro')} />
+      <PricingRelatedLinks current="policies" />
       <p className="rounded-control border border-border bg-sunken p-3 text-sm text-muted" data-testid="pricing-draft-warning">
         {t('pricing:policyWarning')}
       </p>
