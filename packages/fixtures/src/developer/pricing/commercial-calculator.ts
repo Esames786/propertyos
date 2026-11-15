@@ -89,6 +89,7 @@ export function previewCommercial(listedPrice: Money, fees: CommercialFeeRule[],
     discountTotal += amount;
     lines.push({ code: discount.code, label: discount.label, kind: 'discount', amount: fromPaisa(amount) });
   }
+  if (discountTotal > MAX_P || base + feeTotal > MAX_P) fail(); // Defensive bound on total illustrative exposure.
   if (discountTotal > base + feeTotal) fail(); // Never silently clamp an excessive discount.
   return {
     lines, totalFees: fromPaisa(feeTotal), totalDiscounts: fromPaisa(discountTotal),
