@@ -17,8 +17,9 @@ function validatedRules(draft: readonly DraftRule[]): PricingPolicyRule[] | null
   const rules: PricingPolicyRule[] = [];
   for (const rule of draft) {
     if (!validAmount(rule.amount)) return null;
-    const rupees = BigInt(rule.amount.split('.')[0]!);
-    if (rupees > 100_000_000_000n) return null;
+    const [rupees, fraction = ''] = rule.amount.split('.');
+    const precisePaisa = BigInt(rupees!) * 100n + BigInt(fraction.padEnd(2, '0') || '00');
+    if (precisePaisa > 10_000_000_000_000n) return null;
     const ints = [rule.floor, rule.corner, rule.park];
     if (ints.some((x) => !/^\d{1,5}$/.test(x) || Number(x) > 10000)) return null;
     rules.push({
