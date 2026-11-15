@@ -116,3 +116,35 @@ export interface PaymentPlanTemplateList {
   items: PaymentPlanTemplateSummary[];
   total: number;
 }
+
+/** COM-003 policies are private, non-effective drafts. No approved unit-price rule exists yet. */
+export interface PricingPolicyRule {
+  unitType: 'residential' | 'commercial' | 'mixed';
+  baseRate: Money;
+  floorRiseBps: number;
+  cornerPremiumBps: number;
+  parkFacingPremiumBps: number;
+}
+export interface PricingPolicyDraftVersion {
+  version: number;
+  title: string;
+  rules: PricingPolicyRule[];
+  createdAt: string;
+  createdBy: string;
+  state: 'draft';
+}
+export interface PricingPolicyDraft {
+  id: string;
+  tenantId: string;
+  projectId: string;
+  creatorPrincipalId: string;
+  currentVersion: number;
+  versions: PricingPolicyDraftVersion[];
+  state: 'draft';
+  effective: false;
+  approvalAllowed: false;
+}
+export interface PricingPolicyDraftList {
+  items: Array<{ id: string; projectId: string; title: string; currentVersion: number; state: 'draft' }>;
+  total: number;
+}
