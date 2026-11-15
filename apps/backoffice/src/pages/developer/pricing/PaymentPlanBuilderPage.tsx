@@ -1,3 +1,4 @@
+import { PricingRelatedLinks } from './PricingRelatedLinks';
 import type { PlanAllocationInput, PlanAllocationKind, PlanPreview, UnitPricePickerResponse } from '@repo/contracts';
 import { Badge, Button, EmptyState, ErrorState, PageHeader, SelectControl, SkeletonBlock, useApiMutation, useApiQuery, useT } from '@repo/ui';
 import { Calculator, Plus, Trash2 } from 'lucide-react';
@@ -87,6 +88,7 @@ export default function PaymentPlanBuilderPage() {
   return (
     <div className="space-y-6 @container" data-testid="payment-plan-builder-page">
       <PageHeader title={t('pricing:previewTitle')} description={t('pricing:previewIntro')} />
+      <PricingRelatedLinks current="builder" />
       <p className="rounded-control border border-border bg-sunken p-3 text-sm text-muted" data-testid="plan-preview-warning">
         {t('pricing:previewMoneyWarning')}
       </p>
