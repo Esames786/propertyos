@@ -5,7 +5,13 @@ import { DevScreen, devRoute } from '../../../prototype/dev-screen';
 const UnitPriceHistoryPage = lazy(() => import('./UnitPriceHistoryPage'));
 const PaymentPlanBuilderPage = lazy(() => import('./PaymentPlanBuilderPage'));
 const PaymentPlanTemplatesPage = lazy(() => import('./PaymentPlanTemplatesPage'));
+const PricingPoliciesPage = lazy(() => import('./PricingPoliciesPage'));
 export const routes = [
+  devRoute(
+    'com/pricing-policies',
+    <DevScreen page={PricingPoliciesPage} target={{ module: 'inventory', permission: 'pricing.manage' }} />,
+    (t) => t('pricing:policyTitle'),
+  ),
   devRoute(
     'com/payment-plan-templates',
     <DevScreen page={PaymentPlanTemplatesPage} target={{ module: 'inventory', permission: 'pricing.manage' }} />,
