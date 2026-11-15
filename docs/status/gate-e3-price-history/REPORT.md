@@ -79,3 +79,28 @@ No demo staff role gets `pricing.manage`; existing users cannot access COM-001 o
 5. Stop for GPT/owner review. Do not merge to `main`, deploy, touch VPS/Bingoo/Laravel, real money or SOS.
 
 GitHub branch/source changes are verified, but GPT **has not executed any Windows TypeScript, Vitest, Playwright or visual test** in this wave.
+
+## COM-003 — draft pricing policies and immutable versions (Issue #29)
+
+**Status: SOURCE PUSHED · TESTS WRITTEN, NOT EXECUTED · PARTIAL/HOLD.**
+
+### Actual implemented files
+- `packages/contracts/src/pricing.ts`: typed `PricingPolicyRule`, `PricingPolicyDraftVersion`, `PricingPolicyDraft` and scoped list. Draft fields are explicitly `effective:false`, `approvalAllowed:false`.
+- `packages/fixtures/src/developer/pricing/policy-handlers.ts`: `GET /pricing/policies`, `GET /pricing/policies/:id`, `POST /pricing/policies`, `POST /pricing/policies/:id/versions`. Project and current site/feature scope are enforced with E.0 `projectVisible` and existing inventory `pricing.manage`. Each draft is creator-private and tenant-partitioned. Hidden, other-creator and unknown IDs give identical 404. Reads/list totals filter by effective access and do not write. Draft writes validate all fields before version/id consumption; immutable version snapshots; optimistic concurrency via expectedVersion. Idempotency key is bound to operation, principal, project or policy target and canonical title/rule fingerprint, with authorization checked before replay. Same request replays its original snapshot; changed payload/key collision returns 409 unchanged.
+- Rate drafts are canonical PKR decimal money, validated with BigInt paisa against a defensive illustrative size ceiling, never calculated with JS money floats. Premiums/floor rise use integer basis points 0–10000; types are unique among residential/commercial/mixed. These defensive numerical bounds are **not adopted commercial policy**.
+- `apps/backoffice/src/pages/developer/pricing/PricingPoliciesPage.tsx` and area route: project-scoped editor, three unit types and premium fields, create/revise, saved/error/empty/loading states and historical draft versions. EN/UR/RTL. New `PricingRelatedLinks.tsx` provides contextual, keyboard-focusable links between COM-001, COM-002 and COM-003; each route retains its server/edition gate.
+- `packages/fixtures/src/developer/pricing/policy-handlers.api.test.ts`: seven API regression cases: create/read without effective policy; idempotent replay, collisions; author isolation; hidden==unknown; append-only revisions and stale write; strict monetary/rule payload refusal before writes; scoped project filter; no existing user receives pricing.manage.
+- `tests/e2e/e3-pricing-policies-access.spec.ts`: two EN/UR browser tests that an existing ungranted sales principal cannot reach COM-003 nor the new API.
+- English and Urdu pricing dictionary keys and E.0 handler/route registries updated.
+
+### Strict non-scope
+There is **no endpoint** to approve, schedule, activate, publish, apply to units, generate quotations, post journals, make invoices or settle money. The approval/maker-checker and E-30 rate policies remain open. No demo role is granted pricing.manage. COM-003 is not BUILT; screen register is unchanged.
+
+### Mandatory acceptance checks (GPT cannot execute Windows build through GitHub connector)
+- Validate TypeScript, ESLint, EN/UR parity and all Vitest/API tests. Investigate type/runtime compatibility, including test-only persona assignments and JSX button/link props.
+- Run full final-build Chromium E2E and evidence retries OFF, Firefox/WebKit smoke and axe. Add **authorized test-only** pricing principal for positive COM-003 creation, revisions, resubmission after lost reply, EN/UR RTL reflow at 320px/200%, dark/high-contrast, keyboard and actual focus-ring visibility. Never broaden demo staff permission merely to pass a test.
+- Negative tests for licence/site/project scope revoked between reads and replay, wrong creator/tenant, malformed amounts, overflow, duplicate unit types and cross-action idempotency reuse. Mutation-check creator privacy, project scope, expectedVersion and key replay guard.
+- When Wave 1 Issue #25 integration is approved, transplant E.3 into an isolated new worktree and carefully merge canonical handler/router/permission resources. Do not overwrite E.1/E.2/E.7/E.13 registries.
+- STOP for GPT/owner review. No main/VPS/Bingoo/Laravel, real banking, SOS, Issue #13 or private documents.
+
+**No source compilation or browser suite was run by GPT.**
