@@ -211,3 +211,38 @@ export interface CommercialRulesPreview {
   policyStatus: 'not_approved';
   postingAllowed: false;
 }
+
+/** COM-005 is configuration only: none of these drafts can approve a request. */
+export type PricingApprovalSubject = 'unit_price_change' | 'discount_exception' | 'fee_exception' | 'payment_plan_exception';
+export interface PricingApprovalRule {
+  subject: PricingApprovalSubject;
+  /** Illustrative review threshold; not an adopted transaction authorization limit. */
+  threshold: Money;
+  requiredReviewers: 1 | 2 | 3;
+  makerCheckerRequired: true;
+  allowSelfApproval: false;
+}
+export interface PricingApprovalDraftVersion {
+  version: number;
+  title: string;
+  rules: PricingApprovalRule[];
+  createdAt: string;
+  createdBy: string;
+  state: 'draft';
+}
+export interface PricingApprovalDraft {
+  id: string;
+  tenantId: string;
+  projectId: string;
+  creatorPrincipalId: string;
+  currentVersion: number;
+  versions: PricingApprovalDraftVersion[];
+  state: 'draft';
+  effective: false;
+  activationAllowed: false;
+  approvesTransactions: false;
+}
+export interface PricingApprovalDraftList {
+  items: Array<{ id: string; projectId: string; title: string; currentVersion: number; state: 'draft' }>;
+  total: number;
+}
