@@ -1,3 +1,4 @@
+import { PricingRelatedLinks } from './PricingRelatedLinks';
 import type { PaymentPlanTemplate, PaymentPlanTemplateList, PlanAllocationInput, PlanAllocationKind } from '@repo/contracts';
 import { Badge, Button, EmptyState, ErrorState, PageHeader, SkeletonBlock, useApiMutation, useApiQuery, useCreateKey, useT } from '@repo/ui';
 import { FileClock, Plus, Save, Trash2 } from 'lucide-react';
@@ -111,6 +112,7 @@ export default function PaymentPlanTemplatesPage() {
   return (
     <div className="space-y-6 @container" data-testid="payment-plan-templates-page">
       <PageHeader title={t('pricing:templateTitle')} description={t('pricing:templateIntro')} />
+      <PricingRelatedLinks current="templates" />
       <p className="rounded-control border border-border bg-sunken p-3 text-sm text-muted" data-testid="template-draft-notice">
         {t('pricing:templateNotApproved')}
       </p>
