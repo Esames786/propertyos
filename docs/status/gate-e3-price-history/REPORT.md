@@ -132,3 +132,26 @@ No adopted developer commercial policy E-30; the mock rates are **user-entered f
 ### Final COM-004 UI integrity correction
 
 The frontend now tracks unsaved fee/discount form edits; until the draft is saved, the pure preview button is disabled and a bilingual 'save changes first' explanation is displayed. This prevents presenting the stored last-saved revision's arithmetic as if it were the user's unsaved modifications. No extra payment, pricing authority or posting operation was introduced.
+
+## COM-005 — Pricing approval-rule draft configuration (Issue #31)
+
+**Status: source pushed; tests written but NOT executed; PARTIAL/HOLD.**
+
+### Delivered
+- `packages/contracts/src/pricing.ts`: typed `PricingApprovalRule`, `PricingApprovalDraftVersion`, draft/list contracts and four categories: unit price change, discount exception, fee exception and payment-plan exception.
+- `packages/fixtures/src/developer/pricing/approval-draft-handlers.ts`: project/creator-private `GET /pricing/approval-rules`, `GET /pricing/approval-rules/:id`, `POST /pricing/approval-rules`, `POST /pricing/approval-rules/:id/versions`. Current `pricing.manage` and E.0 site/project scope checked per request. Hidden/unknown and other-creator IDs identical 404; filtered list counts don't disclose hidden data. Full request validation before mutation, append-only version snapshots, immutable original replay, optimistic stale-version refusal and operation+actor+target+normalized-content idempotency binding. Money thresholds canonicalized in integer PKR paisa; defensive max amount, unique subjects and maximum four categories.
+- Crucially, `makerCheckerRequired:true` and `allowSelfApproval:false` are **mandatory validated literal values** on every rule, never user-configurable. Reviewer count is constrained to 1–3 but defines a *draft requirement only*; the request cannot appoint or impersonate reviewers.
+- `apps/backoffice/src/pages/developer/pricing/ApprovalRulesPage.tsx`: responsive EN/UR draft editor at `/backoffice/com/approval-rules`, project selector, unique review categories, PKR threshold, reviewer count, new draft/revise and version-history UX, error/empty/saved states, accessible native form controls. Added to E.0 canonical route/API registries and connected pricing-workspace navigation.
+- `packages/fixtures/src/developer/pricing/approval-draft-handlers.api.test.ts`: seven positive/negative API tests written for draft/no activation, maker-checker/self-approval refusal, malformed data consumes no IDs/keys, replay and cross-principal collision, privacy of IDs/lists, append-only revisions, stale version, scope narrowing and unchanged starter permissions.
+- `tests/e2e/e3-approval-rules-access.spec.ts`: English/Urdu browser tests written proving standard ungranted sales persona cannot read/create draft rule records.
+
+### Explicit safety restrictions
+There is no `approve`, `submit`, `activate`, `schedule` or `apply` handler. All objects are permanently `state:'draft'`, `effective:false`, `activationAllowed:false`, `approvesTransactions:false`. No code uses drafts to approve a real price, discount, fee, quotation, booking, invoice or payment. No live or demo starter permissions were added. Reviewer names, legal owner and threshold policy decisions E-07/E-30 remain unresolved; threshold amounts are only creator-entered fictional input. Official screen register unchanged.
+
+### Required before final acceptance
+- Clean local typecheck, lint, EN/UR key parity, all Vitest and E.3 API tests; final production-build full Chromium E2E + screenshot evidence retries OFF, Firefox/WebKit smoke, axe, EN/UR RTL and 320px/200% keyboard focus/dark/high-contrast; native Urdu/manual screen-reader review remains open.
+- Separate *test-only* authorized pricing principal for positive create → revise → version history browser journeys. Do not grant `pricing.manage` to existing roles just to make tests pass.
+- Mutation tests targeting `allowSelfApproval`, `makerCheckerRequired`, scope, actor/target/key fingerprint, replay authorization, currentVersion and untouched state on invalid input; direct URL unknown-vs-hidden and request after permission/site licence revocation.
+- After Wave 1 Issue #25 is accepted, integrate E.3 in an isolated worktree, reconcile shared E.0 route/handler registries with E.1/E.2/E.7/E.13, rerun full combined regression, STOP for GPT/owner review.
+
+**GPT verified GitHub source/commit writes but did not execute Windows Node/Playwright toolchain; this is not a release or BUILT acceptance.**
