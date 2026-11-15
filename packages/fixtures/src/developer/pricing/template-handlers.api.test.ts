@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import type { PaymentPlanTemplate, PaymentPlanTemplateList, PlanAllocationInput } from '@repo/contracts';
+import type { PaymentPlanTemplate, PaymentPlanTemplateList, PlanAllocationInput, Persona } from '@repo/contracts';
 import { DemoStore } from '../../demo-store';
 import { MockTransport } from '../../mock-transport';
 import { ALL_PERSONAS, findPersona } from '../../people';
 
 const manager = findPersona('manager')!;
-const alice = { ...manager, id: 'e3_template_alice', principalId: 'usr_e3_template_01', permissions: [...manager.permissions, 'pricing.manage'] };
-const bob = { ...manager, id: 'e3_template_bob', principalId: 'usr_e3_template_02', permissions: [...manager.permissions, 'pricing.manage'] };
-const scopes = { ...alice, id: 'e3_template_scoped', principalId: 'usr_e3_template_03', projectScope: ['prj_heights'] };
+const alice: Persona = { ...manager, id: 'e3_template_alice', principalId: 'usr_e3_template_01', permissions: [...manager.permissions, 'pricing.manage'] };
+const bob: Persona = { ...manager, id: 'e3_template_bob', principalId: 'usr_e3_template_02', permissions: [...manager.permissions, 'pricing.manage'] };
+const scopes: Persona = { ...alice, id: 'e3_template_scoped', principalId: 'usr_e3_template_03', projectScope: ['prj_heights'] };
 const VIEWER = 'sales';
 const ROWS: PlanAllocationInput[] = [
   { kind: 'down_payment', shareBps: 2000 },
