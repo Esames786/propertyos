@@ -1,5 +1,6 @@
-import type { UnitPriceHistory, UnitPricePickerItem, UnitPricePickerResponse } from '@repo/contracts';
-import { matches, notFound, requires, type Handler, type HandlerContext } from '../../handler-types';
+import type { PlanPreview, UnitPriceHistory, UnitPricePickerItem, UnitPricePickerResponse } from '@repo/contracts';
+import { invalid, matches, notFound, requires, type Handler, type HandlerContext } from '../../handler-types';
+import { calculatePlanPreview, InvalidPlanError } from './calculator';
 import { projectVisible } from '../scope';
 
 /**
@@ -31,6 +32,43 @@ function visible(ctx: HandlerContext) {
 }
 
 export const PRICE_HISTORY_HANDLERS: readonly Handler[] = [
+  {
+    // A pure preview, not a business create. No sequence, audit, finance or
+    // demo-state writes. Both pricing.manage and unit.view must permit the unit.
+    method: 'POST',
+    pattern: /^\/pricing\/plan-preview$/,
+    access: requires('inventory', 'pricing.manage', 'operational'),
+    handle: (ctx): PlanPreview => {
+      const body = ctx.req.body;
+      const unitId = body && typeof body === 'object' && !Array.isArray(body)
+        ? (body as Record<string, unknown>).unitId
+        : undefined;
+      const unit = typeof unitId === 'string' ? visible(ctx).find((u) => u.id === unitId) : undefined;
+      if (!unit || !projectVisible(ctx, unit.projectId, { module: 'inventory', permission: 'pricing.manage' })) notFound(ctx);
+      if (!body || typeof body !== 'object' || Array.isArray(body) ||
+        Object.keys(body).some((key) => !['unitId', 'allocations'].includes(key))) invalid(ctx, 'allocations');
+      const requested = (body as Record<string, unknown>).allocations;
+      let calculated: ReturnType<typeof calculatePlanPreview>;
+      try {
+        calculated = calculatePlanPreview(unit.price, requested);
+      } catch (error) {
+        if (error instanceof InvalidPlanError) invalid(ctx, 'allocations');
+        throw error;
+      }
+      return {
+        unit: item(ctx, unit),
+        totalPrice: { ...unit.price },
+        ...calculated,
+        totalShareBps: 10000,
+        previewOnly: true,
+        postingAllowed: false,
+        priceSource: 'fictional_seed',
+        policyStatus: 'not_approved',
+        hasScheduledDates: false,
+      };
+    },
+  },
+
   {
     method: 'GET',
     pattern: /^\/pricing\/units$/,
