@@ -71,9 +71,9 @@ export default function PaymentPlanTemplatesPage() {
     setProjectId(selected.data.projectId);
     setRows(asDraftRows(latest.allocations));
     setNextRowId(latest.allocations.length + 1);
-    setSaved(false); setError(false);
+    setError(false);
   }, [selected.data, selectedId]);
-  const change = () => { setSaved(false); setError(false); if (selectedId) renewRevision(); else renewCreate(); };
+  const change = () => { setSaved(false); setError(false); mutation.reset(); if (selectedId) renewRevision(); else renewCreate(); };
   const update = (id: number, patch: Partial<DraftRow>) => {
     setRows((old) => old.map((r) => r.id === id ? { ...r, ...patch } : r));
     change();
@@ -118,7 +118,7 @@ export default function PaymentPlanTemplatesPage() {
         <section className="min-w-0 space-y-4 rounded-card border border-border bg-panel p-4" aria-labelledby="template-list-title">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 id="template-list-title" className="font-semibold text-text">{t('pricing:templateList')}</h2>
-            <Button icon={Plus} variant="secondary" onPress={makeNew}>{t('pricing:templateStartNew')}</Button>
+            <Button icon={Plus} variant="secondary" onPress={makeNew} isDisabled={mutation.isPending}>{t('pricing:templateStartNew')}</Button>
           </div>
           <label className="flex flex-col gap-1 text-sm text-text">
             {t('pricing:templateSearch')}
@@ -149,6 +149,7 @@ export default function PaymentPlanTemplatesPage() {
           <p className="text-sm text-muted">{t('pricing:templatePrivate')}</p>
           {projectsQuery.isError && <ErrorState error={projectsQuery.error} onRetry={() => void projectsQuery.refetch()} />}
           {!projectsQuery.isError && !projectsQuery.data && <SkeletonBlock lines={2} />}
+          {projectsQuery.data?.items.length === 0 && <EmptyState title={t('pricing:templateNoAccess')} />}
           {selectedId && selected.isError ? <ErrorState error={selected.error} onRetry={() => void selected.refetch()} /> :
             <fieldset disabled={mutation.isPending || !projectsQuery.data || (!!selectedId && !selected.data)} className="space-y-4">
               <label className="flex flex-col gap-1 text-sm text-text">{t('pricing:templateProject')}
