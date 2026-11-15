@@ -60,6 +60,25 @@ async function denied(promise: Promise<unknown>) {
 }
 
 describe('E.3 COM-001 — private, immutable, request-bound draft templates', () => {
+  it('shows only currently licensed and scoped project choices, without unit picker truncation', async () => {
+    const w = env();
+    const full = await w.api.request<{ items: Array<{ id: string; name: string }>; total: number }>({
+      method: 'GET', path: '/pricing/template-projects',
+    });
+    expect(full.items.some((p) => p.id === 'prj_heights')).toBe(true);
+    expect(full.items.some((p) => p.id === 'prj_gardens')).toBe(true);
+    w.as(scopes.id);
+    const narrowed = await w.api.request<{ items: Array<{ id: string; name: string }>; total: number }>({
+      method: 'GET', path: '/pricing/template-projects',
+    });
+    expect(narrowed.items.map((p) => p.id)).toEqual(['prj_heights']);
+    expect(narrowed.total).toBe(1);
+    w.as(alice.id, 'prj_heights');
+    expect((await w.api.request<{ total: number }>({ method: 'GET', path: '/pricing/template-projects' })).total).toBe(1);
+    w.as(VIEWER);
+    expect(await denied(w.api.request({ method: 'GET', path: '/pricing/template-projects' }))).toMatchObject({ status: 403, changed: false });
+  });
+
   it('creates a private draft, not an approved/posted plan; reads do not write', async () => {
     const w = env();
     const created = await create(w.api);
