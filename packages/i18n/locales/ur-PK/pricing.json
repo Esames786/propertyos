@@ -90,5 +90,6 @@
   "templateAdd": "سطرداخل کریں",
   "templateDelete": "سطراٹھائیں",
   "templateTitleUnchanged": "یہاں منظوری، اشاعت، قیمت میں تبدیلی یا ادائیگی نہیں ہوتی۔",
-  "templateSelectProject": "مجاز منصوبہ منتخب کریں"
+  "templateSelectProject": "مجاز منصوبہ منتخب کریں",
+  "templateConflict": "یہ مسودہ بدل چکا ہے یا درخواست کی شناخت پہلے استعمال ہو چکی ہے۔ دوبارہ جمع کرنے سے پہلے ریکارڈ تازہ کریں۔"
 }
