@@ -104,3 +104,27 @@ There is **no endpoint** to approve, schedule, activate, publish, apply to units
 - STOP for GPT/owner review. No main/VPS/Bingoo/Laravel, real banking, SOS, Issue #13 or private documents.
 
 **No source compilation or browser suite was run by GPT.**
+
+## COM-004 — Fees & Discounts (Issue #30, 15 November 2026)
+
+**Status: GitHub source and tests pushed, but NOT LOCALLY EXECUTED. PARTIAL/HOLD.**
+
+### Implementation
+- `packages/contracts/src/pricing.ts`: typed fixed/percentage fee and percent+PKR-cap discount rules, immutable private draft versions and non-posting preview response.
+- `packages/fixtures/src/developer/pricing/commercial-calculator.ts`: pure integer BigInt paisa arithmetic. The listed fictional unit price is the basis for each percentage; no JS money floats. Validates PKR decimal format, max values, unique uppercase codes across fees+discounts, 3–80 character rule descriptions, max 16 fee and 16 discount rows, 0–10000 basis-point rates; fixed-fee or percentage mode must have only its own associated field. Discounts are bounded by explicit PKR maximums. Sum of discounts cannot exceed listed price plus fees; excess causes a refusal, NEVER a silent clamp/negative payable. Zero fee/discount rows remain visible. Excess aggregate fees/discounts are refused.
+- `packages/fixtures/src/developer/pricing/commercial-handlers.ts`: `GET /pricing/commercial-rules`, `GET /pricing/commercial-rules/:id`, `POST /pricing/commercial-rules`, `POST /pricing/commercial-rules/:id/versions` and pure `POST /pricing/commercial-preview`. Current `pricing.manage` authorization, tenant+project+licensing scopes, creator-private IDs and list totals, no hidden/unknown record oracle, stable mutation-free reads, append-only draft version snapshots, optimistic `expectedVersion`, request-bound idempotency and authorization-before-replay. Preview checks selected unit project and `unit.view` separately from draft scope. No fees/discounts ever modify a unit price, quote, bill, payment, payout or bank record.
+- UI `apps/backoffice/src/pages/developer/pricing/FeesDiscountsPage.tsx`: responsive EN/UR form with scoped projects, fee/discount rows, fixed/rate/cap fields, validation/feedback, project-private draft list, revision history, unit selector and exact preview with zero-value lines. Routed through E.0 canonical registry at `/backoffice/com/fees-and-discounts`. Contextual pricing workspaces navigation now also includes COM-004.
+- English/Urdu `pricing` dictionary extended with matching COM-004 keys.
+- `commercial-handlers.api.test.ts`: 12 test cases (4 pure price/invalid vectors and 8 mock API privacy, replay, versioning, scope, preview/unchanged-state tests) **written but not run**.
+- `e3-commercial-access.spec.ts`: 2 EN/UR browser permission-denial tests **written but not run**.
+
+### Deferred / safety boundary
+No adopted developer commercial policy E-30; the mock rates are **user-entered fictional draft examples**. No default or statutory percentage is assumed. No approval/activation/scheduling endpoint, real quote/invoice/payment posting, tax determination, receipt, paid status or settlement. No existing demo persona is granted `pricing.manage`; COM-004 is inaccessible to standard staff until a separately approved pricing role or test-only principal is supplied. All E.3 screens remain PARTIAL, official screen register unchanged. No `main` merge/deployment.
+
+### Review and testing needed
+1. On an isolated local worktree with this branch, run full TypeScript, lint, EN/UR parity, all Vitest, COM-004 API/security tests, final-build Chromium E2E/evidence retries OFF, Firefox/WebKit smoke, axe and 320px/200% EN/UR RTL/dark/contrast. Native Urdu and screen-reader/manual phone checks remain open.
+2. Add test-only authorized pricing principal to prove real create/revise/preview keyboard journeys. Do not silently grant ordinary demo staff.
+3. Mutation checks for creator-only read/updates, project/site scope, idempotency operation/actor/target/normalized payload, approval block, immutable revisions, excessive discount refusal, oversized/malformed rates and negative money. Verify false requests byte-identically preserve entire tenant section. Recheck access on replay/revocation and cross-tenant IDs. Confirm unit-price and preview remain identical to fictional baseline.
+4. After Issue #25 Wave 1 integration is accepted, transplant only reviewed E.3 code into a new isolated integration branch, reconcile canonical E.0 + E1/E2/E7/E13 routes, handler registries, role counts and resource dictionaries, run the combined regression, then STOP for GPT/owner review.
+
+**The GPT GitHub connector performed file writes and source readback, but could not run the user's Windows toolchain. Do not claim tests passed or that the module is BUILT.**
