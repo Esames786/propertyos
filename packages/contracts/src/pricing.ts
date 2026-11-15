@@ -148,3 +148,66 @@ export interface PricingPolicyDraftList {
   items: Array<{ id: string; projectId: string; title: string; currentVersion: number; state: 'draft' }>;
   total: number;
 }
+
+/**
+ * COM-004. These are illustrations, not adopted commercial or statutory rules.
+ * Basis points are hundredths of one percent, applied to the fictional listed
+ * unit price. Discounts are always bounded by an explicit PKR cap.
+ */
+export type CommercialFeeMode = 'fixed' | 'rate_bps';
+export interface CommercialFeeRule {
+  code: string;
+  label: string;
+  mode: CommercialFeeMode;
+  /** Required for fixed fees; absent for a rate-based fee. */
+  amount?: Money;
+  /** Required for rate-based fees; absent for a fixed fee. */
+  rateBps?: number;
+}
+export interface CommercialDiscountRule {
+  code: string;
+  label: string;
+  rateBps: number;
+  maxAmount: Money;
+}
+export interface CommercialRulesDraftVersion {
+  version: number;
+  title: string;
+  fees: CommercialFeeRule[];
+  discounts: CommercialDiscountRule[];
+  createdAt: string;
+  createdBy: string;
+  state: 'draft';
+}
+export interface CommercialRulesDraft {
+  id: string;
+  tenantId: string;
+  projectId: string;
+  creatorPrincipalId: string;
+  currentVersion: number;
+  versions: CommercialRulesDraftVersion[];
+  state: 'draft';
+  effective: false;
+  approvalAllowed: false;
+}
+export interface CommercialRulesDraftList {
+  items: Array<{ id: string; projectId: string; title: string; currentVersion: number; state: 'draft' }>;
+  total: number;
+}
+export interface CommercialPreviewLine {
+  code: string;
+  label: string;
+  kind: 'fee' | 'discount';
+  amount: Money;
+}
+export interface CommercialRulesPreview {
+  unit: UnitPricePickerItem;
+  listedPrice: Money;
+  lines: CommercialPreviewLine[];
+  totalFees: Money;
+  totalDiscounts: Money;
+  illustrativePayable: Money;
+  previewOnly: true;
+  policyStatus: 'not_approved';
+  postingAllowed: false;
+}
