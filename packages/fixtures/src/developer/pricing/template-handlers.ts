@@ -89,6 +89,15 @@ const summary = (t: PaymentPlanTemplate): PaymentPlanTemplateSummary => ({
  */
 export const PLAN_TEMPLATE_HANDLERS: readonly Handler[] = [
   {
+    method: 'GET', pattern: /^\/pricing\/template-projects$/,
+    access: requires('inventory', 'pricing.manage', 'operational'),
+    handle: (ctx): { items: Array<{ id: string; name: string }>; total: number } => {
+      const items = ctx.data.projects.filter((project) => authProject(ctx, project.id))
+        .map((project) => ({ id: project.id, name: project.name }));
+      return { items, total: items.length };
+    },
+  },
+  {
     method: 'GET', pattern: /^\/pricing\/plan-templates$/,
     access: requires('inventory', 'pricing.manage', 'operational'),
     handle: (ctx): PaymentPlanTemplateList => {
