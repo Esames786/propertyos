@@ -6,7 +6,13 @@ const UnitPriceHistoryPage = lazy(() => import('./UnitPriceHistoryPage'));
 const PaymentPlanBuilderPage = lazy(() => import('./PaymentPlanBuilderPage'));
 const PaymentPlanTemplatesPage = lazy(() => import('./PaymentPlanTemplatesPage'));
 const PricingPoliciesPage = lazy(() => import('./PricingPoliciesPage'));
+const FeesDiscountsPage = lazy(() => import('./FeesDiscountsPage'));
 export const routes = [
+  devRoute(
+    'com/fees-and-discounts',
+    <DevScreen page={FeesDiscountsPage} target={{ module: 'inventory', permission: 'pricing.manage' }} />,
+    (t) => t('pricing:commercialTitle'),
+  ),
   devRoute(
     'com/pricing-policies',
     <DevScreen page={PricingPoliciesPage} target={{ module: 'inventory', permission: 'pricing.manage' }} />,
