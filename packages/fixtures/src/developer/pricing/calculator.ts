@@ -28,7 +28,7 @@ function money(value: bigint): Money {
   return { amount: `${value / 100n}.${(value % 100n).toString().padStart(2, '0')}`, currency: 'PKR' };
 }
 
-function allocationsOf(raw: unknown): PlanAllocationInput[] {
+export function allocationsOf(raw: unknown): PlanAllocationInput[] {
   if (!Array.isArray(raw) || raw.length < 1 || raw.length > 24) invalid();
   let total = 0;
   let rows = 0;
