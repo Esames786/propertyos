@@ -36,3 +36,48 @@ export interface UnitPriceHistory {
   canEdit: false;
   recordState: 'baseline_only';
 }
+
+/**
+ * COM-002: a single-request, read-only preview. One basis point = 0.01%.
+ * This does not create a template, price version, quote or receivable.
+ */
+export type PlanAllocationKind = 'down_payment' | 'instalments' | 'on_possession' | 'balloon' | 'construction_linked';
+
+export interface PlanAllocationInput {
+  kind: PlanAllocationKind;
+  shareBps: number;
+  /** Required for instalments, omitted for other allocation kinds. */
+  count?: number;
+  /** Required for construction-linked lines. No date is inferred from this key. */
+  milestoneKey?: string;
+}
+
+export interface PlanPreviewInput {
+  unitId: string;
+  allocations: PlanAllocationInput[];
+}
+
+export interface PlanPreviewRow {
+  rowKey: string;
+  kind: PlanAllocationKind;
+  shareBps: number;
+  amount: Money;
+  /** Optional fictional construction milestone, never a due date. */
+  milestoneKey?: string;
+  instalmentNumber?: number;
+  instalmentCount?: number;
+}
+
+export interface PlanPreview {
+  unit: UnitPricePickerItem;
+  totalPrice: Money;
+  lines: PlanPreviewRow[];
+  totalAllocated: Money;
+  totalShareBps: 10000;
+  difference: Money;
+  previewOnly: true;
+  postingAllowed: false;
+  priceSource: 'fictional_seed';
+  policyStatus: 'not_approved';
+  hasScheduledDates: false;
+}
