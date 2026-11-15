@@ -1,13 +1,14 @@
 import { Link, useT } from '@repo/ui';
 
 /** Relevant E.3 pages stay one click away; every destination rechecks its own server permission. */
-export function PricingRelatedLinks({ current }: { current: 'templates' | 'builder' | 'policies' | 'commercial' }) {
+export function PricingRelatedLinks({ current }: { current: 'templates' | 'builder' | 'policies' | 'commercial' | 'approvals' }) {
   const { t } = useT();
   const tabs = [
     { key: 'templates', href: '/backoffice/com/payment-plan-templates', title: t('pricing:templateTitle') },
     { key: 'builder', href: '/backoffice/com/payment-plan-builder', title: t('pricing:previewTitle') },
     { key: 'policies', href: '/backoffice/com/pricing-policies', title: t('pricing:policyTitle') },
     { key: 'commercial', href: '/backoffice/com/fees-and-discounts', title: t('pricing:commercialTitle') },
+    { key: 'approvals', href: '/backoffice/com/approval-rules', title: t('pricing:approvalTitle') },
   ] as const;
   return (
     <nav aria-label={t('pricing:policyNav')} className="flex min-w-0 flex-wrap gap-2" data-testid="pricing-related-nav">
