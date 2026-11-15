@@ -81,3 +81,38 @@ export interface PlanPreview {
   policyStatus: 'not_approved';
   hasScheduledDates: false;
 }
+
+/** COM-001: user-authored drafts; no approved/scheduled/published template exists in this prototype. */
+export interface PaymentPlanTemplateVersion {
+  version: number;
+  title: string;
+  allocations: PlanAllocationInput[];
+  createdAt: string;
+  createdBy: string;
+  state: 'draft';
+}
+
+export interface PaymentPlanTemplate {
+  id: string;
+  tenantId: string;
+  projectId: string;
+  creatorPrincipalId: string;
+  currentVersion: number;
+  versions: PaymentPlanTemplateVersion[];
+  state: 'draft';
+  approvalAllowed: false;
+  postingAllowed: false;
+}
+
+export interface PaymentPlanTemplateSummary {
+  id: string;
+  projectId: string;
+  title: string;
+  currentVersion: number;
+  state: 'draft';
+}
+
+export interface PaymentPlanTemplateList {
+  items: PaymentPlanTemplateSummary[];
+  total: number;
+}
