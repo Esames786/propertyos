@@ -61,6 +61,7 @@ export default function FeesDiscountsPage() {
   const [previewResult, setPreviewResult] = useState<CommercialRulesPreview | null>(null);
   const [invalid, setInvalid] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [dirty, setDirty] = useState(false);
   const [createKey, renewCreate] = useCreateKey('commercial-create');
   const [reviseKey, renewRevise] = useCreateKey('commercial-revise');
   const projects = useApiQuery<{ items: Array<{ id: string; name: string }>; total: number }>({ method: 'GET', path: '/pricing/template-projects' });
@@ -81,16 +82,17 @@ export default function FeesDiscountsPage() {
     setNextId(200);
     setPreviewResult(null);
     setInvalid(false);
+    setDirty(false);
   }, [detail.data, selectedId]);
 
   const changed = () => {
-    setPreviewResult(null); setInvalid(false); setSaved(false);
+    setPreviewResult(null); setInvalid(false); setSaved(false); setDirty(true);
     if (selectedId) renewRevise(); else renewCreate();
   };
   const reset = () => {
     setSelectedId(null); setProjectId(''); setTitle('');
     setFees([feeDefault(1)]); setDiscounts([discountDefault(101)]); setNextId(200); setUnitId('');
-    renewCreate(); renewRevise(); setPreviewResult(null); setInvalid(false); setSaved(false);
+    renewCreate(); renewRevise(); setPreviewResult(null); setInvalid(false); setSaved(false); setDirty(false);
   };
   const save = async () => {
     const rules = canonicalDraft(fees, discounts), cleanTitle = title.trim().replace(/\s+/g, ' ');
@@ -105,7 +107,7 @@ export default function FeesDiscountsPage() {
     try {
       const response = await mutation.mutateAsync({ method: 'POST', path, body, idempotencyKey: key });
       setSelectedId(response.id);
-      renewCreate(); renewRevise(); setSaved(true); setPreviewResult(null);
+      renewCreate(); renewRevise(); setSaved(true); setPreviewResult(null); setDirty(false);
       await list.refetch();
       if (selectedId) await detail.refetch();
     } catch {
@@ -113,7 +115,7 @@ export default function FeesDiscountsPage() {
     }
   };
   const doPreview = async () => {
-    if (!selectedId || !unitId || !detail.data || detail.data.id !== selectedId) return;
+    if (dirty || !selectedId || !unitId || !detail.data || detail.data.id !== selectedId) return;
     try {
       const result = await preview.mutateAsync({ method: 'POST', path: '/pricing/commercial-preview', body: { draftId: selectedId, unitId } });
       setPreviewResult(result);
@@ -145,7 +147,7 @@ export default function FeesDiscountsPage() {
             : list.data.items.length === 0 ? <EmptyState title={t('pricing:commercialEmpty')} /> :
               <ul className="space-y-2" data-testid="commercial-draft-list">
                 {list.data.items.map((item) => <li key={item.id}>
-                  <button type="button" disabled={mutation.isPending} onClick={() => { setSelectedId(item.id); setSaved(false); setPreviewResult(null); renewRevise(); }}
+                  <button type="button" disabled={mutation.isPending} onClick={() => { setSelectedId(item.id); setSaved(false); setPreviewResult(null); setDirty(false); renewRevise(); }}
                     aria-current={selectedId === item.id ? 'true' : undefined}
                     className="min-h-11 w-full rounded-control border border-border p-3 text-start text-text hover:bg-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
                     <span className="block break-words font-semibold">{item.title}</span>
@@ -228,6 +230,7 @@ export default function FeesDiscountsPage() {
           {selectedId && detail.data?.id === selectedId && <section className="space-y-4 rounded-card border border-border bg-panel p-4">
             <h3 className="flex items-center gap-2 font-semibold text-text"><Calculator aria-hidden className="size-4" />{t('pricing:commercialPreview')}</h3>
             <p className="text-sm text-muted">{t('pricing:commercialPreviewOnly')}</p>
+            {dirty && <p role="status" className="text-sm text-muted" data-testid="commercial-save-first">{t('pricing:commercialUnsaved')}</p>}
             <label className="flex flex-col gap-1 text-sm text-text">{t('pricing:commercialUnit')}
               <select value={unitId} onChange={(e) => { setUnitId(e.target.value); setPreviewResult(null); }}
                 disabled={preview.isPending}
@@ -238,7 +241,7 @@ export default function FeesDiscountsPage() {
             </label>
             {units.isError && <ErrorState error={units.error} onRetry={() => void units.refetch()} />}
             {units.data?.items.filter((u) => u.projectId === projectId).length === 0 && <p className="text-sm text-muted">{t('pricing:commercialNoUnit')}</p>}
-            <Button variant="primary" icon={Calculator} isDisabled={!unitId || preview.isPending} isPending={preview.isPending} onPress={() => void doPreview()}
+            <Button variant="primary" icon={Calculator} isDisabled={!unitId || dirty || preview.isPending} isPending={preview.isPending} onPress={() => void doPreview()}
               data-testid="commercial-compute">{t('pricing:commercialCompute')}</Button>
             {preview.isError && <ErrorState error={preview.error} title={t('pricing:commercialPreviewError')} />}
             {previewResult && <div className="space-y-3" data-testid="commercial-preview-result">
