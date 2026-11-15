@@ -54,3 +54,28 @@ No saved payment-plan templates or versions, pricing change requests, unit price
 - After accepted Issue #25 Wave 1 integration, transplant to the integrated source in an isolated branch; reconcile both E.0 handler and routes registries. Do not overwrite the accepted E.1/E.2/E.7/E.13 registrations. STOP for reviewer acceptance.
 
 **GPT only used the GitHub connector for writes/source review in this wave. No Windows compiler or browser suite has been executed.**
+
+## COM-001 — Payment plan template drafts and immutable revisions (Issue #28)
+
+**Status: CODE AND TESTS PUSHED, BUT NOT LOCALLY EXECUTED. No final approval.**
+
+### Actual GitHub changes
+- `packages/contracts/src/pricing.ts`: project-bound `PaymentPlanTemplate` plus append-only `PaymentPlanTemplateVersion` and minimal private list contract. Every template is `state:'draft'`, `approvalAllowed:false`, `postingAllowed:false`.
+- `packages/fixtures/src/developer/pricing/template-handlers.ts`: `GET /pricing/template-projects` (live licensed project scope), `GET /pricing/plan-templates` (creator-filtered list/total), `GET /pricing/plan-templates/:id` (creator-scoped snapshot), `POST /pricing/plan-templates` (create draft) and `POST /pricing/plan-templates/:id/versions` (optimistic append-only revision). Requires `pricing.manage` and current inventory/project/site authorization at every request. Unknown and other-creator/out-of-project IDs answer the same 404. Reads do not write. An invalid payload/refusal consumes no number, version or idempotency key.
+- Draft/create/revision requests use non-guessable request keys supplied by UI and are bound to creator, target project/template, operation and normalized title/allocations; exact authorized replays return the stored original response, never a second version; other reuse gives non-disclosing 409. A stale `expectedVersion` cannot silently overwrite another draft revision. Previous versions are never edited.
+- Shared calculator validator `allocationsOf` reused: whole 100% in basis points, 1–24 lines, 1–36 instalments, 120 resulting lines max, construction milestone identifier required, malformed/duplicate extra fields refused. No invented due dates.
+- New `PaymentPlanTemplatesPage.tsx` at `/backoffice/com/payment-plan-templates`: project selector from direct `pricing.manage` scoped project API (not a limited unit list), own-draft search, reusable EN/UR/RTL allocation editor, create, revise, saved/error states, immutable version history. Accessible controls/labels, responsive layout and no fake Approve/Publish controls. Request key is renewed on genuine form edits and after success, retained for the same request's uncertain network retry.
+- E.0 canonical handler and route registries extended in isolated branch, without touching Claude's Wave 1 branch.
+- New `template-handlers.api.test.ts`: seven test cases for current project-choice scope, author-only privacy, hidden==unknown, create replay, fresh-create keys, append-only revisions, stale conflicts, malformed input no writes, narrowed project header. New `e3-plan-templates-access.spec.ts`: English and Urdu unauthorized browser denial. Tests written, **not executed**.
+
+### Strict limitations
+No demo staff role gets `pricing.manage`; existing users cannot access COM-001 or COM-002 until an approved role or a **test-only** pricing principal is used. Do not grant pricing rights to starter roles. Project-private ownership is a conservative provisional prototype choice, not a final multi-author pricing-template policy. No template approval, scheduling, effective-dated plan, quote, price change, booking, financial posting, invoice, bank instruction or settlement endpoint. E-30 and E-07 remain open. This is **PARTIAL** work, not a BUILT register promotion. The official screen register is deliberately unchanged.
+
+### Required local verification and integration
+1. Validate typecheck, lint, EN/UR key parity, full Vitest and the COM-001/002 E.3 API tests.
+2. Run full Chromium production-build regression + evidence with retries OFF, Firefox/WebKit smoke and axe. Add authorized test-only pricing persona to exercise COM-001 create/revise browser flow, not actual staff roles. Include 320px/200% EN/UR/RTL, dark/high-contrast, keyboard and focus. Manual screen-reader/native-Urdu still open.
+3. Mutation tests must remove creator-only guard, project/site scope, immutable revision append, request-key binding and expected-version check; each mutation should be caught. Test a revoked grant or site license mid-session.
+4. After issue #25 Wave 1 integration becomes accepted, transplant E.3 code onto a **new** isolated worktree; reconcile central registries and imports with E.1/E.2/E.7/E.13. No overwriting merged shared catalogues or routes.
+5. Stop for GPT/owner review. Do not merge to `main`, deploy, touch VPS/Bingoo/Laravel, real money or SOS.
+
+GitHub branch/source changes are verified, but GPT **has not executed any Windows TypeScript, Vitest, Playwright or visual test** in this wave.
