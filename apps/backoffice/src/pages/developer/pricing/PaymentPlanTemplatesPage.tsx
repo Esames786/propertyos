@@ -1,7 +1,7 @@
-import type { PaymentPlanTemplate, PaymentPlanTemplateList, PlanAllocationInput, PlanAllocationKind, UnitPricePickerResponse } from '@repo/contracts';
+import type { PaymentPlanTemplate, PaymentPlanTemplateList, PlanAllocationInput, PlanAllocationKind } from '@repo/contracts';
 import { Badge, Button, EmptyState, ErrorState, PageHeader, SkeletonBlock, useApiMutation, useApiQuery, useCreateKey, useT } from '@repo/ui';
 import { FileClock, Plus, Save, Trash2 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 const KINDS: readonly PlanAllocationKind[] = ['down_payment', 'instalments', 'on_possession', 'balloon', 'construction_linked'];
 type DraftRow = { id: number; kind: PlanAllocationKind; percent: string; count: string; milestoneKey: string };
@@ -54,15 +54,11 @@ export default function PaymentPlanTemplatesPage() {
   const [revisionKey, renewRevision] = useCreateKey('plan-revision');
   const mutation = useApiMutation<PaymentPlanTemplate>();
   const templates = useApiQuery<PaymentPlanTemplateList>({ method: 'GET', path: '/pricing/plan-templates', query: { q: query } });
-  const units = useApiQuery<UnitPricePickerResponse>({ method: 'GET', path: '/pricing/units' });
+  const projectsQuery = useApiQuery<{ items: Array<{ id: string; name: string }>; total: number }>({ method: 'GET', path: '/pricing/template-projects' });
   const selected = useApiQuery<PaymentPlanTemplate>(
     selectedId ? { method: 'GET', path: `/pricing/plan-templates/${encodeURIComponent(selectedId)}` } : null,
   );
-  const projects = useMemo(() => {
-    const lookup = new Map<string, string>();
-    for (const unit of units.data?.items ?? []) lookup.set(unit.projectId, unit.projectName);
-    return [...lookup].map(([id, name]) => ({ id, name }));
-  }, [units.data]);
+  const projects = projectsQuery.data?.items ?? [];
   const makeNew = () => {
     setSelectedId(null); setTitle(''); setProjectId(''); setRows(newRows()); setNextRowId(3);
     renewCreate(); renewRevision(); setSaved(false); setError(false);
@@ -151,8 +147,10 @@ export default function PaymentPlanTemplatesPage() {
         <section className="min-w-0 space-y-4 rounded-card border border-border bg-panel p-4" aria-labelledby="template-editor-heading">
           <h2 id="template-editor-heading" className="font-semibold text-text">{selectedId ? t('pricing:templateEdit') : t('pricing:templateNew')}</h2>
           <p className="text-sm text-muted">{t('pricing:templatePrivate')}</p>
+          {projectsQuery.isError && <ErrorState error={projectsQuery.error} onRetry={() => void projectsQuery.refetch()} />}
+          {!projectsQuery.isError && !projectsQuery.data && <SkeletonBlock lines={2} />}
           {selectedId && selected.isError ? <ErrorState error={selected.error} onRetry={() => void selected.refetch()} /> :
-            <fieldset disabled={mutation.isPending || (!!selectedId && !selected.data)} className="space-y-4">
+            <fieldset disabled={mutation.isPending || !projectsQuery.data || (!!selectedId && !selected.data)} className="space-y-4">
               <label className="flex flex-col gap-1 text-sm text-text">{t('pricing:templateProject')}
                 <select value={projectId} disabled={!!selectedId} onChange={(event) => { setProjectId(event.target.value); change(); }}
                   data-testid="template-project"
