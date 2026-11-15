@@ -128,3 +128,7 @@ No adopted developer commercial policy E-30; the mock rates are **user-entered f
 4. After Issue #25 Wave 1 integration is accepted, transplant only reviewed E.3 code into a new isolated integration branch, reconcile canonical E.0 + E1/E2/E7/E13 routes, handler registries, role counts and resource dictionaries, run the combined regression, then STOP for GPT/owner review.
 
 **The GPT GitHub connector performed file writes and source readback, but could not run the user's Windows toolchain. Do not claim tests passed or that the module is BUILT.**
+
+### Final COM-004 UI integrity correction
+
+The frontend now tracks unsaved fee/discount form edits; until the draft is saved, the pure preview button is disabled and a bilingual 'save changes first' explanation is displayed. This prevents presenting the stored last-saved revision's arithmetic as if it were the user's unsaved modifications. No extra payment, pricing authority or posting operation was introduced.
