@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Money, PlanAllocationInput, PlanPreview } from '@repo/contracts';
+import type { Money, PlanAllocationInput, PlanPreview, Persona } from '@repo/contracts';
 import { DemoStore } from '../../demo-store';
 import { datasetFor } from '../../datasets';
 import { MockTransport } from '../../mock-transport';
@@ -67,12 +67,12 @@ const HEIGHTS = L.units.find((u) => u.projectId === 'prj_heights')!;
 const GARDENS = L.units.find((u) => u.projectId === 'prj_gardens')!;
 const NEVER = 'unt_never_issued_e3_preview';
 const manager = findPersona('manager')!;
-const pricer = {
+const pricer: Persona = {
   ...manager, id: 'e3_pricer', principalId: 'usr_e3_pricer', permissions: [...manager.permissions, 'pricing.manage'],
 };
-const scoped = { ...pricer, id: 'e3_scoped', principalId: 'usr_e3_scoped', projectScope: ['prj_heights'] };
-const readonlyPricer = { ...pricer, id: 'e3_price_only', principalId: 'usr_e3_price_only', permissions: ['pricing.manage'] };
-const onlyView = { ...manager, id: 'e3_view_only', principalId: 'usr_e3_view_only', permissions: ['unit.view'] };
+const scoped: Persona = { ...pricer, id: 'e3_scoped', principalId: 'usr_e3_scoped', projectScope: ['prj_heights'] };
+const readonlyPricer: Persona = { ...pricer, id: 'e3_price_only', principalId: 'usr_e3_price_only', permissions: ['pricing.manage'] };
+const onlyView: Persona = { ...manager, id: 'e3_view_only', principalId: 'usr_e3_view_only', permissions: ['unit.view'] };
 
 function world() {
   const mem = new Map<string, string>();
