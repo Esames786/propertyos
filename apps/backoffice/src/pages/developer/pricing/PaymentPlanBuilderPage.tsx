@@ -102,6 +102,7 @@ export default function PaymentPlanBuilderPage() {
               label={t('pricing:previewSelectUnit')}
               value={unitId}
               onChange={(id) => { setUnitId(id); setPreviewData(null); setInvalid(false); }}
+              isDisabled={compute.isPending}
               options={selectionOptions}
               optional
               testId="plan-unit-picker"
@@ -146,7 +147,7 @@ export default function PaymentPlanBuilderPage() {
                       variant="secondary"
                       icon={Trash2}
                       isDisabled={rows.length <= 1}
-                      onPress={() => { setRows((old) => old.filter((r) => r.id !== row.id)); setPreviewData(null); }}
+                      onPress={() => { setRows((old) => old.filter((r) => r.id !== row.id)); setPreviewData(null); setInvalid(false); }}
                       data-testid={`plan-remove-${index}`}
                     >
                       {t('pricing:previewRemove')}
@@ -184,7 +185,7 @@ export default function PaymentPlanBuilderPage() {
                 variant="secondary" icon={Plus}
                 onPress={() => {
                   setRows((old) => [...old, { id: nextRowId, kind: 'balloon', percent: '0', count: '1', milestoneKey: '' }]);
-                  setNextRowId((old) => old + 1); setPreviewData(null);
+                  setNextRowId((old) => old + 1); setPreviewData(null); setInvalid(false);
                 }}
                 isDisabled={rows.length >= 24 || compute.isPending}
                 data-testid="plan-add-row"
