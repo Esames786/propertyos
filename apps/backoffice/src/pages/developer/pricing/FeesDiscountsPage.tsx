@@ -2,6 +2,7 @@ import type { CommercialDiscountRule, CommercialFeeRule, CommercialRulesDraft, C
 import { Badge, Button, EmptyState, ErrorState, PageHeader, SkeletonBlock, useApiMutation, useApiQuery, useCreateKey, useT } from '@repo/ui';
 import { Calculator, Plus, Save, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { canHydrateDraft, expectedDraftVersion, type CommittedDraftFloor } from './revision-sync';
 import { useCrmFormat } from '../../crm/format';
 import { PricingRelatedLinks } from './PricingRelatedLinks';
 
@@ -62,6 +63,7 @@ export default function FeesDiscountsPage() {
   const [invalid, setInvalid] = useState(false);
   const [saved, setSaved] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [committedFloor, setCommittedFloor] = useState<CommittedDraftFloor | null>(null);
   const [createKey, renewCreate] = useCreateKey('commercial-create');
   const [reviseKey, renewRevise] = useCreateKey('commercial-revise');
   const projects = useApiQuery<{ items: Array<{ id: string; name: string }>; total: number }>({ method: 'GET', path: '/pricing/template-projects' });
@@ -72,7 +74,7 @@ export default function FeesDiscountsPage() {
   const preview = useApiMutation<CommercialRulesPreview>();
 
   useEffect(() => {
-    if (dirty || !selectedId || detail.data?.id !== selectedId) return;
+    if (!canHydrateDraft(selectedId, detail.data, dirty, committedFloor)) return;
     const latest = detail.data.versions.at(-1);
     if (!latest) return;
     setTitle(latest.title);
@@ -83,14 +85,14 @@ export default function FeesDiscountsPage() {
     setPreviewResult(null);
     setInvalid(false);
     setDirty(false);
-  }, [detail.data, selectedId, dirty]);
+  }, [detail.data, selectedId, dirty, committedFloor]);
 
   const changed = () => {
     setPreviewResult(null); setInvalid(false); setSaved(false); setDirty(true);
     if (selectedId) renewRevise(); else renewCreate();
   };
   const reset = () => {
-    setSelectedId(null); setProjectId(''); setTitle('');
+    setSelectedId(null); setCommittedFloor(null); setProjectId(''); setTitle('');
     setFees([feeDefault(1)]); setDiscounts([discountDefault(101)]); setNextId(200); setUnitId('');
     renewCreate(); renewRevise(); setPreviewResult(null); setInvalid(false); setSaved(false); setDirty(false);
   };
@@ -101,12 +103,12 @@ export default function FeesDiscountsPage() {
     const key = selectedId ? reviseKey : createKey;
     const path = selectedId ? `/pricing/commercial-rules/${encodeURIComponent(selectedId)}/versions` : '/pricing/commercial-rules';
     const body = selectedId
-      ? { expectedVersion: detail.data?.currentVersion, title: cleanTitle, ...rules, idempotencyKey: key }
+      ? { expectedVersion: expectedDraftVersion(selectedId, detail.data, committedFloor), title: cleanTitle, ...rules, idempotencyKey: key }
       : { projectId, title: cleanTitle, ...rules, idempotencyKey: key };
     setInvalid(false);
     try {
       const response = await mutation.mutateAsync({ method: 'POST', path, body, idempotencyKey: key });
-      setSelectedId(response.id);
+      setCommittedFloor({ id: response.id, version: response.currentVersion }); setSelectedId(response.id);
       renewCreate(); renewRevise(); setSaved(true); setPreviewResult(null); setDirty(false);
       // The draft POST succeeded; cache refresh cannot turn that into a failed save.
       // useApiMutation also invalidates all API queries after success.
@@ -149,7 +151,7 @@ export default function FeesDiscountsPage() {
             : list.data.items.length === 0 ? <EmptyState title={t('pricing:commercialEmpty')} /> :
               <ul className="space-y-2" data-testid="commercial-draft-list">
                 {list.data.items.map((item) => <li key={item.id}>
-                  <button type="button" disabled={mutation.isPending} onClick={() => { setSelectedId(item.id); setSaved(false); setPreviewResult(null); setDirty(false); renewRevise(); }}
+                  <button type="button" disabled={mutation.isPending} onClick={() => { setCommittedFloor(null); setSelectedId(item.id); setSaved(false); setPreviewResult(null); setDirty(false); renewRevise(); }}
                     aria-current={selectedId === item.id ? 'true' : undefined}
                     className="min-h-11 w-full rounded-control border border-border p-3 text-start text-text hover:bg-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
                     <span className="block break-words font-semibold">{item.title}</span>
