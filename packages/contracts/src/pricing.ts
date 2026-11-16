@@ -246,3 +246,32 @@ export interface PricingApprovalDraftList {
   items: Array<{ id: string; projectId: string; title: string; currentVersion: number; state: 'draft' }>;
   total: number;
 }
+
+/** INV-007 proposed pricing is an inert private draft, never a UnitPriceRevision. */
+export interface UnitPriceChangeDraftVersion {
+  version: number;
+  proposedPrice: Money;
+  reason: string;
+  createdAt: string;
+  createdBy: string;
+  state: 'draft';
+}
+export interface UnitPriceChangeDraft {
+  id: string;
+  tenantId: string;
+  projectId: string;
+  unitId: string;
+  creatorPrincipalId: string;
+  /** Snapshot of the fictional listed price when draft was started. */
+  baselinePrice: Money;
+  currentVersion: number;
+  versions: UnitPriceChangeDraftVersion[];
+  state: 'draft';
+  effective: false;
+  approvalAllowed: false;
+  changesListedPrice: false;
+}
+export interface UnitPriceChangeDraftList {
+  items: Array<{ id: string; unitId: string; currentVersion: number; proposedPrice: Money; state: 'draft' }>;
+  total: number;
+}
