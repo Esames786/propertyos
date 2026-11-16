@@ -155,3 +155,25 @@ There is no `approve`, `submit`, `activate`, `schedule` or `apply` handler. All 
 - After Wave 1 Issue #25 is accepted, integrate E.3 in an isolated worktree, reconcile shared E.0 route/handler registries with E.1/E.2/E.7/E.13, rerun full combined regression, STOP for GPT/owner review.
 
 **GPT verified GitHub source/commit writes but did not execute Windows Node/Playwright toolchain; this is not a release or BUILT acceptance.**
+
+## INV-007 — Edit Price Drawer, private proposed-price versions (Issue #32)
+
+**Status: source pushed, tests written but not locally executed. PARTIAL/HOLD.**
+
+### Delivered in source
+- `packages/contracts/src/pricing.ts` includes `UnitPriceChangeDraftVersion`, `UnitPriceChangeDraft` and creator-only list contract. Every proposal is `state:'draft'`, `effective:false`, `approvalAllowed:false`, `changesListedPrice:false`.
+- `packages/fixtures/src/developer/pricing/price-change-handlers.ts` implements `GET /units/:id/price-change-drafts`, `GET /price-change-drafts/:id`, `POST /units/:id/price-change-drafts`, `POST /price-change-drafts/:id/versions`. Requires **both** `pricing.manage` and `unit.view` on the same current project/site for each named unit; API-level `pricing.manage` is additionally required. Creator-private list/detail counts, hidden-vs-unknown 404, tenant partitioning, current authorization-before-original-key replay, request keys bound to actor+operation+record+normalized reason/amount, all-or-nothing exact PKR money validation and append-only optimistic revisions. Initial proposal snapshots the original unit's fictional price, and each revision is distinct from that baseline.
+- `apps/backoffice/src/pages/developer/pricing/EditPriceDrawerPage.tsx` route `/backoffice/inv/edit-price-drawer`: searchable visible-unit picker, React Aria `Drawer` with focus trap/Escape/focus-return behavior from the shared component, original fictional price context, a deep link to INV-006 price history, creator-private draft list, reason and proposed-PKR inputs, append-only draft revision history, localized success/error states. The drawer route is accessible with `unit.view`, but a missing `pricing.manage` presents a **clear disabled notice** and no Save action. Actual network failures instead show retryable errors, not false permission notices.
+- EN/UR `pricing` keys, 4 E.3 API handlers added to E.0 canonical handlers registry, route registered in E.0 developer route registry.
+- `packages/fixtures/src/developer/pricing/price-change.api.test.ts`: eight API test cases (test code written, not executed) covering original `unit.price` + `UnitPriceHistory.revisions=[]` unchanged, create replay vs changed payload, hidden/unknown parity, creator isolation, immutable revisions/stale edits, malformed money/no-op prices and short reasons, immediate access loss, absence of `unit.view` and absence of default demo grants.
+- `tests/e2e/e3-price-change-drawer.spec.ts`: EN/UR accessibility and permission-denied drawer checks plus unauthorized direct API browser checks, **not executed**.
+
+### Safety boundary
+
+**This does not edit the unit price.** No actual `unit.price` write, no approved `UnitPriceRevision`, no approve/reject/submit/schedule/publish handler, no quotations, bookings, financial ledgers, bank or settlement changes. Owner E-07/E-30 pricing approval policy is still open. No existing starter/staff `pricing.manage` grant was added. The draft route is only a prototype and remains PARTIAL. The official register remains unchanged.
+
+### Before reviewer acceptance
+
+Run clean local TypeScript, lint, EN/UR parity, complete Vitest, all INV-007/E3 API tests, full production-build Chromium E2E/evidence retries OFF, Firefox+WebKit smoke, axe, 320px/200% and EN/UR RTL dark/high-contrast, focus-trap/Escape/focus-return, real-device and screen-reader checks. Use a **test-only principal** holding pricing.manage+unit.view for positive drawer save/revise, screenshot/evidence and mutations. Mutation targets: remove either permission, unit-to-project/site check, creator-private lookup, idempotency replay binding, baseline-difference guard, refusal-before-write, stale version check and unchanged original unit price. Test cross-tenant and revocation mid-session. After Issue #25 accepts Wave 1 integration, transplant E.3 into a **new isolated** integration branch, reconcile shared routes/permission/handler registries, rerun complete suite, stop for GPT/owner acceptance.
+
+**Independent execution:** GitHub file creation/readback performed; no Windows project compilation, browser suite or server startup was executed by GPT. E.3 now has source code on all 7 planned screen routes but **0 newly accepted BUILT screens** until the actual tests/policy dependencies pass.
