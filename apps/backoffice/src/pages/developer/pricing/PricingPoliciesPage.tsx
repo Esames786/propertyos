@@ -96,7 +96,11 @@ export default function PricingPoliciesPage() {
       const result = await mutation.mutateAsync({ method: 'POST', path, body, idempotencyKey: key });
       setSelectedId(result.id); setDirty(false);
       renewCreate(); renewRevision(); setSuccess(true);
-      await Promise.all([list.refetch(), detail.refetch()]);
+      // The POST already succeeded. Refetches are optional visibility updates and
+      // must never flip the mutation result to "failed" or invite a duplicate POST.
+      // A create has no previously selected detail query to refetch.
+      void list.refetch();
+      if (selectedId) void detail.refetch();
     } catch {
       setSuccess(false);
     }
