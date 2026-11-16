@@ -8,7 +8,13 @@ const PaymentPlanTemplatesPage = lazy(() => import('./PaymentPlanTemplatesPage')
 const PricingPoliciesPage = lazy(() => import('./PricingPoliciesPage'));
 const FeesDiscountsPage = lazy(() => import('./FeesDiscountsPage'));
 const ApprovalRulesPage = lazy(() => import('./ApprovalRulesPage'));
+const EditPriceDrawerPage = lazy(() => import('./EditPriceDrawerPage'));
 export const routes = [
+  devRoute(
+    'inv/edit-price-drawer',
+    <DevScreen page={EditPriceDrawerPage} target={{ module: 'inventory', permission: 'unit.view' }} />,
+    (t) => t('pricing:priceChangeTitle'),
+  ),
   devRoute(
     'com/approval-rules',
     <DevScreen page={ApprovalRulesPage} target={{ module: 'inventory', permission: 'pricing.manage' }} />,
