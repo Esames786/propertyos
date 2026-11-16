@@ -1,3 +1,4 @@
+import { requireDraftRequestKey } from './request-key';
 import { ApiError, type PricingPolicyDraft, type PricingPolicyDraftList, type PricingPolicyDraftVersion, type PricingPolicyRule } from '@repo/contracts';
 import { invalid, notFound, requires, type Handler, type HandlerContext } from '../../handler-types';
 import { projectVisible } from '../scope';
@@ -82,11 +83,7 @@ function validate(ctx: HandlerContext, input: Record<string, unknown>, allowed: 
   rules.sort((a, b) => a.unitType.localeCompare(b.unitType));
   return { title, rules };
 }
-function keyOf(ctx: HandlerContext, input: Record<string, unknown>): string {
-  const key = ctx.req.idempotencyKey ?? input.idempotencyKey;
-  if (typeof key !== 'string' || key.length < 12 || key.length > 100 || !/^[\w.:-]+$/.test(key)) invalid(ctx, 'idempotencyKey');
-  return key;
-}
+const keyOf = (ctx: HandlerContext, input: Record<string, unknown>): string => requireDraftRequestKey(ctx, input);
 function conflict(ctx: HandlerContext): never {
   throw new ApiError({ status: 409, code: 'idempotency_key_reused', messageKey: 'pricing:policyConflict', correlationId: ctx.correlationId, changed: false });
 }
