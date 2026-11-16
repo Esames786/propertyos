@@ -2,6 +2,7 @@ import { ApiError, type UnitPriceChangeDraft, type UnitPriceChangeDraftList, typ
 import { Badge, Button, Drawer, EmptyState, ErrorState, Link, PageHeader, SkeletonBlock, useApiMutation, useApiQuery, useCreateKey, useT } from '@repo/ui';
 import { FileClock, Pencil, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { canHydrateDraft, expectedDraftVersion, type CommittedDraftFloor } from './revision-sync';
 import { useSearchParams } from 'react-router';
 import { useCrmFormat } from '../../crm/format';
 
@@ -21,6 +22,7 @@ export default function EditPriceDrawerPage() {
   const [saved, setSaved] = useState(false);
   // Protect an in-progress edit from stale React Query refreshes and invalidations.
   const [dirty, setDirty] = useState(false);
+  const [committedFloor, setCommittedFloor] = useState<CommittedDraftFloor | null>(null);
   const [createKey, renewCreate] = useCreateKey('unit-price-change');
   const [revisionKey, renewRevision] = useCreateKey('unit-price-revise');
   const unitId = params.get('record');
@@ -43,7 +45,7 @@ export default function EditPriceDrawerPage() {
       else next.delete('record');
       return next;
     });
-    setDraftId(null); setPrice(''); setReason(''); setInvalid(false); setSaved(false); setDirty(false);
+    setDraftId(null); setCommittedFloor(null); setPrice(''); setReason(''); setInvalid(false); setSaved(false); setDirty(false);
     renewCreate(); renewRevision();
   };
   const edit = () => {
@@ -51,17 +53,17 @@ export default function EditPriceDrawerPage() {
     if (draftId) renewRevision(); else renewCreate();
   };
   const chooseDraft = (id: string | null) => {
-    setDraftId(id); setInvalid(false); setSaved(false);
+    setCommittedFloor(null); setDraftId(id); setInvalid(false); setSaved(false);
     setPrice(''); setReason(''); setDirty(false); renewCreate(); renewRevision();
   };
   useEffect(() => {
-    if (dirty || !draftId || selectedDraft.data?.id !== draftId) return;
+    if (!canHydrateDraft(draftId, selectedDraft.data, dirty, committedFloor)) return;
     const current = selectedDraft.data.versions.at(-1);
     if (!current) return;
     setPrice(current.proposedPrice.amount);
     setReason(current.reason);
     setInvalid(false);
-  }, [selectedDraft.data, draftId, dirty]);
+  }, [selectedDraft.data, draftId, dirty, committedFloor]);
 
   const save = async () => {
     if (!unitId || !history.data || (draftId && selectedDraft.data?.id !== draftId)) return;
@@ -80,11 +82,11 @@ export default function EditPriceDrawerPage() {
     const path = draftId ? `/price-change-drafts/${encodeURIComponent(draftId)}/versions`
       : `/units/${encodeURIComponent(unitId)}/price-change-drafts`;
     const body = draftId
-      ? { expectedVersion: selectedDraft.data!.currentVersion, proposedPrice: { amount: proposed, currency: 'PKR' }, reason: normalizedReason, idempotencyKey: key }
+      ? { expectedVersion: expectedDraftVersion(draftId, selectedDraft.data, committedFloor), proposedPrice: { amount: proposed, currency: 'PKR' }, reason: normalizedReason, idempotencyKey: key }
       : { proposedPrice: { amount: proposed, currency: 'PKR' }, reason: normalizedReason, idempotencyKey: key };
     try {
       const result = await saveMutation.mutateAsync({ method: 'POST', path, body, idempotencyKey: key });
-      setDraftId(result.id);
+      setCommittedFloor({ id: result.id, version: result.currentVersion }); setDraftId(result.id);
       renewCreate(); renewRevision();
       setSaved(true);
       setDirty(false);
