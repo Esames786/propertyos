@@ -90,8 +90,10 @@ export default function ApprovalRulesPage() {
       setSelectedId(response.id);
       renewCreate(); renewRevision();
       setSaved(true); setDirty(false);
-      await list.refetch();
-      if (selectedId) await detail.refetch();
+      // The draft POST succeeded; cache refresh cannot turn that into a failed save.
+      // useApiMutation also invalidates all API queries after success.
+      void list.refetch();
+      if (selectedId) void detail.refetch();
     } catch {
       setSaved(false);
     }
