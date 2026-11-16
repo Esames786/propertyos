@@ -23,7 +23,16 @@ function setup() {
   const api = new MockTransport({ getContext: () => ({ ...chosen }), getMode: () => 'fast', demo, personas: [...ALL_PERSONAS, author, another, scoped, missingView] });
   return {
     api, as(personaId: string, projectId = 'all') { chosen.personaId = personaId; chosen.projectId = projectId; return api; },
-    snapshot() { demo.save(); return JSON.stringify([...memory.entries()].sort()); },
+    snapshot() {
+      // Ignore legitimate sign-in/session telemetry. Assert the rest of the tenant
+      // overlay (including every pricing section and sequence/key map) is unchanged.
+      demo.save();
+      const raw = memory.get('demo:store:v2');
+      if (!raw) return '';
+      const value = JSON.parse(raw) as { partitions: Record<string, { sections: Record<string, unknown> }> };
+      for (const partition of Object.values(value.partitions)) delete partition.sections.identity;
+      return JSON.stringify(value);
+    },
   };
 }
 const create = (api: MockTransport, unitId = heights.id, key = K1, price: unknown = proposed, why = reason) =>
