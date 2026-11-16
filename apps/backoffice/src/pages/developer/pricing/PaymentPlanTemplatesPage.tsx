@@ -3,6 +3,7 @@ import type { PaymentPlanTemplate, PaymentPlanTemplateList, PlanAllocationInput,
 import { Badge, Button, EmptyState, ErrorState, PageHeader, SkeletonBlock, useApiMutation, useApiQuery, useCreateKey, useT } from '@repo/ui';
 import { FileClock, Plus, Save, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { canHydrateDraft, expectedDraftVersion, type CommittedDraftFloor } from './revision-sync';
 
 const KINDS: readonly PlanAllocationKind[] = ['down_payment', 'instalments', 'on_possession', 'balloon', 'construction_linked'];
 type DraftRow = { id: number; kind: PlanAllocationKind; percent: string; count: string; milestoneKey: string };
@@ -52,6 +53,7 @@ export default function PaymentPlanTemplatesPage() {
   const [error, setError] = useState(false);
   const [saved, setSaved] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [committedFloor, setCommittedFloor] = useState<CommittedDraftFloor | null>(null);
   const [createKey, renewCreate] = useCreateKey('plan-template');
   const [revisionKey, renewRevision] = useCreateKey('plan-revision');
   const mutation = useApiMutation<PaymentPlanTemplate>();
@@ -62,11 +64,11 @@ export default function PaymentPlanTemplatesPage() {
   );
   const projects = projectsQuery.data?.items ?? [];
   const makeNew = () => {
-    setSelectedId(null); setTitle(''); setProjectId(''); setRows(newRows()); setNextRowId(3); setDirty(false);
+    setSelectedId(null); setCommittedFloor(null); setTitle(''); setProjectId(''); setRows(newRows()); setNextRowId(3); setDirty(false);
     renewCreate(); renewRevision(); setSaved(false); setError(false);
   };
   useEffect(() => {
-    if (dirty || !selected.data || selected.data.id !== selectedId) return;
+    if (!canHydrateDraft(selectedId, selected.data, dirty, committedFloor)) return;
     const latest = selected.data.versions.at(-1);
     if (!latest) return;
     setTitle(latest.title);
@@ -74,7 +76,7 @@ export default function PaymentPlanTemplatesPage() {
     setRows(asDraftRows(latest.allocations));
     setNextRowId(latest.allocations.length + 1);
     setError(false);
-  }, [selected.data, selectedId, dirty]);
+  }, [selected.data, selectedId, dirty, committedFloor]);
   const change = () => { setSaved(false); setError(false); setDirty(true); mutation.reset(); if (selectedId) renewRevision(); else renewCreate(); };
   const update = (id: number, patch: Partial<DraftRow>) => {
     setRows((old) => old.map((r) => r.id === id ? { ...r, ...patch } : r));
@@ -90,12 +92,12 @@ export default function PaymentPlanTemplatesPage() {
     const key = selectedId ? revisionKey : createKey;
     const path = selectedId ? `/pricing/plan-templates/${encodeURIComponent(selectedId)}/versions` : '/pricing/plan-templates';
     const body = selectedId
-      ? { expectedVersion: selected.data?.currentVersion, title: cleanTitle, allocations, idempotencyKey: key }
+      ? { expectedVersion: expectedDraftVersion(selectedId, selected.data, committedFloor), title: cleanTitle, allocations, idempotencyKey: key }
       : { projectId, title: cleanTitle, allocations, idempotencyKey: key };
     // A lost answer can retry with the same key. Any edit renews it; two new drafts never share it.
     try {
       const response = await mutation.mutateAsync({ method: 'POST', path, body, idempotencyKey: key });
-      setSelectedId(response.id);
+      setCommittedFloor({ id: response.id, version: response.currentVersion }); setSelectedId(response.id);
       renewCreate(); renewRevision();
       setSaved(true); setDirty(false);
     } catch {
@@ -138,7 +140,7 @@ export default function PaymentPlanTemplatesPage() {
                       <button type="button" disabled={mutation.isPending}
                         data-testid="template-list-item"
                         aria-current={selectedId === item.id ? 'true' : undefined}
-                        onClick={() => { setSelectedId(item.id); setSaved(false); setError(false); setDirty(false); renewRevision(); }}
+                        onClick={() => { setCommittedFloor(null); setSelectedId(item.id); setSaved(false); setError(false); setDirty(false); renewRevision(); }}
                         className="min-h-11 w-full rounded-control border border-border p-3 text-start text-text hover:bg-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
                         <span className="block break-words font-medium">{item.title}</span>
                         <span className="text-sm text-muted">{t('pricing:templateVersion', { version: item.currentVersion })}</span>
