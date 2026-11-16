@@ -82,7 +82,16 @@ function world() {
   return {
     api,
     as(id: string, projectId = 'all') { ctx.personaId = id; ctx.projectId = projectId; return api; },
-    snapshot() { demo.save(); return JSON.stringify([...mem.entries()].sort()); },
+    snapshot() {
+      // Ignore legitimate sign-in/session telemetry. Assert the rest of the tenant
+      // overlay (including every pricing section and sequence/key map) is unchanged.
+      demo.save();
+      const raw = mem.get('demo:store:v2');
+      if (!raw) return '';
+      const value = JSON.parse(raw) as { partitions: Record<string, { sections: Record<string, unknown> }> };
+      for (const partition of Object.values(value.partitions)) delete partition.sections.identity;
+      return JSON.stringify(value);
+    },
   };
 }
 const preview = (api: MockTransport, id: string, allocations: unknown = common) =>
