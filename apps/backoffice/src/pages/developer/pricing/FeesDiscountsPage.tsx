@@ -108,8 +108,10 @@ export default function FeesDiscountsPage() {
       const response = await mutation.mutateAsync({ method: 'POST', path, body, idempotencyKey: key });
       setSelectedId(response.id);
       renewCreate(); renewRevise(); setSaved(true); setPreviewResult(null); setDirty(false);
-      await list.refetch();
-      if (selectedId) await detail.refetch();
+      // The draft POST succeeded; cache refresh cannot turn that into a failed save.
+      // useApiMutation also invalidates all API queries after success.
+      void list.refetch();
+      if (selectedId) void detail.refetch();
     } catch {
       setSaved(false);
     }
