@@ -88,9 +88,11 @@ export default function EditPriceDrawerPage() {
       renewCreate(); renewRevision();
       setSaved(true);
       setDirty(false);
-      await drafts.refetch();
-      if (draftId) await selectedDraft.refetch();
-      await history.refetch(); // Prove the listed baseline remains current and unchanged.
+      // Success is determined only by the draft POST, not by a subsequent GET.
+      // A GET failure must not encourage the user to send a new-key duplicate.
+      void drafts.refetch();
+      if (draftId) void selectedDraft.refetch();
+      void history.refetch(); // Still read-only: never applies the proposed price.
     } catch {
       setSaved(false);
     }
