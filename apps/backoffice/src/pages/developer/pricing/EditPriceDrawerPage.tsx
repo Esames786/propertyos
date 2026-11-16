@@ -1,4 +1,4 @@
-import type { UnitPriceChangeDraft, UnitPriceChangeDraftList, UnitPriceHistory, UnitPricePickerResponse } from '@repo/contracts';
+import { ApiError, type UnitPriceChangeDraft, type UnitPriceChangeDraftList, type UnitPriceHistory, type UnitPricePickerResponse } from '@repo/contracts';
 import { Badge, Button, Drawer, EmptyState, ErrorState, Link, PageHeader, SkeletonBlock, useApiMutation, useApiQuery, useCreateKey, useT } from '@repo/ui';
 import { FileClock, Pencil, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -141,7 +141,9 @@ export default function EditPriceDrawerPage() {
                     variant="plain" className="mt-2 block text-sm text-primary">{t('pricing:priceChangeViewHistory')}</Link>
                 </div>
                 {drafts.isError ? (
-                  <p className="rounded-control border border-border p-3 text-sm text-muted" data-testid="price-change-no-pricing-permission">{t('pricing:priceChangeAccess')}</p>
+                  drafts.error instanceof ApiError && drafts.error.problem.status === 403 ? (
+                    <p className="rounded-control border border-border p-3 text-sm text-muted" data-testid="price-change-no-pricing-permission">{t('pricing:priceChangeAccess')}</p>
+                  ) : <ErrorState error={drafts.error} onRetry={() => void drafts.refetch()} />
                 ) : !drafts.data ? <SkeletonBlock lines={2} /> : <>
                   <div className="space-y-2">
                     <h3 className="font-semibold text-text">{t('pricing:priceChangeYourDrafts')}</h3>
