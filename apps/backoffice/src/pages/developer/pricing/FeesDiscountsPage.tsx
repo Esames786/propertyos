@@ -72,7 +72,7 @@ export default function FeesDiscountsPage() {
   const preview = useApiMutation<CommercialRulesPreview>();
 
   useEffect(() => {
-    if (!selectedId || detail.data?.id !== selectedId) return;
+    if (dirty || !selectedId || detail.data?.id !== selectedId) return;
     const latest = detail.data.versions.at(-1);
     if (!latest) return;
     setTitle(latest.title);
@@ -83,7 +83,7 @@ export default function FeesDiscountsPage() {
     setPreviewResult(null);
     setInvalid(false);
     setDirty(false);
-  }, [detail.data, selectedId]);
+  }, [detail.data, selectedId, dirty]);
 
   const changed = () => {
     setPreviewResult(null); setInvalid(false); setSaved(false); setDirty(true);
