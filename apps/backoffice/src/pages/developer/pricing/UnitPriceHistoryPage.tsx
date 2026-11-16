@@ -129,6 +129,16 @@ export default function UnitPriceHistoryPage() {
                 <p className="text-sm text-muted">{t('pricing:baselineInfo')}</p>
                 <p className="text-xs text-muted">{t('pricing:noDate')}</p>
               </div>
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  href={`/backoffice/inv/edit-price-drawer?record=${encodeURIComponent(selected.data.unit.id)}`}
+                  variant="plain"
+                  className="inline-flex min-h-11 items-center rounded-control border border-border px-3 text-sm text-primary data-hovered:bg-raised data-focus-visible:outline-2 data-focus-visible:outline-offset-2 data-focus-visible:outline-focus"
+                  data-testid="open-price-change-drawer"
+                >
+                  {t('pricing:priceChangeOpen')}
+                </Link>
+              </div>
               <section className="space-y-3" aria-label={t('pricing:approvedHistory')}>
                 <h3 className="flex items-center gap-2 font-semibold text-text">
                   <LockKeyhole aria-hidden className="size-4" />
