@@ -51,6 +51,7 @@ export default function PaymentPlanTemplatesPage() {
   const [nextRowId, setNextRowId] = useState(3);
   const [error, setError] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [dirty, setDirty] = useState(false);
   const [createKey, renewCreate] = useCreateKey('plan-template');
   const [revisionKey, renewRevision] = useCreateKey('plan-revision');
   const mutation = useApiMutation<PaymentPlanTemplate>();
@@ -61,11 +62,11 @@ export default function PaymentPlanTemplatesPage() {
   );
   const projects = projectsQuery.data?.items ?? [];
   const makeNew = () => {
-    setSelectedId(null); setTitle(''); setProjectId(''); setRows(newRows()); setNextRowId(3);
+    setSelectedId(null); setTitle(''); setProjectId(''); setRows(newRows()); setNextRowId(3); setDirty(false);
     renewCreate(); renewRevision(); setSaved(false); setError(false);
   };
   useEffect(() => {
-    if (!selected.data || selected.data.id !== selectedId) return;
+    if (dirty || !selected.data || selected.data.id !== selectedId) return;
     const latest = selected.data.versions.at(-1);
     if (!latest) return;
     setTitle(latest.title);
@@ -73,8 +74,8 @@ export default function PaymentPlanTemplatesPage() {
     setRows(asDraftRows(latest.allocations));
     setNextRowId(latest.allocations.length + 1);
     setError(false);
-  }, [selected.data, selectedId]);
-  const change = () => { setSaved(false); setError(false); mutation.reset(); if (selectedId) renewRevision(); else renewCreate(); };
+  }, [selected.data, selectedId, dirty]);
+  const change = () => { setSaved(false); setError(false); setDirty(true); mutation.reset(); if (selectedId) renewRevision(); else renewCreate(); };
   const update = (id: number, patch: Partial<DraftRow>) => {
     setRows((old) => old.map((r) => r.id === id ? { ...r, ...patch } : r));
     change();
@@ -96,7 +97,7 @@ export default function PaymentPlanTemplatesPage() {
       const response = await mutation.mutateAsync({ method: 'POST', path, body, idempotencyKey: key });
       setSelectedId(response.id);
       renewCreate(); renewRevision();
-      setSaved(true);
+      setSaved(true); setDirty(false);
     } catch {
       setSaved(false);
     }
@@ -137,7 +138,7 @@ export default function PaymentPlanTemplatesPage() {
                       <button type="button" disabled={mutation.isPending}
                         data-testid="template-list-item"
                         aria-current={selectedId === item.id ? 'true' : undefined}
-                        onClick={() => { setSelectedId(item.id); setSaved(false); setError(false); renewRevision(); }}
+                        onClick={() => { setSelectedId(item.id); setSaved(false); setError(false); setDirty(false); renewRevision(); }}
                         className="min-h-11 w-full rounded-control border border-border p-3 text-start text-text hover:bg-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
                         <span className="block break-words font-medium">{item.title}</span>
                         <span className="text-sm text-muted">{t('pricing:templateVersion', { version: item.currentVersion })}</span>
