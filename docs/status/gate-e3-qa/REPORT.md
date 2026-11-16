@@ -51,3 +51,11 @@ Files:
 - `price-change.api.test.ts`
 
 **Limits:** This source-level correction removes a visible type mismatch; it does **not** prove all tests compile or pass. Check all test suites, permission scopes, session-gate side effects and mock-data invariants in a real isolated toolchain. The current private repo cannot be cloned from this container (no external network route), and GitHub has no CI status on the previous QA commit. No source screen is accepted BUILT yet.
+
+## Third QA pass — E3-QA-05: mutation tests versus legitimate session login writes
+
+The actual `MockTransport` calls `sessionGate` before handing a request to the feature handler. On a test principal's first request, sessionGate opens or updates the tenant `identity` section to record a legitimate sign-in/session event. Several E.3 tests asserted that the *entire* raw storage string remained identical across a refused operation, including ordinary login telemetry. That can produce false mutation failures even though no pricing/business data was changed. Some tests also snapshotted an entirely empty storage partition before invoking their first request.
+
+**Corrections in six test files:** Their `snapshot()` check serializes the tenant overlay minus the `sections.identity` subtree, preserving **every other section, including all pricing drafts, sequence counters, key replays and non-pricing business sections**. Five tests that examine the first invalid request now prime the session with an authorized read-only list or unit-price read before establishing the baseline; a partition appearing for legitimate login cannot falsely fail the business invariance check. All sign-in/audit security tests remain separately owned by the identity gate and are not removed or changed.
+
+This is a targeted test-harness correction, **not permission broadening, financial state weakening or a passing-test claim**. It must be validated with actual Vitest, including all fail-closed/hidden-vs-unknown cases on a clean local workspace. A local test run must still explicitly validate that denied business writes create no pricing entries, no sequence number and no idempotency key.
