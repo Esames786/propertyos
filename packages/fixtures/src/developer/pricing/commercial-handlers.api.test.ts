@@ -161,6 +161,7 @@ describe('COM-004 scoped draft API and non-posting preview', () => {
   });
   it('invalid payload refuses whole create, never consumes an ID or key', async () => {
     const w = context();
+    await list(w.api);
     const before = w.snapshot();
     for (const [fees, discounts] of [[null, []], [[FIXED, FIXED], []], [[{ ...FIXED, amount: money('1.001') }], []]] as Array<[unknown, unknown]>) {
       expect(await denied(create(w.api, keyA, project, 'Valid title', fees, discounts))).toMatchObject({ status: 422, changed: false });
