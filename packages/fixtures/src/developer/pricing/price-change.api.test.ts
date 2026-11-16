@@ -56,6 +56,28 @@ async function denied(promise: Promise<unknown>) {
   throw new Error('Expected refusal');
 }
 describe('INV-007 proposed unit prices are private, non-effective drafts', () => {
+
+  it('rejects a mismatched transport/header and JSON-body request key without consuming an ID', async () => {
+    const w = setup();
+    await history(w.api); // Prime legitimate sign-in telemetry before measuring business state.
+    const before = w.snapshot();
+    const refusedWrite = w.api.request<UnitPriceChangeDraft>({
+      method: 'POST',
+      path: `/units/${heights.id}/price-change-drafts`,
+      idempotencyKey: K1,
+      body: {
+        proposedPrice: proposed,
+        reason,
+        idempotencyKey: K2,
+      },
+    });
+    expect(await denied(refusedWrite)).toMatchObject({ status: 422, changed: false });
+    expect(w.snapshot()).toBe(before);
+    const real = await create(w.api, heights.id, K1);
+    expect(real.id).toBe('pcd_000001');
+    expect((await list(w.api)).total).toBe(1);
+  });
+
   it('draft creation preserves unit listing, approved history, and fictional price baseline', async () => {
     const w = setup();
     const priceBefore = await history(w.api);
