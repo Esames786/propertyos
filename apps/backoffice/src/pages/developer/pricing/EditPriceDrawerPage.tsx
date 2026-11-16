@@ -19,6 +19,8 @@ export default function EditPriceDrawerPage() {
   const [reason, setReason] = useState('');
   const [invalid, setInvalid] = useState(false);
   const [saved, setSaved] = useState(false);
+  // Protect an in-progress edit from stale React Query refreshes and invalidations.
+  const [dirty, setDirty] = useState(false);
   const [createKey, renewCreate] = useCreateKey('unit-price-change');
   const [revisionKey, renewRevision] = useCreateKey('unit-price-revise');
   const unitId = params.get('record');
@@ -41,25 +43,25 @@ export default function EditPriceDrawerPage() {
       else next.delete('record');
       return next;
     });
-    setDraftId(null); setPrice(''); setReason(''); setInvalid(false); setSaved(false);
+    setDraftId(null); setPrice(''); setReason(''); setInvalid(false); setSaved(false); setDirty(false);
     renewCreate(); renewRevision();
   };
   const edit = () => {
-    setInvalid(false); setSaved(false);
+    setInvalid(false); setSaved(false); setDirty(true);
     if (draftId) renewRevision(); else renewCreate();
   };
   const chooseDraft = (id: string | null) => {
     setDraftId(id); setInvalid(false); setSaved(false);
-    setPrice(''); setReason(''); renewCreate(); renewRevision();
+    setPrice(''); setReason(''); setDirty(false); renewCreate(); renewRevision();
   };
   useEffect(() => {
-    if (!draftId || selectedDraft.data?.id !== draftId) return;
+    if (dirty || !draftId || selectedDraft.data?.id !== draftId) return;
     const current = selectedDraft.data.versions.at(-1);
     if (!current) return;
     setPrice(current.proposedPrice.amount);
     setReason(current.reason);
     setInvalid(false);
-  }, [selectedDraft.data, draftId]);
+  }, [selectedDraft.data, draftId, dirty]);
 
   const save = async () => {
     if (!unitId || !history.data || (draftId && selectedDraft.data?.id !== draftId)) return;
@@ -85,6 +87,7 @@ export default function EditPriceDrawerPage() {
       setDraftId(result.id);
       renewCreate(); renewRevision();
       setSaved(true);
+      setDirty(false);
       await drafts.refetch();
       if (draftId) await selectedDraft.refetch();
       await history.refetch(); // Prove the listed baseline remains current and unchanged.
@@ -123,9 +126,9 @@ export default function EditPriceDrawerPage() {
       <Drawer isOpen={isOpen} onOpenChange={(open) => { if (!open && !saveMutation.isPending) openUnit(null); }}
         title={t('pricing:priceChangeTitle')} subtitle={history.data?.unit.ref}
         testId="edit-price-change-drawer" size="lg"
-        footer={history.data && !drafts.isError && !drafts.isPending ? <>
+        footer={history.data && !drafts.isError && !!drafts.data ? <>
           <Button variant="secondary" isDisabled={saveMutation.isPending} onPress={() => openUnit(null)}>{t('pricing:priceChangeClose')}</Button>
-          <Button variant="primary" isPending={saveMutation.isPending} onPress={() => void save()} data-testid="price-change-save">
+          <Button variant="primary" isDisabled={!!draftId && (selectedDraft.isError || selectedDraft.isPending || selectedDraft.data?.id !== draftId)} isPending={saveMutation.isPending} onPress={() => void save()} data-testid="price-change-save">
             {draftId ? t('pricing:priceChangeRevise') : t('pricing:priceChangeSave')}
           </Button>
         </> : undefined}>
