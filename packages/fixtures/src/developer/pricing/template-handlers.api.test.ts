@@ -160,6 +160,7 @@ describe('E.3 COM-001 — private, immutable, request-bound draft templates', ()
 
   it('all invalid data is refused before any ID, version or key is consumed', async () => {
     const w = env();
+    await list(w.api);
     const before = w.snapshot();
     const bad: unknown[] = [
       null, [null],
