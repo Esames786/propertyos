@@ -147,6 +147,7 @@ describe('E.3 COM-003 draft pricing rules remain private and non-effective', () 
 
   it('validates whole money and rate payload before consuming a record number or request key', async () => {
     const w = env();
+    await list(w.api);
     const before = w.snapshot();
     const invalidRules: unknown[] = [
       null, [null], [],
