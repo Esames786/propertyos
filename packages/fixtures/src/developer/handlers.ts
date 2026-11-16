@@ -7,6 +7,7 @@ import { PLAN_TEMPLATE_HANDLERS } from './pricing/template-handlers';
 import { PRICING_POLICY_HANDLERS } from './pricing/policy-handlers';
 import { COMMERCIAL_HANDLERS } from './pricing/commercial-handlers';
 import { APPROVAL_DRAFT_HANDLERS } from './pricing/approval-draft-handlers';
+import { UNIT_PRICE_CHANGE_HANDLERS } from './pricing/price-change-handlers';
 
 /**
  * Gate E.0 deliverable 6 (mock API): the developer ERP's handler registration point.
@@ -105,6 +106,6 @@ export const DEVELOPER_CORE_HANDLERS: readonly Handler[] = [
  *   import { LEDGER_HANDLERS } from './ledger/handlers';         // E.7
  *   import { DOCUMENT_HANDLERS } from './documents/handlers';    // E.13
  */
-export const DEVELOPER_AREA_HANDLERS: ReadonlyArray<readonly Handler[]> = [PRICE_HISTORY_HANDLERS, PLAN_TEMPLATE_HANDLERS, PRICING_POLICY_HANDLERS, COMMERCIAL_HANDLERS, APPROVAL_DRAFT_HANDLERS];
+export const DEVELOPER_AREA_HANDLERS: ReadonlyArray<readonly Handler[]> = [PRICE_HISTORY_HANDLERS, PLAN_TEMPLATE_HANDLERS, PRICING_POLICY_HANDLERS, COMMERCIAL_HANDLERS, APPROVAL_DRAFT_HANDLERS, UNIT_PRICE_CHANGE_HANDLERS];
 
 export const DEVELOPER_HANDLERS: readonly Handler[] = [...DEVELOPER_CORE_HANDLERS, ...DEVELOPER_AREA_HANDLERS.flat()];
