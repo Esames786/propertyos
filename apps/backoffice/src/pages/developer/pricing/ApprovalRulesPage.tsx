@@ -37,6 +37,7 @@ export default function ApprovalRulesPage() {
   const [sequence, setSequence] = useState(2);
   const [invalid, setInvalid] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [dirty, setDirty] = useState(false);
   const [createKey, renewCreate] = useCreateKey('pricing-approval-create');
   const [revisionKey, renewRevision] = useCreateKey('pricing-approval-revision');
   const projects = useApiQuery<{ items: Array<{ id: string; name: string }>; total: number }>({
@@ -50,7 +51,7 @@ export default function ApprovalRulesPage() {
   const mutation = useApiMutation<PricingApprovalDraft>();
 
   useEffect(() => {
-    if (!selectedId || detail.data?.id !== selectedId) return;
+    if (dirty || !selectedId || detail.data?.id !== selectedId) return;
     const current = detail.data.versions.at(-1);
     if (!current) return;
     setProjectId(detail.data.projectId);
@@ -58,15 +59,15 @@ export default function ApprovalRulesPage() {
     setRows(fromRules(current.rules));
     setSequence(current.rules.length + 1);
     setInvalid(false);
-  }, [selectedId, detail.data]);
+  }, [selectedId, detail.data, dirty]);
 
   const changed = () => {
-    setSaved(false); setInvalid(false);
+    setSaved(false); setInvalid(false); setDirty(true);
     if (selectedId) renewRevision(); else renewCreate();
   };
   const makeNew = () => {
     setSelectedId(null); setProjectId(''); setTitle(''); setRows(initial()); setSequence(2);
-    setInvalid(false); setSaved(false); renewCreate(); renewRevision();
+    setInvalid(false); setSaved(false); setDirty(false); renewCreate(); renewRevision();
   };
   const update = (id: number, patch: Partial<RuleDraft>) => {
     setRows((old) => old.map((r) => r.id === id ? { ...r, ...patch } : r));
@@ -88,7 +89,7 @@ export default function ApprovalRulesPage() {
       const response = await mutation.mutateAsync({ method: 'POST', path, body, idempotencyKey: k });
       setSelectedId(response.id);
       renewCreate(); renewRevision();
-      setSaved(true);
+      setSaved(true); setDirty(false);
       await list.refetch();
       if (selectedId) await detail.refetch();
     } catch {
@@ -128,7 +129,7 @@ export default function ApprovalRulesPage() {
                 <li key={item.id}>
                   <button type="button" disabled={mutation.isPending}
                     aria-current={selectedId === item.id ? 'true' : undefined}
-                    onClick={() => { setSelectedId(item.id); setSaved(false); renewRevision(); }}
+                    onClick={() => { setSelectedId(item.id); setSaved(false); setDirty(false); renewRevision(); }}
                     className="min-h-11 w-full rounded-control border border-border p-3 text-start text-text hover:bg-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
                     <span className="block break-words font-semibold">{item.title}</span>
                     <span className="text-sm text-muted">{t('pricing:approvalVersion', { version: item.currentVersion })}</span>
