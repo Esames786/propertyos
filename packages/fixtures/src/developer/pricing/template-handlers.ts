@@ -1,3 +1,4 @@
+import { requireDraftRequestKey } from './request-key';
 import { ApiError, type PaymentPlanTemplate, type PaymentPlanTemplateList, type PaymentPlanTemplateSummary, type PaymentPlanTemplateVersion } from '@repo/contracts';
 import { invalid, notFound, requires, type Handler, type HandlerContext } from '../../handler-types';
 import { projectVisible } from '../scope';
@@ -58,13 +59,7 @@ function parsed(ctx: HandlerContext, raw: Record<string, unknown>, keys: readonl
   }
   return { title, allocations };
 }
-function requestKey(ctx: HandlerContext): string {
-  const fromBody = (ctx.req.body && typeof ctx.req.body === 'object' && !Array.isArray(ctx.req.body))
-    ? (ctx.req.body as Record<string, unknown>).idempotencyKey : undefined;
-  const key = ctx.req.idempotencyKey ?? fromBody;
-  if (typeof key !== 'string' || key.length < 12 || key.length > 100 || !/^[A-Za-z0-9._:-]+$/.test(key)) invalid(ctx, 'idempotencyKey');
-  return key;
-}
+const requestKey = (ctx: HandlerContext): string => requireDraftRequestKey(ctx);
 function collision(ctx: HandlerContext): never {
   throw new ApiError({ status: 409, code: 'idempotency_key_reused', messageKey: 'pricing:templateConflict', correlationId: ctx.correlationId, changed: false });
 }
