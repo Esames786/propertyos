@@ -119,7 +119,8 @@ export default function FeesDiscountsPage() {
     }
   };
   const doPreview = async () => {
-    if (dirty || !selectedId || !unitId || !detail.data || detail.data.id !== selectedId) return;
+    if (dirty || !selectedId || !unitId || !detail.data || detail.data.id !== selectedId ||
+      (committedFloor?.id === selectedId && detail.data.currentVersion < committedFloor.version)) return;
     try {
       const result = await preview.mutateAsync({ method: 'POST', path: '/pricing/commercial-preview', body: { draftId: selectedId, unitId } });
       setPreviewResult(result);
@@ -245,7 +246,7 @@ export default function FeesDiscountsPage() {
             </label>
             {units.isError && <ErrorState error={units.error} onRetry={() => void units.refetch()} />}
             {units.data?.items.filter((u) => u.projectId === projectId).length === 0 && <p className="text-sm text-muted">{t('pricing:commercialNoUnit')}</p>}
-            <Button variant="primary" icon={Calculator} isDisabled={!unitId || dirty || preview.isPending} isPending={preview.isPending} onPress={() => void doPreview()}
+            <Button variant="primary" icon={Calculator} isDisabled={!unitId || dirty || (committedFloor?.id === selectedId && (detail.data?.currentVersion ?? 0) < committedFloor.version) || preview.isPending} isPending={preview.isPending} onPress={() => void doPreview()}
               data-testid="commercial-compute">{t('pricing:commercialCompute')}</Button>
             {preview.isError && <ErrorState error={preview.error} title={t('pricing:commercialPreviewError')} />}
             {previewResult && <div className="space-y-3" data-testid="commercial-preview-result">
