@@ -35,3 +35,19 @@ Before acceptance, on a **clean local worktree** of this QA branch:
 ## Status assertion
 
 No compiler or browser suites were executed during this GPT-only GitHub review. This is a targeted source hardening patch and test-code addition, not evidence of gate acceptance. All authorizations, `pricing.manage` no-grant policy, maker-checker restrictions and real-money safety holds remain unchanged.
+
+## Second QA pass — E3-QA-04: strict Persona ID union typecheck blocker
+
+The actual `Persona.id` contract in `packages/contracts/src/persona.ts` is a closed union, including `res_${string}` for generated test-compatible fixture identities. Six E.3 API suites constructed explicit `Persona` literals using `id: 'e3_...'`, values **outside the allowed union**. The API test sources were therefore structurally invalid TypeScript even before executing tests.
+
+**Fix pushed:** All six source suites retain their existing *test-only* fictional principal IDs, tenant, permissions, staff backoffice app and project scopes, but their `Persona.id` strings now use the contract-compatible `res_e3_...` prefix, and all literal selectors in the first suite were updated in lockstep. The wildcard ID template is only a type-space convention: these principals are still `app:'backoffice'` because they spread Larkspur's staff manager, have no resident `partyId`, and are supplied **only** through `MockTransport({personas:[...]})`. They are not added to `ALL_PERSONAS`, real roles, sign-in menu or product default permissions.
+
+Files:
+- `plan-preview.test.ts`
+- `template-handlers.api.test.ts`
+- `policy-handlers.api.test.ts`
+- `commercial-handlers.api.test.ts`
+- `approval-draft-handlers.api.test.ts`
+- `price-change.api.test.ts`
+
+**Limits:** This source-level correction removes a visible type mismatch; it does **not** prove all tests compile or pass. Check all test suites, permission scopes, session-gate side effects and mock-data invariants in a real isolated toolchain. The current private repo cannot be cloned from this container (no external network route), and GitHub has no CI status on the previous QA commit. No source screen is accepted BUILT yet.
