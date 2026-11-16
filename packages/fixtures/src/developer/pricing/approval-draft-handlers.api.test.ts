@@ -82,6 +82,7 @@ describe('E.3 COM-005 non-effective maker-checker configuration drafts', () => {
 
   it('refuses self-approval, missing maker-checker, duplicate subjects and invalid threshold without consuming an ID or key', async () => {
     const w = world();
+    await list(w.api);
     const before = w.snapshot();
     const bad: unknown[] = [
       [{ ...RULES[0]!, allowSelfApproval: true }],
