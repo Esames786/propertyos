@@ -2,6 +2,7 @@ import type { PricingApprovalDraft, PricingApprovalDraftList, PricingApprovalRul
 import { Badge, Button, EmptyState, ErrorState, PageHeader, SkeletonBlock, useApiMutation, useApiQuery, useCreateKey, useT } from '@repo/ui';
 import { FileClock, Plus, Save, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { canHydrateDraft, expectedDraftVersion, type CommittedDraftFloor } from './revision-sync';
 import { PricingRelatedLinks } from './PricingRelatedLinks';
 
 type RuleDraft = { id: number; subject: PricingApprovalSubject; amount: string; reviewers: string };
@@ -38,6 +39,7 @@ export default function ApprovalRulesPage() {
   const [invalid, setInvalid] = useState(false);
   const [saved, setSaved] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [committedFloor, setCommittedFloor] = useState<CommittedDraftFloor | null>(null);
   const [createKey, renewCreate] = useCreateKey('pricing-approval-create');
   const [revisionKey, renewRevision] = useCreateKey('pricing-approval-revision');
   const projects = useApiQuery<{ items: Array<{ id: string; name: string }>; total: number }>({
@@ -51,7 +53,7 @@ export default function ApprovalRulesPage() {
   const mutation = useApiMutation<PricingApprovalDraft>();
 
   useEffect(() => {
-    if (dirty || !selectedId || detail.data?.id !== selectedId) return;
+    if (!canHydrateDraft(selectedId, detail.data, dirty, committedFloor)) return;
     const current = detail.data.versions.at(-1);
     if (!current) return;
     setProjectId(detail.data.projectId);
@@ -59,14 +61,14 @@ export default function ApprovalRulesPage() {
     setRows(fromRules(current.rules));
     setSequence(current.rules.length + 1);
     setInvalid(false);
-  }, [selectedId, detail.data, dirty]);
+  }, [selectedId, detail.data, dirty, committedFloor]);
 
   const changed = () => {
     setSaved(false); setInvalid(false); setDirty(true);
     if (selectedId) renewRevision(); else renewCreate();
   };
   const makeNew = () => {
-    setSelectedId(null); setProjectId(''); setTitle(''); setRows(initial()); setSequence(2);
+    setSelectedId(null); setCommittedFloor(null); setProjectId(''); setTitle(''); setRows(initial()); setSequence(2);
     setInvalid(false); setSaved(false); setDirty(false); renewCreate(); renewRevision();
   };
   const update = (id: number, patch: Partial<RuleDraft>) => {
@@ -83,11 +85,11 @@ export default function ApprovalRulesPage() {
       ? `/pricing/approval-rules/${encodeURIComponent(selectedId)}/versions`
       : '/pricing/approval-rules';
     const body = selectedId
-      ? { title: trimmed, rules, expectedVersion: detail.data?.currentVersion, idempotencyKey: k }
+      ? { title: trimmed, rules, expectedVersion: expectedDraftVersion(selectedId, detail.data, committedFloor), idempotencyKey: k }
       : { projectId, title: trimmed, rules, idempotencyKey: k };
     try {
       const response = await mutation.mutateAsync({ method: 'POST', path, body, idempotencyKey: k });
-      setSelectedId(response.id);
+      setCommittedFloor({ id: response.id, version: response.currentVersion }); setSelectedId(response.id);
       renewCreate(); renewRevision();
       setSaved(true); setDirty(false);
       // The draft POST succeeded; cache refresh cannot turn that into a failed save.
@@ -131,7 +133,7 @@ export default function ApprovalRulesPage() {
                 <li key={item.id}>
                   <button type="button" disabled={mutation.isPending}
                     aria-current={selectedId === item.id ? 'true' : undefined}
-                    onClick={() => { setSelectedId(item.id); setSaved(false); setDirty(false); renewRevision(); }}
+                    onClick={() => { setCommittedFloor(null); setSelectedId(item.id); setSaved(false); setDirty(false); renewRevision(); }}
                     className="min-h-11 w-full rounded-control border border-border p-3 text-start text-text hover:bg-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
                     <span className="block break-words font-semibold">{item.title}</span>
                     <span className="text-sm text-muted">{t('pricing:approvalVersion', { version: item.currentVersion })}</span>
