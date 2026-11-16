@@ -75,3 +75,18 @@ This is a targeted test-harness correction, **not permission broadening, financi
 **Source fix:** Introduced `revision-sync.ts` shared pure functions, and `revision-sync.test.ts` six focused test cases (written, not executed). All five stateful E.3 editors now track the last successful mutation's authoritative `{id, currentVersion}` as a committed floor. They do **not** rehydrate from a GET that predates the last acknowledged save, and subsequent revision requests use the latest known committed version rather than an older cached number. Switching to a different record or starting a new draft clears the floor, preventing leakage between records. In Fees & Discounts, the read-only preview also refuses to run while its selected draft detail is older than the last saved revision, avoiding a misleading mismatch.
 
 **Testing hold:** Run TypeScript, all unit tests and actual positive authorized test-only React/browser flows (create, edit, save, injected stale GET, second revision, failed GET, later successful refetch, switch records, EN/UR 320px and keyboard). The new six pure unit tests are not evidence of a pass. No standard demo role has been granted pricing.manage, no price approval/activation/financial posting occurred, and no main merge or deployment is allowed.
+
+## Sixth QA pass — E3-QA-08: conflicting request idempotency keys
+
+**Confirmed source flaw:** All five E.3 mutating handler families previously used `ctx.req.idempotencyKey ?? body.idempotencyKey`. A client could send two **different** keys and the backend would silently prefer one; it would then bind/replay the request under a different logical identity than the JSON body claimed. This was inconsistent with the contract expectation that the same key accompanies each logical draft mutation in both request positions.
+
+**Fix delivered:** New `packages/fixtures/src/developer/pricing/request-key.ts` provides a common `parseDraftRequestKey` and `requireDraftRequestKey`. Both supplied locations must agree exactly. One location alone is accepted for backward compatibility. Keys require the existing conservative ASCII character set and 12–100 character length. A missing, mismatched, malformed, oversize or invalid-type key receives a non-mutating 422 validation refusal *before* replay map or record sequence changes. Adopted in:
+- Payment plan templates (`template-handlers.ts`)
+- Pricing policies (`policy-handlers.ts`)
+- Fee/discount schedules (`commercial-handlers.ts`)
+- Approval-rule drafts (`approval-draft-handlers.ts`)
+- Unit price-change proposals (`price-change-handlers.ts`)
+
+**Test code:** `request-key.test.ts` has five precise parser acceptance/refusal cases. An additional `price-change.api.test.ts` case sends a real header/body key mismatch through `MockTransport`, snapshots business state, checks 422 with `changed:false`, then confirms the original key is still usable and the first accepted record still receives the initial ID. The tests are **written, not locally executed**, and therefore not evidence of a green Vitest suite.
+
+**Still required:** TypeScript/lint/Vitest/Playwright on a clean local worktree, positive test-only authorized pricing user with query-refresh failure injection, all fail-closed permission and project/site revocation tests, integrated E.0/Wave1 test run. No demo role grants, main merge, production deployment or effective pricing changes.
