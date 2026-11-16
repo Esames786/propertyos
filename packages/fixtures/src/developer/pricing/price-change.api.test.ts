@@ -118,6 +118,7 @@ describe('INV-007 proposed unit prices are private, non-effective drafts', () =>
   });
   it('invalid price, unchanged baseline, malformed reason and unknown fields refuse before sequence/key consumption', async () => {
     const w = setup();
+    await history(w.api);
     const before = w.snapshot();
     const bad: unknown[] = [
       null, { amount: '-1.00', currency: 'PKR' }, { amount: '1.001', currency: 'PKR' },
