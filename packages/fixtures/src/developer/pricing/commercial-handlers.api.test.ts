@@ -15,9 +15,9 @@ const L = datasetFor('tnt_larkspur')!;
 const heights = L.units.find((u) => u.projectId === 'prj_heights')!;
 const gardens = L.units.find((u) => u.projectId === 'prj_gardens')!;
 const manager = findPersona('manager')!;
-const author: Persona = { ...manager, id: 'e3_com_author', principalId: 'usr_com_author', permissions: [...manager.permissions, 'pricing.manage'] };
-const other: Persona = { ...author, id: 'e3_com_other', principalId: 'usr_com_other' };
-const scoped: Persona = { ...author, id: 'e3_com_scoped', principalId: 'usr_com_scoped', projectScope: ['prj_heights'] };
+const author: Persona = { ...manager, id: 'res_e3_com_author', principalId: 'usr_com_author', permissions: [...manager.permissions, 'pricing.manage'] };
+const other: Persona = { ...author, id: 'res_e3_com_other', principalId: 'usr_com_other' };
+const scoped: Persona = { ...author, id: 'res_e3_com_scoped', principalId: 'usr_com_scoped', projectScope: ['prj_heights'] };
 const keyA = 'commercial-draft-key-00000001', keyB = 'commercial-draft-key-00000002', keyC = 'commercial-draft-key-00000003';
 const project = 'prj_heights';
 function context() {
