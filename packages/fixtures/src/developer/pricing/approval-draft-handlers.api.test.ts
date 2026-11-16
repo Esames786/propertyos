@@ -5,9 +5,9 @@ import { MockTransport } from '../../mock-transport';
 import { ALL_PERSONAS, findPersona } from '../../people';
 
 const manager = findPersona('manager')!;
-const author: Persona = { ...manager, id: 'e3_approval_author', principalId: 'usr_e3_approval_author', permissions: [...manager.permissions, 'pricing.manage'] };
-const outsider: Persona = { ...author, id: 'e3_approval_outsider', principalId: 'usr_e3_approval_outsider' };
-const scoped: Persona = { ...author, id: 'e3_approval_scoped', principalId: 'usr_e3_approval_scoped', projectScope: ['prj_heights'] };
+const author: Persona = { ...manager, id: 'res_e3_approval_author', principalId: 'usr_e3_approval_author', permissions: [...manager.permissions, 'pricing.manage'] };
+const outsider: Persona = { ...author, id: 'res_e3_approval_outsider', principalId: 'usr_e3_approval_outsider' };
+const scoped: Persona = { ...author, id: 'res_e3_approval_scoped', principalId: 'usr_e3_approval_scoped', projectScope: ['prj_heights'] };
 const RULES: PricingApprovalRule[] = [
   { subject: 'unit_price_change', threshold: { amount: '0.00', currency: 'PKR' }, requiredReviewers: 2, makerCheckerRequired: true, allowSelfApproval: false },
   { subject: 'discount_exception', threshold: { amount: '3000.25', currency: 'PKR' }, requiredReviewers: 3, makerCheckerRequired: true, allowSelfApproval: false },
