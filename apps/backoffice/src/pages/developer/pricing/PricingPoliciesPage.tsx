@@ -42,6 +42,7 @@ export default function PricingPoliciesPage() {
   const [nextRuleId, setNextRuleId] = useState(2);
   const [validation, setValidation] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [dirty, setDirty] = useState(false);
   const [createKey, renewCreate] = useCreateKey('pricing-policy');
   const [revisionKey, renewRevision] = useCreateKey('pricing-revision');
 
@@ -53,7 +54,7 @@ export default function PricingPoliciesPage() {
   const mutation = useApiMutation<PricingPolicyDraft>();
 
   useEffect(() => {
-    if (!selectedId || detail.data?.id !== selectedId) return;
+    if (dirty || !selectedId || detail.data?.id !== selectedId) return;
     const version = detail.data.versions.at(-1);
     if (!version) return;
     setProjectId(detail.data.projectId);
@@ -61,16 +62,16 @@ export default function PricingPoliciesPage() {
     setRules(version.rules.map((row, index) => ruleFrom(row, index + 1)));
     setNextRuleId(version.rules.length + 1);
     setValidation(false);
-  }, [detail.data, selectedId]);
+  }, [detail.data, selectedId, dirty]);
 
   const edit = () => {
     setValidation(false);
-    setSuccess(false);
+    setSuccess(false); setDirty(true);
     if (selectedId) renewRevision();
     else renewCreate();
   };
   const clear = () => {
-    setSelectedId(null); setProjectId(''); setTitle(''); setRules(newRules()); setNextRuleId(2);
+    setSelectedId(null); setProjectId(''); setTitle(''); setRules(newRules()); setNextRuleId(2); setDirty(false);
     renewCreate(); renewRevision(); setValidation(false); setSuccess(false);
   };
   const updateRule = (id: number, patch: Partial<DraftRule>) => {
@@ -93,7 +94,7 @@ export default function PricingPoliciesPage() {
       : { projectId, title: normalizedTitle, rules: normalizedRules, idempotencyKey: key };
     try {
       const result = await mutation.mutateAsync({ method: 'POST', path, body, idempotencyKey: key });
-      setSelectedId(result.id);
+      setSelectedId(result.id); setDirty(false);
       renewCreate(); renewRevision(); setSuccess(true);
       await Promise.all([list.refetch(), detail.refetch()]);
     } catch {
@@ -138,7 +139,7 @@ export default function PricingPoliciesPage() {
                 : <ul className="space-y-2" data-testid="pricing-policy-list">
                   {list.data.items.map((policy) => <li key={policy.id}>
                     <button type="button" disabled={mutation.isPending}
-                      onClick={() => { setSelectedId(policy.id); setSuccess(false); renewRevision(); }}
+                      onClick={() => { setSelectedId(policy.id); setSuccess(false); setDirty(false); renewRevision(); }}
                       aria-current={selectedId === policy.id ? 'true' : undefined}
                       className="min-h-11 w-full rounded-control border border-border p-3 text-start text-text hover:bg-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
                       <span className="block break-words font-semibold">{policy.title}</span>
