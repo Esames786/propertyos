@@ -6,14 +6,14 @@ import { ALL_PERSONAS, findPersona } from '../../people';
 
 const manager = findPersona('manager')!;
 const editor: Persona = {
-  ...manager, id: 'e3_policy_editor', principalId: 'usr_e3_policy_editor',
+  ...manager, id: 'res_e3_policy_editor', principalId: 'usr_e3_policy_editor',
   permissions: [...manager.permissions, 'pricing.manage'],
 };
 const another: Persona = {
-  ...editor, id: 'e3_policy_other', principalId: 'usr_e3_policy_other',
+  ...editor, id: 'res_e3_policy_other', principalId: 'usr_e3_policy_other',
 };
 const limited: Persona = {
-  ...editor, id: 'e3_policy_limited', principalId: 'usr_e3_policy_limited',
+  ...editor, id: 'res_e3_policy_limited', principalId: 'usr_e3_policy_limited',
   projectScope: ['prj_heights'],
 };
 const project = 'prj_heights';
