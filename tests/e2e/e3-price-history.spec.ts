@@ -50,3 +50,20 @@ test('INV-006: a project-limited sales reader cannot open Gardens price by direc
   expect(results[0]).not.toBe('exposed');
   expect(consoleErrors).toEqual([]);
 });
+
+test('INV-006 → INV-007 contextual jump opens same unit, but ungranted user cannot save a price change', async ({ page, consoleErrors }) => {
+  await seed(page, { persona: 'sales', locale: 'en-PK' });
+  await page.goto(`${URL}`);
+  await expect(page.getByTestId('price-unit-option').first()).toBeVisible();
+  await page.getByTestId('price-unit-option').first().click();
+  const unitId = new URL(page.url()).searchParams.get('record');
+  expect(unitId).toMatch(/^unt_/);
+  const jump = page.getByTestId('open-price-change-drawer');
+  await expect(jump).toBeVisible();
+  await jump.click();
+  await expect(page).toHaveURL(new RegExp(`/inv/edit-price-drawer\\?record=${unitId}`));
+  await expect(page.getByTestId('edit-price-change-drawer')).toBeVisible();
+  await expect(page.getByTestId('price-change-no-pricing-permission')).toBeVisible();
+  await expect(page.getByTestId('price-change-save')).toHaveCount(0);
+  expect(consoleErrors).toEqual([]);
+});
