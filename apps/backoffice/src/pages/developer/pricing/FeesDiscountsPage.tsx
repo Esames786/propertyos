@@ -2,7 +2,7 @@ import type { CommercialDiscountRule, CommercialFeeRule, CommercialRulesDraft, C
 import { Badge, Button, EmptyState, ErrorState, PageHeader, SkeletonBlock, useApiMutation, useApiQuery, useCreateKey, useT } from '@repo/ui';
 import { Calculator, Plus, Save, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { canHydrateDraft, expectedDraftVersion, type CommittedDraftFloor } from './revision-sync';
+import { canHydrateDraft, expectedDraftVersion, pinDraftVersion, type CommittedDraftFloor } from './revision-sync';
 import { useCrmFormat } from '../../crm/format';
 import { PricingRelatedLinks } from './PricingRelatedLinks';
 
@@ -75,6 +75,7 @@ export default function FeesDiscountsPage() {
 
   useEffect(() => {
     if (!canHydrateDraft(selectedId, detail.data, dirty, committedFloor)) return;
+    setCommittedFloor((previous) => pinDraftVersion(previous, detail.data!));
     const latest = detail.data.versions.at(-1);
     if (!latest) return;
     setTitle(latest.title);
@@ -97,13 +98,14 @@ export default function FeesDiscountsPage() {
     renewCreate(); renewRevise(); setPreviewResult(null); setInvalid(false); setSaved(false); setDirty(false);
   };
   const save = async () => {
+    if (mutation.isPending || (selectedId && expectedDraftVersion(selectedId, committedFloor) === undefined)) return;
     const rules = canonicalDraft(fees, discounts), cleanTitle = title.trim().replace(/\s+/g, ' ');
     if (!rules || !projectId || !projects.data?.items.some((p) => p.id === projectId) ||
         cleanTitle.length < 3 || cleanTitle.length > 100) { setInvalid(true); return; }
     const key = selectedId ? reviseKey : createKey;
     const path = selectedId ? `/pricing/commercial-rules/${encodeURIComponent(selectedId)}/versions` : '/pricing/commercial-rules';
     const body = selectedId
-      ? { expectedVersion: expectedDraftVersion(selectedId, detail.data, committedFloor), title: cleanTitle, ...rules, idempotencyKey: key }
+      ? { expectedVersion: expectedDraftVersion(selectedId, committedFloor), title: cleanTitle, ...rules, idempotencyKey: key }
       : { projectId, title: cleanTitle, ...rules, idempotencyKey: key };
     setInvalid(false);
     try {
