@@ -22,3 +22,5 @@ export * from './community';
 export * from './hr';
 export * from './payroll';
 export * from './rentals';
+// Gate E.0: developer ERP foundation (state contracts, approval subjects, editions).
+export * from './developer';

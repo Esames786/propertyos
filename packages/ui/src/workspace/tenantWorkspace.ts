@@ -1,6 +1,6 @@
 import { decideTarget, MODULE_KEYS, type AccessDecision, type AccessTarget, type EffectiveAccess, type ModuleKey, type SuspensionClass } from '@repo/contracts';
 import { findScreenByRegisterRoute } from '@repo/contracts/screens';
-import { ArrowRightLeft, BadgeCheck, Banknote, BarChart3, Briefcase, Building, Building2, Calculator, CalendarClock, Car, ClipboardCheck, Compass, Contact, DatabaseZap, DoorOpen, FileText, FlaskConical, HandCoins, Coins, Home, KeyRound, Landmark, Megaphone, MessagesSquare, MonitorSmartphone, ReceiptText, Settings2, ShieldCheck, ShoppingCart, Smartphone, Users, UsersRound, Vote, Wallet, Wrench } from 'lucide-react';
+import { ArrowRightLeft, BadgeCheck, Banknote, BarChart3, Briefcase, Building, Building2, Calculator, CalendarClock, Car, ClipboardCheck, Compass, Contact, DatabaseZap, DoorOpen, FileText, FlaskConical, HandCoins, Coins, Home, KeyRound, Landmark, Megaphone, MessagesSquare, MonitorSmartphone, ReceiptText, Scale, Settings2, ShieldCheck, ShoppingCart, Smartphone, Users, UsersRound, Vote, Wallet, Wrench } from 'lucide-react';
 import { LIVE, PLANNED } from '../shell/QuickCreateMenu';
 import type { NavItem } from '../shell/types';
 
@@ -34,6 +34,11 @@ export const TENANT_NAV: NavItem[] = [
   { id: 'projects', labelKey: 'nav:items.projects', href: '/backoffice/prj/projects-list', icon: Building2, permission: 'unit.view', module: 'projects', match: '/backoffice/prj', group: 'workspace', bottomBar: true },
   { id: 'customers', labelKey: 'nav:items.customers', href: '/backoffice/cus/customers-list', icon: Contact, permission: 'customer.view', match: '/backoffice/cus', group: 'workspace', bottomBar: true },
   { id: 'finance', labelKey: 'nav:items.finance', href: '/backoffice/fin/invoices-list', icon: Landmark, permission: 'invoice.view', match: '/backoffice/fin', group: 'workspace', bottomBar: true, suspension: 'history_read' },
+  // ---- Gate E.0 (developer ERP areas): offered only to holders of the new permissions, so no existing
+  // person's menu changes. No `match` yet: the addresses keep their register gating until the owner
+  // decides who else holds gl.view (E-06/E-07; register.spec opens them as the Larkspur manager). ----
+  { id: 'accounting', labelKey: 'nav:items.accounting', href: '/backoffice/acc/chart-of-accounts', icon: Scale, permission: 'gl.view', module: 'accounting', group: 'workspace', suspension: 'history_read' },
+  // ---- end Gate E.0 ----
   { id: 'procurement', labelKey: 'nav:items.procurement', href: '/backoffice/proc/procurement-overview', icon: ShoppingCart, permission: 'procurement.view', match: '/backoffice/proc', group: 'operations' },
   { id: 'hr', labelKey: 'nav:items.hr', href: '/backoffice/hr/hr-dashboard', icon: UsersRound, permission: 'hr.view', match: '/backoffice/hr', group: 'operations' },
   // Gate S.2a (society HR add-on): the roster and attendance are open to supervisors who record

@@ -121,6 +121,13 @@ export const PERSONAS: readonly Persona[] = [
     ...holds(TENANT.id, 'finance'),
     projectScope: 'all',
   },
+  // Gate E.0 (owner decision E-06, conservative default): Larkspur's maker-checker holders for the developer
+  // ERP. Each holds a Larkspur role of its own (role-templates.ts LARKSPUR_ERP_ROLES); every pair is split
+  // between two of them, so nobody approves, posts or activates what they prepared. All four are fictional.
+  { id: 'lsp_sales_manager', tenantId: TENANT.id, principalId: 'usr_lsp_0004', app: 'backoffice', displayName: 'Hamza Rashid', email: 'hamza.rashid@example.com', ...holds(TENANT.id, 'sales_manager'), projectScope: 'all' },
+  { id: 'lsp_project_manager', tenantId: TENANT.id, principalId: 'usr_lsp_0005', app: 'backoffice', displayName: 'Mehwish Kazmi', email: 'mehwish.kazmi@example.com', ...holds(TENANT.id, 'project_manager'), projectScope: 'all' },
+  { id: 'lsp_accounts', tenantId: TENANT.id, principalId: 'usr_lsp_0006', app: 'backoffice', displayName: 'Faiza Noor', email: 'faiza.noor@example.com', ...holds(TENANT.id, 'accounts_officer'), projectScope: 'all' },
+  { id: 'lsp_finance_controller', tenantId: TENANT.id, principalId: 'usr_lsp_0007', app: 'backoffice', displayName: 'Zubair Ansari', email: 'zubair.ansari@example.com', ...holds(TENANT.id, 'finance_controller'), projectScope: 'all' },
   {
     id: 'resident',
     tenantId: TENANT.id,

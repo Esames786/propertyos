@@ -153,6 +153,7 @@
     "release": "Release hold",
     "released": "Hold on {{unit}} released.",
     "heldFor": "Held for {{lead}} until {{until}}",
+    "heldUntil": "Held until {{until}}",
     "holdNote": "A demo hold: it lasts for this browser session and changes no real inventory."
   },
   "types": {

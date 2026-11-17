@@ -16,6 +16,8 @@ import type { RouteHandle } from './handle';
 import { RootLayout } from './RootLayout';
 import { ShellLayout } from './ShellLayout';
 import { StandaloneLayout } from './StandaloneLayout';
+// Gate E.0: the developer ERP's route registration point (areas register in routes.developer.tsx).
+import { DEVELOPER_ROUTES } from './routes.developer';
 
 /**
  * Prototype route table (React Router 7, data mode). Pages are code-split and receive plain props;
@@ -618,6 +620,8 @@ const shellChildren: RouteObject[] = [
   { path: 'global/language-switcher', ...preferences('language') },
   { path: 'global/accessibility-preferences', ...preferences('accessibility') },
   { path: 'settings/onboarding', ...preferences('tours') },
+  // Gate E.0: every Gate E area's screens (none registered yet; see routes.developer.tsx).
+  ...DEVELOPER_ROUTES,
   {
     path: '*',
     loader: registerLoader,

@@ -1,4 +1,4 @@
-import type { ActivityEvent, Lead, Party, Project, SiteVisit, UnitSummary, UnitDetail, Unit } from '@repo/contracts';
+import type { ActivityEvent, Lead, Party, Project, SiteVisit, UnitSummary, UnitDetail, Unit, UnitHoldView } from '@repo/contracts';
 import type { TenantDataset } from './dataset-types';
 import { PERSONAS } from './people';
 import { createRandom, daysFromNow, pad, percentOf, FIXTURE_NOW } from './seed';
@@ -78,7 +78,7 @@ export function leadHistory(d: Pick<TenantDataset, 'visits'>, lead: Lead): Activ
   return events.filter((e) => new Date(e.at).getTime() <= now).sort((a, b) => b.at.localeCompare(a.at));
 }
 
-export function unitSummary(d: Pick<TenantDataset, 'towers' | 'floors' | 'projects'>, unit: Unit, holds: Record<string, { leadRef: string; until: string }> = {}): UnitSummary {
+export function unitSummary(d: Pick<TenantDataset, 'towers' | 'floors' | 'projects'>, unit: Unit, holds: Readonly<Record<string, UnitHoldView>> = {}): UnitSummary {
   const tower = unit.towerId ? d.towers.find((t) => t.id === unit.towerId) : undefined;
   const floor = unit.floorId ? d.floors.find((f) => f.id === unit.floorId) : undefined;
   const hold = holds[unit.id];
@@ -94,12 +94,12 @@ export function unitSummary(d: Pick<TenantDataset, 'towers' | 'floors' | 'projec
     areaSqft: unit.areaSqft,
     price: unit.price,
     status: hold ? 'held' : unit.status,
-    ...(hold ? { hold: { leadRef: hold.leadRef, until: hold.until } } : {}),
+    ...(hold ? { hold: { ...(hold.leadRef ? { leadRef: hold.leadRef } : {}), until: hold.until, ...(hold.releasable ? { releasable: true as const } : {}) } } : {}),
   };
 }
 
 /** Standard demo payment plan: 10 % down, the rest over 36 monthly instalments. */
-export function unitDetail(d: Pick<TenantDataset, 'towers' | 'floors' | 'projects'>, unit: Unit, holds: Record<string, { leadRef: string; until: string }> = {}): UnitDetail {
+export function unitDetail(d: Pick<TenantDataset, 'towers' | 'floors' | 'projects'>, unit: Unit, holds: Readonly<Record<string, UnitHoldView>> = {}): UnitDetail {
   const down = percentOf(unit.price.amount, 10);
   const remaining = (BigInt(unit.price.amount.replace('.', '')) - BigInt(down.replace('.', ''))) / 36n;
   const per = remaining.toString().padStart(3, '0');

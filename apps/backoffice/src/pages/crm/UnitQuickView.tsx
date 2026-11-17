@@ -3,6 +3,9 @@ import { AmountStrip, Badge, Button, Drawer, ErrorState, KeyValueList, Photo, Sk
 import { Clock3, Lock, LockOpen, Wallet } from 'lucide-react';
 import { useCrmFormat } from './format';
 
+/** A reference kept whole and bidi-isolated inside a sentence (the `unbroken` pattern of S.2a, Gate E.0). */
+const isolatedRef = (ref: string) => `⁨${ref.replace(/[-–]/g, (c) => `${c}⁠`)}⁩`;
+
 /**
  * Unit quick view (INV-002) opened from a lead (`?unit=…`): photo, location, size, price and the
  * illustrative payment plan, with a demo hold for this lead (48 hours, session only).
@@ -16,7 +19,8 @@ export function UnitQuickView({ unitId, lead, onClose }: { unitId: string | null
   const unit = useApiQuery<UnitDetail>(unitId ? { method: 'GET', path: `/units/${unitId}` } : null);
   const act = useApiMutation<{ ok: boolean; until?: string }>();
   const u = unit.data;
-  const heldForThisLead = !!u?.hold && u.hold.leadRef === lead.ref;
+  // Gate E.0 (Issue #23): only the person who placed the hold may release it; the server says so.
+  const releasable = !!u?.hold?.releasable && u.hold.leadRef === lead.ref;
 
   const hold = async () => {
     if (!u) return;
@@ -45,12 +49,12 @@ export function UnitQuickView({ unitId, lead, onClose }: { unitId: string | null
       footer={
         u &&
         can('unit.hold') &&
-        (heldForThisLead ? (
-          <Button variant="secondary" icon={LockOpen} onPress={release} isPending={act.isPending} data-testid="unit-release">
+        (releasable ? (
+          <Button variant="secondary" icon={LockOpen} onPress={release} isPending={act.isPending} className="max-w-full whitespace-normal text-start" data-testid="unit-release">
             {t('crm:unit.release')}
           </Button>
         ) : (
-          <Button variant="primary" icon={Lock} onPress={hold} isPending={act.isPending} isDisabled={u.status !== 'available'} data-testid="unit-hold">
+          <Button variant="primary" icon={Lock} onPress={hold} isPending={act.isPending} isDisabled={u.status !== 'available'} className="max-w-full whitespace-normal text-start" data-testid="unit-hold">
             {t('crm:unit.hold', { name: lead.name })}
           </Button>
         ))
@@ -66,8 +70,8 @@ export function UnitQuickView({ unitId, lead, onClose }: { unitId: string | null
           <div className="flex flex-wrap items-center gap-2">
             <StatusLabel kind="unit" status={u.status} />
             {u.hold && (
-              <Badge tone="warning" icon={Clock3}>
-                {t('crm:unit.heldFor', { lead: u.hold.leadRef, until: f.when(u.hold.until) })}
+              <Badge tone="warning" icon={Clock3} data-testid="unit-hold-badge">
+                {u.hold.leadRef ? t('crm:unit.heldFor', { lead: isolatedRef(u.hold.leadRef), until: f.when(u.hold.until) }) : t('crm:unit.heldUntil', { until: f.when(u.hold.until) })}
               </Badge>
             )}
           </div>

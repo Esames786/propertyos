@@ -1,5 +1,6 @@
 import { ApiError, type AccessDecision, type ModuleKey, type Party, type Permission, type RecordAccess, type SearchRecord, type SearchResponse } from '@repo/contracts';
 import { CRM_HANDLERS } from './crm-handlers';
+import { activeHolds, holdClock } from './crm-holds';
 import { buildDashboard } from './dashboard';
 import { authorize, can, decideRecord, forbid, invoiceRecord, isScopeOnly, matches, projectRecord, requires, unitPermitted, visitor, type Handler, type HandlerContext } from './handler-types';
 import { FINANCE_HANDLERS } from './finance-handlers';
@@ -28,6 +29,7 @@ import { PAYROLL_HANDLERS } from './payroll/handlers';
 import { HR_RESIDENT_HANDLERS } from './hr/resident';
 import { RENTALS_HANDLERS } from './rentals/handlers';
 import { RENTALS_PORTAL_HANDLERS } from './rentals/portal';
+import { DEVELOPER_HANDLERS } from './developer/handlers';
 
 export type { Handler, HandlerAccess, HandlerContext } from './handler-types';
 
@@ -145,7 +147,8 @@ const CORE_HANDLERS: readonly Handler[] = [
       if (floorId !== undefined && floorProject === undefined) forbid(ctx);
       inventoryProject(ctx, floorProject);
       inventoryProject(ctx, projectId === undefined ? undefined : String(projectId));
-      const holds = ctx.demo.holds();
+      // Gate E.0 (Issue #23): the same active-hold projection as unit 360 and lead matching.
+      const holds = activeHolds(ctx.demo.holds(), holdClock());
       return ctx.data.units
         .filter(
           (u) =>
@@ -315,4 +318,6 @@ export const HANDLERS: readonly Handler[] = [...CORE_HANDLERS, ...CRM_HANDLERS, 
   // Gate S.2b: society payroll (PAY-001…007).
   ...PAYROLL_HANDLERS,
   // Gate S.3: rentals (RNT-001…009) and the landlord's view in the resident app (PORTAL-037).
-  ...RENTALS_HANDLERS, ...RENTALS_PORTAL_HANDLERS];
+  ...RENTALS_HANDLERS, ...RENTALS_PORTAL_HANDLERS,
+  // Gate E.0: the developer ERP's registration point (each Gate E area adds its list in developer/handlers.ts).
+  ...DEVELOPER_HANDLERS];

@@ -121,8 +121,18 @@ export interface UnitSummary {
   areaSqft: number;
   price: Money;
   status: UnitStatus;
-  /** Present when the unit is held in this demo session. */
-  hold?: { leadRef: string; until: string };
+  /**
+   * Present while the unit is held in this demo session (an expired hold is not shown). Gate E.0:
+   * `leadRef` only when the reader may see that lead; `releasable` only for the person who placed it.
+   */
+  hold?: UnitHoldView;
+}
+
+/** A unit hold as one reader sees it (Gate E.0, Issues #22/#23). */
+export interface UnitHoldView {
+  leadRef?: string;
+  until: string;
+  releasable?: true;
 }
 
 export interface UnitDetail extends UnitSummary {

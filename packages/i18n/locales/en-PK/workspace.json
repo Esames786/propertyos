@@ -111,6 +111,24 @@
     "portal.use": "Use the resident portal",
     "construction.view": "See construction progress",
     "workorder.update": "Update work orders",
-    "visitors.manage": "Manage gate and visitors"
+    "visitors.manage": "Manage gate and visitors",
+    "lead.manage": "Update leads",
+    "lead.assign": "Assign leads",
+    "project.view": "See projects",
+    "project.manage": "Prepare project setup",
+    "project.approve": "Approve project setup",
+    "inventory.manage": "Manage storage and inventory records",
+    "gl.view": "See the ledger",
+    "gl.manage": "Prepare chart and posting-rule changes",
+    "gl.approve": "Approve chart and posting-rule changes",
+    "journal.create": "Prepare journals",
+    "journal.approve": "Approve journals",
+    "gl.post": "Post approved journals",
+    "bank.import": "Import bank statements",
+    "bank.import.approve": "Approve bank statement imports",
+    "document.view": "See documents",
+    "document.upload": "Add documents",
+    "document_template.manage": "Prepare document templates",
+    "document_template.approve": "Approve document templates"
   }
 }

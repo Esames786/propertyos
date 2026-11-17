@@ -21,7 +21,7 @@ export interface DemoOverlay {
   visits: SiteVisit[];
   visitPatches: Record<string, Partial<SiteVisit>>;
   /** Unit holds placed in this session (unit id → hold). */
-  holds: Record<string, { leadId: string; leadRef: string; until: string }>;
+  holds: Record<string, { leadId: string; leadRef: string; until: string; principalId?: string }>;
   workspace: WorkspaceProfile | null;
   /** Feature-owned state (e.g. the customer portal), created lazily with `section()`. */
   sections: Record<string, unknown>;
@@ -245,5 +245,10 @@ export class DemoPartition {
   /** Forget a feature's state (it starts again from its seed on the next read); call `save()` after. */
   resetSection(name: string): void {
     delete this.overlay.sections[name];
+  }
+
+  /** Gate E.0: the feature's stored state if it was ever written, without creating it (reads stay read-only). */
+  peekSection<T extends object>(name: string): T | undefined {
+    return name in this.overlay.sections ? (this.overlay.sections[name] as T) : undefined;
   }
 }

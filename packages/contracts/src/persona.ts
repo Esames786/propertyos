@@ -8,6 +8,11 @@ export interface Persona {
     | 'manager'
     | 'sales'
     | 'finance'
+    /** Gate E.0: Larkspur's maker-checker holders for the developer ERP (E-06), all fictional. */
+    | 'lsp_sales_manager'
+    | 'lsp_project_manager'
+    | 'lsp_accounts'
+    | 'lsp_finance_controller'
     | 'resident'
     | 'facility_manager'
     | 'society_admin'
