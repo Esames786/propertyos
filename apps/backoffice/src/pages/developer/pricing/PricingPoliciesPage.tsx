@@ -3,7 +3,7 @@ import type { PricingPolicyDraft, PricingPolicyDraftList, PricingPolicyRule } fr
 import { Badge, Button, EmptyState, ErrorState, PageHeader, SkeletonBlock, useApiMutation, useApiQuery, useCreateKey, useT } from '@repo/ui';
 import { FileClock, Plus, Save, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { canHydrateDraft, expectedDraftVersion, type CommittedDraftFloor } from './revision-sync';
+import { canHydrateDraft, expectedDraftVersion, pinDraftVersion, type CommittedDraftFloor } from './revision-sync';
 
 type UnitKind = PricingPolicyRule['unitType'];
 type DraftRule = { id: number; unitType: UnitKind; amount: string; floor: string; corner: string; park: string };
@@ -57,6 +57,7 @@ export default function PricingPoliciesPage() {
 
   useEffect(() => {
     if (!canHydrateDraft(selectedId, detail.data, dirty, committedFloor)) return;
+    setCommittedFloor((previous) => pinDraftVersion(previous, detail.data!));
     const version = detail.data.versions.at(-1);
     if (!version) return;
     setProjectId(detail.data.projectId);
@@ -82,6 +83,7 @@ export default function PricingPoliciesPage() {
   };
 
   const save = async () => {
+    if (mutation.isPending || (selectedId && expectedDraftVersion(selectedId, committedFloor) === undefined)) return;
     const normalizedTitle = title.trim().replace(/\s+/g, ' ');
     const normalizedRules = validatedRules(rules);
     if (!projectId || !projects.data?.items.some((p) => p.id === projectId) ||
@@ -92,7 +94,7 @@ export default function PricingPoliciesPage() {
     const key = selectedId ? revisionKey : createKey;
     const path = selectedId ? `/pricing/policies/${encodeURIComponent(selectedId)}/versions` : '/pricing/policies';
     const body = selectedId
-      ? { expectedVersion: expectedDraftVersion(selectedId, detail.data, committedFloor), title: normalizedTitle, rules: normalizedRules, idempotencyKey: key }
+      ? { expectedVersion: expectedDraftVersion(selectedId, committedFloor), title: normalizedTitle, rules: normalizedRules, idempotencyKey: key }
       : { projectId, title: normalizedTitle, rules: normalizedRules, idempotencyKey: key };
     try {
       const result = await mutation.mutateAsync({ method: 'POST', path, body, idempotencyKey: key });
