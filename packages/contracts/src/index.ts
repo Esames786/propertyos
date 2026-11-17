@@ -27,3 +27,5 @@ export * from './developer';
 
 // Gate E.3: price history without invented price revisions.
 export * from './pricing';
+
+export * from './quotation-draft';
