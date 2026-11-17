@@ -35,6 +35,9 @@ export type PersonaId =
   | 'rb_tenant_adeel'
   // Gate E.1 (provisional; reconcile with E.0): Larkspur's sales manager.
   | 'sales_manager'
+  // Gate E.2 (provisional): Larkspur's project setup maker and checker.
+  | 'lk_project_officer'
+  | 'lk_projects_director'
   | 'supreme_admin'
   | 'commercial_approver'
   | 'platform_support';

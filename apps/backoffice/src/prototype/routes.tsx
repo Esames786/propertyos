@@ -14,6 +14,8 @@ import { registerLoader, RegisterResolver, type RegisterData } from './register'
 import { PAYOUTS_TARGET, RENT_VIEW, ROLL_TARGET, SETTINGS_TARGET, STATEMENTS_TARGET } from '../pages/rentals/rkit';
 // Gate E.1 (provisional): the CRM pipeline and visits route module.
 import { E1_CRM_ROUTES } from '../pages/developer/crm/routes';
+// Gate E.2 (provisional; reconcile with E.0's developer route module at Wave 1 integration).
+import { INVENTORY_ROUTES, PROJECT_ROUTES } from './routes.e2';
 import type { RouteHandle } from './handle';
 import { RootLayout } from './RootLayout';
 import { ShellLayout } from './ShellLayout';
@@ -473,6 +475,9 @@ const shellChildren: RouteObject[] = [
   { path: 'crm/schedule-visit-drawer', element: <Navigate to={`${LINKS.salesHome}?drawer=schedule-visit`} replace /> },
   // Gate E.1 (provisional; reconcile with E.0's developer route module at Wave 1 integration).
   ...E1_CRM_ROUTES,
+  // Gate E.2 (provisional; reconcile with E.0 at Wave 1 integration): projects (PRJ-001…003) and inventory (INV-001/002/008/010).
+  ...PROJECT_ROUTES,
+  ...INVENTORY_ROUTES,
   { path: 'more', lazy: page(() => import('../pages/more/MorePage')), handle: h({ title: (t) => t('nav:pages.more') }) },
   { path: 'adm/plan', lazy: page(() => import('../pages/adm/PlanPage')), handle: h({ title: (t) => t('nav:pages.plan') }) },
   { path: 'global/my-access', lazy: page(() => import('../pages/adm/MyAccessPage')), handle: h({ title: (t) => t('nav:pages.myAccess') }) },

@@ -80,7 +80,8 @@ test.describe('Two sites, different grants (Crescent Bay Developers)', () => {
     await expect(page.getByTestId('planned-screen')).toBeVisible();
     await chooseProject(page, 'Crescent Bay Towers');
     await page.goto(`${BO}/backoffice/inv/unit-matrix`);
-    await expect(page.getByTestId('planned-screen')).toBeVisible();
+    // Gate E.2 builds the unit matrix (PARTIAL): with Towers in context it opens on Towers' units.
+    await expect(page.getByTestId('unit-matrix')).toHaveAttribute('data-project', 'prj_cb_towers');
     expect(consoleErrors).toEqual([]);
   });
 

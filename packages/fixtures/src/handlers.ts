@@ -32,6 +32,8 @@ import { RENTALS_PORTAL_HANDLERS } from './rentals/portal';
 import { DEVELOPER_HANDLERS } from './developer/handlers';
 // Gate E.1 (provisional; reconcile with E.0's developer handler registration at Wave 1 integration).
 import { CRM_PIPELINE_HANDLERS } from './developer/crm/handlers';
+// Gate E.2 (provisional; reconcile with E.0's developer handler registration at Wave 1 integration).
+import { DEV_INVENTORY_HANDLERS } from './developer/inventory/handlers';
 
 export type { Handler, HandlerAccess, HandlerContext } from './handler-types';
 
@@ -324,4 +326,6 @@ export const HANDLERS: readonly Handler[] = [...CORE_HANDLERS, ...CRM_HANDLERS, 
   // Gate E.0: the developer ERP's registration point (each Gate E area adds its list in developer/handlers.ts).
   ...DEVELOPER_HANDLERS,
   // Gate E.1 (provisional): CRM pipeline, lead assignment, the visit calendar and visit workspace (CRM-006…009, CRM-011).
-  ...CRM_PIPELINE_HANDLERS];
+  ...CRM_PIPELINE_HANDLERS,
+  // Gate E.2 (provisional; reconcile with E.0 at Wave 1 integration): projects and inventory (PRJ-001…003, INV-001/002/008/010).
+  ...DEV_INVENTORY_HANDLERS];

@@ -25,3 +25,5 @@ export * from './rentals';
 // Gate E.0: developer ERP foundation (state contracts, approval subjects, editions).
 export * from './developer';
 export * from './sales';
+// Gate E.2 (provisional; reconcile with E.0 at Wave 1 integration): projects and inventory.
+export * from './projects';
