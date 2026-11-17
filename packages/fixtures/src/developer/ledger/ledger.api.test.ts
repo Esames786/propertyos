@@ -163,10 +163,13 @@ describe('Gate E.7 — no id oracle: unknown and out-of-scope answer alike', () 
       expect(a, hiddenPath).toEqual(b);
       expect(a.status).toBe(404);
     }
-    // Writes naming another entity's record: the same 404 as an invented id.
-    const w1 = await refusedUnchanged(api, () => api.as('lsp_finance_controller').post(`/ledger/journals/${second.journalId}/reverse`, { date: '2026-10-25', reason: 'x y z' }, { key: 'k-x1' }));
-    const w2 = await refusedUnchanged(api, () => api.as('lsp_finance_controller').post('/ledger/journals/jnl_lsp_9999/reverse', { date: '2026-10-25', reason: 'x y z' }, { key: 'k-x2' }));
+    // Writes naming another entity's record: the same 404 as an invented id. (Wave 1 integration: in the
+    // reconciled roster the reverser is the ledger clerk, who holds journal.create; the finance controller is
+    // the checker and is refused by role before any lookup, which would compare two role refusals.)
+    const w1 = await refusedUnchanged(api, () => api.as('lsp_ledger_clerk').post(`/ledger/journals/${second.journalId}/reverse`, { date: '2026-10-25', reason: 'x y z' }, { key: 'k-x1' }));
+    const w2 = await refusedUnchanged(api, () => api.as('lsp_ledger_clerk').post('/ledger/journals/jnl_lsp_9999/reverse', { date: '2026-10-25', reason: 'x y z' }, { key: 'k-x2' }));
     expect(w1).toEqual(w2);
+    expect(w1.status).toBe(404);
     const p1 = await refusedUnchanged(api, () => api.as('lsp_finance_controller').post('/ledger/periods/fpd_lrd_202610/close', {}, { key: 'k-x3' }));
     const p2 = await refusedUnchanged(api, () => api.as('lsp_finance_controller').post('/ledger/periods/fpd_zzz_202610/close', {}, { key: 'k-x4' }));
     expect(p1).toEqual(p2);
