@@ -1,4 +1,4 @@
-import { requireDraftRequestKey } from './request-key';
+import { ownReplay, requireDraftRequestKey } from './request-key';
 import { ApiError, type PricingApprovalDraft, type PricingApprovalDraftList, type PricingApprovalDraftVersion, type PricingApprovalRule, type PricingApprovalSubject } from '@repo/contracts';
 import { invalid, notFound, requires, type Handler, type HandlerContext } from '../../handler-types';
 import { projectVisible } from '../scope';
@@ -66,7 +66,7 @@ function collision(ctx: HandlerContext): never {
   throw new ApiError({ status: 409, code: 'idempotency_key_reused', messageKey: 'pricing:approvalConflict', correlationId: ctx.correlationId, changed: false });
 }
 function replay(ctx: HandlerContext, k: string, op: Op, target: string, fingerprint: string) {
-  const r = stored(ctx)?.keys[k];
+  const r = ownReplay(stored(ctx)?.keys, k);
   if (!r) return undefined;
   if (r.op !== op || r.principalId !== principal(ctx) || r.target !== target || r.fingerprint !== fingerprint) collision(ctx);
   own(ctx, r.snapshot.id); // Re-authorize original, not just the current request.

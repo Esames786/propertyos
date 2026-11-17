@@ -1,4 +1,4 @@
-import { requireDraftRequestKey } from './request-key';
+import { ownReplay, requireDraftRequestKey } from './request-key';
 import { ApiError, type PricingPolicyDraft, type PricingPolicyDraftList, type PricingPolicyDraftVersion, type PricingPolicyRule } from '@repo/contracts';
 import { invalid, notFound, requires, type Handler, type HandlerContext } from '../../handler-types';
 import { projectVisible } from '../scope';
@@ -88,7 +88,7 @@ function conflict(ctx: HandlerContext): never {
   throw new ApiError({ status: 409, code: 'idempotency_key_reused', messageKey: 'pricing:policyConflict', correlationId: ctx.correlationId, changed: false });
 }
 function replay(ctx: HandlerContext, key: string, op: Op, target: string, fingerprint: string): PricingPolicyDraft | undefined {
-  const prior = state(ctx)?.keys[key];
+  const prior = ownReplay(state(ctx)?.keys, key);
   if (!prior) return undefined;
   if (prior.op !== op || prior.target !== target || prior.principal !== principal(ctx) || prior.fingerprint !== fingerprint) conflict(ctx);
   own(ctx, prior.response.id); // Recheck current permission, project and creator *before* replay.

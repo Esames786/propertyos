@@ -1,4 +1,4 @@
-import { requireDraftRequestKey } from './request-key';
+import { ownReplay, requireDraftRequestKey } from './request-key';
 import { ApiError, type CommercialRulesDraft, type CommercialRulesDraftList, type CommercialRulesDraftVersion, type CommercialRulesPreview } from '@repo/contracts';
 import { invalid, notFound, requires, type Handler, type HandlerContext } from '../../handler-types';
 import { projectVisible } from '../scope';
@@ -64,7 +64,7 @@ function conflict(ctx: HandlerContext): never {
   throw new ApiError({ status: 409, code: 'idempotency_key_reused', messageKey: 'pricing:commercialConflict', correlationId: ctx.correlationId, changed: false });
 }
 function replay(ctx: HandlerContext, key: string, op: Operation, target: string, fingerprint: string) {
-  const prior = readStore(ctx)?.idempotency[key];
+  const prior = ownReplay(readStore(ctx)?.idempotency, key);
   if (!prior) return undefined;
   if (prior.operation !== op || prior.actor !== actor(ctx) || prior.target !== target || prior.fingerprint !== fingerprint) conflict(ctx);
   getDraft(ctx, prior.response.id); // Authorization rechecked at time of retry.

@@ -1,4 +1,4 @@
-import { requireDraftRequestKey } from './request-key';
+import { ownReplay, requireDraftRequestKey } from './request-key';
 import { ApiError, type UnitPriceChangeDraft, type UnitPriceChangeDraftList, type UnitPriceChangeDraftVersion } from '@repo/contracts';
 import { invalid, notFound, requires, type Handler, type HandlerContext } from '../../handler-types';
 import { projectVisible } from '../scope';
@@ -57,7 +57,7 @@ function conflict(ctx: HandlerContext): never {
     messageKey: 'pricing:priceChangeConflict', correlationId: ctx.correlationId, changed: false });
 }
 function replay(ctx: HandlerContext, id: string, op: Op, target: string, fingerprint: string) {
-  const old = recordStore(ctx)?.keys[id];
+  const old = ownReplay(recordStore(ctx)?.keys, id);
   if (!old) return undefined;
   if (old.op !== op || old.actor !== actor(ctx) || old.target !== target || old.fingerprint !== fingerprint) conflict(ctx);
   own(ctx, old.result.id); // Revalidate original draft/unit and current scope before returning.

@@ -81,7 +81,8 @@ type Draft = { id: string; currentVersion: number; versions: unknown[]; state: s
 
 function world() {
   const memory = new Map<string, string>();
-  const demo = new DemoStore({ getItem: (k) => memory.get(k) ?? null, setItem: (k, v) => void memory.set(k, v), removeItem: (k) => void memory.delete(k) });
+  const storage = { getItem: (k: string) => memory.get(k) ?? null, setItem: (k: string, v: string) => void memory.set(k, v), removeItem: (k: string) => void memory.delete(k) };
+  let demo = new DemoStore(storage);
   const session: { personaId: string; projectId: string } = { personaId: E3QA_PRICING.id, projectId: 'all' };
   /** Grants taken away from a principal mid-session (true revocation: same person, same session). */
   const revoked = new Map<string, Permission[]>();
@@ -92,11 +93,14 @@ function world() {
     const gone = revoked.get(persona.id) ?? [];
     return { ...base, permissions: base.permissions.filter((p) => !gone.includes(p)), grants: base.grants.filter((g) => !withdrawnModules.includes(g.module)) };
   };
-  const api = new MockTransport({ getContext: () => ({ ...session }), getMode: () => 'fast', demo, personas: [...ALL_PERSONAS, ...E3QA_TEST_PRINCIPALS], accessFor });
+  const server = () => new MockTransport({ getContext: () => ({ ...session }), getMode: () => 'fast', demo, personas: [...ALL_PERSONAS, ...E3QA_TEST_PRINCIPALS], accessFor });
+  let api = server();
   const send = <T,>(method: 'GET' | 'POST', path: string, body?: Record<string, unknown>, key?: string, headerKey = key) =>
     api.request<T>({ method, path, ...(headerKey ? { idempotencyKey: headerKey } : {}), ...(body ? { body: key ? { ...body, idempotencyKey: key } : body } : {}) });
   return {
-    api, send, revoked, withdrawnModules,
+    send, revoked, withdrawnModules,
+    /** A page reload: a new store and server over the same session storage (sections come back from JSON). */
+    reload() { demo.save(); demo = new DemoStore(storage); api = server(); },
     as(id: string, projectId = 'all') { session.personaId = id; session.projectId = projectId; },
     state() {
       demo.save();
@@ -302,6 +306,28 @@ for (const f of FAMILIES) {
       const parsed = JSON.parse(w.state()) as { partitions: Record<string, { sections: Record<string, unknown> }> };
       expect(Object.keys(parsed.partitions)).toEqual(['tnt_larkspur']);
       expect(Object.keys(parsed.partitions.tnt_larkspur!.sections)).toEqual([f.section]);
+    });
+
+    it('a valid key that names an Object.prototype member is an ordinary key, before and after a reload', async () => {
+      // The request-key format admits 12–100 of [A-Za-z0-9._:-], so these are valid keys. The replay maps come
+      // back from session storage as plain objects, where `map[key]` finds the inherited member.
+      for (const key of ['hasOwnProperty', 'isPrototypeOf', 'toLocaleString', 'propertyIsEnumerable', '__defineGetter__', '__lookupSetter__']) {
+        const w = world();
+        const first = await w.send<Draft>('POST', f.create(), f.createBody(target), 'qa-ordinary-key-0001');
+        w.reload();
+        // As a create key: a new draft, then an exact replay of it.
+        const created = await w.send<Draft>('POST', f.create(), f.createBody(target), key);
+        expect(created.id, key).not.toBe(first.id);
+        w.reload();
+        const before = w.state();
+        expect(await w.send<Draft>('POST', f.create(), f.createBody(target), key), `${key} replay`).toEqual(created);
+        expect(w.state()).toBe(before);
+        // As a revision key on the other draft: a new version (another operation than the create it named).
+        const other = world();
+        const draft = await other.send<Draft>('POST', f.create(), f.createBody(target), 'qa-ordinary-key-0002');
+        other.reload();
+        expect((await other.send<Draft>('POST', f.revise(draft.id), f.reviseBody(1, 2), key)).currentVersion, `${key} as a revision key`).toBe(2);
+      }
     });
   });
 }

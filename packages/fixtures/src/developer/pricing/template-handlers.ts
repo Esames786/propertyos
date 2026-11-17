@@ -1,4 +1,4 @@
-import { requireDraftRequestKey } from './request-key';
+import { ownReplay, requireDraftRequestKey } from './request-key';
 import { ApiError, type PaymentPlanTemplate, type PaymentPlanTemplateList, type PaymentPlanTemplateSummary, type PaymentPlanTemplateVersion } from '@repo/contracts';
 import { invalid, notFound, requires, type Handler, type HandlerContext } from '../../handler-types';
 import { projectVisible } from '../scope';
@@ -64,7 +64,7 @@ function collision(ctx: HandlerContext): never {
   throw new ApiError({ status: 409, code: 'idempotency_key_reused', messageKey: 'pricing:templateConflict', correlationId: ctx.correlationId, changed: false });
 }
 function checkReplay(ctx: HandlerContext, key: string, operation: BoundRequest['operation'], target: string, fingerprint: string): PaymentPlanTemplate | undefined {
-  const record = state(ctx)?.requests[key];
+  const record = ownReplay(state(ctx)?.requests, key);
   if (!record) return undefined;
   if (record.operation !== operation || record.target !== target || record.principalId !== principal(ctx) || record.fingerprint !== fingerprint) collision(ctx);
   // Permission, project, tenant and current creator check always run BEFORE replay is returned.
