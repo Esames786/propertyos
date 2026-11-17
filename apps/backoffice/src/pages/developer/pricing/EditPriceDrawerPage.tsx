@@ -187,7 +187,7 @@ export default function EditPriceDrawerPage() {
                             aria-current={draftId === record.id ? 'true' : undefined}
                             className="min-h-11 w-full rounded-control border border-border p-3 text-start text-text hover:bg-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
                             <span className="font-medium">{t('pricing:priceChangeVersion', { version: record.currentVersion })}</span>
-                            <span className="ms-3"><bdi dir="ltr" className="[overflow-wrap:anywhere]">{wrappable(money.moneyExact(record.proposedPrice))}</bdi></span>
+                            <span className="ms-3 inline-block"><bdi dir="ltr" className="[overflow-wrap:anywhere]">{wrappable(money.moneyExact(record.proposedPrice))}</bdi></span>
                           </button>
                         </li>)}
                       </ul>}

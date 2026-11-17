@@ -251,7 +251,7 @@ export default function FeesDiscountsPage() {
                 disabled={preview.isPending}
                 className="min-h-11 w-full min-w-0 rounded-control border border-border-control bg-panel px-3 text-text">
                 <option value="">{t('pricing:commercialSelectUnit')}</option>
-                {units.data?.items.filter((u) => u.projectId === projectId).map((u) => <option key={u.id} value={u.id}>{u.ref} — {u.projectName}</option>)}
+                {units.data?.items.filter((u) => u.projectId === projectId).map((u) => <option key={u.id} value={u.id}>{u.ref}</option>)}
               </select>
             </label>
             {units.isError && <ErrorState error={units.error} onRetry={() => void units.refetch()} />}
