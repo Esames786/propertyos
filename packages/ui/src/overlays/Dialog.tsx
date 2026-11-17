@@ -38,12 +38,16 @@ export function Dialog({
   const { t } = useT();
   const clearance = useToastClearance();
   useToastOverlay(isOpen && !footer);
+  // B10 (Issue #24, F-INT-3): a dialog taller than the screen (320 px with 200 % text) scrolls inside this
+  // overlay. Moving focus scrolls only until the control's box touches the overlay's edge, which cut off the
+  // part of its keyboard ring outside that box (37 % of a confirm dialog's Cancel ring). The scroll padding
+  // (the overlay's own padding, wider than any ring) keeps a focused control that far inside the edge.
   return (
     <ModalOverlay
       isOpen={isOpen}
       onOpenChange={onOpenChange}
       isDismissable={isDismissable}
-      className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-overlay p-4 data-entering:animate-overlay-in data-exiting:animate-overlay-out"
+      className="fixed inset-0 z-50 grid scroll-p-4 place-items-center overflow-y-auto bg-overlay p-4 data-entering:animate-overlay-in data-exiting:animate-overlay-out"
     >
       <Modal className={cn('w-full data-entering:animate-sheet-in', SIZE[size])}>
         <AriaDialog role={role} className={cn('relative rounded-card bg-panel p-5 shadow-overlay outline-none sm:p-6', className)}>
