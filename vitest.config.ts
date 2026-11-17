@@ -13,6 +13,8 @@ export default defineConfig({
             'packages/contracts/src/**/*.test.ts',
             'packages/fixtures/src/**/*.test.ts',
             'packages/ui/src/**/*.test.ts',
+            // Gate E.3 local validation: app-level pure helpers (revision-sync.test.ts) were never collected.
+            'apps/*/src/**/*.test.ts',
           ],
         },
       },
