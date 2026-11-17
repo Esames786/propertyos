@@ -24,7 +24,7 @@ function env() {
     setItem: (k, v) => void mem.set(k, v),
     removeItem: (k) => void mem.delete(k),
   });
-  const session = { personaId: alice.id, projectId: 'all' };
+  const session: { personaId: string; projectId: string } = { personaId: alice.id, projectId: 'all' };
   const api = new MockTransport({
     getContext: () => ({ ...session }),
     getMode: () => 'fast', demo,

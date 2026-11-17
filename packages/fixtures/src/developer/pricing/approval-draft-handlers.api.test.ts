@@ -20,7 +20,7 @@ function world() {
     setItem: (key, value) => void memory.set(key, value),
     removeItem: (key) => void memory.delete(key),
   });
-  const current = { personaId: author.id, projectId: 'all' };
+  const current: { personaId: string; projectId: string } = { personaId: author.id, projectId: 'all' };
   const api = new MockTransport({
     getContext: () => ({ ...current }), getMode: () => 'fast', demo,
     personas: [...ALL_PERSONAS, author, outsider, scoped],

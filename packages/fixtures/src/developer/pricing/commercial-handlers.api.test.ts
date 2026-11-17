@@ -23,7 +23,7 @@ const project = 'prj_heights';
 function context() {
   const mem = new Map<string, string>();
   const demo = new DemoStore({ getItem: (k) => mem.get(k) ?? null, setItem: (k, v) => void mem.set(k, v), removeItem: (k) => void mem.delete(k) });
-  const selected = { personaId: author.id, projectId: 'all' };
+  const selected: { personaId: string; projectId: string } = { personaId: author.id, projectId: 'all' };
   const api = new MockTransport({
     getContext: () => ({ ...selected }), getMode: () => 'fast', demo,
     personas: [...ALL_PERSONAS, author, other, scoped],

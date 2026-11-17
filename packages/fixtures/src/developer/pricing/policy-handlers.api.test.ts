@@ -33,7 +33,7 @@ function env() {
     setItem: (k, v) => void memory.set(k, v),
     removeItem: (k) => void memory.delete(k),
   });
-  const ctx = { personaId: editor.id, projectId: 'all' };
+  const ctx: { personaId: string; projectId: string } = { personaId: editor.id, projectId: 'all' };
   const api = new MockTransport({
     getContext: () => ({ ...ctx }),
     getMode: () => 'fast', demo,

@@ -19,7 +19,7 @@ const reason = 'Illustrative price adjustment for internal draft review only';
 function setup() {
   const memory = new Map<string, string>();
   const demo = new DemoStore({ getItem: (k) => memory.get(k) ?? null, setItem: (k, v) => void memory.set(k, v), removeItem: (k) => void memory.delete(k) });
-  const chosen = { personaId: author.id, projectId: 'all' };
+  const chosen: { personaId: string; projectId: string } = { personaId: author.id, projectId: 'all' };
   const api = new MockTransport({ getContext: () => ({ ...chosen }), getMode: () => 'fast', demo, personas: [...ALL_PERSONAS, author, another, scoped, missingView] });
   return {
     api, as(personaId: string, projectId = 'all') { chosen.personaId = personaId; chosen.projectId = projectId; return api; },
