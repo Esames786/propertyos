@@ -1,32 +1,35 @@
 /**
- * Gate E.3: protect committed draft revisions against a delayed/stale GET.
- *
- * A successful POST returns the authoritative new version. React Query may still
- * expose the older cached detail while invalidation/refetch is in flight, or
- * permanently if the refresh fails. Never hydrate the editor backwards.
+ * A form must submit the version it actually displays, not a newer background
+ * GET. A successful POST also establishes a new authoritative form version.
  */
 export type CommittedDraftFloor = Readonly<{ id: string; version: number }>;
+type VersionedDraft = { id: string; currentVersion: number };
 
-export function canHydrateDraft(
+export function canHydrateDraft<T extends VersionedDraft>(
   selectedId: string | null,
-  fetched: { id: string; currentVersion: number } | null | undefined,
+  fetched: T | null | undefined,
   dirty: boolean,
   floor: CommittedDraftFloor | null,
-): boolean {
+): fetched is T {
   if (dirty || !selectedId || !fetched || fetched.id !== selectedId) return false;
   if (floor?.id === selectedId && fetched.currentVersion < floor.version) return false;
   return Number.isSafeInteger(fetched.currentVersion) && fetched.currentVersion > 0;
 }
 
-/** Used by optimistic revision saves without trusting stale detail query data. */
+/** Pin the version to the hydrated form or acknowledged POST, never a newer GET. */
 export function expectedDraftVersion(
   selectedId: string | null,
-  fetched: { id: string; currentVersion: number } | null | undefined,
   floor: CommittedDraftFloor | null,
 ): number | undefined {
-  if (!selectedId) return undefined;
-  const fetchedVersion = fetched?.id === selectedId ? fetched.currentVersion : 0;
-  const committedVersion = floor?.id === selectedId ? floor.version : 0;
-  const latest = Math.max(fetchedVersion, committedVersion);
-  return Number.isSafeInteger(latest) && latest > 0 ? latest : undefined;
+  if (!selectedId || floor?.id !== selectedId) return undefined;
+  return Number.isSafeInteger(floor.version) && floor.version > 0 ? floor.version : undefined;
+}
+
+/** Stable identity avoids an effect loop when the same loaded version is observed. */
+export function pinDraftVersion(
+  previous: CommittedDraftFloor | null,
+  draft: VersionedDraft,
+): CommittedDraftFloor {
+  if (previous?.id === draft.id && previous.version === draft.currentVersion) return previous;
+  return { id: draft.id, version: draft.currentVersion };
 }
