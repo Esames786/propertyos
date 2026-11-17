@@ -2,7 +2,7 @@ import { ApiError, type UnitPriceChangeDraft, type UnitPriceChangeDraftList, typ
 import { Badge, Button, Drawer, EmptyState, ErrorState, Link, PageHeader, SkeletonBlock, useApiMutation, useApiQuery, useCreateKey, useT } from '@repo/ui';
 import { FileClock, Pencil, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { canHydrateDraft, expectedDraftVersion, type CommittedDraftFloor } from './revision-sync';
+import { canHydrateDraft, expectedDraftVersion, pinDraftVersion, type CommittedDraftFloor } from './revision-sync';
 import { useSearchParams } from 'react-router';
 import { useCrmFormat } from '../../crm/format';
 
@@ -58,6 +58,7 @@ export default function EditPriceDrawerPage() {
   };
   useEffect(() => {
     if (!canHydrateDraft(draftId, selectedDraft.data, dirty, committedFloor)) return;
+    setCommittedFloor((previous) => pinDraftVersion(previous, selectedDraft.data!));
     const current = selectedDraft.data.versions.at(-1);
     if (!current) return;
     setPrice(current.proposedPrice.amount);
@@ -66,6 +67,7 @@ export default function EditPriceDrawerPage() {
   }, [selectedDraft.data, draftId, dirty, committedFloor]);
 
   const save = async () => {
+    if (saveMutation.isPending || (draftId && expectedDraftVersion(draftId, committedFloor) === undefined)) return;
     if (!unitId || !history.data || (draftId && selectedDraft.data?.id !== draftId)) return;
     const normalizedReason = reason.trim().replace(/\s+/g, ' ');
     const proposed = price.trim();
@@ -82,7 +84,7 @@ export default function EditPriceDrawerPage() {
     const path = draftId ? `/price-change-drafts/${encodeURIComponent(draftId)}/versions`
       : `/units/${encodeURIComponent(unitId)}/price-change-drafts`;
     const body = draftId
-      ? { expectedVersion: expectedDraftVersion(draftId, selectedDraft.data, committedFloor), proposedPrice: { amount: proposed, currency: 'PKR' }, reason: normalizedReason, idempotencyKey: key }
+      ? { expectedVersion: expectedDraftVersion(draftId, committedFloor), proposedPrice: { amount: proposed, currency: 'PKR' }, reason: normalizedReason, idempotencyKey: key }
       : { proposedPrice: { amount: proposed, currency: 'PKR' }, reason: normalizedReason, idempotencyKey: key };
     try {
       const result = await saveMutation.mutateAsync({ method: 'POST', path, body, idempotencyKey: key });
