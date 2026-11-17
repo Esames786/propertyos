@@ -45,6 +45,10 @@ export interface Persona {
     /** Gate E.2 (provisional; reconcile with E.0's personas at Wave 1 integration, decision E-06): Larkspur's project setup maker and checker. */
     | 'lk_project_officer'
     | 'lk_projects_director'
+    /** Gate E.7 (provisional; reconcile with E.0): Larkspur's ledger people (accounts officer, finance controller, treasury officer). */
+    | 'lk_accounts'
+    | 'lk_controller'
+    | 'lk_treasury'
     /** Gate D.1: a resident who joined by invitation (generated from the society register). */
     | `res_${string}`;
   tenantId: string;

@@ -34,6 +34,8 @@ import { DEVELOPER_HANDLERS } from './developer/handlers';
 import { CRM_PIPELINE_HANDLERS } from './developer/crm/handlers';
 // Gate E.2 (provisional; reconcile with E.0's developer handler registration at Wave 1 integration).
 import { DEV_INVENTORY_HANDLERS } from './developer/inventory/handlers';
+// Gate E.7 (provisional; reconcile with E.0 at Wave 1 integration): developer ledger and bank import.
+import { LEDGER_HANDLERS } from './developer/ledger/handlers';
 
 export type { Handler, HandlerAccess, HandlerContext } from './handler-types';
 
@@ -328,4 +330,6 @@ export const HANDLERS: readonly Handler[] = [...CORE_HANDLERS, ...CRM_HANDLERS, 
   // Gate E.1 (provisional): CRM pipeline, lead assignment, the visit calendar and visit workspace (CRM-006…009, CRM-011).
   ...CRM_PIPELINE_HANDLERS,
   // Gate E.2 (provisional; reconcile with E.0 at Wave 1 integration): projects and inventory (PRJ-001…003, INV-001/002/008/010).
-  ...DEV_INVENTORY_HANDLERS];
+  ...DEV_INVENTORY_HANDLERS,
+  // Gate E.7 (provisional; reconcile with E.0 at Wave 1 integration): ACC-001…010 and BANK-005.
+  ...LEDGER_HANDLERS];
