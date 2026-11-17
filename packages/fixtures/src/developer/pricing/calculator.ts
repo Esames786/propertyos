@@ -15,7 +15,8 @@ export class InvalidPlanError extends Error {
 const KINDS = new Set<PlanAllocationKind>(['down_payment', 'instalments', 'on_possession', 'balloon', 'construction_linked']);
 const AMOUNT = /^(0|[1-9]\d{0,17})(?:\.(\d{1,2}))?$/;
 const MILESTONE = /^[A-Za-z][A-Za-z0-9_-]{1,39}$/;
-const invalid = (): never => { throw new InvalidPlanError(); };
+// A function declaration (not an arrow const): TypeScript narrows after a call only to a declared `never` function.
+function invalid(): never { throw new InvalidPlanError(); }
 
 function paisa(value: string): bigint {
   const match = AMOUNT.exec(value);

@@ -4,7 +4,8 @@ import type { CommercialDiscountRule, CommercialFeeRule, CommercialPreviewLine, 
 export class InvalidCommercialRule extends Error {
   constructor() { super('invalid_commercial_rule'); this.name = 'InvalidCommercialRule'; }
 }
-const fail = (): never => { throw new InvalidCommercialRule(); };
+// A function declaration (not an arrow const): TypeScript narrows after a call only to a declared `never` function.
+function fail(): never { throw new InvalidCommercialRule(); }
 const AMOUNT = /^(0|[1-9]\d{0,11})(?:\.(\d{1,2}))?$/;
 const CODE = /^[A-Z][A-Z0-9_]{1,23}$/;
 const MAX_P = 10_000_000_000_000n;
