@@ -146,7 +146,7 @@ describe('E.3 test-only pricing principals are not demo identities', () => {
   it('the package index does not export them; only the `@repo/fixtures/testing` entry does', () => {
     const exported = Object.entries(fixturesIndex);
     expect(exported.filter(([name]) => /E3QA/.test(name))).toEqual([]);
-    expect(exported.filter(([, value]) => E3QA_TEST_PRINCIPALS.includes(value as Persona))).toEqual([]);
+    expect(exported.filter(([, value]) => (E3QA_TEST_PRINCIPALS as readonly unknown[]).includes(value))).toEqual([]);
   });
 
   it('the backoffice compiles them in only behind the build-time switch, which only the test build turns on', async () => {

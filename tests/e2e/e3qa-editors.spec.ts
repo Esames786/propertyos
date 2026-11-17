@@ -44,7 +44,7 @@ for (const e of EDITORS) {
       await fillNew(page, e, `QA ${e.id} lost`);
       await loseNextPost(page, `^${e.api}$`);
       await page.getByTestId(e.save).click();
-      await expect(page.getByTestId('state-error').first()).toBeVisible();
+      await expect(page.getByTestId('state-offline').first()).toBeVisible();
       await expect(e.saved(page)).toHaveCount(0);
       await page.getByTestId(e.save).click();
       await expect(e.saved(page)).toBeVisible();
@@ -65,7 +65,7 @@ for (const e of EDITORS) {
       await e.title(page).fill(`QA ${e.id} revise lost v2`);
       await loseNextPost(page, `^${e.api}/[\\w-]+/versions$`);
       await page.getByTestId(e.save).click();
-      await expect(page.getByTestId('state-error').first()).toBeVisible();
+      await expect(page.getByTestId('state-offline').first()).toBeVisible();
       await page.getByTestId(e.save).click();
       await expect(e.saved(page)).toBeVisible();
       const posts = (await sentRequests(page)).filter((r) => r.method === 'POST');
@@ -138,7 +138,7 @@ test.describe('INV-007 with the test-only pricing principal', () => {
     await propose(page, '17500000.25', 'Illustrative proposal for QA review only');
     await loseNextPost(page, '^/units/[\\w-]+/price-change-drafts$');
     await page.getByTestId('price-change-save').click();
-    await expect(page.getByTestId('state-error').first()).toBeVisible();
+    await expect(page.getByTestId('state-offline').first()).toBeVisible();
     await expect(drawerSaved(page)).toHaveCount(0);
     await page.getByTestId('price-change-save').click();
     await expect(drawerSaved(page)).toBeVisible();

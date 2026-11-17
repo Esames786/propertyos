@@ -115,18 +115,22 @@ export async function call<T = unknown>(page: Page, request: { method: 'GET' | '
  * Fault injection for the in-page mock server (test-only; through the prototype inspection hook):
  * - `lose`: the next POST whose path matches reaches the server and is applied, but the caller gets a
  *   network error instead of the answer (a lost response);
- * - `failGets`: GETs whose path matches fail with 503 until `heal` (a read failing after a write succeeded).
- * Every request the page sends is recorded with its idempotency keys (header and body).
+ * - `failGets`: GETs whose path matches fail (503 by default, or the status given) until healed with `null`
+ *   (a read failing after a write succeeded).
+ * The injected failures are real `ApiError`s (the class is taken from a genuine 404 of the in-page server),
+ * so the screens treat them exactly as they would a real refusal. Every request the page sends is recorded
+ * with its idempotency keys (header and body).
  */
 export async function installFaults(page: Page) {
-  await page.evaluate(() => {
-    const transport = window.__prototype!.transport as unknown as {
-      request: (req: { method: string; path: string; idempotencyKey?: string; body?: unknown }) => Promise<unknown>;
-      __faults?: unknown;
-    };
+  await page.evaluate(async () => {
+    type Req = { method: string; path: string; idempotencyKey?: string; body?: unknown };
+    const transport = window.__prototype!.transport as unknown as { request: (req: Req) => Promise<unknown>; __faults?: unknown };
     if (transport.__faults) return;
     const original = transport.request.bind(transport);
-    const state = { lose: null as string | null, failGets: null as string | null, sent: [] as Array<{ method: string; path: string; header?: string; body?: string; outcome: string }> };
+    let ApiErrorClass: new (problem: Record<string, unknown>) => Error = Error as never;
+    try { await original({ method: 'GET', path: '/__e3qa_no_such_endpoint__' }); } catch (e) { ApiErrorClass = (e as object).constructor as typeof ApiErrorClass; }
+    const fail = (status: number, code: string, messageKey: string) => new ApiErrorClass({ status, code, messageKey, correlationId: 'e3qa-injected', changed: false });
+    const state = { lose: null as string | null, failGets: null as string | null, failStatus: 503, sent: [] as Array<{ method: string; path: string; header?: string; body?: string; outcome: string }> };
     transport.__faults = state;
     transport.request = async (req) => {
       const bodyKey = req.body && typeof req.body === 'object' ? (req.body as Record<string, unknown>).idempotencyKey : undefined;
@@ -134,13 +138,13 @@ export async function installFaults(page: Page) {
       state.sent.push(row);
       if (req.method === 'GET' && state.failGets && new RegExp(state.failGets).test(req.path)) {
         row.outcome = 'failed-get';
-        throw Object.assign(new Error('service_unavailable'), { problem: { status: 503, code: 'service_unavailable', messageKey: 'errors:network.unavailable', changed: false } });
+        throw state.failStatus === 404 ? fail(404, 'not_found', 'errors:api.notFound') : fail(state.failStatus, 'service_unavailable', 'errors:network.unavailable');
       }
       const result = await original(req);
       if (req.method === 'POST' && state.lose && new RegExp(state.lose).test(req.path)) {
         state.lose = null;
         row.outcome = 'applied-but-lost';
-        throw Object.assign(new Error('offline'), { problem: { status: 0, code: 'offline', messageKey: 'errors:network.offline', changed: false } });
+        throw fail(0, 'offline', 'errors:network.offline');
       }
       row.outcome = 'ok';
       return result;
@@ -151,8 +155,12 @@ export async function installFaults(page: Page) {
 export async function loseNextPost(page: Page, pathPattern: string) {
   await page.evaluate((p) => { (window.__prototype!.transport as unknown as { __faults: { lose: string | null } }).__faults.lose = p; }, pathPattern);
 }
-export async function failGets(page: Page, pathPattern: string | null) {
-  await page.evaluate((p) => { (window.__prototype!.transport as unknown as { __faults: { failGets: string | null } }).__faults.failGets = p; }, pathPattern);
+export async function failGets(page: Page, pathPattern: string | null, status = 503) {
+  await page.evaluate(({ p, status }) => {
+    const faults = (window.__prototype!.transport as unknown as { __faults: { failGets: string | null; failStatus: number } }).__faults;
+    faults.failGets = p;
+    faults.failStatus = status;
+  }, { p: pathPattern, status });
 }
 export async function sentRequests(page: Page) {
   return page.evaluate(() => (window.__prototype!.transport as unknown as { __faults: { sent: Array<{ method: string; path: string; header?: string; body?: string; outcome: string }> } }).__faults.sent);
