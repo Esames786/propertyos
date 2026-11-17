@@ -1,7 +1,8 @@
 import { ApiError, type UnitPriceChangeDraft, type UnitPriceChangeDraftList, type UnitPriceHistory, type UnitPricePickerResponse } from '@repo/contracts';
+import { useSavedFocus } from './saved-focus';
 import { Badge, Button, Drawer, EmptyState, ErrorState, Link, PageHeader, SkeletonBlock, useApiMutation, useApiQuery, useCreateKey, useQueryParam, useT } from '@repo/ui';
 import { FileClock, Pencil, Search } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { canHydrateDraft, expectedDraftVersion, pinDraftVersion, type CommittedDraftFloor } from './revision-sync';
 import { useCrmFormat } from '../../crm/format';
 
@@ -37,6 +38,23 @@ export default function EditPriceDrawerPage() {
     draftId ? { method: 'GET', path: `/price-change-drafts/${encodeURIComponent(draftId)}` } : null,
   );
   const saveMutation = useApiMutation<UnitPriceChangeDraft>();
+  const savedFocus = useSavedFocus();
+  // The shell re-renders this page while it checks a `?record=` unit, so the card that opened the drawer is a
+  // new element by the time the drawer closes and the dialog cannot hand focus back to it: this page does.
+  const returnFocusTo = useRef<string | null>(null);
+  const closeDrawer = () => {
+    returnFocusTo.current = unitId;
+    openUnit(null);
+  };
+  useEffect(() => {
+    const id = returnFocusTo.current;
+    if (unitId || !id) return;
+    returnFocusTo.current = null;
+    const card = [...document.querySelectorAll<HTMLElement>('[data-testid="price-change-unit"]')].find((el) => el.dataset.unitId === id);
+    // After the dialog has finished closing (its exit and its own focus restore come first).
+    const timer = window.setTimeout(() => card?.focus(), 0);
+    return () => window.clearTimeout(timer);
+  }, [unitId]);
   const openUnit = (id: string | null) => {
     setRecord(id, { replace: false });
     setDraftId(null); setCommittedFloor(null); setPrice(''); setReason(''); setInvalid(false); setSaved(false); setDirty(false);
@@ -120,7 +138,7 @@ export default function EditPriceDrawerPage() {
                 {units.data.items.map((unit) => <li key={unit.id} className="min-w-0">
                   <button type="button" onClick={() => openUnit(unit.id)}
                     className="flex min-h-11 w-full min-w-0 flex-col gap-1 rounded-control border border-border p-3 text-start text-text hover:bg-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-                    data-testid="price-change-unit">
+                    data-testid="price-change-unit" data-unit-id={unit.id}>
                     <strong><bdi dir="ltr">{unit.ref}</bdi></strong>
                     <span className="break-words text-sm text-muted">{unit.projectName}</span>
                     <span className="text-sm"><bdi dir="ltr">{money.moneyExact(unit.currentListedPrice)}</bdi></span>
@@ -128,18 +146,18 @@ export default function EditPriceDrawerPage() {
                 </li>)}
               </ul>}
       </section>
-      <Drawer isOpen={isOpen} onOpenChange={(open) => { if (!open && !saveMutation.isPending) openUnit(null); }}
+      <Drawer isOpen={isOpen} onOpenChange={(open) => { if (!open && !saveMutation.isPending) closeDrawer(); }}
         title={t('pricing:priceChangeTitle')} subtitle={history.data?.unit.ref}
         testId="edit-price-change-drawer" size="lg"
         footer={history.data && !drafts.isError && !!drafts.data ? <>
-          <Button variant="secondary" isDisabled={saveMutation.isPending} onPress={() => openUnit(null)}>{t('pricing:priceChangeClose')}</Button>
+          <Button variant="secondary" isDisabled={saveMutation.isPending} onPress={closeDrawer}>{t('pricing:priceChangeClose')}</Button>
           <Button variant="primary" isDisabled={!!draftId && (selectedDraft.isError || selectedDraft.isPending || selectedDraft.data?.id !== draftId)} isPending={saveMutation.isPending} onPress={() => void save()} data-testid="price-change-save">
             {draftId ? t('pricing:priceChangeRevise') : t('pricing:priceChangeSave')}
           </Button>
         </> : undefined}>
         <div className="space-y-5">
           {/* Above every read state: a refresh failing after the POST succeeded must not hide that it was saved. */}
-          {saved && <p role="status" className="text-sm text-success" data-testid="price-change-saved">{t('pricing:priceChangeSaved')}</p>}
+          {saved && <p role="status" ref={savedFocus} tabIndex={-1} className="text-sm text-success focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" data-testid="price-change-saved">{t('pricing:priceChangeSaved')}</p>}
           {/* "Not in your scope" only when the server says not found (404); an outage keeps the generic title. */}
           {history.isError ? <ErrorState error={history.error} {...(history.error instanceof ApiError && history.error.problem.status === 404 ? { title: t('pricing:unknown') } : {})} onRetry={() => void history.refetch()} />
             : !history.data ? <SkeletonBlock lines={4} />

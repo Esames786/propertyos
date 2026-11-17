@@ -1,4 +1,5 @@
 import { PricingRelatedLinks } from './PricingRelatedLinks';
+import { useSavedFocus } from './saved-focus';
 import { ApiError, type PaymentPlanTemplate, type PaymentPlanTemplateList, type PlanAllocationInput, type PlanAllocationKind } from '@repo/contracts';
 import { Badge, Button, EmptyState, ErrorState, PageHeader, SkeletonBlock, useApiMutation, useApiQuery, useCreateKey, useT } from '@repo/ui';
 import { FileClock, Plus, Save, Trash2 } from 'lucide-react';
@@ -57,6 +58,7 @@ export default function PaymentPlanTemplatesPage() {
   const [createKey, renewCreate] = useCreateKey('plan-template');
   const [revisionKey, renewRevision] = useCreateKey('plan-revision');
   const mutation = useApiMutation<PaymentPlanTemplate>();
+  const savedFocus = useSavedFocus();
   const templates = useApiQuery<PaymentPlanTemplateList>({ method: 'GET', path: '/pricing/plan-templates', query: { q: query } });
   const projectsQuery = useApiQuery<{ items: Array<{ id: string; name: string }>; total: number }>({ method: 'GET', path: '/pricing/template-projects' });
   const selected = useApiQuery<PaymentPlanTemplate>(
@@ -216,7 +218,7 @@ export default function PaymentPlanTemplatesPage() {
               {mutation.isError && <ErrorState error={mutation.error} title={t('pricing:templateError')} />}
             </fieldset>}
           {/* Outside the read states: a refresh failing after the POST succeeded must not hide that it was saved. */}
-          {saved && <p role="status" className="text-sm text-success" data-testid="template-saved">{t('pricing:templateSaved')}</p>}
+          {saved && <p role="status" ref={savedFocus} tabIndex={-1} className="text-sm text-success focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" data-testid="template-saved">{t('pricing:templateSaved')}</p>}
           {selectedId && selected.data && <section className="space-y-3" aria-labelledby="template-versions-title">
             <h3 id="template-versions-title" className="flex items-center gap-2 font-semibold text-text"><FileClock aria-hidden className="size-4" />{t('pricing:templateHistory')}</h3>
             <Badge tone="warning">{t('pricing:templateCurrent')}</Badge>

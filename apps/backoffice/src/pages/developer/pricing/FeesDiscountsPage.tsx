@@ -1,4 +1,5 @@
 import { ApiError, type CommercialDiscountRule, type CommercialFeeRule, type CommercialRulesDraft, type CommercialRulesDraftList, type CommercialRulesPreview, type UnitPricePickerResponse } from '@repo/contracts';
+import { useSavedFocus } from './saved-focus';
 import { Badge, Button, EmptyState, ErrorState, PageHeader, SkeletonBlock, useApiMutation, useApiQuery, useCreateKey, useT } from '@repo/ui';
 import { Calculator, Plus, Save, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -71,6 +72,7 @@ export default function FeesDiscountsPage() {
   const detail = useApiQuery<CommercialRulesDraft>(selectedId ? { method: 'GET', path: `/pricing/commercial-rules/${encodeURIComponent(selectedId)}` } : null);
   const units = useApiQuery<UnitPricePickerResponse>({ method: 'GET', path: '/pricing/units', query: { project: projectId } });
   const mutation = useApiMutation<CommercialRulesDraft>();
+  const savedFocus = useSavedFocus();
   const preview = useApiMutation<CommercialRulesPreview>();
 
   useEffect(() => {
@@ -220,7 +222,7 @@ export default function FeesDiscountsPage() {
                 <Button variant="primary" icon={Save} isPending={mutation.isPending} onPress={() => void save()} data-testid="commercial-save">
                   {selectedId ? t('pricing:commercialRevise') : t('pricing:commercialSave')}
                 </Button>
-                {saved && <span role="status" className="text-sm text-success">{t('pricing:commercialSaved')}</span>}
+                {saved && <span role="status" ref={savedFocus} tabIndex={-1} className="text-sm text-success focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">{t('pricing:commercialSaved')}</span>}
               </div>
               {invalid && <p role="alert" className="text-sm text-error">{t('pricing:commercialValidation')}</p>}
               {mutation.isError && <ErrorState error={mutation.error} title={t('pricing:commercialError')} />}

@@ -1,4 +1,5 @@
 import { ApiError, type PricingApprovalDraft, type PricingApprovalDraftList, type PricingApprovalRule, type PricingApprovalSubject } from '@repo/contracts';
+import { useSavedFocus } from './saved-focus';
 import { Badge, Button, EmptyState, ErrorState, PageHeader, SkeletonBlock, useApiMutation, useApiQuery, useCreateKey, useT } from '@repo/ui';
 import { FileClock, Plus, Save, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -51,6 +52,7 @@ export default function ApprovalRulesPage() {
   const detail = useApiQuery<PricingApprovalDraft>(selectedId
     ? { method: 'GET', path: `/pricing/approval-rules/${encodeURIComponent(selectedId)}` } : null);
   const mutation = useApiMutation<PricingApprovalDraft>();
+  const savedFocus = useSavedFocus();
 
   useEffect(() => {
     if (!canHydrateDraft(selectedId, detail.data, dirty, committedFloor)) return;
@@ -215,7 +217,7 @@ export default function ApprovalRulesPage() {
                 {mutation.isError && <ErrorState error={mutation.error} title={t('pricing:approvalError')} />}
               </fieldset>}
             {/* Outside the read states: a refresh failing after the POST succeeded must not hide that it was saved. */}
-            {saved && <p role="status" className="text-sm text-success">{t('pricing:approvalSaved')}</p>}
+            {saved && <p role="status" ref={savedFocus} tabIndex={-1} className="text-sm text-success focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">{t('pricing:approvalSaved')}</p>}
             <p className="text-sm text-muted">{t('pricing:approvalNoSelf')}</p>
             <p className="text-sm text-muted">{t('pricing:approvalDisclaimer')}</p>
           </section>

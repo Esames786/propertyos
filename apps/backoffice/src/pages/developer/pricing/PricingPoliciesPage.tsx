@@ -1,4 +1,5 @@
 import { PricingRelatedLinks } from './PricingRelatedLinks';
+import { useSavedFocus } from './saved-focus';
 import { ApiError, type PricingPolicyDraft, type PricingPolicyDraftList, type PricingPolicyRule } from '@repo/contracts';
 import { Badge, Button, EmptyState, ErrorState, PageHeader, SkeletonBlock, useApiMutation, useApiQuery, useCreateKey, useT } from '@repo/ui';
 import { FileClock, Plus, Save, Trash2 } from 'lucide-react';
@@ -54,6 +55,7 @@ export default function PricingPoliciesPage() {
     selectedId ? { method: 'GET', path: `/pricing/policies/${encodeURIComponent(selectedId)}` } : null,
   );
   const mutation = useApiMutation<PricingPolicyDraft>();
+  const savedFocus = useSavedFocus();
 
   useEffect(() => {
     if (!canHydrateDraft(selectedId, detail.data, dirty, committedFloor)) return;
@@ -216,7 +218,7 @@ export default function PricingPoliciesPage() {
               {mutation.isError && <ErrorState error={mutation.error} title={t('pricing:policyError')} />}
             </fieldset>}
           {/* Outside the read states: a refresh failing after the POST succeeded must not hide that it was saved. */}
-          {success && <p role="status" className="text-sm text-success">{t('pricing:policySaved')}</p>}
+          {success && <p role="status" ref={savedFocus} tabIndex={-1} className="text-sm text-success focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">{t('pricing:policySaved')}</p>}
           {selectedId && detail.data?.id === selectedId &&
             <section className="space-y-3" aria-labelledby="pricing-versions-heading">
               <h3 id="pricing-versions-heading" className="flex items-center gap-2 font-semibold text-text">
