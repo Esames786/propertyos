@@ -609,10 +609,11 @@ test('video: phone at 200 % in Urdu: header, scrolling, keyboard focus and typin
   await pause(1000);
   await page.getByTestId('proof-file-pick').focus();
   await pause(1500);
-  await page
-    .getByTestId('portal-bottom-nav')
-    .locator('a[href="/customer/portal/statements"]')
-    .click();
+  // Gate D.2 took the statement out of the phone's bottom bar (Home · Bills · Pay · Requests · Notices); it is one
+  // tap away from Home. The same journey through the current navigation: the bar's Home, then Statement.
+  await page.getByTestId('portal-bottom-nav').locator(`a[href="${HOME}"]`).click();
+  await page.getByTestId('dues-home').waitFor();
+  await page.getByTestId('dues-link-statement').click();
   await page.getByTestId('dues-statement').waitFor();
   await pause(2000);
   await keepVideo(page, 'phone-200-ur-header-scroll-focus-typing');
@@ -653,10 +654,11 @@ test('video: resident pays A-101 on a phone, office verifies, receipt comes back
   await page.getByTestId('dues-receipt').first().click();
   await page.getByTestId('dues-receipt-page').waitFor();
   await pause(2000);
-  await page
-    .getByTestId('portal-bottom-nav')
-    .locator('a[href="/customer/portal/statements"]')
-    .click();
+  // Gate D.2 took the statement out of the phone's bottom bar (Home · Bills · Pay · Requests · Notices); it is one
+  // tap away from Home. The same journey through the current navigation: the bar's Home, then Statement.
+  await page.getByTestId('portal-bottom-nav').locator(`a[href="${HOME}"]`).click();
+  await page.getByTestId('dues-home').waitFor();
+  await page.getByTestId('dues-link-statement').click();
   await page.getByTestId('dues-statement').waitFor();
   await pause(2500);
   await keepVideo(page, 'resident-pay-journey-phone-en');
