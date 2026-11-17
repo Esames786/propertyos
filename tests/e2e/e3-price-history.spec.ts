@@ -1,12 +1,13 @@
 import { BO, expect, seed, test } from '../support/fixtures';
 import { scanA11y } from '../support/axe';
 
-const URL = `${BO}/backoffice/inv/unit-price-history`;
+// Not named `URL`: that shadowed the global constructor used below (`new URL(page.url())`).
+const PAGE = `${BO}/backoffice/inv/unit-price-history`;
 
 for (const locale of ['en-PK', 'ur-PK'] as const) {
   test(`INV-006: accessible fictional unit price baseline, search and deep link (${locale})`, async ({ page, consoleErrors }, testInfo) => {
     await seed(page, { persona: 'sales', locale });
-    await page.goto(URL);
+    await page.goto(PAGE);
     await expect(page.getByTestId('unit-price-history-page')).toBeVisible();
     await expect(page.getByTestId('pricing-demo-warning')).toBeVisible();
     const options = page.getByTestId('price-unit-option');
@@ -31,7 +32,7 @@ for (const locale of ['en-PK', 'ur-PK'] as const) {
 
 test('INV-006: a project-limited sales reader cannot open Gardens price by direct URL or API', async ({ page, consoleErrors }) => {
   await seed(page, { persona: 'sales' });
-  await page.goto(`${URL}?record=unt_lg_p1_001`);
+  await page.goto(`${PAGE}?record=unt_lg_p1_001`);
   await expect(page.getByTestId('state-error')).toBeVisible();
   const results = await page.evaluate(async () => {
     const call = async (id: string) => {
@@ -53,7 +54,7 @@ test('INV-006: a project-limited sales reader cannot open Gardens price by direc
 
 test('INV-006 → INV-007 contextual jump opens same unit, but ungranted user cannot save a price change', async ({ page, consoleErrors }) => {
   await seed(page, { persona: 'sales', locale: 'en-PK' });
-  await page.goto(`${URL}`);
+  await page.goto(`${PAGE}`);
   await expect(page.getByTestId('price-unit-option').first()).toBeVisible();
   await page.getByTestId('price-unit-option').first().click();
   const unitId = new URL(page.url()).searchParams.get('record');
