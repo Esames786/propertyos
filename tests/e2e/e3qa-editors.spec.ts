@@ -85,15 +85,20 @@ for (const e of EDITORS) {
       await failGets(page, '^/pricing/');
       await page.getByTestId(e.save).click();
       await expect(e.saved(page)).toBeVisible();
-      // While the reads fail, the confirmation holds and no control sends another write.
+      // While the reads fail, the confirmation holds and pressing Save again (where the form still offers it:
+      // COM-004 keeps its form, disabled until the saved draft loads) sends nothing.
       const save = page.getByTestId(e.save);
-      if ((await save.count()) > 0) await expect(save).toBeDisabled();
+      if ((await save.count()) > 0 && (await save.isEnabled())) await save.click();
+      await expect(e.saved(page)).toBeVisible();
       await failGets(page, null);
       await retryEveryRead(page);
       await expect(page.getByTestId(e.history).locator('li')).toHaveCount(1);
       await expect(e.saved(page)).toBeVisible();
-      await expect(page.getByTestId(e.save)).toBeDisabled();
+      // After recovery the form shows the saved draft; Save stays focusable but a repeat press is not a new write.
+      await page.getByTestId(e.save).click();
+      await expect(e.saved(page)).toBeVisible();
       expect(await rows(page, e)).toHaveLength(1);
+      expect((await rows(page, e))[0]?.currentVersion).toBe(1);
       const posts = (await sentRequests(page)).filter((r) => r.method === 'POST');
       expect(posts).toHaveLength(1);
       expect(consoleErrors).toEqual([]);
@@ -157,15 +162,19 @@ test.describe('INV-007 with the test-only pricing principal', () => {
     await failGets(page, '^/(pricing/units|units/|price-change-drafts/)');
     await page.getByTestId('price-change-save').click();
     await expect(drawerSaved(page)).toBeVisible();
+    // While the reads fail, the confirmation holds and pressing Save again (if offered) sends nothing.
     const save = page.getByTestId('price-change-save');
-    if ((await save.count()) > 0) await expect(save).toBeDisabled();
+    if ((await save.count()) > 0 && (await save.isEnabled())) await save.click();
+    await expect(drawerSaved(page)).toBeVisible();
     await failGets(page, null);
     // The drawer is modal: its own reads are retried (the unit list behind it recovers on its own later).
     await retryEveryRead(page, page.getByTestId('edit-price-change-drawer'));
     await expect(drawerVersions(page)).toHaveCount(1);
     await expect(drawerSaved(page)).toBeVisible();
-    await expect(page.getByTestId('price-change-save')).toBeDisabled();
+    await page.getByTestId('price-change-save').click();
+    await expect(drawerSaved(page)).toBeVisible();
     expect(await priceDrafts(page)).toHaveLength(1);
+    expect((await priceDrafts(page))[0]?.currentVersion).toBe(1);
     expect((await sentRequests(page)).filter((r) => r.method === 'POST')).toHaveLength(1);
     expect(consoleErrors).toEqual([]);
   });

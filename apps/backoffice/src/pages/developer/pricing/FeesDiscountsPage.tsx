@@ -98,7 +98,9 @@ export default function FeesDiscountsPage() {
     renewCreate(); renewRevise(); setPreviewResult(null); setInvalid(false); setSaved(false); setDirty(false);
   };
   const save = async () => {
-    if (mutation.isPending || (selectedId && expectedDraftVersion(selectedId, committedFloor) === undefined)) return;
+    // Nothing changed since the acknowledged save: a repeat press sends nothing (it would only duplicate the
+    // draft under a fresh key). Save stays enabled, so keyboard focus is never dropped from it.
+    if (mutation.isPending || saved || (selectedId && expectedDraftVersion(selectedId, committedFloor) === undefined)) return;
     const rules = canonicalDraft(fees, discounts), cleanTitle = title.trim().replace(/\s+/g, ' ');
     if (!rules || !projectId || !projects.data?.items.some((p) => p.id === projectId) ||
         cleanTitle.length < 3 || cleanTitle.length > 100) { setInvalid(true); return; }
@@ -215,8 +217,7 @@ export default function FeesDiscountsPage() {
                 setDiscounts((old) => [...old, discountDefault(nextId)]); setNextId((n) => n + 1); changed();
               }}>{t('pricing:commercialAddDiscount')}</Button>
               <div className="flex flex-wrap items-center gap-3">
-                {/* Nothing changed since the acknowledged save: sending it again would only duplicate it under a fresh key. */}
-                <Button variant="primary" icon={Save} isPending={mutation.isPending} isDisabled={saved} onPress={() => void save()} data-testid="commercial-save">
+                <Button variant="primary" icon={Save} isPending={mutation.isPending} onPress={() => void save()} data-testid="commercial-save">
                   {selectedId ? t('pricing:commercialRevise') : t('pricing:commercialSave')}
                 </Button>
                 {saved && <span role="status" className="text-sm text-success">{t('pricing:commercialSaved')}</span>}

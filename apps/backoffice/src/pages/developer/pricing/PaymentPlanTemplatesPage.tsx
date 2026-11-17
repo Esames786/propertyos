@@ -84,7 +84,9 @@ export default function PaymentPlanTemplatesPage() {
     change();
   };
   const submit = async () => {
-    if (mutation.isPending || (selectedId && expectedDraftVersion(selectedId, committedFloor) === undefined)) return;
+    // Nothing changed since the acknowledged save: a repeat press sends nothing (it would only duplicate the
+    // draft under a fresh key). Save stays enabled, so keyboard focus is never dropped from it.
+    if (mutation.isPending || saved || (selectedId && expectedDraftVersion(selectedId, committedFloor) === undefined)) return;
     const allocations = allocationsOf(rows);
     const cleanTitle = title.trim().replace(/\s+/g, ' ');
     if (!projectId || !projects.some((p) => p.id === projectId) || cleanTitle.length < 3 || cleanTitle.length > 100 || !allocations) {
@@ -206,8 +208,7 @@ export default function PaymentPlanTemplatesPage() {
                   onPress={() => { setRows((old) => [...old, { id: nextRowId, kind: 'balloon', percent: '0', count: '1', milestoneKey: '' }]); setNextRowId((n) => n + 1); change(); }}>
                   {t('pricing:templateAdd')}
                 </Button>
-                {/* Nothing changed since the acknowledged save: sending it again would only duplicate it under a fresh key. */}
-                <Button variant="primary" icon={Save} isPending={mutation.isPending} isDisabled={saved} onPress={() => void submit()} data-testid="template-save">
+                <Button variant="primary" icon={Save} isPending={mutation.isPending} onPress={() => void submit()} data-testid="template-save">
                   {selectedId ? t('pricing:templateRevise') : t('pricing:templateSave')}
                 </Button>
               </div>

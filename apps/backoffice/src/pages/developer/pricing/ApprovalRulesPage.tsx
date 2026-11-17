@@ -77,7 +77,9 @@ export default function ApprovalRulesPage() {
     changed();
   };
   const save = async () => {
-    if (mutation.isPending || (selectedId && expectedDraftVersion(selectedId, committedFloor) === undefined)) return;
+    // Nothing changed since the acknowledged save: a repeat press sends nothing (it would only duplicate the
+    // draft under a fresh key). Save stays enabled, so keyboard focus is never dropped from it.
+    if (mutation.isPending || saved || (selectedId && expectedDraftVersion(selectedId, committedFloor) === undefined)) return;
     const rules = parse(rows), trimmed = title.trim().replace(/\s+/g, ' ');
     if (!rules || trimmed.length < 3 || trimmed.length > 100 ||
       !projects.data?.items.some((p) => p.id === projectId)) { setInvalid(true); return; }
@@ -205,8 +207,7 @@ export default function ApprovalRulesPage() {
                       const next = SUBJECTS.find((subject) => !rows.some((r) => r.subject === subject));
                       if (next) { setRows((old) => [...old, { id: sequence, subject: next, amount: '0.00', reviewers: '2' }]); setSequence((s) => s + 1); changed(); }
                     }}>{t('pricing:approvalAdd')}</Button>
-                  {/* Nothing changed since the acknowledged save: sending it again would only duplicate it under a fresh key. */}
-                  <Button variant="primary" icon={Save} isPending={mutation.isPending} isDisabled={saved} onPress={() => void save()} data-testid="approval-draft-save">
+                  <Button variant="primary" icon={Save} isPending={mutation.isPending} onPress={() => void save()} data-testid="approval-draft-save">
                     {selectedId ? t('pricing:approvalRevise') : t('pricing:approvalSave')}
                   </Button>
                 </div>

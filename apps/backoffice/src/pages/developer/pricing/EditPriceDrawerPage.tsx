@@ -61,7 +61,9 @@ export default function EditPriceDrawerPage() {
   }, [selectedDraft.data, draftId, dirty, committedFloor]);
 
   const save = async () => {
-    if (saveMutation.isPending || (draftId && expectedDraftVersion(draftId, committedFloor) === undefined)) return;
+    // Nothing changed since the acknowledged save: a repeat press sends nothing (it would only duplicate the
+    // draft under a fresh key). Save stays enabled, so keyboard focus is never dropped from it.
+    if (saveMutation.isPending || saved || (draftId && expectedDraftVersion(draftId, committedFloor) === undefined)) return;
     if (!unitId || !history.data || (draftId && selectedDraft.data?.id !== draftId)) return;
     const normalizedReason = reason.trim().replace(/\s+/g, ' ');
     const proposed = price.trim();
@@ -131,8 +133,7 @@ export default function EditPriceDrawerPage() {
         testId="edit-price-change-drawer" size="lg"
         footer={history.data && !drafts.isError && !!drafts.data ? <>
           <Button variant="secondary" isDisabled={saveMutation.isPending} onPress={() => openUnit(null)}>{t('pricing:priceChangeClose')}</Button>
-          {/* `saved`: nothing changed since the acknowledged save; sending it again would only duplicate it under a fresh key. */}
-          <Button variant="primary" isDisabled={saved || (!!draftId && (selectedDraft.isError || selectedDraft.isPending || selectedDraft.data?.id !== draftId))} isPending={saveMutation.isPending} onPress={() => void save()} data-testid="price-change-save">
+          <Button variant="primary" isDisabled={!!draftId && (selectedDraft.isError || selectedDraft.isPending || selectedDraft.data?.id !== draftId)} isPending={saveMutation.isPending} onPress={() => void save()} data-testid="price-change-save">
             {draftId ? t('pricing:priceChangeRevise') : t('pricing:priceChangeSave')}
           </Button>
         </> : undefined}>
