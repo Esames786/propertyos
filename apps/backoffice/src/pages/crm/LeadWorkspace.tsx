@@ -277,7 +277,7 @@ function OverviewTab({ data, f, onOpenUnit }: { data: LeadDetail; f: CrmFormat; 
         <KeyValueList
           items={[
             { label: t('crm:lead.phone'), value: <bdi dir="ltr" className="ltr-ref">{f.phone(data.party.phone)}</bdi> },
-            { label: t('crm:lead.email'), value: data.party.email ? <bdi dir="ltr" className="ltr-ref">{data.party.email}</bdi> : t('crm:lead.notGiven') },
+            { label: t('crm:lead.email'), value: data.party.email ? <bdi dir="ltr" className="ltr-ref [overflow-wrap:anywhere]">{data.party.email}</bdi> : t('crm:lead.notGiven') },
             { label: t('crm:lead.cnic'), value: data.party.cnic ? <bdi dir="ltr" className="ltr-ref">{data.party.cnic}</bdi> : t('crm:lead.notGiven') },
             { label: t('crm:lead.city'), value: data.party.city },
           ]}

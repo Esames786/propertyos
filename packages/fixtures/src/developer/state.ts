@@ -60,14 +60,16 @@ export const DEVELOPER_NUMBERING: Readonly<Record<DeveloperDocumentKind, string>
   receipt: '{code}-RCT-{yyyy}-{seq:5}',
   credit_note: '{code}-CN-{seq:4}',
   refund: '{code}-RFD-{yyyy}-{seq:4}',
-  journal: '{code}-JV-{yyyymm}-{seq:4}',
+  // Wave 1 integration: the year form E.7's screens were checked with at 320 px / 200 % (a month made the
+  // reference too long there, F-INT-W1-18).
+  journal: '{code}-JV-{yyyy}-{seq:4}',
   supplier_bill: '{code}-SB-{yyyy}-{seq:5}',
   payment_voucher: '{code}-PV-{yyyy}-{seq:4}',
   quotation: '{code}-QT-{yyyy}-{seq:5}',
   reservation: '{code}-RSV-{yyyy}-{seq:4}',
   booking: '{code}-BKG-{yyyy}-{seq:4}',
   purchase_order: '{code}-PO-{yyyy}-{seq:4}',
-  bank_import: '{code}-BIM-{yyyymm}-{seq:3}',
+  bank_import: '{code}-BIM-{yyyy}-{seq:4}',
 };
 
 /** Wave 1 subjects with an approving permission today (the other E-27 subjects arrive with their slices). */
@@ -154,7 +156,7 @@ export function developerStateForWrite(ctx: Pick<HandlerContext, 'access' | 'dat
   return ctx.demo.section<DeveloperState>(DEVELOPER_SECTION, () => seedDeveloperState(ctx.data));
 }
 
-/** A developer document reference for an entity (e.g. "LSP-JV-202610-0001"). */
+/** A developer document reference for an entity (e.g. "LSP-JV-2026-0001"). */
 export function formatDeveloperRef(state: DeveloperState, legalEntityId: string, kind: DeveloperDocumentKind, input: { seq: number; on: string }): string {
   const entity = state.legalEntities.find((e) => e.id === legalEntityId);
   const series = state.numbering.find((n) => n.legalEntityId === legalEntityId && n.kind === kind);

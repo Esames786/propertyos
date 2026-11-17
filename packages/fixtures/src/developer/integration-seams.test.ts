@@ -99,7 +99,7 @@ describe('the E.13 registry with E.1, E.2 and E.7 providers', () => {
   it('E.7: journals and accounts resolve only for a whole-entity ledger reader; no bank data in any reference; a project-limited reader finds none', async () => {
     const s = e13Session('lsp_finance_controller');
     const j = await resolve(s, 'jnl_lsp_0001');
-    expect(j).toMatchObject({ type: 'journal', ref: 'LSP-JV-202607-0001', href: '/backoffice/acc/journal-entries?record=jnl_lsp_0001', module: 'accounting' });
+    expect(j).toMatchObject({ type: 'journal', ref: 'LSP-JV-2026-0001', href: '/backoffice/acc/journal-entries?record=jnl_lsp_0001', module: 'accounting' });
     expect(await resolve(s, 'gla_lsp_c1000')).toMatchObject({ type: 'account', ref: '1000', href: '/backoffice/acc/account-workspace?record=gla_lsp_c1000' });
     // Saad holds no bank permission: the cash account's reference carries no bank name, IBAN or last four digits.
     const saad = JSON.stringify(await resolve(s.as('lsp_ledger_clerk'), 'gla_lsp_c1000'));

@@ -39,7 +39,7 @@ describe('Gate E.7 — positive journeys through the API', () => {
     const { api } = await world();
     const tb0 = await api.as('lsp_ledger_clerk').get<TrialBalance>('/ledger/trial-balance', { entity: LK });
     const j = await api.post<JournalView>('/ledger/journals', { ...JOURNAL(), submit: true }, { key: 'k-create' });
-    expect(j).toMatchObject({ state: 'submitted', ref: 'LSP-JV-202610-0009', balanced: true, kind: 'manual' });
+    expect(j).toMatchObject({ state: 'submitted', ref: 'LSP-JV-2026-0009', balanced: true, kind: 'manual' });
     expect(j.actions.approve).toBe(false);
     const a = await api.as('lsp_finance_controller').post<JournalView>(`/ledger/journals/${j.id}/approve`, {}, { key: 'k-approve' });
     expect(a.state).toBe('approved');
@@ -251,22 +251,22 @@ describe('Gate E.7 — closed periods and immutability', () => {
     const { api } = await world();
     const r1 = await refusedUnchanged(api, () => api.as('lsp_ledger_clerk').post('/ledger/journals', JOURNAL('2026-09-15'), { key: 'k-p1' }));
     expect(r1).toMatchObject({ status: 409, code: 'period_closed' });
-    const posted = ref(api, 'LSP-JV-202610-0003');
+    const posted = ref(api, 'LSP-JV-2026-0003');
     const r2 = await refusedUnchanged(api, () => api.post(`/ledger/journals/${posted.id}/reverse`, { date: '2026-09-30', reason: 'Wrong month' }, { key: 'k-p2' }));
     expect(r2.code).toBe('period_closed');
   });
 
   it('a posted journal is never edited or cancelled; corrections are reversals (one per journal)', async () => {
     const { api } = await world();
-    const posted = ref(api, 'LSP-JV-202607-0001');
+    const posted = ref(api, 'LSP-JV-2026-0001');
     const edit = await refusedUnchanged(api, () => api.as('lsp_ledger_clerk').post(`/ledger/journals/${posted.id}/edit`, JOURNAL(), { key: 'k-i1' }));
     expect(edit).toMatchObject({ status: 409, code: 'journal_posted' });
     expect(await refusedUnchanged(api, () => api.post(`/ledger/journals/${posted.id}/cancel`, {}, { key: 'k-i2' }))).toMatchObject({ code: 'journal_posted' });
-    const reversed = ref(api, 'LSP-JV-202610-0004');
+    const reversed = ref(api, 'LSP-JV-2026-0004');
     expect(await refusedUnchanged(api, () => api.post(`/ledger/journals/${reversed.id}/reverse`, { date: '2026-10-25', reason: 'again' }, { key: 'k-i3' }))).toMatchObject({ code: 'already_reversed' });
-    const reversal = ref(api, 'LSP-JV-202610-0005');
+    const reversal = ref(api, 'LSP-JV-2026-0005');
     expect(await refusedUnchanged(api, () => api.post(`/ledger/journals/${reversal.id}/reverse`, { date: '2026-10-25', reason: 'undo' }, { key: 'k-i4' }))).toMatchObject({ code: 'reversal_not_reversible' });
-    const draft = ref(api, 'LSP-JV-202610-0008');
+    const draft = ref(api, 'LSP-JV-2026-0008');
     expect(await refusedUnchanged(api, () => api.post(`/ledger/journals/${draft.id}/reverse`, { date: '2026-10-25', reason: 'not posted' }, { key: 'k-i5' }))).toMatchObject({ code: 'not_posted' });
     // Someone else's draft is not theirs to change.
     expect(await refusedUnchanged(api, () => api.as('lsp_accounts').post(`/ledger/journals/${draft.id}/edit`, JOURNAL(), { key: 'k-i6' }))).toMatchObject({ code: 'not_maker' });
@@ -332,7 +332,7 @@ describe('Gate E.7 — bound idempotency (§4.5)', () => {
 });
 
 describe('Gate E.7 — the bank boundary (Issue #18 rule for developers)', () => {
-  const SECRETS = [COLLECTION_ACCOUNT.iban, COLLECTION_ACCOUNT.iban.slice(-4), OPERATING_ACCOUNT.iban.slice(-4), 'LKC-261002-0001', 'Ayesha Karim', 'Omar Shafiq', 'IBFT credit', 'LSP-BIM-202610-001', 'Demo Bank (fictional)', 'Larkspur Estates Collections (DEMO)', 'lba_lsp_'];
+  const SECRETS = [COLLECTION_ACCOUNT.iban, COLLECTION_ACCOUNT.iban.slice(-4), OPERATING_ACCOUNT.iban.slice(-4), 'LKC-261002-0001', 'Ayesha Karim', 'Omar Shafiq', 'IBFT credit', 'LSP-BIM-2026-0001', 'Demo Bank (fictional)', 'Larkspur Estates Collections (DEMO)', 'lba_lsp_'];
 
   it('a person without the bank permission reads no bank line, account identifier, import or derived total anywhere', async () => {
     const { api } = await world();

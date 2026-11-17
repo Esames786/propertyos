@@ -99,7 +99,7 @@ test.describe('Gate E.7 — journals: create, approve by someone else, post, rev
     await expect(drawer(page)).toHaveAttribute('data-state', 'submitted');
     const id = recordOf(page);
     const ref = await drawer(page).getAttribute('data-ref');
-    expect(ref).toBe('LSP-JV-202610-0009');
+    expect(ref).toBe('LSP-JV-2026-0009');
     // The maker cannot approve it.
     await expect(page.getByTestId('journal-approve')).toHaveCount(0);
     await expect(page.getByTestId('journal-blocked')).toBeVisible();
@@ -133,7 +133,7 @@ test.describe('Gate E.7 — journals: create, approve by someone else, post, rev
     await page.getByTestId('reverse-reason').fill('Entered in error (demo)');
     await page.getByTestId('reverse-submit').click();
     await expect(drawer(page)).toHaveAttribute('data-state', 'submitted');
-    await expect(page.getByTestId('journal-reversal-of')).toContainText(wj('LSP-JV-202610-0009'));
+    await expect(page.getByTestId('journal-reversal-of')).toContainText(wj('LSP-JV-2026-0009'));
     const reversal = recordOf(page);
 
     await office(page, 'lsp_finance_controller', `/backoffice/acc/journal-entries?record=${reversal}`, 'journal-detail');
@@ -413,10 +413,10 @@ test('keyboard only: a journal opens from the list, and the ledger controls draw
   test.setTimeout(120_000);
   await start(page, 'lsp_finance_controller');
   await page.goto(`${BO}/backoffice/acc/journal-entries`);
-  const row = page.locator('[data-testid="journal-row"][data-ref="LSP-JV-202610-0007"] a');
+  const row = page.locator('[data-testid="journal-row"][data-ref="LSP-JV-2026-0007"] a');
   await keyboardFocus(page, row);
   await page.keyboard.press('Enter');
-  await expect(drawer(page)).toHaveAttribute('data-ref', 'LSP-JV-202610-0007');
+  await expect(drawer(page)).toHaveAttribute('data-ref', 'LSP-JV-2026-0007');
   await expect(page.getByTestId('journal-approve')).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(drawer(page)).toHaveCount(0);

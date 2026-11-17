@@ -145,7 +145,7 @@ describe('developer state (deliverable 1)', () => {
     expect(s.collectionAccounts).toEqual([expect.objectContaining({ legalEntityId: 'le_larkspur', maskedNumber: '•••• 7890', verified: true, sample: true })]);
     expect(s.approvalPolicies.every((p) => p.threshold === null && p.illustrative && p.state === 'approved' && p.version === 1)).toBe(true);
     expect(seedDeveloperState(L)).toEqual(s);
-    expect(formatDeveloperRef(s, 'le_larkspur', 'journal', { seq: 1, on: '2026-10-26' })).toBe('LSP-JV-202610-0001');
+    expect(formatDeveloperRef(s, 'le_larkspur', 'journal', { seq: 1, on: '2026-10-26' })).toBe('LSP-JV-2026-0001');
     expect(() => formatDeveloperRef(s, 'le_never', 'journal', { seq: 1, on: '2026-10-26' })).toThrow(RangeError);
     expect(seedDeveloperState(datasetFor('tnt_crescent')!).legalEntities.map((e) => [e.id, e.code])).toEqual([['le_crescent', 'CBD']]);
   });
