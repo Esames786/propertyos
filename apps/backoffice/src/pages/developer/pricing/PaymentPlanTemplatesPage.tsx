@@ -1,5 +1,5 @@
 import { PricingRelatedLinks } from './PricingRelatedLinks';
-import type { PaymentPlanTemplate, PaymentPlanTemplateList, PlanAllocationInput, PlanAllocationKind } from '@repo/contracts';
+import { ApiError, type PaymentPlanTemplate, type PaymentPlanTemplateList, type PlanAllocationInput, type PlanAllocationKind } from '@repo/contracts';
 import { Badge, Button, EmptyState, ErrorState, PageHeader, SkeletonBlock, useApiMutation, useApiQuery, useCreateKey, useT } from '@repo/ui';
 import { FileClock, Plus, Save, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -102,8 +102,11 @@ export default function PaymentPlanTemplatesPage() {
       setCommittedFloor({ id: response.id, version: response.currentVersion }); setSelectedId(response.id);
       renewCreate(); renewRevision();
       setSaved(true); setDirty(false);
-    } catch {
+    } catch (e) {
       setSaved(false);
+      // 409: the draft changed elsewhere (or its key was used). The cached copy is stale and a failed write
+      // invalidates nothing, so fetch the latest now: reopening the draft then shows the version that won.
+      if (e instanceof ApiError && e.problem.status === 409) { void templates.refetch(); if (selectedId) void selected.refetch(); }
     }
   };
   const options: Record<PlanAllocationKind, string> = {

@@ -91,8 +91,11 @@ export default function EditPriceDrawerPage() {
       void drafts.refetch();
       if (draftId) void selectedDraft.refetch();
       void history.refetch(); // Still read-only: never applies the proposed price.
-    } catch {
+    } catch (e) {
       setSaved(false);
+      // 409: the draft changed elsewhere (or its key was used). The cached copy is stale and a failed write
+      // invalidates nothing, so fetch the latest now: reopening the draft then shows the version that won.
+      if (e instanceof ApiError && e.problem.status === 409) { void drafts.refetch(); if (draftId) void selectedDraft.refetch(); }
     }
   };
   return (

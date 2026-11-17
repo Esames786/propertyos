@@ -1,5 +1,5 @@
 import { PricingRelatedLinks } from './PricingRelatedLinks';
-import type { PricingPolicyDraft, PricingPolicyDraftList, PricingPolicyRule } from '@repo/contracts';
+import { ApiError, type PricingPolicyDraft, type PricingPolicyDraftList, type PricingPolicyRule } from '@repo/contracts';
 import { Badge, Button, EmptyState, ErrorState, PageHeader, SkeletonBlock, useApiMutation, useApiQuery, useCreateKey, useT } from '@repo/ui';
 import { FileClock, Plus, Save, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -105,8 +105,11 @@ export default function PricingPoliciesPage() {
       // A create has no previously selected detail query to refetch.
       void list.refetch();
       if (selectedId) void detail.refetch();
-    } catch {
+    } catch (e) {
       setSuccess(false);
+      // 409: the draft changed elsewhere (or its key was used). The cached copy is stale and a failed write
+      // invalidates nothing, so fetch the latest now: reopening the draft then shows the version that won.
+      if (e instanceof ApiError && e.problem.status === 409) { void list.refetch(); if (selectedId) void detail.refetch(); }
     }
   };
 

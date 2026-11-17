@@ -1,4 +1,4 @@
-import type { PricingApprovalDraft, PricingApprovalDraftList, PricingApprovalRule, PricingApprovalSubject } from '@repo/contracts';
+import { ApiError, type PricingApprovalDraft, type PricingApprovalDraftList, type PricingApprovalRule, type PricingApprovalSubject } from '@repo/contracts';
 import { Badge, Button, EmptyState, ErrorState, PageHeader, SkeletonBlock, useApiMutation, useApiQuery, useCreateKey, useT } from '@repo/ui';
 import { FileClock, Plus, Save, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -98,8 +98,11 @@ export default function ApprovalRulesPage() {
       // useApiMutation also invalidates all API queries after success.
       void list.refetch();
       if (selectedId) void detail.refetch();
-    } catch {
+    } catch (e) {
       setSaved(false);
+      // 409: the draft changed elsewhere (or its key was used). The cached copy is stale and a failed write
+      // invalidates nothing, so fetch the latest now: reopening the draft then shows the version that won.
+      if (e instanceof ApiError && e.problem.status === 409) { void list.refetch(); if (selectedId) void detail.refetch(); }
     }
   };
   const subjectLabels: Record<PricingApprovalSubject, string> = {
