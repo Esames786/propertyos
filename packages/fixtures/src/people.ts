@@ -128,6 +128,10 @@ export const PERSONAS: readonly Persona[] = [
   { id: 'lsp_project_manager', tenantId: TENANT.id, principalId: 'usr_lsp_0005', app: 'backoffice', displayName: 'Mehwish Kazmi', email: 'mehwish.kazmi@example.com', ...holds(TENANT.id, 'project_manager'), projectScope: 'all' },
   { id: 'lsp_accounts', tenantId: TENANT.id, principalId: 'usr_lsp_0006', app: 'backoffice', displayName: 'Faiza Noor', email: 'faiza.noor@example.com', ...holds(TENANT.id, 'accounts_officer'), projectScope: 'all' },
   { id: 'lsp_finance_controller', tenantId: TENANT.id, principalId: 'usr_lsp_0007', app: 'backoffice', displayName: 'Zubair Ansari', email: 'zubair.ansari@example.com', ...holds(TENANT.id, 'finance_controller'), projectScope: 'all' },
+  // Gate E.8 (provisional; reconcile at integration; owner decision E-06): a fictional cost-centre-limited budget
+  // holder. Scoped to Larkspur Heights, so of the cost centres he sees only the Heights one (never head office,
+  // sales or Gardens). He records Heights expenses and petty-cash counts and drafts the Heights budget.
+  { id: 'lsp_budget_holder', tenantId: TENANT.id, principalId: 'usr_lsp_0021', app: 'backoffice', displayName: 'Rehan Saleem', email: 'rehan.saleem@example.com', ...holds(TENANT.id, 'budget_holder'), projectScope: ['prj_heights'] },
   {
     id: 'resident',
     tenantId: TENANT.id,

@@ -24,3 +24,5 @@ export * from './payroll';
 export * from './rentals';
 // Gate E.0: developer ERP foundation (state contracts, approval subjects, editions).
 export * from './developer';
+// Gate E.8 (provisional; reconcile at integration): suppliers, payables and expenses.
+export * from './payables';

@@ -205,8 +205,21 @@ const withDeveloperExtra = (tenantId: string, roles: readonly TenantRoleTemplate
 
 const larkspurRole = (id: string, labelKey: string, permissions: readonly Permission[], holder: string): TenantRoleTemplate => ({ id, tenantId: 'tnt_larkspur', starter: null, labelKey, permissions, holders: [holder] });
 
-/** Gate E.0: Larkspur's own developer-ERP roles (Wave 1 maker-checker pairs). */
-export const LARKSPUR_ERP_ROLES: readonly TenantRoleTemplate[] = [
+// ---- Gate E.8 (provisional; reconcile at integration): payables and expenses (owner decisions E-06/E-07,
+// conservative defaults; listed in docs/status/gate-e8/CHECKPOINT.md). No starter set changes and no original
+// demo person gains anything. The Wave 1 accounts officer (Faiza Noor) is the payables maker and the finance
+// controller (Zubair Ansari) the checker, so each pair stays split between two people. A new fictional
+// cost-centre-limited budget holder (Rehan Saleem, Larkspur Heights only) records that site's expenses and
+// petty-cash counts and drafts its budget; someone else approves every one of them.
+const GATE_E8_EXTRA: Readonly<Record<string, readonly Permission[]>> = {
+  accounts_officer: ['supplier.view', 'supplier.manage', 'expense.view', 'expense.create', 'budget.manage'],
+  finance_controller: ['supplier.view', 'supplier_bill.approve', 'supplier_payment.approve', 'expense.view', 'expense.approve', 'budget.approve'],
+};
+const withGateE8 = (roles: readonly TenantRoleTemplate[]): TenantRoleTemplate[] => roles.map((r) => (GATE_E8_EXTRA[r.id] ? { ...r, permissions: [...r.permissions, ...GATE_E8_EXTRA[r.id]!] } : r));
+// ---- end Gate E.8 ----
+
+/** Gate E.0: Larkspur's own developer-ERP roles (Wave 1 maker-checker pairs; Gate E.8 adds the payables pairs). */
+export const LARKSPUR_ERP_ROLES: readonly TenantRoleTemplate[] = withGateE8([
   // Assigns leads to salespeople and works every lead of every project (E.1).
   larkspurRole('sales_manager', 'common:roles.sales_manager', [...STARTER_PERMISSIONS.sales, 'lead.manage', 'lead.assign', 'project.view', 'document.view', 'document.upload'], 'lsp_sales_manager'),
   // Maker: drafts project setup, manages storage, drafts document templates (E.2, E.13).
@@ -216,7 +229,9 @@ export const LARKSPUR_ERP_ROLES: readonly TenantRoleTemplate[] = [
   // Checker: approves and posts what someone else prepared; activates projects (reads their inventory: the
   // Projects area is gated by unit.view, unchanged); approves templates.
   larkspurRole('finance_controller', 'common:roles.finance_controller', ['project.context.use', 'reports.view', 'unit.view', 'project.view', 'project.approve', 'gl.view', 'gl.approve', 'journal.approve', 'gl.post', 'bank.view', 'bank.import.approve', 'document.view', 'document_template.approve'], 'lsp_finance_controller'),
-];
+  // Gate E.8 (provisional): the Larkspur Heights budget holder, cost-centre limited by project scope.
+  larkspurRole('budget_holder', 'common:roles.budget_holder', ['project.context.use', 'expense.view', 'expense.create', 'budget.manage'], 'lsp_budget_holder'),
+]);
 
 const TENANT_ROLES: Readonly<Record<string, readonly TenantRoleTemplate[]>> = {
   tnt_riverbend: RIVERBEND_ROLES,

@@ -129,6 +129,13 @@
     "document.view": "See documents",
     "document.upload": "Add documents",
     "document_template.manage": "Prepare document templates",
-    "document_template.approve": "Approve document templates"
+    "document_template.approve": "Approve document templates",
+    "supplier.manage": "Record suppliers, bills and payment instructions",
+    "supplier_bill.approve": "Approve supplier bills",
+    "supplier_payment.approve": "Approve supplier payment instructions",
+    "expense.view": "See expenses and budgets",
+    "expense.approve": "Approve expenses and claims, witness cash counts",
+    "budget.manage": "Prepare budget versions",
+    "budget.approve": "Approve budget versions"
   }
 }

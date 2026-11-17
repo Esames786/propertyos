@@ -42,7 +42,9 @@
     "ownerStatements": "مالکان کے گوشوارے",
     "ownerPayouts": "مالکان کی ادائیگیاں",
     "rentalSettings": "کرایہ داری کی ترتیبات",
-    "accounting": "اکاؤنٹنگ"
+    "accounting": "اکاؤنٹنگ",
+    "suppliers": "سپلائرز اور بل",
+    "expenses": "اخراجات اور بجٹ"
   },
   "header": {
     "search": "تلاش",
