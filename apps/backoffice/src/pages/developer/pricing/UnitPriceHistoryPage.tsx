@@ -1,4 +1,4 @@
-import type { UnitPriceHistory, UnitPricePickerResponse } from '@repo/contracts';
+import { ApiError, type UnitPriceHistory, type UnitPricePickerResponse } from '@repo/contracts';
 import { Badge, EmptyState, ErrorState, Link, PageHeader, SkeletonBlock, useApiQuery, useQueryParam, useT } from '@repo/ui';
 import { Search, History, LockKeyhole, Layers3 } from 'lucide-react';
 import { useState } from 'react';
@@ -99,7 +99,8 @@ export default function UnitPriceHistoryPage() {
           {!unitId ? (
             <EmptyState title={t('pricing:noSelection')} />
           ) : selected.isError ? (
-            <ErrorState error={selected.error} title={t('pricing:unknown')} onRetry={() => void selected.refetch()} />
+            // "Not in your scope" only when the server says not found (404); an outage keeps the generic title.
+            <ErrorState error={selected.error} {...(selected.error instanceof ApiError && selected.error.problem.status === 404 ? { title: t('pricing:unknown') } : {})} onRetry={() => void selected.refetch()} />
           ) : !selected.data ? (
             <SkeletonBlock lines={5} />
           ) : (

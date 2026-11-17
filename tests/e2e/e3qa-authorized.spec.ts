@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import { BO, expect, test } from '../support/fixtures';
-import { becomePrincipal, businessState, call, pricingSection, seedPrincipal } from '../support/e3-pricing';
+import { becomePrincipal, businessState, call, failGets, installFaults, pricingSection, seedPrincipal } from '../support/e3-pricing';
 import { DRAWER, drawerSaved, fillNew, HEIGHTS_UNIT, openDrawer, openEditor, EDITORS, propose, unitPrice } from '../support/e3-editors';
 
 /**
@@ -179,6 +179,27 @@ test.describe('E.3 test-only pricing principal: access, isolation, inertness', (
     }
     expect(await businessState(page)).toBe(before);
     expect(await unitPrice(page)).toBe(price);
+    expect(consoleErrors).toEqual([]);
+  });
+
+  test('INV-006 and INV-007: an outage reading the unit price is not shown as "not in your scope"; a 404 is', async ({ page, consoleErrors }) => {
+    const SCOPE = 'This unit is not available in your current scope.';
+    await seedPrincipal(page, 'res_e3qa_pricing');
+    for (const [path, option, scope] of [
+      ['/backoffice/inv/unit-price-history', 'price-unit-option', page.getByTestId('unit-price-history-page')],
+      ['/backoffice/inv/edit-price-drawer', 'price-change-unit', page.getByTestId('edit-price-change-drawer')],
+    ] as const) {
+      await page.goto(`${BO}${path}`);
+      await expect(page.getByTestId(option).first()).toBeVisible();
+      await installFaults(page);
+      await failGets(page, `^/units/${HEIGHTS_UNIT}/prices$`);
+      await page.getByTestId(option).filter({ hasText: 'LH-A-0101' }).click();
+      await expect(scope.getByTestId('state-error')).toBeVisible();
+      await expect(scope.getByTestId('state-error'), `${path}: 503`).not.toContainText(SCOPE);
+      await failGets(page, `^/units/${HEIGHTS_UNIT}/prices$`, 404);
+      await scope.getByRole('button', { name: 'Try again' }).click();
+      await expect(scope.getByText(SCOPE), `${path}: 404`).toBeVisible();
+    }
     expect(consoleErrors).toEqual([]);
   });
 

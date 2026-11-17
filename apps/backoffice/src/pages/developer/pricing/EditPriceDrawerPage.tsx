@@ -139,7 +139,8 @@ export default function EditPriceDrawerPage() {
         <div className="space-y-5">
           {/* Above every read state: a refresh failing after the POST succeeded must not hide that it was saved. */}
           {saved && <p role="status" className="text-sm text-success" data-testid="price-change-saved">{t('pricing:priceChangeSaved')}</p>}
-          {history.isError ? <ErrorState error={history.error} title={t('pricing:unknown')} onRetry={() => void history.refetch()} />
+          {/* "Not in your scope" only when the server says not found (404); an outage keeps the generic title. */}
+          {history.isError ? <ErrorState error={history.error} {...(history.error instanceof ApiError && history.error.problem.status === 404 ? { title: t('pricing:unknown') } : {})} onRetry={() => void history.refetch()} />
             : !history.data ? <SkeletonBlock lines={4} />
               : <>
                 <div className="rounded-control border border-border bg-sunken p-3">
