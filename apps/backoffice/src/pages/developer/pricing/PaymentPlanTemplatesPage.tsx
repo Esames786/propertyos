@@ -3,7 +3,7 @@ import type { PaymentPlanTemplate, PaymentPlanTemplateList, PlanAllocationInput,
 import { Badge, Button, EmptyState, ErrorState, PageHeader, SkeletonBlock, useApiMutation, useApiQuery, useCreateKey, useT } from '@repo/ui';
 import { FileClock, Plus, Save, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { canHydrateDraft, expectedDraftVersion, type CommittedDraftFloor } from './revision-sync';
+import { canHydrateDraft, expectedDraftVersion, pinDraftVersion, type CommittedDraftFloor } from './revision-sync';
 
 const KINDS: readonly PlanAllocationKind[] = ['down_payment', 'instalments', 'on_possession', 'balloon', 'construction_linked'];
 type DraftRow = { id: number; kind: PlanAllocationKind; percent: string; count: string; milestoneKey: string };
@@ -69,6 +69,7 @@ export default function PaymentPlanTemplatesPage() {
   };
   useEffect(() => {
     if (!canHydrateDraft(selectedId, selected.data, dirty, committedFloor)) return;
+    setCommittedFloor((previous) => pinDraftVersion(previous, selected.data!));
     const latest = selected.data.versions.at(-1);
     if (!latest) return;
     setTitle(latest.title);
@@ -83,6 +84,7 @@ export default function PaymentPlanTemplatesPage() {
     change();
   };
   const submit = async () => {
+    if (mutation.isPending || (selectedId && expectedDraftVersion(selectedId, committedFloor) === undefined)) return;
     const allocations = allocationsOf(rows);
     const cleanTitle = title.trim().replace(/\s+/g, ' ');
     if (!projectId || !projects.some((p) => p.id === projectId) || cleanTitle.length < 3 || cleanTitle.length > 100 || !allocations) {
@@ -92,7 +94,7 @@ export default function PaymentPlanTemplatesPage() {
     const key = selectedId ? revisionKey : createKey;
     const path = selectedId ? `/pricing/plan-templates/${encodeURIComponent(selectedId)}/versions` : '/pricing/plan-templates';
     const body = selectedId
-      ? { expectedVersion: expectedDraftVersion(selectedId, selected.data, committedFloor), title: cleanTitle, allocations, idempotencyKey: key }
+      ? { expectedVersion: expectedDraftVersion(selectedId, committedFloor), title: cleanTitle, allocations, idempotencyKey: key }
       : { projectId, title: cleanTitle, allocations, idempotencyKey: key };
     // A lost answer can retry with the same key. Any edit renews it; two new drafts never share it.
     try {
