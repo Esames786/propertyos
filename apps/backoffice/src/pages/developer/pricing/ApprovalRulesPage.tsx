@@ -2,7 +2,7 @@ import type { PricingApprovalDraft, PricingApprovalDraftList, PricingApprovalRul
 import { Badge, Button, EmptyState, ErrorState, PageHeader, SkeletonBlock, useApiMutation, useApiQuery, useCreateKey, useT } from '@repo/ui';
 import { FileClock, Plus, Save, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { canHydrateDraft, expectedDraftVersion, type CommittedDraftFloor } from './revision-sync';
+import { canHydrateDraft, expectedDraftVersion, pinDraftVersion, type CommittedDraftFloor } from './revision-sync';
 import { PricingRelatedLinks } from './PricingRelatedLinks';
 
 type RuleDraft = { id: number; subject: PricingApprovalSubject; amount: string; reviewers: string };
@@ -54,6 +54,7 @@ export default function ApprovalRulesPage() {
 
   useEffect(() => {
     if (!canHydrateDraft(selectedId, detail.data, dirty, committedFloor)) return;
+    setCommittedFloor((previous) => pinDraftVersion(previous, detail.data!));
     const current = detail.data.versions.at(-1);
     if (!current) return;
     setProjectId(detail.data.projectId);
@@ -76,6 +77,7 @@ export default function ApprovalRulesPage() {
     changed();
   };
   const save = async () => {
+    if (mutation.isPending || (selectedId && expectedDraftVersion(selectedId, committedFloor) === undefined)) return;
     const rules = parse(rows), trimmed = title.trim().replace(/\s+/g, ' ');
     if (!rules || trimmed.length < 3 || trimmed.length > 100 ||
       !projects.data?.items.some((p) => p.id === projectId)) { setInvalid(true); return; }
@@ -85,7 +87,7 @@ export default function ApprovalRulesPage() {
       ? `/pricing/approval-rules/${encodeURIComponent(selectedId)}/versions`
       : '/pricing/approval-rules';
     const body = selectedId
-      ? { title: trimmed, rules, expectedVersion: expectedDraftVersion(selectedId, detail.data, committedFloor), idempotencyKey: k }
+      ? { title: trimmed, rules, expectedVersion: expectedDraftVersion(selectedId, committedFloor), idempotencyKey: k }
       : { projectId, title: trimmed, rules, idempotencyKey: k };
     try {
       const response = await mutation.mutateAsync({ method: 'POST', path, body, idempotencyKey: k });
