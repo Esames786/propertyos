@@ -26,6 +26,11 @@ import {
 import { ledgerSamples } from './samples';
 import { accountId, COLLECTION_ACCOUNT, emptyLedger, FAIZA, LEDGER_TODAY, OPERATING_ACCOUNT, SAAD, seedLarkspur, ZUBAIR, type LedgerState } from './state';
 import vectors from './ledger.vectors.json';
+import { datasetFor } from '../../datasets';
+import { seedDeveloperState } from '../state';
+
+/** Wave 1 integration: Larkspur's entity and cost centres come from E.0's developer state (as in the app). */
+const LARKSPUR_DEVELOPER = seedDeveloperState(datasetFor('tnt_larkspur')!);
 
 /**
  * Gate E.7 golden vectors (ledger.vectors.json): balanced entries, trial balance = Σ posted lines,
@@ -35,10 +40,10 @@ import vectors from './ledger.vectors.json';
 const E = vectors.entity;
 const seeded = (): LedgerState => {
   const s = emptyLedger();
-  seedLarkspur(s);
+  seedLarkspur(s, LARKSPUR_DEVELOPER);
   return s;
 };
-const acc = (code: string) => accountId('LKE', code);
+const acc = (code: string) => accountId('LSP', code);
 const lines = (ls: Array<{ code: string; debit?: string; credit?: string }>) => ls.map((l) => ({ accountId: acc(l.code), debit: l.debit ?? '', credit: l.credit ?? '' }));
 
 function reports(s: LedgerState, asOf: string, from = '2026-07-01') {

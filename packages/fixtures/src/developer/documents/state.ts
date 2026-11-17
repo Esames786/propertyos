@@ -1,6 +1,7 @@
 import type { DocKind, TemplateCategory } from '@repo/contracts';
 import type { HandlerContext } from '../../handler-types';
-import { fingerprint, type BoundKey } from '../workspace/common';
+import type { IdempotencyStore } from '../../idempotency';
+import { fingerprint } from '../workspace/common';
 
 /**
  * Gate E.13 documents of an organisation (one versioned state per tenant, in its demo partition;
@@ -13,7 +14,8 @@ import { fingerprint, type BoundKey } from '../workspace/common';
  * Versions are append-only; a demo upload keeps its file as a data URL in this browser only.
  */
 // 1: Gate E.13 Wave 1.
-export const DOC_STATE_VERSION = 1;
+// 2: Wave 1 integration (keys are E.0 bound entries; seeds on the reconciled roster).
+export const DOC_STATE_VERSION = 2;
 export const DOC_SECTION = 'e13.documents';
 
 export interface StoredVersion {
@@ -69,7 +71,8 @@ export interface DocumentsState {
   code: string;
   docs: StoredDocument[];
   templates: StoredTemplate[];
-  idempotency: Record<string, BoundKey>;
+  /** Bound keys (E.0's shared helper; Wave 1 integration). */
+  idempotency: IdempotencyStore;
 }
 
 const CODES: Record<string, string> = { tnt_larkspur: 'LSP', tnt_crescent: 'CBD' };

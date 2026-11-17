@@ -1,7 +1,10 @@
 import { decide, type Lead, type Persona, type SalesPerson } from '@repo/contracts';
-import { can, permits, projectRecord, type HandlerContext } from '../../handler-types';
+import { can, projectRecord, type HandlerContext } from '../../handler-types';
 import { ALL_PERSONAS } from '../../people';
 import { effectiveAccessFor } from '../../tenant-directory';
+import { projectVisible as visibleProject, type ScopeNeed } from '../scope';
+
+const CRM_LEADS: ScopeNeed = { module: 'crm', permission: 'lead.view' };
 
 /**
  * Gate E.1 scope for the CRM pipeline ("project + assigned", decision E-05; its proposed default is not
@@ -14,8 +17,10 @@ import { effectiveAccessFor } from '../../tenant-directory';
  * revoked access hides records on the very next request). The existing lead list and Sales home keep
  * their whole-project rule until E-05 is decided.
  *
- * Module-local: replace with E.0's `developer/scope.ts` (`projectVisible`/`projectGoverned`) at Wave 1
- * integration.
+ * Wave 1 integration (Issue #25): a project is in scope through E.0's `developer/scope.ts` `projectVisible`
+ * (need: CRM, `lead.view`), which is exactly E.1's former check (this organisation's project, the header
+ * filter, and the access rule's `decideRecord` on the project's record). The "assigned" layer of E-05 on top
+ * of it is the CRM's own rule and stays here.
  */
 
 export interface CrmScope {
@@ -44,7 +49,7 @@ export function crmScope(ctx: HandlerContext): CrmScope {
   const manage = can(ctx, 'lead.manage') && can(ctx, 'lead.assign');
   const projects = new Map<string, boolean>();
   const projectVisible = (projectId: string) => {
-    if (!projects.has(projectId)) projects.set(projectId, ctx.data.projects.some((p) => p.id === projectId) && ctx.allowsProject(projectId) && permits(ctx, 'crm', projectRecord(ctx, projectId), 'lead.view'));
+    if (!projects.has(projectId)) projects.set(projectId, visibleProject(ctx, projectId, CRM_LEADS));
     return projects.get(projectId)!;
   };
   const ownerOf = (lead: Lead) => staff.find((p) => p.id === lead.ownerPersonaId)?.principalId ?? '';

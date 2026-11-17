@@ -70,19 +70,19 @@ async function api<T = { id: string }>(page: Page, path: string, body: unknown =
 
 const SCREENS: Array<[string, string, string, string]> = [
   ['a01-chart', 'lsp_ledger_clerk', '/backoffice/acc/chart-of-accounts', 'chart-accounts'],
-  ['a02-account-cash-bank-reader', 'lsp_finance_controller', '/backoffice/acc/account-workspace?record=gla_lke_c1000', 'account-workspace'],
-  ['a03-account-accrued', 'lsp_ledger_clerk', '/backoffice/acc/account-workspace?record=gla_lke_c2200', 'account-workspace'],
+  ['a02-account-cash-bank-reader', 'lsp_finance_controller', '/backoffice/acc/account-workspace?record=gla_lsp_c1000', 'account-workspace'],
+  ['a03-account-accrued', 'lsp_ledger_clerk', '/backoffice/acc/account-workspace?record=gla_lsp_c2200', 'account-workspace'],
   ['a04-journals', 'lsp_finance_controller', '/backoffice/acc/journal-entries', 'journal-list'],
-  ['a05-journal-awaiting-approval', 'lsp_finance_controller', '/backoffice/acc/journal-entries?record=jnl_lke_0007', 'journal-detail'],
-  ['a06-journal-reversed', 'lsp_ledger_clerk', '/backoffice/acc/journal-entries?record=jnl_lke_0004', 'journal-detail'],
+  ['a05-journal-awaiting-approval', 'lsp_finance_controller', '/backoffice/acc/journal-entries?record=jnl_lsp_0007', 'journal-detail'],
+  ['a06-journal-reversed', 'lsp_ledger_clerk', '/backoffice/acc/journal-entries?record=jnl_lsp_0004', 'journal-detail'],
   ['a07-create-journal', 'lsp_ledger_clerk', '/backoffice/acc/create-journal', 'journal-form'],
-  ['a08-reverse-journal', 'lsp_ledger_clerk', '/backoffice/acc/reverse-journal?record=jnl_lke_0003', 'reverse-form'],
+  ['a08-reverse-journal', 'lsp_ledger_clerk', '/backoffice/acc/reverse-journal?record=jnl_lsp_0003', 'reverse-form'],
   ['a09-trial-balance', 'lsp_ledger_clerk', '/backoffice/acc/trial-balance', 'ledger-tb'],
   ['a10-profit-and-loss', 'lsp_ledger_clerk', '/backoffice/acc/profit-and-loss', 'ledger-pl'],
   ['a11-balance-sheet', 'lsp_ledger_clerk', '/backoffice/acc/balance-sheet', 'ledger-bs'],
   ['a12-periods', 'lsp_finance_controller', '/backoffice/acc/accounting-periods', 'ledger-periods'],
   ['a13-posting-rules-proposed', 'lsp_ledger_clerk', '/backoffice/acc/posting-rules', 'ledger-rules'],
-  ['a14-bank-import', 'lsp_accounts', '/backoffice/bank/bank-import?record=bim_lke_0001', 'bank-import-detail'],
+  ['a14-bank-import', 'lsp_accounts', '/backoffice/bank/bank-import?record=bim_lsp_0001', 'bank-import-detail'],
 ];
 
 for (const locale of ['en-PK', 'ur-PK'] as Locale[]) {
@@ -187,13 +187,13 @@ test('who sees what: no bank permission, no ledger permission, maker blocked (14
   const page = await context(browser, VIEWPORTS.desktop);
   await as(page, 'lsp_ledger_clerk', '/backoffice/bank/bank-import', 'access-outcome');
   await shot(page, 'd01-accounts-officer-no-bank-import-1440-en');
-  await as(page, 'lsp_ledger_clerk', '/backoffice/acc/account-workspace?record=gla_lke_c1000', 'account-workspace');
+  await as(page, 'lsp_ledger_clerk', '/backoffice/acc/account-workspace?record=gla_lsp_c1000', 'account-workspace');
   await shot(page, 'd02-cash-account-without-bank-details-1440-en');
   await as(page, 'manager', '/backoffice/acc/journal-entries', 'access-outcome');
   await shot(page, 'd03-manager-no-ledger-permission-1440-en');
   await as(page, 'finance', '/backoffice/bank/bank-import', 'bank-no-import');
   await shot(page, 'd04-finance-reads-imports-only-1440-en');
-  await as(page, 'lsp_ledger_clerk', '/backoffice/acc/journal-entries?record=jnl_lke_0007', 'journal-blocked');
+  await as(page, 'lsp_ledger_clerk', '/backoffice/acc/journal-entries?record=jnl_lsp_0007', 'journal-blocked');
   await shot(page, 'd05-maker-cannot-approve-own-1440-en', false);
   await page.context().close();
 });
@@ -204,11 +204,11 @@ test('320 × 700, Urdu and English, 200 % text: journals, drawer, form, trial ba
     const page = await context(browser, { width: 320, height: 700 }, locale, 2);
     for (const [name, persona, path, ready] of [
       ['e01-journals', 'lsp_finance_controller', '/backoffice/acc/journal-entries', 'journal-list'],
-      ['e02-journal-drawer', 'lsp_finance_controller', '/backoffice/acc/journal-entries?record=jnl_lke_0007', 'journal-detail'],
+      ['e02-journal-drawer', 'lsp_finance_controller', '/backoffice/acc/journal-entries?record=jnl_lsp_0007', 'journal-detail'],
       ['e03-create-journal', 'lsp_ledger_clerk', '/backoffice/acc/create-journal', 'journal-form'],
       ['e04-trial-balance-list', 'lsp_ledger_clerk', '/backoffice/acc/trial-balance', 'tb-list'],
       ['e05-balance-sheet', 'lsp_ledger_clerk', '/backoffice/acc/balance-sheet', 'ledger-bs'],
-      ['e06-bank-import', 'lsp_accounts', '/backoffice/bank/bank-import?record=bim_lke_0001', 'bank-import-detail'],
+      ['e06-bank-import', 'lsp_accounts', '/backoffice/bank/bank-import?record=bim_lsp_0001', 'bank-import-detail'],
     ] as Array<[string, string, string, string]>) {
       await as(page, persona, path, ready);
       await shot(page, `${name}-200pct-320-${lang(locale)}`);

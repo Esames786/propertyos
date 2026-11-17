@@ -1,5 +1,6 @@
 import type { InventoryEventKind, ProjectState, SetupBasics, SetupEvent, SetupSite, ProjectSetupStep, SetupStructure, StorageKind, StorageLocation, StorageState } from '@repo/contracts';
 import type { HandlerContext } from '../../handler-types';
+import type { IdempotencyStore } from '../../idempotency';
 
 /**
  * Gate E.2 module-local, versioned demo state (provisional; replace with E.0's `developer/state.ts`
@@ -15,7 +16,8 @@ import type { HandlerContext } from '../../handler-types';
  */
 
 export const INVENTORY_SECTION = 'developer.inventory';
-export const INVENTORY_VERSION = 1;
+// 2: Wave 1 integration (keys are E.0 bound entries).
+export const INVENTORY_VERSION = 2;
 
 export interface StorageRecord {
   id: string;
@@ -69,21 +71,14 @@ export interface EventRecord {
   note?: string;
 }
 
-export interface IdemEntry {
-  op: string;
-  principal: string;
-  target: string;
-  fingerprint: string;
-  result: unknown;
-}
-
 export interface InventoryState {
   version: typeof INVENTORY_VERSION;
   seq: number;
   storage: StorageRecord[];
   setup: SetupRecordState[];
   events: EventRecord[];
-  idempotency: Record<string, IdemEntry>;
+  /** Bound keys (E.0's shared helper, `idempotency.ts`; Wave 1 integration). */
+  idempotency: IdempotencyStore;
 }
 
 interface StorageSeed {

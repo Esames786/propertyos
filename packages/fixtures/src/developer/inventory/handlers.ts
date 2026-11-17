@@ -36,7 +36,15 @@ import {
 import { ownerName } from '../../crm-data';
 import { can, notFound, requires, type Handler, type HandlerContext } from '../../handler-types';
 import { directoryTenant } from '../../tenant-directory';
+import { developerState } from '../state';
 import { remember, replayOf } from './idempotency';
+
+/**
+ * The target of a replay was resolved through this module's scoped finder earlier in the same request
+ * (`scopedSetup`, `scopedUnit`, `scopedStorage`: a hidden target is already 404), so authority over it is
+ * current; E.0's `replayOf` asks again and gets the same answer.
+ */
+const RESOLVED_IN_SCOPE = () => true;
 import { holdUntil, mayRelease, requestNow, type StoredHold } from '../../crm-holds';
 import { addBuckets, dimensionsOf, emptyBuckets, isSold } from './rules';
 import { fieldProblem, inventoryVisible, leadVisible, licensedOnSite, organisationWide, problem, PROJECT_READERS, projectVisible, scopedUnit, setupVisible, tenantProject } from './scope';
@@ -102,7 +110,9 @@ function setupSites(ctx: HandlerContext): ProjectSetupList['sites'] {
     .filter((site) => licensedOnSite(ctx, 'inventory', site.id) && licensedOnSite(ctx, 'projects', site.id))
     .flatMap((site) => {
       const legalEntityId = ctx.data.projects.find((p) => p.siteId === site.id)?.legalEntityId ?? fallbackEntity;
-      return legalEntityId ? [{ id: site.id, name: site.name, city: site.city, legalEntityId, legalEntityName: tenant.legalName }] : [];
+      // Wave 1 integration: the entity's name from E.0's developer state (read-only, E-37).
+      const entity = developerState(ctx)?.legalEntities.find((e) => e.id === legalEntityId);
+      return legalEntityId && entity ? [{ id: site.id, name: site.name, city: site.city, legalEntityId, legalEntityName: entity.name }] : [];
     });
 }
 
@@ -330,7 +340,7 @@ export const DEV_INVENTORY_HANDLERS: readonly Handler[] = [
       if (!organisationWide(ctx)) problem(ctx, 403, 'out_of_scope_create', 'projects:problems.scopeCreate');
       const s = inventoryState(ctx);
       const input = { basics: body<{ basics: unknown }>(ctx).basics ?? null };
-      const replay = replayOf<string>(ctx, s, 'project.create', ctx.tenantId ?? '', input);
+      const replay = replayOf(ctx, s, 'project.create', ctx.tenantId ?? '', input, () => organisationWide(ctx));
       if (replay) return setupView(ctx, scopedSetup(ctx, s, replay));
       const basics = checkBasics(ctx, s, input.basics);
       const seq = nextSeq(s);
@@ -372,7 +382,7 @@ export const DEV_INVENTORY_HANDLERS: readonly Handler[] = [
       const step = oneOf(['basics', 'site', 'structure'] as const, ctx.params.step);
       if (!step) notFound(ctx);
       const input = { step, value: body<{ value: unknown }>(ctx).value ?? null };
-      const replay = replayOf<string>(ctx, s, 'project.save', r.id, input);
+      const replay = replayOf(ctx, s, 'project.save', r.id, input, RESOLVED_IN_SCOPE);
       if (replay) return setupView(ctx, r);
       if (r.state !== 'draft' && r.state !== 'returned') problem(ctx, 409, 'setup_locked', 'projects:problems.setupLocked');
       if (r.makerPrincipal !== ctx.persona?.principalId) problem(ctx, 403, 'not_maker', 'projects:problems.notMaker');
@@ -411,7 +421,7 @@ export const DEV_INVENTORY_HANDLERS: readonly Handler[] = [
     handle: (ctx): ProjectSetupRecord => {
       const s = inventoryState(ctx);
       const r = scopedSetup(ctx, s, ctx.params.id);
-      const replay = replayOf<string>(ctx, s, 'project.submit', r.id, {});
+      const replay = replayOf(ctx, s, 'project.submit', r.id, {}, RESOLVED_IN_SCOPE);
       if (replay) return setupView(ctx, r);
       if (r.state !== 'draft' && r.state !== 'returned') problem(ctx, 409, 'setup_locked', 'projects:problems.setupLocked');
       if (r.makerPrincipal !== ctx.persona?.principalId) problem(ctx, 403, 'not_maker', 'projects:problems.notMaker');
@@ -438,7 +448,7 @@ export const DEV_INVENTORY_HANDLERS: readonly Handler[] = [
       const reason = text(body<{ reason: string }>(ctx).reason, 400);
       const input = activate ? {} : { reason };
       const op = activate ? 'project.activate' : 'project.return';
-      const replay = replayOf<string>(ctx, s, op, r.id, input);
+      const replay = replayOf(ctx, s, op, r.id, input, RESOLVED_IN_SCOPE);
       if (replay) return setupView(ctx, r);
       if (r.state !== 'submitted') problem(ctx, 409, 'setup_not_submitted', 'projects:problems.notSubmitted');
       // 5. Maker ≠ checker, by principal (never by name): nobody approves a project they prepared.
@@ -529,8 +539,9 @@ export const DEV_INVENTORY_HANDLERS: readonly Handler[] = [
       const unit = scopedUnit(ctx, ctx.params.unitId);
       const s = inventoryState(ctx);
       const input = { leadId: text(body<{ leadId: string }>(ctx).leadId, 60) };
-      const replay = replayOf<HoldResult>(ctx, s, 'unit.hold', unit.id, input);
-      if (replay) return replay;
+      // The bound record id is the expiry of the hold this request placed (unit + expiry identify it).
+      const replay = replayOf(ctx, s, 'unit.hold', unit.id, input, RESOLVED_IN_SCOPE);
+      if (replay) return { unitId: unit.id, unitRef: unit.ref, until: replay };
       // 4. State: one hold in force per unit, and only on available stock (no double allocation).
       if (factsOf(unit, liveHolds(ctx)).bucket !== 'available') problem(ctx, 409, 'unit_unavailable', 'projects:problems.unitUnavailable');
       // 5. The lead: an open lead of the unit's project the person may see; a hidden or invented id is refused alike.
@@ -544,7 +555,7 @@ export const DEV_INVENTORY_HANDLERS: readonly Handler[] = [
       ctx.demo.addActivity(lead.id, { id: ctx.demo.nextId('act'), at: nowIso(), actorName: who.displayName, messageKey: 'activity.unitHeld', params: { unit: unit.ref, until }, kind: 'status' });
       addEvent(ctx, s, { kind: 'unit_held', projectId: unit.projectId, unitId: unit.id, unitRef: unit.ref, leadId: lead.id, leadRef: lead.ref, note: until });
       const result: HoldResult = { unitId: unit.id, unitRef: unit.ref, until };
-      remember(ctx, s, 'unit.hold', unit.id, input, result);
+      remember(ctx, s, 'unit.hold', unit.id, input, until);
       saveState(ctx);
       return result;
     },
@@ -556,8 +567,8 @@ export const DEV_INVENTORY_HANDLERS: readonly Handler[] = [
     handle: (ctx): { unitId: string; released: true } => {
       const unit = scopedUnit(ctx, ctx.params.unitId);
       const s = inventoryState(ctx);
-      const replay = replayOf<{ unitId: string; released: true }>(ctx, s, 'unit.release', unit.id, {});
-      if (replay) return replay;
+      const replay = replayOf(ctx, s, 'unit.release', unit.id, {}, RESOLVED_IN_SCOPE);
+      if (replay) return { unitId: replay, released: true as const };
       const hold = holdsOf(ctx)[unit.id];
       // Owner-only release (Issue #23): another person's hold, an expired, unknown or legacy hold answer alike.
       if (!mayRelease(hold, ctx.persona?.principalId, requestNow(ctx.req))) notFound(ctx);
@@ -565,7 +576,7 @@ export const DEV_INVENTORY_HANDLERS: readonly Handler[] = [
       ctx.demo.addActivity(hold!.leadId, { id: ctx.demo.nextId('act'), at: nowIso(), actorName: ctx.persona!.displayName, messageKey: 'activity.unitReleased', params: { unit: unit.ref }, kind: 'status' });
       addEvent(ctx, s, { kind: 'unit_released', projectId: unit.projectId, unitId: unit.id, unitRef: unit.ref, leadId: hold!.leadId, leadRef: hold!.leadRef });
       const result = { unitId: unit.id, released: true as const };
-      remember(ctx, s, 'unit.release', unit.id, {}, result);
+      remember(ctx, s, 'unit.release', unit.id, {}, unit.id);
       saveState(ctx);
       return result;
     },
@@ -632,7 +643,7 @@ export const DEV_INVENTORY_HANDLERS: readonly Handler[] = [
       const st = scopedStorage(ctx, s, ctx.params.id);
       const b = body<{ unitId: string; note: string }>(ctx);
       const input = { unitId: text(b.unitId, 60), note: text(b.note, 400) };
-      const replay = replayOf<string>(ctx, s, 'storage.allocate', st.id, input);
+      const replay = replayOf(ctx, s, 'storage.allocate', st.id, input, RESOLVED_IN_SCOPE);
       if (replay) return storageView(ctx, st);
       if (st.state !== 'available') problem(ctx, 409, 'storage_unavailable', 'projects:problems.storageUnavailable');
       if (!input.unitId) fieldProblem(ctx, 'unitId', 'projects:problems.unitRequired');
@@ -661,7 +672,7 @@ export const DEV_INVENTORY_HANDLERS: readonly Handler[] = [
       const s = inventoryState(ctx);
       const st = scopedStorage(ctx, s, ctx.params.id);
       const input = { reason: text(body<{ reason: string }>(ctx).reason, 400) };
-      const replay = replayOf<string>(ctx, s, 'storage.release', st.id, input);
+      const replay = replayOf(ctx, s, 'storage.release', st.id, input, RESOLVED_IN_SCOPE);
       if (replay) return storageView(ctx, st);
       if (st.state !== 'allocated' || !st.allocation) problem(ctx, 409, 'storage_not_allocated', 'projects:problems.storageNotAllocated');
       if (input.reason.length < 5 || input.reason.length > 200) fieldProblem(ctx, 'reason', 'projects:problems.releaseReason');

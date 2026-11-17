@@ -4,6 +4,7 @@ import { fromPaisa, toPaisa } from '../../portal';
 import { fingerprint } from '../../society/import';
 import { lineKey, newLines } from '../../society/matching';
 import { formatRef } from '../../society/numbering';
+import { DEVELOPER_NUMBERING } from '../state';
 import { AMOUNT, DATE, lastDayOf, periodOf } from '../../society/finance/model';
 import type { LedgerState, StoredGlAccount, StoredImport, StoredJournal, StoredJournalLine, StoredPeriod, StoredRule, StoredRuleVersion } from './state';
 
@@ -38,9 +39,11 @@ export const isDate = (v: string) => DATE.test(v) && !Number.isNaN(Date.parse(`$
 // References (society numbering, per entity)
 // ---------------------------------------------------------------------------------------------
 
+// Wave 1 integration (Issue #25): journals and statement imports follow the entity's numbering series of E.0's
+// developer state (DEVELOPER_NUMBERING, read-only, E-37); rules and accounts have no E.0 series and keep E.7's.
 export const PATTERNS = {
-  journal: '{code}-JV-{yyyy}-{seq:4}',
-  import: '{code}-BIM-{yyyy}-{seq:4}',
+  journal: DEVELOPER_NUMBERING.journal,
+  import: DEVELOPER_NUMBERING.bank_import,
   rule: '{code}-PR-{seq:3}',
   account: '{code}-GLA-{seq:4}',
 } as const;
@@ -50,7 +53,8 @@ type RefKind = keyof typeof PATTERNS;
 export function nextRef(state: LedgerState, entityId: string, kind: RefKind, on: string): { id: string; ref: string } {
   const entity = state.entities.find((e) => e.id === entityId)!;
   const pattern = PATTERNS[kind];
-  const scope = pattern.includes('{yyyy}') ? `${entityId}:${kind}:${on.slice(0, 4)}` : `${entityId}:${kind}`;
+  // A series with a year in it ({yyyy} or {yyyymm}) counts within the year.
+  const scope = pattern.includes('{yyyy') ? `${entityId}:${kind}:${on.slice(0, 4)}` : `${entityId}:${kind}`;
   const seq = (state.counters[scope] ?? 0) + 1;
   state.counters[scope] = seq;
   const idScope = `${entityId}:${kind}:id`;

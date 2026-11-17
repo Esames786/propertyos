@@ -33,6 +33,7 @@ import { zonedStamp } from '../../clock';
 import { projectName } from '../../crm-data';
 import { can, matches, notFound, requires, requiresAll, unitPermitted, type Handler, type HandlerContext } from '../../handler-types';
 import { ALL_PERSONAS } from '../../people';
+import { keyReused } from '../../idempotency';
 import { bound } from './idempotency';
 import { byStage, canConvert, isOpen, stageSummaries, transition, type StageRefusal } from './pipeline';
 import { crmScope, mayHold, personOf, staffOf } from './scope';
@@ -289,13 +290,13 @@ const OPPORTUNITY_HANDLERS: readonly Handler[] = [
       if (!lead) notFound(ctx);
       const b = body(ctx);
       const input = { note: str(b.note), expectedCloseOn: str(b.expectedCloseOn) };
-      const idem = bound(ctx, c.st, 'opportunity.convert', lead.id, input);
-      if ('reused' in idem) refuse(ctx, 409, 'idempotency_key_reused');
+      // E.0's bound idempotency: another use of the key is refused there (409); a replay re-checks the lead.
+      const idem = bound(ctx, c.st, 'opportunity.convert', lead.id, input, () => !!leadById(c, lead.id));
       if (idem.replay) {
         // The same request again: the opportunity it created, re-read through the reader's own scope.
         const again = c.st.opportunities.find((o) => o.id === idem.replay);
         const againLead = again ? leadById(c, again.leadId) : undefined;
-        if (!again || !againLead) refuse(ctx, 409, 'idempotency_key_reused');
+        if (!again || !againLead) keyReused(ctx);
         return opportunityView(c, again, againLead, allVisits(ctx), now(ctx));
       }
       const convertible = canConvert(lead, !!opportunityOfLead(c, lead.id));

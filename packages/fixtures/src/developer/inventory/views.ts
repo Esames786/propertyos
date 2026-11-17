@@ -24,6 +24,7 @@ import type {
 import { ALL_PERSONAS } from '../../people';
 import { can, type HandlerContext } from '../../handler-types';
 import { directoryTenant } from '../../tenant-directory';
+import { developerState } from '../state';
 import { activeHolds, holdViewFor, lapsedHolds, requestNow, SEED_HOLD, type StoredHold } from '../../crm-holds';
 import { bucketOf, countBuckets, dimensionsOf, emptyBuckets, legacyOf } from './rules';
 import { inventoryVisible, leadVisible, setupVisible, tenantProject, withheld } from './scope';
@@ -326,10 +327,8 @@ export function unitFigures(ctx: HandlerContext, projectId: string): ProjectUnit
   };
 }
 
-const legalEntityName = (ctx: HandlerContext, id: string) => {
-  const t = ctx.tenantId ? directoryTenant(ctx.tenantId) : undefined;
-  return t && t.id && id ? t.legalName : id;
-};
+/** Wave 1 integration (Issue #25): the entity's name from E.0's developer state (read-only, E-37). */
+const legalEntityName = (ctx: HandlerContext, id: string) => developerState(ctx)?.legalEntities.find((e) => e.id === id)?.name ?? id;
 
 const siteName = (ctx: HandlerContext, siteId: string) => (ctx.tenantId ? directoryTenant(ctx.tenantId)?.sites.find((x) => x.id === siteId)?.name : undefined) ?? siteId;
 

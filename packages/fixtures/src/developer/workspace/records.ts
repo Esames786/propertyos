@@ -1,8 +1,9 @@
 import type { Invoice, Lead, LeasesList, LeaseSummary, ModuleKey, Party, Permission, RecordRef, RelatedGroup, SearchRecord, SuspensionClass, WorkspaceRecordType } from '@repo/contracts';
-import { can, decideRecord, invoiceRecord, isScopeOnly, matches, projectRecord, unitPermitted, type HandlerContext } from '../../handler-types';
+import { can, decideRecord, invoiceRecord, isScopeOnly, matches, unitPermitted, type HandlerContext } from '../../handler-types';
 import { operationsSearch } from '../../operations';
 import { HANDLERS } from '../../handlers';
 import { decideEndpoint } from '../../mock-transport';
+import { projectGoverned } from '../scope';
 import { society, societyRecordAccess, societySearch } from '../../society/handlers';
 import { directoryTenant } from '../../tenant-directory';
 
@@ -36,10 +37,15 @@ export interface RecordProvider {
 
 const as = (ctx: HandlerContext, suspension: SuspensionClass): HandlerContext => ({ ...ctx, suspension });
 
-/** A project of this tenant that the person's scope covers and the shared rule allows for the module. */
+/**
+ * A project of this tenant that the person's scope covers and the shared rule allows for the module. Wave 1
+ * integration (Issue #25): E.0's `projectGoverned` (this organisation's project and `decideRecord` on its record),
+ * plus E.13's own guard that the person's project scope names it (defence in depth: the effective access is
+ * derived from that scope, so the guard never widens anything).
+ */
 export function projectAllows(ctx: HandlerContext, projectId: string | undefined, module: ModuleKey, permission?: Permission, suspension: SuspensionClass = 'operational'): boolean {
-  if (!projectId || !ctx.data.projects.some((p) => p.id === projectId) || !isScopeOnly(ctx, projectId)) return false;
-  return decideRecord(as(ctx, suspension), module, projectRecord(ctx, projectId), permission).allowed;
+  if (!projectId || !isScopeOnly(ctx, projectId)) return false;
+  return projectGoverned(as(ctx, suspension), projectId, { module, ...(permission ? { permission } : {}) });
 }
 
 /** Lists follow the header's project context as well (records without a project always pass). */

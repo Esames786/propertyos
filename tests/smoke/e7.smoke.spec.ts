@@ -93,7 +93,7 @@ test('320 × 700, Urdu, 200 %: the journals and the trial balance are not clippe
   for (const p of ['usr_lsp_0008', 'usr_lsp_0007']) await page.addInitScript(({ key }) => localStorage.setItem(key, JSON.stringify({ version: 2, textScale: 2, chosenAt: '2026-10-26T00:00:00Z', updatedAt: '2026-10-26T00:00:00Z' })), { key: `pref:display:v1:backoffice:tnt_larkspur:${p}` });
   for (const [path, ready] of [
     ['/backoffice/acc/journal-entries', 'journal-list'],
-    ['/backoffice/acc/journal-entries?record=jnl_lke_0007', 'journal-detail'],
+    ['/backoffice/acc/journal-entries?record=jnl_lsp_0007', 'journal-detail'],
     ['/backoffice/acc/trial-balance', 'tb-list'],
   ] as const) {
     await as(page, 'lsp_finance_controller', path, ready);

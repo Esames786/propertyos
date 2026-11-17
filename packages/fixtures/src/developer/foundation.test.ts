@@ -142,7 +142,7 @@ describe('developer state (deliverable 1)', () => {
     expect(s.version).toBe(DEVELOPER_STATE_VERSION);
     expect(s.legalEntities).toEqual([expect.objectContaining({ id: 'le_larkspur', code: 'LSP', projectIds: ['prj_heights', 'prj_gardens'], siteIds: ['site_lk_heights', 'site_lk_gardens'], source: 'administration' })]);
     expect(s.costCentres.map((c) => [c.id, c.projectId ?? null])).toEqual([['cc_lsp_hq', null], ['cc_lsp_sales', null], ['cc_heights', 'prj_heights'], ['cc_gardens', 'prj_gardens']]);
-    expect(s.collectionAccounts).toEqual([expect.objectContaining({ legalEntityId: 'le_larkspur', maskedNumber: '•••• 4021', verified: true, sample: true })]);
+    expect(s.collectionAccounts).toEqual([expect.objectContaining({ legalEntityId: 'le_larkspur', maskedNumber: '•••• 7890', verified: true, sample: true })]);
     expect(s.approvalPolicies.every((p) => p.threshold === null && p.illustrative && p.state === 'approved' && p.version === 1)).toBe(true);
     expect(seedDeveloperState(L)).toEqual(s);
     expect(formatDeveloperRef(s, 'le_larkspur', 'journal', { seq: 1, on: '2026-10-26' })).toBe('LSP-JV-202610-0001');
@@ -262,7 +262,7 @@ describe('read-only administration endpoints (E-37) through the transport', () =
     expect(await centres('res_e0_heights_ledger')).toEqual(['cc_heights']);
     expect(await centres('res_e0_accounts_two')).toEqual(['cc_lrd_hq', 'cc_lrd_sales', 'cc_lsp_riverside_demo']);
     const accounts = await w.as('lsp_finance_controller').request<DevCollectionAccount[]>({ method: 'GET', path: '/developer/collection-accounts' });
-    expect(accounts.map((a) => a.maskedNumber)).toEqual(['•••• 4021', '•••• 5582']);
+    expect(accounts.map((a) => a.maskedNumber)).toEqual(['•••• 7890', '•••• 5582']);
     expect(JSON.stringify(accounts)).not.toMatch(/\d{5,}/);
     expect((await w.as('lsp_finance_controller').request<unknown[]>({ method: 'GET', path: '/developer/approval-policies', query: { entity: SECOND_ENTITY } })).length).toBe(6);
   });

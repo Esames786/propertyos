@@ -1,21 +1,25 @@
 import { LOST_REASONS, type Lead, type LostReason, type OpenStage, type OpportunityEventKind, type OpportunityStage, type SiteVisitInterest, type SiteVisitOutcome } from '@repo/contracts';
 import type { HandlerContext } from '../../handler-types';
+import type { IdempotencyStore } from '../../idempotency';
 import { FIXTURE_NOW } from '../../seed';
 import { staffOf } from './scope';
 
 /**
- * Gate E.1: the CRM pipeline's own state, a versioned section of the tenant's demo partition
- * (`dev.crm.pipeline`), reset by `/demo/reset` with the rest of the session. It holds opportunities and
- * their timelines, lead reassignment history, what was recorded at each site visit, and the bound
- * idempotency keys of conversions. Leads and visits themselves stay in the existing CRM overlay: a
- * reassignment patches the lead's owner there, a reschedule or an outcome patches the visit, so every
- * existing screen (Sales home, Lead 360) shows the change at once.
+ * Gate E.1: the CRM pipeline's own state, a versioned section of the tenant's demo partition, reset by
+ * `/demo/reset` with the rest of the session. It holds opportunities and their timelines, lead reassignment
+ * history, what was recorded at each site visit, and the bound idempotency keys of conversions. Leads and
+ * visits themselves stay in the existing CRM overlay: a reassignment patches the lead's owner there, a
+ * reschedule or an outcome patches the visit, so every existing screen (Sales home, Lead 360) shows the
+ * change at once.
  *
- * Replace with E.0's developer state (`developer/state.ts`) at Wave 1 integration.
+ * Wave 1 integration (Issue #25): E.0's developer state convention (`developer/state.ts`): the organisation's
+ * administration data (entities, cost centres …) is E.0's section `developer`, and each area keeps its own
+ * records in a section named `developer.<area>`; this is `developer.crm` (it was `dev.crm.pipeline`). E.1 reads
+ * none of the administration data. Version 2: keys are E.0's bound entries, so an older session starts again.
  */
 
-export const PIPELINE_SECTION = 'dev.crm.pipeline';
-export const PIPELINE_VERSION = 1;
+export const PIPELINE_SECTION = 'developer.crm';
+export const PIPELINE_VERSION = 2;
 
 export interface StoredEvent {
   id: string;
@@ -87,14 +91,6 @@ export interface StoredVisitDetail {
   history: StoredVisitEvent[];
 }
 
-/** A conversion's key, bound to the operation, the principal, the target lead and the normalised input. */
-export interface IdemEntry {
-  op: string;
-  principal: string;
-  target: string;
-  fp: string;
-  id: string;
-}
 
 export interface PipelineState {
   version: typeof PIPELINE_VERSION;
@@ -104,7 +100,8 @@ export interface PipelineState {
   assignments: Record<string, StoredAssignment[]>;
   /** Visit id → what was recorded. */
   visits: Record<string, StoredVisitDetail>;
-  idempotency: Record<string, IdemEntry>;
+  /** Conversion keys, bound by E.0's shared helper (`idempotency.ts`; Wave 1 integration). */
+  idempotency: IdempotencyStore;
 }
 
 /** An opportunity's id and reference follow its lead's (one opportunity per lead). */

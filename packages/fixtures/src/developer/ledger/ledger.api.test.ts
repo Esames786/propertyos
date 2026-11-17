@@ -13,7 +13,7 @@ import { accountId, COLLECTION_ACCOUNT, ESCROW_ACCOUNT, OPERATING_ACCOUNT } from
  * the checker; approves, posts, closes periods, approves imports). TEST ONLY: a second legal entity (E-08) and access overrides.
  */
 const LK = 'le_larkspur';
-const acc = (code: string) => accountId('LKE', code);
+const acc = (code: string) => accountId('LSP', code);
 const JOURNAL = (date = '2026-10-24', amount = '125000.00') => ({ entityId: LK, date, memo: 'Demo accrual — security services, October (fictional)', lines: [{ accountId: acc('5200'), debit: amount }, { accountId: acc('2200'), credit: amount }] });
 
 async function refusedUnchanged(api: LedgerSession, p: () => Promise<unknown>) {
@@ -39,7 +39,7 @@ describe('Gate E.7 — positive journeys through the API', () => {
     const { api } = await world();
     const tb0 = await api.as('lsp_ledger_clerk').get<TrialBalance>('/ledger/trial-balance', { entity: LK });
     const j = await api.post<JournalView>('/ledger/journals', { ...JOURNAL(), submit: true }, { key: 'k-create' });
-    expect(j).toMatchObject({ state: 'submitted', ref: 'LKE-JV-2026-0009', balanced: true, kind: 'manual' });
+    expect(j).toMatchObject({ state: 'submitted', ref: 'LSP-JV-202610-0009', balanced: true, kind: 'manual' });
     expect(j.actions.approve).toBe(false);
     const a = await api.as('lsp_finance_controller').post<JournalView>(`/ledger/journals/${j.id}/approve`, {}, { key: 'k-approve' });
     expect(a.state).toBe('approved');
@@ -112,10 +112,10 @@ describe('Gate E.7 — positive journeys through the API', () => {
     const oct = periods.periods.find((p) => p.period === '2026-10')!;
     expect(oct.checks.find((c) => c.key === 'period_ended')!.outcome).toBe('blocking');
     expect(oct.actions.close).toBe(false);
-    expect((await refusedUnchanged(api, () => api.post('/ledger/periods/fpd_lke_202610/close', {}, { key: 'k-close' }))).code).toBe('close_blocked');
-    await api.as('lsp_ledger_clerk').post('/ledger/periods/fpd_lke_202609/reopen-request', { reason: 'Late supplier invoice (demo)' }, { key: 'k-ro' });
-    expect((await refusedUnchanged(api, () => api.as('lsp_ledger_clerk').post('/ledger/periods/fpd_lke_202609/reopen-approve', {}, { key: 'k-ro-self' }))).status).toBe(403);
-    const ok = await api.as('lsp_finance_controller').post<LedgerPeriodsView['periods'][number]>('/ledger/periods/fpd_lke_202609/reopen-approve', {}, { key: 'k-ro-ok' });
+    expect((await refusedUnchanged(api, () => api.post('/ledger/periods/fpd_lsp_202610/close', {}, { key: 'k-close' }))).code).toBe('close_blocked');
+    await api.as('lsp_ledger_clerk').post('/ledger/periods/fpd_lsp_202609/reopen-request', { reason: 'Late supplier invoice (demo)' }, { key: 'k-ro' });
+    expect((await refusedUnchanged(api, () => api.as('lsp_ledger_clerk').post('/ledger/periods/fpd_lsp_202609/reopen-approve', {}, { key: 'k-ro-self' }))).status).toBe(403);
+    const ok = await api.as('lsp_finance_controller').post<LedgerPeriodsView['periods'][number]>('/ledger/periods/fpd_lsp_202609/reopen-approve', {}, { key: 'k-ro-ok' });
     expect(ok.state).toBe('reopened');
     const late = await api.as('lsp_ledger_clerk').post<JournalView>('/ledger/journals', { ...JOURNAL('2026-09-28'), submit: true }, { key: 'k-late' });
     expect(late.state).toBe('submitted');
@@ -126,7 +126,7 @@ describe('Gate E.7 — positive journeys through the API', () => {
     const rules = await api.as('lsp_accounts').get<PostingRulesView>('/ledger/posting-rules', { entity: LK });
     expect(rules.rules).toHaveLength(5);
     expect(rules.proposedEvents).toBe(0);
-    const bills = rules.rules.find((r) => r.ref === 'LKE-PR-003')!;
+    const bills = rules.rules.find((r) => r.ref === 'LSP-PR-003')!;
     expect(bills.versionToday).toBe(1);
     const before = api.snapshot();
     const prev = await api.get<PostingRulePreview>(`/ledger/posting-rules/${bills.id}/preview`, { amount: '1000.00', version: '2' });
@@ -149,8 +149,8 @@ describe('Gate E.7 — no id oracle: unknown and out-of-scope answer alike', () 
     const { api, access, second } = await world();
     access.set(['lsp_ledger_clerk', 'lsp_finance_controller'], entitiesOnly(LK));
     const pairs: Array<[string, string, Record<string, string>?]> = [
-      [`/ledger/journals/${second.journalId}`, '/ledger/journals/jnl_lke_9999'],
-      [`/ledger/accounts/${second.accountIds.expense}`, '/ledger/accounts/gla_lke_c9999'],
+      [`/ledger/journals/${second.journalId}`, '/ledger/journals/jnl_lsp_9999'],
+      [`/ledger/accounts/${second.accountIds.expense}`, '/ledger/accounts/gla_lsp_c9999'],
       ['/ledger/trial-balance', '/ledger/trial-balance', { entity: SECOND.id }],
       ['/ledger/journals', '/ledger/journals', { entity: SECOND.id }],
       ['/ledger/periods', '/ledger/periods', { entity: SECOND.id }],
@@ -165,9 +165,9 @@ describe('Gate E.7 — no id oracle: unknown and out-of-scope answer alike', () 
     }
     // Writes naming another entity's record: the same 404 as an invented id.
     const w1 = await refusedUnchanged(api, () => api.as('lsp_finance_controller').post(`/ledger/journals/${second.journalId}/reverse`, { date: '2026-10-25', reason: 'x y z' }, { key: 'k-x1' }));
-    const w2 = await refusedUnchanged(api, () => api.as('lsp_finance_controller').post('/ledger/journals/jnl_lke_9999/reverse', { date: '2026-10-25', reason: 'x y z' }, { key: 'k-x2' }));
+    const w2 = await refusedUnchanged(api, () => api.as('lsp_finance_controller').post('/ledger/journals/jnl_lsp_9999/reverse', { date: '2026-10-25', reason: 'x y z' }, { key: 'k-x2' }));
     expect(w1).toEqual(w2);
-    const p1 = await refusedUnchanged(api, () => api.as('lsp_finance_controller').post('/ledger/periods/fpd_lgd_202610/close', {}, { key: 'k-x3' }));
+    const p1 = await refusedUnchanged(api, () => api.as('lsp_finance_controller').post('/ledger/periods/fpd_lrd_202610/close', {}, { key: 'k-x3' }));
     const p2 = await refusedUnchanged(api, () => api.as('lsp_finance_controller').post('/ledger/periods/fpd_zzz_202610/close', {}, { key: 'k-x4' }));
     expect(p1).toEqual(p2);
   });
@@ -185,7 +185,7 @@ describe('Gate E.7 — legal-entity isolation (E-08 test-only second entity)', (
     const { api, second } = await world();
     const make = (line0: Record<string, string>) => ({ ...JOURNAL(), lines: [{ accountId: acc('5200'), debit: '10.00', ...line0 }, { accountId: acc('2200'), credit: '10.00' }] });
     const cross = await refusedUnchanged(api, () => api.as('lsp_ledger_clerk').post('/ledger/journals', make({ accountId: second.accountIds.expense }), { key: 'k-c1' }));
-    const invented = await refusedUnchanged(api, () => api.post('/ledger/journals', make({ accountId: 'gla_lke_c9999' }), { key: 'k-c2' }));
+    const invented = await refusedUnchanged(api, () => api.post('/ledger/journals', make({ accountId: 'gla_lsp_c9999' }), { key: 'k-c2' }));
     expect(cross).toEqual(invented);
     expect(cross.errors['lines.0.accountId']?.[0]?.code).toBe('ledger:problems.accountUnavailable');
     const cc = await refusedUnchanged(api, () => api.post('/ledger/journals', make({ costCentreId: SECOND.cc }), { key: 'k-c3' }));
@@ -241,8 +241,8 @@ describe('Gate E.7 — maker ≠ checker by principal', () => {
     access.set(['lsp_accounts'], plus('gl.approve'));
     const draft = api.ledger().accounts.find((a) => a.code === '5500' && a.state === 'draft')!;
     expect(await refusedUnchanged(api, () => api.as('lsp_accounts').post(`/ledger/accounts/${draft.id}/approve`, {}, { key: 'k-d1' }))).toMatchObject({ code: 'maker_checker' });
-    await api.as('lsp_finance_controller').post('/ledger/periods/fpd_lke_202608/reopen-request', { reason: 'Correction needed (demo)' }, { key: 'k-d2' });
-    expect(await refusedUnchanged(api, () => api.post('/ledger/periods/fpd_lke_202608/reopen-approve', {}, { key: 'k-d3' }))).toMatchObject({ code: 'maker_checker' });
+    await api.as('lsp_finance_controller').post('/ledger/periods/fpd_lsp_202608/reopen-request', { reason: 'Correction needed (demo)' }, { key: 'k-d2' });
+    expect(await refusedUnchanged(api, () => api.post('/ledger/periods/fpd_lsp_202608/reopen-approve', {}, { key: 'k-d3' }))).toMatchObject({ code: 'maker_checker' });
   });
 });
 
@@ -251,22 +251,22 @@ describe('Gate E.7 — closed periods and immutability', () => {
     const { api } = await world();
     const r1 = await refusedUnchanged(api, () => api.as('lsp_ledger_clerk').post('/ledger/journals', JOURNAL('2026-09-15'), { key: 'k-p1' }));
     expect(r1).toMatchObject({ status: 409, code: 'period_closed' });
-    const posted = ref(api, 'LKE-JV-2026-0003');
+    const posted = ref(api, 'LSP-JV-202610-0003');
     const r2 = await refusedUnchanged(api, () => api.post(`/ledger/journals/${posted.id}/reverse`, { date: '2026-09-30', reason: 'Wrong month' }, { key: 'k-p2' }));
     expect(r2.code).toBe('period_closed');
   });
 
   it('a posted journal is never edited or cancelled; corrections are reversals (one per journal)', async () => {
     const { api } = await world();
-    const posted = ref(api, 'LKE-JV-2026-0001');
+    const posted = ref(api, 'LSP-JV-202607-0001');
     const edit = await refusedUnchanged(api, () => api.as('lsp_ledger_clerk').post(`/ledger/journals/${posted.id}/edit`, JOURNAL(), { key: 'k-i1' }));
     expect(edit).toMatchObject({ status: 409, code: 'journal_posted' });
     expect(await refusedUnchanged(api, () => api.post(`/ledger/journals/${posted.id}/cancel`, {}, { key: 'k-i2' }))).toMatchObject({ code: 'journal_posted' });
-    const reversed = ref(api, 'LKE-JV-2026-0004');
+    const reversed = ref(api, 'LSP-JV-202610-0004');
     expect(await refusedUnchanged(api, () => api.post(`/ledger/journals/${reversed.id}/reverse`, { date: '2026-10-25', reason: 'again' }, { key: 'k-i3' }))).toMatchObject({ code: 'already_reversed' });
-    const reversal = ref(api, 'LKE-JV-2026-0005');
+    const reversal = ref(api, 'LSP-JV-202610-0005');
     expect(await refusedUnchanged(api, () => api.post(`/ledger/journals/${reversal.id}/reverse`, { date: '2026-10-25', reason: 'undo' }, { key: 'k-i4' }))).toMatchObject({ code: 'reversal_not_reversible' });
-    const draft = ref(api, 'LKE-JV-2026-0008');
+    const draft = ref(api, 'LSP-JV-202610-0008');
     expect(await refusedUnchanged(api, () => api.post(`/ledger/journals/${draft.id}/reverse`, { date: '2026-10-25', reason: 'not posted' }, { key: 'k-i5' }))).toMatchObject({ code: 'not_posted' });
     // Someone else's draft is not theirs to change.
     expect(await refusedUnchanged(api, () => api.as('lsp_accounts').post(`/ledger/journals/${draft.id}/edit`, JOURNAL(), { key: 'k-i6' }))).toMatchObject({ code: 'not_maker' });
@@ -300,7 +300,7 @@ describe('Gate E.7 — bound idempotency (§4.5)', () => {
       await refusedUnchanged(api, () => api.as('lsp_ledger_clerk').post('/ledger/accounts', { entityId: LK, code: '5700', name: 'Fuel', type: 'expense' }, { key: 'k-idem' })),
       await refusedUnchanged(api, () => api.post(`/ledger/journals/${first.id}/submit`, {}, { key: 'k-idem' })),
     ];
-    for (const r of reused) expect(r).toEqual({ status: 409, code: 'idempotency_key_reused', messageKey: 'ledger:problems.keyReused', errors: {} });
+    for (const r of reused) expect(r).toEqual({ status: 409, code: 'idempotency_key_reused', messageKey: 'errors:api.idempotencyKeyReused', errors: {} });
   });
 
   it('approve, post, reverse and import replay under their key instead of acting twice', async () => {
@@ -332,13 +332,13 @@ describe('Gate E.7 — bound idempotency (§4.5)', () => {
 });
 
 describe('Gate E.7 — the bank boundary (Issue #18 rule for developers)', () => {
-  const SECRETS = [COLLECTION_ACCOUNT.iban, COLLECTION_ACCOUNT.iban.slice(-4), OPERATING_ACCOUNT.iban.slice(-4), 'LKC-261002-0001', 'Ayesha Karim', 'Omar Shafiq', 'IBFT credit', 'LKE-BIM-2026-0001', 'Demo Bank (fictional)', 'Larkspur Estates Collections (DEMO)', 'lba_lke_'];
+  const SECRETS = [COLLECTION_ACCOUNT.iban, COLLECTION_ACCOUNT.iban.slice(-4), OPERATING_ACCOUNT.iban.slice(-4), 'LKC-261002-0001', 'Ayesha Karim', 'Omar Shafiq', 'IBFT credit', 'LSP-BIM-202610-001', 'Demo Bank (fictional)', 'Larkspur Estates Collections (DEMO)', 'lba_lsp_'];
 
   it('a person without the bank permission reads no bank line, account identifier, import or derived total anywhere', async () => {
     const { api } = await world();
     api.as('lsp_ledger_clerk');
     expect((await refusal(api.get('/bank/imports'))).code).toBe('permission_missing');
-    expect((await refusal(api.get('/bank/imports/bim_lke_0001'))).code).toBe('permission_missing');
+    expect((await refusal(api.get('/bank/imports/bim_lsp_0001'))).code).toBe('permission_missing');
     const reads = [
       await api.get<ChartView>('/ledger/accounts', { entity: LK }),
       await api.get<GlAccountWorkspace>(`/ledger/accounts/${acc('1000')}`),
@@ -389,7 +389,7 @@ describe('Gate E.7 — the bank boundary (Issue #18 rule for developers)', () =>
     const list = await api.as('finance').get<BankImportsView>('/bank/imports');
     expect(list).toMatchObject({ canImport: false, canApprove: false, samples: [] });
     expect((await refusal(api.post('/bank/imports', { entityId: LK, accountId: COLLECTION_ACCOUNT.id, sample: 1 }))).code).toBe('permission_missing');
-    expect((await refusal(api.as('manager').post('/bank/imports/bim_lke_0001/approve'))).code).toBe('permission_missing');
+    expect((await refusal(api.as('manager').post('/bank/imports/bim_lsp_0001/approve'))).code).toBe('permission_missing');
     // Neither holds gl.view: the ledger is closed to them (no existing role gained a permission).
     expect((await refusal(api.as('manager').get('/ledger/journals'))).code).toBe('permission_missing');
     expect((await refusal(api.as('finance').get('/ledger/journals'))).code).toBe('permission_missing');

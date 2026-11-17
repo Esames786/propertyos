@@ -25,6 +25,7 @@ import {
 } from '@repo/contracts';
 import { forbid, matches, notFound, requires, type Handler, type HandlerContext } from '../../handler-types';
 import { bodyOf, fingerprint, idemKey, invalidField, isDate, officeOnly, orgWide, problem, queryOf, remember, replayOf, stampOf, str } from '../workspace/common';
+import type { BoundEntry } from '../../idempotency';
 import { CORE_PROVIDERS, projectAllows, resolveCore } from '../workspace/records';
 import { nextDocRef, nextTemplateRef, type DocumentsState, type StoredDocument, type StoredTemplate, type StoredVersion } from './state';
 import {
@@ -200,7 +201,7 @@ function uploadDocument(ctx: HandlerContext): DocumentCreated {
   const note = str(body.note, 400);
   if (note.length > 300) invalidField(ctx, 'note', 'documents:problems.noteLong');
   const input = { recordId, title, kind, fileName: file.fileName, mimeType: file.mimeType, sizeBytes: file.sizeBytes, checksum: fingerprint(file.content), expiresOn, note };
-  const replay = replayOf(ctx, st.idempotency, 'document.upload', recordId, input);
+  const replay = replayOf(ctx, st.idempotency, 'document.upload', recordId, input, () => resolveCore(ctx, recordId) !== null);
   if (replay) return created(ctx, replay, true);
   checkBudget(ctx, st, file.sizeBytes);
   // (7)
@@ -225,7 +226,7 @@ function addVersion(ctx: HandlerContext): DocumentCreated {
   if (note.length < 3 || note.length > 300) invalidField(ctx, 'note', 'documents:problems.versionNote');
   const expiresOn = checkExpiry(ctx, visible.doc.kind, body.expiresOn);
   const input = { fileName: file.fileName, mimeType: file.mimeType, sizeBytes: file.sizeBytes, checksum: fingerprint(file.content), note, expiresOn };
-  const replay = replayOf(ctx, st.idempotency, 'document.version', visible.doc.id, input);
+  const replay = replayOf(ctx, st.idempotency, 'document.version', visible.doc.id, input, () => !!visibleDoc(ctx, visible.doc.id, st));
   if (replay) return created(ctx, replay, true);
   checkBudget(ctx, st, file.sizeBytes);
   visible.doc.versions.push({ n: current(visible.doc).n + 1, ...file, checksum: input.checksum, uploadedAt: stampOf(ctx), uploadedBy: ctx.persona!.principalId, uploadedByName: ctx.persona!.displayName, note, expiresOn });
@@ -292,7 +293,7 @@ function createTemplate(ctx: HandlerContext): { id: string; ref: string; href: s
   const fields = checkDraft(ctx, raw);
   const target = projectId ?? 'org';
   const input = { name, category, projectId, ...fields };
-  const replay = replayOf(ctx, st.idempotency, 'template.create', target, input);
+  const replay = replayOf(ctx, st.idempotency, 'template.create', target, input, () => (projectId === null ? orgWide(ctx) : projectAllows(ctx, projectId, 'core')));
   const answer = (t: StoredTemplate, replayed: boolean) => ({ id: t.id, ref: t.ref, href: templateSummary(ctx, t).href, replayed });
   if (replay) return answer(findTemplate(ctx, st, replay), true);
   const t: StoredTemplate = {
@@ -318,12 +319,12 @@ function draftVersion(ctx: HandlerContext): TemplateDetail {
   // (same key, person and template) goes on, to be replayed (or refused as a reused key) below.
   if (t.versions.some((v) => !v.decision)) {
     const key = idemKey(ctx);
-    const e = key ? st.idempotency[key] : undefined;
+    const e = key ? (st.idempotency[key] as Partial<BoundEntry> | undefined) : undefined;
     if (!(e && e.op === 'template.version' && e.target === t.id && e.principal === ctx.persona!.principalId)) problem(ctx, 409, 'version_pending', 'documents:problems.versionPending');
   }
   // (6)
   const fields = checkDraft(ctx, bodyOf<TemplateDraftInput>(ctx));
-  const replay = replayOf(ctx, st.idempotency, 'template.version', t.id, fields);
+  const replay = replayOf(ctx, st.idempotency, 'template.version', t.id, fields, () => templateGoverned(ctx, t));
   if (replay) return templateDetail(ctx, t);
   t.versions.push({ n: t.versions.length + 1, ...fields, draftedBy: ctx.persona!.principalId, draftedByName: ctx.persona!.displayName, draftedAt: stampOf(ctx) });
   remember(ctx, st.idempotency, 'template.version', t.id, fields, t.id);

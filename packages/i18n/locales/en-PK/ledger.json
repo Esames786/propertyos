@@ -109,7 +109,8 @@
   "costCentres": {
     "head": "Head office",
     "heights": "Larkspur Heights project",
-    "gardens": "Larkspur Gardens project"
+    "gardens": "Larkspur Gardens project",
+    "sales": "Sales and marketing"
   },
   "account": {
     "title": "Account workspace",

@@ -99,7 +99,7 @@ test.describe('Gate E.7 — journals: create, approve by someone else, post, rev
     await expect(drawer(page)).toHaveAttribute('data-state', 'submitted');
     const id = recordOf(page);
     const ref = await drawer(page).getAttribute('data-ref');
-    expect(ref).toBe('LKE-JV-2026-0009');
+    expect(ref).toBe('LSP-JV-202610-0009');
     // The maker cannot approve it.
     await expect(page.getByTestId('journal-approve')).toHaveCount(0);
     await expect(page.getByTestId('journal-blocked')).toBeVisible();
@@ -133,7 +133,7 @@ test.describe('Gate E.7 — journals: create, approve by someone else, post, rev
     await page.getByTestId('reverse-reason').fill('Entered in error (demo)');
     await page.getByTestId('reverse-submit').click();
     await expect(drawer(page)).toHaveAttribute('data-state', 'submitted');
-    await expect(page.getByTestId('journal-reversal-of')).toContainText(wj('LKE-JV-2026-0009'));
+    await expect(page.getByTestId('journal-reversal-of')).toContainText(wj('LSP-JV-202610-0009'));
     const reversal = recordOf(page);
 
     await office(page, 'lsp_finance_controller', `/backoffice/acc/journal-entries?record=${reversal}`, 'journal-detail');
@@ -150,7 +150,7 @@ test.describe('Gate E.7 — journals: create, approve by someone else, post, rev
     await expect(page.getByTestId('ledger-tb')).toHaveAttribute('data-debit', '176650000.00');
     await page.goto(`${BO}/backoffice/acc/profit-and-loss`);
     await expect(page.getByTestId('ledger-pl')).toHaveAttribute('data-result', '-1650000.00');
-    await page.goto(`${BO}/backoffice/acc/account-workspace?record=gla_lke_c5200`);
+    await page.goto(`${BO}/backoffice/acc/account-workspace?record=gla_lsp_c5200`);
     await expect(page.getByTestId('account-balance')).toHaveAttribute('data-amount', '0.00');
     expect(consoleErrors).toEqual([]);
   });
@@ -168,13 +168,13 @@ test.describe('Gate E.7 — journals: create, approve by someone else, post, rev
     await expect(page.getByTestId('journal-send')).toBeDisabled();
     await expect(page.getByTestId('journal-why')).toContainText(/open month/);
     // A posted demo journal: no edit; the edit address says why.
-    await page.goto(`${BO}/backoffice/acc/create-journal?record=jnl_lke_0001`);
+    await page.goto(`${BO}/backoffice/acc/create-journal?record=jnl_lsp_0001`);
     await expect(page.getByTestId('journal-not-editable')).toBeVisible();
     await page.goto(`${BO}/backoffice/acc/posting-rules`);
     await expect(page.getByTestId('posting-rule')).toHaveCount(5);
     await expect(page.getByTestId('rule-apply').first()).toBeDisabled();
     await expect(page.getByTestId('rules-events')).toHaveAttribute('data-count', '0');
-    const bills = page.locator('[data-testid="posting-rule"][data-ref="LKE-PR-003"]');
+    const bills = page.locator('[data-testid="posting-rule"][data-ref="LSP-PR-003"]');
     await expect(bills.locator('[data-testid="rule-version"][data-today="true"]')).toHaveAttribute('data-n', '1');
     await bills.getByTestId('rule-preview-open').click();
     await page.getByTestId('rule-preview-run').click();
@@ -262,8 +262,8 @@ test.describe('Gate E.7 — access: the bank boundary and people without the led
   test('Saad (no bank permission) sees no bank line, account identifier, import or total anywhere', async ({ page, consoleErrors }) => {
     test.setTimeout(120_000);
     await start(page);
-    const secrets = [/Ayesha Karim/, /LKC-2610/, /•••• /, /Demo Bank/, /Collections \(DEMO\)/, /LKE-BIM/];
-    for (const path of ['/backoffice/acc/chart-of-accounts', '/backoffice/acc/account-workspace?record=gla_lke_c1000', '/backoffice/acc/account-workspace?record=gla_lke_c1010', '/backoffice/acc/journal-entries', '/backoffice/acc/trial-balance', '/backoffice/acc/balance-sheet', '/backoffice/acc/accounting-periods', '/backoffice/acc/posting-rules']) {
+    const secrets = [/Ayesha Karim/, /LKC-2610/, /•••• /, /Demo Bank/, /Collections \(DEMO\)/, /LSP-BIM/];
+    for (const path of ['/backoffice/acc/chart-of-accounts', '/backoffice/acc/account-workspace?record=gla_lsp_c1000', '/backoffice/acc/account-workspace?record=gla_lsp_c1010', '/backoffice/acc/journal-entries', '/backoffice/acc/trial-balance', '/backoffice/acc/balance-sheet', '/backoffice/acc/accounting-periods', '/backoffice/acc/posting-rules']) {
       await page.goto(`${BO}${path}`);
       await expect(page.locator('main h1').first()).toBeVisible();
       await expect(page.getByTestId('ledger-provisional')).toBeVisible();
@@ -280,7 +280,7 @@ test.describe('Gate E.7 — access: the bank boundary and people without the led
 
   test('Zubair (bank permission) sees the linked bank account, masked, and its unmatched lines', async ({ page, consoleErrors }) => {
     await start(page, 'lsp_finance_controller');
-    await page.goto(`${BO}/backoffice/acc/account-workspace?record=gla_lke_c1000`);
+    await page.goto(`${BO}/backoffice/acc/account-workspace?record=gla_lsp_c1000`);
     await expect(page.getByTestId('account-bank')).toContainText(/•••• /);
     await expect(page.getByTestId('account-statement-lines')).toContainText(/4 unmatched statement lines/);
     await expect(page.getByTestId('account-balance')).toHaveAttribute('data-amount', '0.00');
@@ -312,18 +312,18 @@ test.describe('Gate E.7 — access: the bank boundary and people without the led
 
 const SCREENS: Array<[string, string, string, string]> = [
   ['chart', 'lsp_ledger_clerk', '/backoffice/acc/chart-of-accounts', 'chart-accounts'],
-  ['account', 'lsp_finance_controller', '/backoffice/acc/account-workspace?record=gla_lke_c1000', 'account-workspace'],
-  ['account-lines', 'lsp_ledger_clerk', '/backoffice/acc/account-workspace?record=gla_lke_c2200', 'account-workspace'],
+  ['account', 'lsp_finance_controller', '/backoffice/acc/account-workspace?record=gla_lsp_c1000', 'account-workspace'],
+  ['account-lines', 'lsp_ledger_clerk', '/backoffice/acc/account-workspace?record=gla_lsp_c2200', 'account-workspace'],
   ['journals', 'lsp_finance_controller', '/backoffice/acc/journal-entries', 'journal-list'],
-  ['journal-drawer', 'lsp_finance_controller', '/backoffice/acc/journal-entries?record=jnl_lke_0007', 'journal-detail'],
+  ['journal-drawer', 'lsp_finance_controller', '/backoffice/acc/journal-entries?record=jnl_lsp_0007', 'journal-detail'],
   ['create', 'lsp_ledger_clerk', '/backoffice/acc/create-journal', 'journal-form'],
-  ['reverse', 'lsp_ledger_clerk', '/backoffice/acc/reverse-journal?record=jnl_lke_0003', 'reverse-form'],
+  ['reverse', 'lsp_ledger_clerk', '/backoffice/acc/reverse-journal?record=jnl_lsp_0003', 'reverse-form'],
   ['trial-balance', 'lsp_ledger_clerk', '/backoffice/acc/trial-balance', 'ledger-tb'],
   ['profit-and-loss', 'lsp_ledger_clerk', '/backoffice/acc/profit-and-loss', 'ledger-pl'],
   ['balance-sheet', 'lsp_ledger_clerk', '/backoffice/acc/balance-sheet', 'ledger-bs'],
   ['periods', 'lsp_finance_controller', '/backoffice/acc/accounting-periods', 'ledger-periods'],
   ['rules', 'lsp_ledger_clerk', '/backoffice/acc/posting-rules', 'ledger-rules'],
-  ['bank-import', 'lsp_accounts', '/backoffice/bank/bank-import?record=bim_lke_0001', 'bank-import-detail'],
+  ['bank-import', 'lsp_accounts', '/backoffice/bank/bank-import?record=bim_lsp_0001', 'bank-import-detail'],
 ];
 
 const lang = (locale: Locale) => (locale === 'ur-PK' ? 'ur' : 'en');
@@ -413,10 +413,10 @@ test('keyboard only: a journal opens from the list, and the ledger controls draw
   test.setTimeout(120_000);
   await start(page, 'lsp_finance_controller');
   await page.goto(`${BO}/backoffice/acc/journal-entries`);
-  const row = page.locator('[data-testid="journal-row"][data-ref="LKE-JV-2026-0007"] a');
+  const row = page.locator('[data-testid="journal-row"][data-ref="LSP-JV-202610-0007"] a');
   await keyboardFocus(page, row);
   await page.keyboard.press('Enter');
-  await expect(drawer(page)).toHaveAttribute('data-ref', 'LKE-JV-2026-0007');
+  await expect(drawer(page)).toHaveAttribute('data-ref', 'LSP-JV-202610-0007');
   await expect(page.getByTestId('journal-approve')).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(drawer(page)).toHaveCount(0);

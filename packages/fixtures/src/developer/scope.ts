@@ -82,6 +82,15 @@ export function costCentreVisible(ctx: HandlerContext, state: DeveloperState, co
 export const visibleProjectIds = (ctx: HandlerContext, need: ScopeNeed) => ctx.data.projects.filter((p) => projectVisible(ctx, p.id, need)).map((p) => p.id);
 export const visibleEntityIds = (ctx: HandlerContext, need: ScopeNeed) => [...new Set(ctx.data.projects.map((p) => p.legalEntityId))].filter((id) => entityVisible(ctx, id, need));
 
+/**
+ * Wave 1 integration (Issue #25), an extension of this module: the person's data scope is the whole
+ * organisation (every scope is `all`, and their own project scope too). Needed to create or govern a record
+ * that no narrower scope can name: a new project (E.2), an organisation-wide template or policy (E.13). It
+ * replaces E.2's `organisationWide` and E.13's `orgWide`, which asked the same question two ways.
+ */
+export const organisationWhole = (ctx: HandlerContext): boolean =>
+  !!ctx.access && ctx.access.scopes.length > 0 && ctx.access.scopes.every((s) => s.type === 'all') && ctx.persona?.projectScope === 'all';
+
 /** An id named in a request: out of scope answers exactly like never issued (404 `not_found`). */
 export function requireProject(ctx: HandlerContext, projectId: string | undefined, need: ScopeNeed): string {
   if (!projectId || !projectVisible(ctx, projectId, need)) notFound(ctx);

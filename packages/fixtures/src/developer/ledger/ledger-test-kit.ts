@@ -1,6 +1,8 @@
 import { ApiError, type EffectiveAccess, type Permission, type Persona } from '@repo/contracts';
 import { pkt } from '../../hr/state';
+import { datasetFor } from '../../datasets';
 import { DemoStore } from '../../demo-store';
+import { multiEntityDataset, RIVERSIDE, SECOND_ENTITY, SECOND_ENTITY_PROFILE } from '../multientity.fixture';
 import { MockTransport } from '../../mock-transport';
 import { ALL_PERSONAS } from '../../people';
 import { effectiveAccessFor } from '../../tenant-directory';
@@ -44,7 +46,12 @@ export function changing(): { accessFor: AccessFor; set: (personaIds: readonly s
   };
 }
 
-export const SECOND = { id: 'le_lk_test2', code: 'LGD', name: 'Larkspur Gardens Development (Pvt) Ltd (Test only)', bank: 'lba_lgd_test', iban: 'PK00TEST0000000000002222', cc: 'cc_lgd_test', journalMemo: 'Test-only second entity accrual' };
+/**
+ * E-08: the test-only second legal entity is E.0's (`developer/multientity.fixture.ts`: entity le_lsp_two_demo,
+ * code LRD, with its project Larkspur Riverside and that project's cost centre), so E.0's scope helpers see it
+ * exactly as they see Larkspur's own entity. The ledger adds its chart, a bank account and a posted journal.
+ */
+export const SECOND = { id: SECOND_ENTITY, code: SECOND_ENTITY_PROFILE.code, name: SECOND_ENTITY_PROFILE.name, bank: 'lba_lrd_test', iban: 'PK00TEST0000000000002222', cc: `cc_${RIVERSIDE.id.replace(/^prj_/, '')}`, journalMemo: 'Test-only second entity accrual' };
 
 /** E-08: a second legal entity for isolation tests (test only), with a posted journal and a bank account. */
 export function addSecondEntity(s: LedgerState): { journalId: string; accountIds: { expense: string; accrued: string; cash: string } } {
@@ -52,7 +59,7 @@ export function addSecondEntity(s: LedgerState): { journalId: string; accountIds
     at: pkt('2026-07-01', '09:00'),
     by: FAIZA,
     approver: ZUBAIR,
-    costCentres: [{ id: SECOND.cc, code: 'TG', labelKey: 'ledger:costCentres.gardens' }],
+    costCentres: [{ id: SECOND.cc, code: `${SECOND.code}-${RIVERSIDE.ref}`, labelKey: 'ledger:costCentres.gardens', projectId: RIVERSIDE.id }],
     banks: [{ id: SECOND.bank, entityId: SECOND.id, name: 'Test-only second entity account', bankName: 'Demo Bank (fictional)', iban: SECOND.iban, verified: true, glAccountId: accountId(SECOND.code, '1000') }],
   });
   const n = normaliseJournal(s, SECOND.id, { date: '2026-10-10', memo: SECOND.journalMemo, lines: [{ accountId: accountId(SECOND.code, '5300'), debit: '777777.77', costCentreId: SECOND.cc }, { accountId: accountId(SECOND.code, '2200'), credit: '777777.77' }] }, LEDGER_TODAY);
@@ -61,8 +68,8 @@ export function addSecondEntity(s: LedgerState): { journalId: string; accountIds
   approveJournal(j, ZUBAIR, pkt('2026-10-10', '11:00'));
   postJournal(s, j, ZUBAIR, pkt('2026-10-10', '11:01'));
   s.lines.push({
-    id: 'bsl_lgd_test_0001',
-    statementId: 'bim_lgd_test',
+    id: 'bsl_lrd_test_0001',
+    statementId: 'bim_lrd_test',
     beneficiaryId: SECOND.bank,
     legalEntityId: SECOND.id,
     accountIban: SECOND.iban,
@@ -83,7 +90,8 @@ export function addSecondEntity(s: LedgerState): { journalId: string; accountIds
 export function ledgerSession(options: { accessFor?: AccessFor; personas?: readonly Persona[] } = {}) {
   const demo = new DemoStore(memory());
   let personaId: string | null = 'lsp_ledger_clerk';
-  const t = new MockTransport({ getContext: () => ({ personaId, projectId: 'all' }), getMode: () => 'fast', demo, ...(options.accessFor ? { accessFor: options.accessFor } : {}), ...(options.personas ? { personas: [...ALL_PERSONAS, ...options.personas] } : {}) });
+  // Larkspur with E.0's test-only Riverside project of the second entity (E-08); other organisations as in the demo.
+  const t = new MockTransport({ getContext: () => ({ personaId, projectId: 'all' }), getMode: () => 'fast', demo, datasetFor: (id) => (id === 'tnt_larkspur' ? multiEntityDataset() : datasetFor(id)), ...(options.accessFor ? { accessFor: options.accessFor } : {}), ...(options.personas ? { personas: [...ALL_PERSONAS, ...options.personas] } : {}) });
   const api = {
     as(id: string | null) {
       personaId = id;

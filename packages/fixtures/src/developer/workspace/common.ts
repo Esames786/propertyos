@@ -1,13 +1,14 @@
 import { ApiError } from '@repo/contracts';
 import type { HandlerContext } from '../../handler-types';
 import { notFound } from '../../handler-types';
+import { remember as rememberBound, replayOf as replayBound, requestKey, type IdempotencyStore } from '../../idempotency';
 import { fingerprint } from '../../society/import';
+import { organisationWhole } from '../scope';
 
 /**
- * Gate E.13 module-local helpers (provisional; replace with the E.0 shared helpers at integration:
- * `packages/fixtures/src/idempotency.ts`, `projection.ts`, `developer/scope.ts`). They follow the
- * accepted patterns: S.1/S.2b `replayOf`/`remember` (Issue #16 P0-2, #18, #21) and the uniform
- * "not found" of S.2a/S.2b (an unknown id and a hidden one answer the same).
+ * Gate E.13 shared bits of the workspace and documents handlers. Wave 1 integration (Issue #25): bound
+ * idempotency is E.0's `idempotency.ts` and the whole-organisation rule E.0's `developer/scope.ts` (below);
+ * the uniform "not found" of S.2a/S.2b (an unknown id and a hidden one answer the same) stays.
  */
 
 export const bodyOf = <T>(ctx: HandlerContext) => (ctx.req.body ?? {}) as Partial<T>;
@@ -35,44 +36,26 @@ export const isDate = (d: unknown): d is string => typeof d === 'string' && DATE
 export const addDays = (date: string, n: number) => new Date(Date.parse(`${date.slice(0, 10)}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
 export const daysBetween = (from: string, to: string) => Math.round((Date.parse(`${to.slice(0, 10)}T00:00:00Z`) - Date.parse(`${from.slice(0, 10)}T00:00:00Z`)) / 86_400_000);
 
-/** Whether the reader's data scope is the whole organisation (needed to act on organisation-wide records). */
-export const orgWide = (ctx: HandlerContext) => !!ctx.access && ctx.access.scopes.length > 0 && ctx.access.scopes.every((s) => s.type === 'all') && ctx.persona?.projectScope === 'all';
+/** Whether the reader's data scope is the whole organisation: E.0's `organisationWhole` (Wave 1 integration). */
+export const orgWide = organisationWhole;
 
 // ---------------------------------------------------------------------------------------------
-// Bound idempotency (Issue #16 P0-2 / #18 / #21 pattern; module-local until E.0's helper lands)
+// Bound idempotency: E.0's shared helper (`idempotency.ts`) since the Wave 1 integration (Issue #25)
 // ---------------------------------------------------------------------------------------------
-export interface BoundKey {
-  op: string;
-  principal: string;
-  target: string;
-  fingerprint: string;
-  recordId: string;
+// E.13's own copy (key reader, fingerprint, entries) is gone; these adapters keep E.13's call shape. A key is
+// bound to the operation, organisation, principal, target and normalised input; any other reuse is the one
+// non-disclosing 409; a replay by someone who has lost authority over the target is 404.
+
+/** The request's key (E.0's `requestKey`: the transport's key, else the body's). */
+export const idemKey = (ctx: HandlerContext): string | undefined => requestKey(ctx);
+
+/** The record an identical earlier request created, or undefined (a new create). Callers re-read it through their scoped finder. */
+export function replayOf(ctx: HandlerContext, store: IdempotencyStore, op: string, target: string, input: unknown, stillAuthorized: () => boolean): string | undefined {
+  return replayBound(ctx, store, { op, target, input, stillAuthorized });
 }
 
-export const idemKey = (ctx: HandlerContext): string | undefined => str(bodyOf<{ idempotencyKey: string }>(ctx).idempotencyKey, 80) || str(ctx.req.idempotencyKey, 80) || undefined;
-const inputPrint = (input: unknown) => fingerprint(JSON.stringify(input) ?? '');
-
-/**
- * The record an identical earlier request created, or undefined (a new create). The key replays only
- * the same operation, by the same person, on the same target, with the same input; any other reuse is
- * refused with one answer that says nothing about what the key was used for, and nothing changes.
- * Callers re-check their authority over the target before calling this, and look the recorded result
- * up again through their own scoped finder.
- */
-export function replayOf(ctx: HandlerContext, store: Record<string, BoundKey>, op: string, target: string, input: unknown): string | undefined {
-  const key = idemKey(ctx);
-  if (!key) return undefined;
-  const e = store[key];
-  if (!e) return undefined;
-  if (e.op !== op || e.principal !== ctx.persona?.principalId || e.target !== target || e.fingerprint !== inputPrint(input)) {
-    problem(ctx, 409, 'idempotency_key_reused', 'documents:problems.idempotencyKeyReused');
-  }
-  return e.recordId;
-}
-
-export function remember(ctx: HandlerContext, store: Record<string, BoundKey>, op: string, target: string, input: unknown, recordId: string): void {
-  const key = idemKey(ctx);
-  if (key) store[key] = { op, principal: ctx.persona!.principalId, target, fingerprint: inputPrint(input), recordId };
+export function remember(ctx: HandlerContext, store: IdempotencyStore, op: string, target: string, input: unknown, recordId: string): void {
+  rememberBound(ctx, store, { op, target, input }, recordId);
 }
 
 export { fingerprint };

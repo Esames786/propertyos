@@ -1,13 +1,15 @@
 import { ApiError, type Permission } from '@repo/contracts';
-import { decideRecord, type HandlerContext } from '../../handler-types';
-import { fingerprint } from '../../society/import';
+import type { HandlerContext } from '../../handler-types';
+import { keyReused, remember, replayOf } from '../../idempotency';
+import { entityWhole } from '../scope';
 import type { LedgerState, StoredEntity } from './state';
 
 /**
- * Gate E.7 module-local helpers. **Replace with the E.0 helpers at integration**:
- * - entity scope → `developer/scope.ts` (`entityVisible` / `entityWhole`);
- * - bound idempotency → `packages/fixtures/src/idempotency.ts` (§4.5);
- * - the bank boundary follows S.1's `seesBankFeed` (Issue #18), per legal entity.
+ * Gate E.7 helpers on E.0's canonical ones (Wave 1 integration, Issue #25):
+ * - entity scope: `developer/scope.ts` `entityWhole` (the ledger is entity-wide; a reader whose scope does not
+ *   cover the whole entity reaches none of its ledger, so no partial view can total another project's money);
+ * - bound idempotency: `packages/fixtures/src/idempotency.ts` (§4.5);
+ * - the bank boundary follows S.1's `seesBankFeed` (Issue #18), per legal entity, on `entityWhole` too.
  */
 
 /**
@@ -16,10 +18,10 @@ import type { LedgerState, StoredEntity } from './state';
  * ledger is entity-wide (plan §4.1), so a partial view could total another project's money.
  */
 export function entitiesFor(ctx: HandlerContext, st: LedgerState, module: 'accounting' | 'banking', permission: Permission): StoredEntity[] {
-  return st.entities.filter((e) => decideRecord(ctx, module, { legalEntityId: e.id }, permission).allowed);
+  return st.entities.filter((e) => entityWhole(ctx, e.id, { module, permission }));
 }
 
-export const mayUse = (ctx: HandlerContext, module: 'accounting' | 'banking', entityId: string, permission: Permission) => decideRecord(ctx, module, { legalEntityId: entityId }, permission).allowed;
+export const mayUse = (ctx: HandlerContext, module: 'accounting' | 'banking', entityId: string, permission: Permission) => entityWhole(ctx, entityId, { module, permission });
 
 /** Not found, exactly as for an id never issued (no oracle). */
 export function hidden(ctx: HandlerContext): never {
@@ -43,47 +45,31 @@ export function entityOf(ctx: HandlerContext, st: LedgerState, requested: unknow
  * derived from them reach only holders of `bank.view` or `bank.reconcile`, for that entity.
  */
 export const seesBank = (ctx: HandlerContext, entityId: string): boolean =>
-  decideRecord({ ...ctx, suspension: 'history_read' }, 'banking', { legalEntityId: entityId }, 'bank.view').allowed ||
-  decideRecord({ ...ctx, suspension: 'history_read' }, 'banking', { legalEntityId: entityId }, 'bank.reconcile').allowed;
+  entityWhole({ ...ctx, suspension: 'history_read' }, entityId, { module: 'banking', permission: 'bank.view' }) ||
+  entityWhole({ ...ctx, suspension: 'history_read' }, entityId, { module: 'banking', permission: 'bank.reconcile' });
 
 /** "•••• 7890": the last four characters only. */
 export const maskIban = (iban: string) => `•••• ${iban.replace(/\s/g, '').slice(-4)}`;
 
 // ---------------------------------------------------------------------------------------------
-// Bound idempotency (§4.5): operation, principal, target and the normalised input
+// Bound idempotency (§4.5): E.0's shared helper since the Wave 1 integration (Issue #25)
 // ---------------------------------------------------------------------------------------------
+// E.7's copy (key reader, fingerprint, `key → entry` map) is gone. A key is bound to the operation, the
+// organisation, the principal, the target and the normalised input; any other reuse is the one non-disclosing
+// 409 (`keyReused`); a replay re-reads the record through the caller's scoped lookup.
 
-const body = (ctx: HandlerContext) => (ctx.req.body ?? {}) as Record<string, unknown>;
-
-/** The request's key: the body's `idempotencyKey` (as useKeyedCreate sends it), else the request's own. */
-export function idemKey(ctx: HandlerContext): string | undefined {
-  const b = body(ctx).idempotencyKey;
-  const k = (typeof b === 'string' && b.trim() ? b.trim() : ctx.req.idempotencyKey ?? '').slice(0, 80);
-  return k || undefined;
-}
-
-const print = (input: unknown) => fingerprint(JSON.stringify(input, (_k, v: unknown) => (typeof v === 'bigint' ? v.toString() : v)) ?? '');
-
-export function keyReused(ctx: HandlerContext): never {
-  throw new ApiError({ status: 409, code: 'idempotency_key_reused', messageKey: 'ledger:problems.keyReused', correlationId: ctx.correlationId, changed: false });
-}
+export { keyReused };
 
 /**
- * Call after the authority checks and before the state checks. With a key already used, only the same
- * operation by the same person on the same target with the same normalised input replays (the caller
- * re-reads the record through its scoped lookup); anything else is a non-disclosing 409 and changes
- * nothing. `remember` is called only after the change succeeded (a refusal binds no key).
+ * The target was resolved through E.7's scoped finders before the key is read (`entityOf`, `journalOf`,
+ * `importOf`, `periodOf`, `ruleOf`: a hidden target is already 404), so authority over it is current; E.0's
+ * `replayOf` asks again and gets the same answer. (E.7's mutation run found "replay skips the scope re-check"
+ * equivalent for this reason.)
  */
+const RESOLVED_IN_SCOPE = () => true;
+
+/** Call after the authority checks and before the state checks; `remember` only after the change succeeded. */
 export function bound(ctx: HandlerContext, st: LedgerState, op: string, target: string, input: unknown): { replay?: string; remember: (id: string) => void } {
-  const key = idemKey(ctx);
-  const fp = print(input);
-  const principal = ctx.persona?.principalId ?? '';
-  if (key) {
-    const e = st.idempotency[key];
-    if (e) {
-      if (e.op === op && e.principal === principal && e.target === target && e.fp === fp) return { replay: e.id, remember: () => {} };
-      keyReused(ctx);
-    }
-  }
-  return { remember: (id) => void (key ? (st.idempotency[key] = { op, principal, target, fp, id }) : undefined) };
+  const replay = replayOf(ctx, st.idempotency, { op, target, input, stillAuthorized: RESOLVED_IN_SCOPE });
+  return { ...(replay ? { replay } : {}), remember: (id) => remember(ctx, st.idempotency, { op, target, input }, id) };
 }

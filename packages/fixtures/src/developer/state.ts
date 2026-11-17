@@ -12,6 +12,7 @@ import {
 } from '@repo/contracts';
 import type { TenantDataset } from '../dataset-types';
 import type { HandlerContext } from '../handler-types';
+import { DEMO_COLLECTION_ACCOUNT } from '../records';
 import { formatRef } from '../society/numbering';
 import { directoryTenant } from '../tenant-directory';
 
@@ -46,7 +47,9 @@ export interface EntityProfile {
 }
 
 export const ENTITY_PROFILES: Readonly<Record<string, EntityProfile>> = {
-  le_larkspur: { name: directoryTenant('tnt_larkspur')?.legalName ?? 'Larkspur Estates (Pvt) Ltd (Demo)', code: 'LSP', registration: 'DEMO-REG-LSP-0001', accountLast4: '4021' },
+  // Wave 1 integration (Issue #25): the collection account is the one the buyer portal shows and E.7 imports
+  // statements for (records.ts DEMO_COLLECTION_ACCOUNT), so its last four digits are that account's.
+  le_larkspur: { name: directoryTenant('tnt_larkspur')?.legalName ?? 'Larkspur Estates (Pvt) Ltd (Demo)', code: 'LSP', registration: 'DEMO-REG-LSP-0001', accountLast4: DEMO_COLLECTION_ACCOUNT.iban.replace(/\s/g, '').slice(-4) },
   le_crescent: { name: directoryTenant('tnt_crescent')?.legalName ?? 'Crescent Bay Developers (Pvt) Ltd (Demo)', code: 'CBD', registration: 'DEMO-REG-CBD-0001', accountLast4: '7310' },
 };
 

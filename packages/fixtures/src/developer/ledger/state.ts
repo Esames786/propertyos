@@ -1,6 +1,8 @@
 import type { BankImportRow, BankImportState, BankLine, FiscalPeriod, GlAccountLock, GlAccountState, GlAccountType, JournalKind, JournalState, LedgerEvent, PostingDecision, PostingEvent } from '@repo/contracts';
 import { buildIban } from '@repo/i18n/format';
+import type { DeveloperState } from '@repo/contracts';
 import type { HandlerContext } from '../../handler-types';
+import { developerState, ENTITY_PROFILES } from '../state';
 import { pkt } from '../../hr/state';
 import { DEMO_COLLECTION_ACCOUNT } from '../../records';
 import { addJournal, approveAccount, approveImport, approveJournal, closePeriod, createImport, draftAccount, normaliseJournal, postJournal, reverseJournal, submitImport, submitJournal, type Actor, type RawJournal } from './engine';
@@ -10,11 +12,10 @@ import { priorStatement } from './samples';
  * Gate E.7 ledger and bank-import records of one organisation (one state per tenant, in its demo
  * partition; reset by "Reset demo"). Everything is fictional money for Larkspur Estates (Demo).
  *
- * **Replace with E.0 developer state at integration** (`packages/fixtures/src/developer/state.ts`,
- * decision E-37): the legal entities, cost centres and bank accounts below are a module-local,
- * read-only seed ("configured by administration"); Gate G owns their screens. They reuse the existing
- * developer fixtures: the legal entity `le_larkspur` of both Larkspur projects and the collection account
- * the buyer portal shows (`DEMO_COLLECTION_ACCOUNT`).
+ * **E.0 developer state** (Wave 1 integration, decision E-37): the legal entity, its code and its cost centres
+ * are E.0's read-only administration data (`developer/state.ts`), and the verified collection account is E.0's
+ * too (the one the buyer portal shows, `DEMO_COLLECTION_ACCOUNT`); the ledger adds its fiscal year, its chart and
+ * its operating and escrow accounts.
  *
  * The demo ledger is entered through the journal path (`normaliseJournal` → `addJournal` → submit →
  * approve by another person → post by another person), by the fictional accounts officer and finance
@@ -23,9 +24,10 @@ import { priorStatement } from './samples';
  * payment or a bank line, and none touches cash at bank (E-17: cash lines only from confirmed payments
  * or settlement confirmations, which do not exist in this gate).
  */
-// 1: Gate E.7 (Wave 1, provisional).
-export const LEDGER_STATE_VERSION = 1;
-export const LEDGER_SECTION = 'ledger-e7';
+// 1: Gate E.7 (Wave 1, provisional). 2: Wave 1 integration (E.0's entity, code, cost centres, numbering and keys).
+export const LEDGER_STATE_VERSION = 2;
+// E.0's convention: an area's own records live in the section `developer.<area>`.
+export const LEDGER_SECTION = 'developer.ledger';
 
 export interface StoredEntity {
   id: string;
@@ -236,9 +238,14 @@ export const BOOKS_FROM = '2026-07';
 /** The demo's business date (fixtures are frozen in time). */
 export const LEDGER_TODAY = '2026-10-26';
 
-export const COLLECTION_ACCOUNT = { id: 'lba_lke_collect', iban: DEMO_COLLECTION_ACCOUNT.iban };
-export const OPERATING_ACCOUNT = { id: 'lba_lke_operating', iban: buildIban('PK', 'DEMO0000009876543210') };
-export const ESCROW_ACCOUNT = { id: 'lba_lke_escrow', iban: buildIban('PK', 'DEMO0000005550001111') };
+/**
+ * The verified collection account is E.0's (developer state `collectionAccounts`, id `dca_lsp_01`, masked to the
+ * same last four digits): one account, the one the buyer portal shows. The operating and escrow accounts are the
+ * ledger's own (E.0 seeds collection accounts only).
+ */
+export const COLLECTION_ACCOUNT = { id: 'dca_lsp_01', iban: DEMO_COLLECTION_ACCOUNT.iban };
+export const OPERATING_ACCOUNT = { id: 'lba_lsp_operating', iban: buildIban('PK', 'DEMO0000009876543210') };
+export const ESCROW_ACCOUNT = { id: 'lba_lsp_escrow', iban: buildIban('PK', 'DEMO0000005550001111') };
 
 /** The illustrative chart (E-16: "illustrative, not a statutory chart"), codes by type. */
 const CHART: ReadonlyArray<[code: string, name: string, type: GlAccountType, lock?: GlAccountLock]> = [
@@ -306,35 +313,41 @@ function journal(s: LedgerState, entityId: string, raw: RawJournal, day: string,
   return j;
 }
 
-const L = (code: string, debit: string, credit: string, extra: { memo?: string; costCentreId?: string } = {}) => ({ accountId: accountId('LKE', code), debit, credit, ...extra });
+/** Larkspur's entity code: E.0's developer state (read-only administration data, E-37). */
+const LSP = ENTITY_PROFILES.le_larkspur!.code;
+const L = (code: string, debit: string, credit: string, extra: { memo?: string; costCentreId?: string } = {}) => ({ accountId: accountId(LSP, code), debit, credit, ...extra });
 
-export function seedLarkspur(s: LedgerState): void {
+/** The ledger's label of each of E.0's cost centres (EN and UR in ledger.json). */
+const COST_CENTRE_LABEL: Readonly<Record<string, string>> = { head_office: 'ledger:costCentres.head', sales: 'ledger:costCentres.sales', prj_heights: 'ledger:costCentres.heights', prj_gardens: 'ledger:costCentres.gardens' };
+
+export function seedLarkspur(s: LedgerState, dev: DeveloperState): void {
   const chartAt = pkt('2026-07-01', '09:00');
-  seedEntity(s, { id: LARKSPUR_ENTITY, name: 'Larkspur Estates (Pvt) Ltd (Demo)', code: 'LKE', fiscalYearStartMonth: 7, booksFrom: BOOKS_FROM }, {
+  // Wave 1 integration: the entity and its cost centres are E.0's (ids, codes and name); the ledger adds its
+  // fiscal year and first month of books.
+  const entity = dev.legalEntities.find((e) => e.id === LARKSPUR_ENTITY)!;
+  seedEntity(s, { id: entity.id, name: entity.name, code: entity.code, fiscalYearStartMonth: 7, booksFrom: BOOKS_FROM }, {
     at: chartAt,
     by: FAIZA,
     approver: ZUBAIR,
-    costCentres: [
-      { id: 'cc_lke_head', code: 'HO', labelKey: 'ledger:costCentres.head' },
-      { id: 'cc_lke_heights', code: 'LH', labelKey: 'ledger:costCentres.heights', projectId: 'prj_heights' },
-      { id: 'cc_lke_gardens', code: 'LG', labelKey: 'ledger:costCentres.gardens', projectId: 'prj_gardens' },
-    ],
+    costCentres: dev.costCentres
+      .filter((c) => c.legalEntityId === entity.id && COST_CENTRE_LABEL[c.projectId ?? c.kind])
+      .map((c) => ({ id: c.id, code: c.code, labelKey: COST_CENTRE_LABEL[c.projectId ?? c.kind]!, ...(c.projectId ? { projectId: c.projectId } : {}) })),
     banks: [
-      { id: COLLECTION_ACCOUNT.id, entityId: LARKSPUR_ENTITY, name: DEMO_COLLECTION_ACCOUNT.accountTitle, bankName: DEMO_COLLECTION_ACCOUNT.bankName, iban: COLLECTION_ACCOUNT.iban, verified: true, glAccountId: accountId('LKE', '1000') },
-      { id: OPERATING_ACCOUNT.id, entityId: LARKSPUR_ENTITY, name: 'Larkspur Estates Operating (DEMO)', bankName: 'Demo Bank (fictional)', iban: OPERATING_ACCOUNT.iban, verified: true, glAccountId: accountId('LKE', '1010') },
+      { id: COLLECTION_ACCOUNT.id, entityId: LARKSPUR_ENTITY, name: DEMO_COLLECTION_ACCOUNT.accountTitle, bankName: DEMO_COLLECTION_ACCOUNT.bankName, iban: COLLECTION_ACCOUNT.iban, verified: true, glAccountId: accountId(LSP, '1000') },
+      { id: OPERATING_ACCOUNT.id, entityId: LARKSPUR_ENTITY, name: 'Larkspur Estates Operating (DEMO)', bankName: 'Demo Bank (fictional)', iban: OPERATING_ACCOUNT.iban, verified: true, glAccountId: accountId(LSP, '1010') },
       { id: ESCROW_ACCOUNT.id, entityId: LARKSPUR_ENTITY, name: 'Larkspur Gardens Escrow (DEMO)', bankName: 'Demo Bank (fictional)', iban: ESCROW_ACCOUNT.iban, verified: false },
     ],
   });
 
   // Posting rules: proposed only (E-15…E-17 need an accounting adviser). Version 1 from the start of the books.
   const rule = (n: number, event: PostingEvent, sourceSlice: StoredRule['sourceSlice'], blockedBy: PostingDecision[], dr: string, cr: string): StoredRule => ({
-    id: `prl_lke_${String(n).padStart(3, '0')}`,
-    ref: `LKE-PR-${String(n).padStart(3, '0')}`,
+    id: `prl_${LSP.toLowerCase()}_${String(n).padStart(3, '0')}`,
+    ref: `${LSP}-PR-${String(n).padStart(3, '0')}`,
     entityId: LARKSPUR_ENTITY,
     event,
     sourceSlice,
     blockedBy,
-    versions: [{ n: 1, effectiveFrom: '2026-07-01', debitAccountId: accountId('LKE', dr), creditAccountId: accountId('LKE', cr), draftedBy: FAIZA.by, draftedByName: FAIZA.byName, draftedAt: pkt('2026-07-01', '09:30') }],
+    versions: [{ n: 1, effectiveFrom: '2026-07-01', debitAccountId: accountId(LSP, dr), creditAccountId: accountId(LSP, cr), draftedBy: FAIZA.by, draftedByName: FAIZA.byName, draftedAt: pkt('2026-07-01', '09:30') }],
     history: [{ at: pkt('2026-07-01', '09:30'), by: FAIZA.by, byName: FAIZA.byName, action: 'rule_proposed' }],
   });
   s.rules.push(
@@ -347,7 +360,7 @@ export function seedLarkspur(s: LedgerState): void {
   s.counters['le_larkspur:rule'] = 5;
   // A second, later version of the supplier-bill rule (versions apply by effective date).
   const bills = s.rules[2]!;
-  bills.versions.push({ n: 2, effectiveFrom: '2026-11-01', debitAccountId: accountId('LKE', '5100'), creditAccountId: accountId('LKE', '2000'), draftedBy: FAIZA.by, draftedByName: FAIZA.byName, draftedAt: pkt('2026-10-19', '12:10'), note: 'Bills of the head office go to office expenses from November (proposed).' });
+  bills.versions.push({ n: 2, effectiveFrom: '2026-11-01', debitAccountId: accountId(LSP, '5100'), creditAccountId: accountId(LSP, '2000'), draftedBy: FAIZA.by, draftedByName: FAIZA.byName, draftedAt: pkt('2026-10-19', '12:10'), note: 'Bills of the head office go to office expenses from November (proposed).' });
   bills.history.push({ at: pkt('2026-10-19', '12:10'), by: FAIZA.by, byName: FAIZA.byName, action: 'rule_version_drafted', values: { version: '2', from: '2026-11-01' } });
 
   // July: opening balances (no cash: cash at bank changes only on evidence).
@@ -355,9 +368,9 @@ export function seedLarkspur(s: LedgerState): void {
     date: '2026-07-01',
     memo: 'Demo opening balances (fictional)',
     lines: [
-      L('1300', '120000000.00', '', { memo: 'Land held for development', costCentreId: 'cc_lke_gardens' }),
-      L('1310', '45000000.00', '', { memo: 'Larkspur Heights works to date', costCentreId: 'cc_lke_heights' }),
-      L('1200', '10000000.00', '', { costCentreId: 'cc_lke_heights' }),
+      L('1300', '120000000.00', '', { memo: 'Land held for development', costCentreId: 'cc_gardens' }),
+      L('1310', '45000000.00', '', { memo: 'Larkspur Heights works to date', costCentreId: 'cc_heights' }),
+      L('1200', '10000000.00', '', { costCentreId: 'cc_heights' }),
       L('3000', '', '150000000.00'),
       L('3100', '', '10000000.00'),
       L('2000', '', '15000000.00'),
@@ -368,7 +381,7 @@ export function seedLarkspur(s: LedgerState): void {
   const charges = draftAccount(s, { entityId: LARKSPUR_ENTITY, code: '5400', name: 'Bank charges', type: 'expense' }, FAIZA, pkt('2026-09-08', '11:00'));
   approveAccount(s, charges, ZUBAIR, pkt('2026-09-09', '10:20'));
 
-  journal(s, LARKSPUR_ENTITY, { date: '2026-09-20', memo: 'Demo accrual — consultant fees, September (fictional)', lines: [L('5300', '1200000.00', '', { costCentreId: 'cc_lke_head' }), L('2200', '', '1200000.00')] }, '2026-09-20', 'posted');
+  journal(s, LARKSPUR_ENTITY, { date: '2026-09-20', memo: 'Demo accrual — consultant fees, September (fictional)', lines: [L('5300', '1200000.00', '', { costCentreId: 'cc_lsp_hq' }), L('2200', '', '1200000.00')] }, '2026-09-20', 'posted');
 
   // The first three months are closed (no posting in them any more).
   closePeriod(s, LARKSPUR_ENTITY, '2026-07', ZUBAIR, pkt('2026-08-04', '17:00'));
@@ -376,14 +389,14 @@ export function seedLarkspur(s: LedgerState): void {
   closePeriod(s, LARKSPUR_ENTITY, '2026-09', ZUBAIR, pkt('2026-10-05', '17:00'));
 
   // October (open).
-  journal(s, LARKSPUR_ENTITY, { date: '2026-10-05', memo: 'Demo accrual — October office rent (fictional)', lines: [L('5100', '450000.00', '', { costCentreId: 'cc_lke_head' }), L('2200', '', '450000.00')] }, '2026-10-05', 'posted');
-  const twice = journal(s, LARKSPUR_ENTITY, { date: '2026-10-08', memo: 'Demo accrual — October office rent, entered twice by mistake (fictional)', lines: [L('5100', '450000.00', '', { costCentreId: 'cc_lke_head' }), L('2200', '', '450000.00')] }, '2026-10-08', 'posted');
+  journal(s, LARKSPUR_ENTITY, { date: '2026-10-05', memo: 'Demo accrual — October office rent (fictional)', lines: [L('5100', '450000.00', '', { costCentreId: 'cc_lsp_hq' }), L('2200', '', '450000.00')] }, '2026-10-05', 'posted');
+  const twice = journal(s, LARKSPUR_ENTITY, { date: '2026-10-08', memo: 'Demo accrual — October office rent, entered twice by mistake (fictional)', lines: [L('5100', '450000.00', '', { costCentreId: 'cc_lsp_hq' }), L('2200', '', '450000.00')] }, '2026-10-08', 'posted');
   const reversal = reverseJournal(s, twice, '2026-10-09', 'Rent accrual entered twice (demo)', SAAD, pkt('2026-10-09', '09:40'));
   approveJournal(reversal, ZUBAIR, pkt('2026-10-09', '11:15'));
   postJournal(s, reversal, ZUBAIR, pkt('2026-10-09', '11:20'));
-  journal(s, LARKSPUR_ENTITY, { date: '2026-10-12', memo: 'Demo reclassification — contractor advance applied to work in progress (fictional)', lines: [L('1310', '2500000.00', '', { costCentreId: 'cc_lke_heights' }), L('1200', '', '2500000.00', { costCentreId: 'cc_lke_heights' })] }, '2026-10-12', 'posted');
-  journal(s, LARKSPUR_ENTITY, { date: '2026-10-20', memo: 'Demo accrual — marketing agency retainer, October (fictional)', lines: [L('5200', '300000.00', '', { costCentreId: 'cc_lke_heights' }), L('2200', '', '300000.00')] }, '2026-10-20', 'submitted');
-  journal(s, LARKSPUR_ENTITY, { date: '2026-10-23', memo: 'Demo accrual — audit fee estimate (fictional)', lines: [L('5300', '600000.00', '', { costCentreId: 'cc_lke_head' }), L('2200', '', '600000.00')] }, '2026-10-23', 'draft');
+  journal(s, LARKSPUR_ENTITY, { date: '2026-10-12', memo: 'Demo reclassification — contractor advance applied to work in progress (fictional)', lines: [L('1310', '2500000.00', '', { costCentreId: 'cc_heights' }), L('1200', '', '2500000.00', { costCentreId: 'cc_heights' })] }, '2026-10-12', 'posted');
+  journal(s, LARKSPUR_ENTITY, { date: '2026-10-20', memo: 'Demo accrual — marketing agency retainer, October (fictional)', lines: [L('5200', '300000.00', '', { costCentreId: 'cc_heights' }), L('2200', '', '300000.00')] }, '2026-10-20', 'submitted');
+  journal(s, LARKSPUR_ENTITY, { date: '2026-10-23', memo: 'Demo accrual — audit fee estimate (fictional)', lines: [L('5300', '600000.00', '', { costCentreId: 'cc_lsp_hq' }), L('2200', '', '600000.00')] }, '2026-10-23', 'draft');
 
   // A chart change waiting for approval.
   draftAccount(s, { entityId: LARKSPUR_ENTITY, code: '5500', name: 'Insurance', type: 'expense' }, FAIZA, pkt('2026-10-21', '14:30'));
@@ -398,7 +411,8 @@ export function seedLarkspur(s: LedgerState): void {
 export function ledgerState(ctx: HandlerContext): LedgerState {
   const make = () => {
     const s = emptyLedger();
-    if (ctx.tenantId === 'tnt_larkspur') seedLarkspur(s);
+    const dev = ctx.tenantId === 'tnt_larkspur' ? developerState(ctx) : null;
+    if (dev) seedLarkspur(s, dev);
     return s;
   };
   const state = ctx.demo.section<LedgerState>(LEDGER_SECTION, make);

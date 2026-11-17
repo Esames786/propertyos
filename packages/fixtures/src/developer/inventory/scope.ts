@@ -1,12 +1,14 @@
 import { ApiError, decide, type ModuleKey, type Permission, type Project, type Unit } from '@repo/contracts';
 import { can, decideRecord, notFound, projectRecord, type HandlerContext } from '../../handler-types';
+import { organisationWhole, projectGoverned } from '../scope';
 import type { SetupRecordState } from './state';
 
 /**
- * Gate E.2 module-local scope helpers (provisional; replace with E.0's `developer/scope.ts`
- * `projectVisible`/`projectGoverned` at Wave 1 integration). Built on the accepted `projectRecord` and
- * `decideRecord` (module grant for the record's site, permission, data scope), as HR's
- * `employeeVisible`/`employeeGoverned` split what a person may see from what they may change.
+ * Gate E.2 scope helpers. Wave 1 integration (Issue #25): the project checks are E.0's `developer/scope.ts`
+ * `projectGoverned` (this organisation's project and the access rule's `decideRecord` on its record, header
+ * filter ignored), which is exactly what E.2 checked; E.2 keeps its own "operational" suspension class for
+ * these reads (a suspended organisation's staff do not browse inventory) and its readers rule below. Lists
+ * add E.0's header filter (`ctx.allowsProject`). The figure and setup rules further down are E.2's own.
  *
  * - "Visible" uses the person's own scope (persona scope, site grants), never the header filter, so a
  *   record named by id answers the same whatever project the header shows; lists additionally follow the
@@ -23,15 +25,13 @@ export const tenantProject = (ctx: HandlerContext, projectId: string | undefined
 
 /** A project of this tenant the person may open in the projects area (persona scope; header filter ignored). */
 export function projectVisible(ctx: HandlerContext, projectId: string): boolean {
-  if (!tenantProject(ctx, projectId)) return false;
   if (!PROJECT_READERS.some((p) => can(ctx, p))) return false;
-  return decideRecord(operational(ctx), 'projects', projectRecord(ctx, projectId)).allowed;
+  return projectGoverned(operational(ctx), projectId, { module: 'projects' });
 }
 
 /** A project whose inventory the person may see: inventory licensed for its site, `unit.view`, in scope. */
 export function inventoryVisible(ctx: HandlerContext, projectId: string): boolean {
-  if (!tenantProject(ctx, projectId)) return false;
-  return decideRecord(operational(ctx), 'inventory', projectRecord(ctx, projectId), 'unit.view').allowed;
+  return projectGoverned(operational(ctx), projectId, { module: 'inventory', permission: 'unit.view' });
 }
 
 /** Why a project's figures of a module are withheld (null when they may be shown). */
@@ -59,7 +59,8 @@ export function scopedUnit(ctx: HandlerContext, unitId: string | undefined): Uni
 }
 
 /** The person's scope covers the whole organisation (a new project has no id any narrower scope could name). */
-export const organisationWide = (ctx: HandlerContext): boolean => !!ctx.access && ctx.access.scopes.some((s) => s.type === 'all');
+// Wave 1 integration: E.0's one whole-organisation rule (developer/scope.ts organisationWhole).
+export const organisationWide = organisationWhole;
 
 /** People who work on project setup (drafts, submissions and returns are theirs only). */
 export const SETUP_PEOPLE: readonly Permission[] = ['project.view', 'project.manage', 'project.approve'];
