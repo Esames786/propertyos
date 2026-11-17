@@ -24,6 +24,8 @@ import { ShellLayout } from './ShellLayout';
 import { StandaloneLayout } from './StandaloneLayout';
 // Gate E.0: the developer ERP's route registration point (areas register in routes.developer.tsx).
 import { DEVELOPER_ROUTES } from './routes.developer';
+// Gate E.13 (provisional; reconcile with E.0 at Wave 1 integration): local route modules of the connected workspace and documents.
+import { DOCUMENT_ROUTES, WORKSPACE_ROUTES } from './routes.e13';
 
 /**
  * Prototype route table (React Router 7, data mode). Pages are code-split and receive plain props;
@@ -635,6 +637,9 @@ const shellChildren: RouteObject[] = [
   { path: 'settings/onboarding', ...preferences('tours') },
   // Gate E.0: every Gate E area's screens (none registered yet; see routes.developer.tsx).
   ...DEVELOPER_ROUTES,
+  // Gate E.13 (provisional): GLOBAL-002/005/006, HOME-002/004/005 and DOC-002…006 (pages/developer/{workspace,documents}).
+  ...WORKSPACE_ROUTES,
+  ...DOCUMENT_ROUTES,
   {
     path: '*',
     loader: registerLoader,

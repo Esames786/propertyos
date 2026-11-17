@@ -36,6 +36,8 @@ import { CRM_PIPELINE_HANDLERS } from './developer/crm/handlers';
 import { DEV_INVENTORY_HANDLERS } from './developer/inventory/handlers';
 // Gate E.7 (provisional; reconcile with E.0 at Wave 1 integration): developer ledger and bank import.
 import { LEDGER_HANDLERS } from './developer/ledger/handlers';
+// Gate E.13 (provisional; reconcile with E.0 at Wave 1 integration): connected workspace and documents.
+import { E13_HANDLERS } from './developer/workspace/handlers';
 
 export type { Handler, HandlerAccess, HandlerContext } from './handler-types';
 
@@ -332,4 +334,7 @@ export const HANDLERS: readonly Handler[] = [...CORE_HANDLERS, ...CRM_HANDLERS, 
   // Gate E.2 (provisional; reconcile with E.0 at Wave 1 integration): projects and inventory (PRJ-001…003, INV-001/002/008/010).
   ...DEV_INVENTORY_HANDLERS,
   // Gate E.7 (provisional; reconcile with E.0 at Wave 1 integration): ACC-001…010 and BANK-005.
-  ...LEDGER_HANDLERS];
+  ...LEDGER_HANDLERS,
+  // Gate E.13 (provisional; reconcile with E.0 at Wave 1 integration): search, favourites, recent records,
+  // tasks, work queue, activity, related records, documents and templates (developer/workspace, developer/documents).
+  ...E13_HANDLERS];

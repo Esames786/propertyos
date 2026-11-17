@@ -29,3 +29,6 @@ export * from './sales';
 export * from './projects';
 // Gate E.7 (provisional; reconcile with E.0 at Wave 1 integration): developer ledger and bank import.
 export * from './ledger';
+// Gate E.13 (provisional; reconcile with E.0 at Wave 1 integration): connected workspace and documents.
+export * from './productivity';
+export * from './documents';

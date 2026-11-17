@@ -31,6 +31,8 @@ import enSales from '../locales/en-PK/sales.json';
 import enProjects from '../locales/en-PK/projects.json';
 // Gate E.7 (provisional; reconcile at Wave 1 integration): the developer ledger and bank import.
 import enLedger from '../locales/en-PK/ledger.json';
+// Gate E.13 (provisional; reconcile with E.0 at Wave 1 integration): documents and templates.
+import enDocuments from '../locales/en-PK/documents.json';
 import urA11y from '../locales/ur-PK/a11y.json';
 import urCommon from '../locales/ur-PK/common.json';
 import urDashboard from '../locales/ur-PK/dashboard.json';
@@ -62,6 +64,7 @@ import urSales from '../locales/ur-PK/sales.json';
 // Gate E.2 (provisional).
 import urProjects from '../locales/ur-PK/projects.json';
 import urLedger from '../locales/ur-PK/ledger.json';
+import urDocuments from '../locales/ur-PK/documents.json';
 
 export const NAMESPACES = [
   'common',
@@ -103,6 +106,8 @@ export const NAMESPACES = [
   'projects',
   // Gate E.7 (provisional): developer ledger (chart, journals, reports, periods, posting rules) and bank import.
   'ledger',
+  // Gate E.13 (provisional): documents, document versions and templates and policies (DOC-002…006).
+  'documents',
 ] as const;
 
 export type Namespace = (typeof NAMESPACES)[number];
@@ -138,6 +143,7 @@ const en = {
   sales: enSales,
   projects: enProjects,
   ledger: enLedger,
+  documents: enDocuments,
 };
 
 const ur: typeof en = {
@@ -171,6 +177,7 @@ const ur: typeof en = {
   sales: urSales,
   projects: urProjects,
   ledger: urLedger,
+  documents: urDocuments,
 };
 
 export const resources = { 'en-PK': en, 'ur-PK': ur };
