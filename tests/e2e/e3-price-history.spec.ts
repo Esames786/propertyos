@@ -33,7 +33,17 @@ for (const locale of ['en-PK', 'ur-PK'] as const) {
 test('INV-006: a project-limited sales reader cannot open Gardens price by direct URL or API', async ({ page, consoleErrors }) => {
   await seed(page, { persona: 'sales' });
   await page.goto(`${PAGE}?record=unt_lg_p1_001`);
-  await expect(page.getByTestId('state-error')).toBeVisible();
+  // The shell checks a `?record=` id before the page renders (Gate B `/access/record`): a unit outside the
+  // reader's projects and a unit that does not exist get the same "not found" outcome, the page never
+  // loads, and nothing on screen tells the two apart.
+  const outcome = page.getByTestId('access-outcome');
+  await expect(outcome).toHaveAttribute('data-reason', 'out_of_scope');
+  await expect(page.getByTestId('unit-price-history-page')).toHaveCount(0);
+  const hiddenScreen = await page.getByRole('main').innerText();
+  await page.goto(`${PAGE}?record=unt_does_not_exist_e3`);
+  await expect(outcome).toHaveAttribute('data-reason', 'out_of_scope');
+  await expect(page.getByTestId('unit-price-history-page')).toHaveCount(0);
+  expect(await page.getByRole('main').innerText()).toBe(hiddenScreen);
   const results = await page.evaluate(async () => {
     const call = async (id: string) => {
       try {
