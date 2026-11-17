@@ -203,14 +203,16 @@ export default function PricingPoliciesPage() {
                   const unused = UNITS.find((k) => !rules.some((r) => r.unitType === k));
                   if (unused) { setRules((old) => [...old, { id: nextRuleId, unitType: unused, amount: '0.00', floor: '0', corner: '0', park: '0' }]); setNextRuleId((n) => n + 1); edit(); }
                 }}>{t('pricing:policyAddRule')}</Button>
-                <Button variant="primary" icon={Save} isPending={mutation.isPending} onPress={() => void save()} data-testid="pricing-policy-save">
+                {/* Nothing changed since the acknowledged save: sending it again would only duplicate it under a fresh key. */}
+                <Button variant="primary" icon={Save} isPending={mutation.isPending} isDisabled={success} onPress={() => void save()} data-testid="pricing-policy-save">
                   {selectedId ? t('pricing:policyRevise') : t('pricing:policySave')}
                 </Button>
               </div>
               {validation && <p role="alert" className="text-sm text-error">{t('pricing:policyValidation')}</p>}
               {mutation.isError && <ErrorState error={mutation.error} title={t('pricing:policyError')} />}
-              {success && <p role="status" className="text-sm text-success">{t('pricing:policySaved')}</p>}
             </fieldset>}
+          {/* Outside the read states: a refresh failing after the POST succeeded must not hide that it was saved. */}
+          {success && <p role="status" className="text-sm text-success">{t('pricing:policySaved')}</p>}
           {selectedId && detail.data?.id === selectedId &&
             <section className="space-y-3" aria-labelledby="pricing-versions-heading">
               <h3 id="pricing-versions-heading" className="flex items-center gap-2 font-semibold text-text">

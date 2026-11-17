@@ -203,14 +203,16 @@ export default function PaymentPlanTemplatesPage() {
                   onPress={() => { setRows((old) => [...old, { id: nextRowId, kind: 'balloon', percent: '0', count: '1', milestoneKey: '' }]); setNextRowId((n) => n + 1); change(); }}>
                   {t('pricing:templateAdd')}
                 </Button>
-                <Button variant="primary" icon={Save} isPending={mutation.isPending} onPress={() => void submit()} data-testid="template-save">
+                {/* Nothing changed since the acknowledged save: sending it again would only duplicate it under a fresh key. */}
+                <Button variant="primary" icon={Save} isPending={mutation.isPending} isDisabled={saved} onPress={() => void submit()} data-testid="template-save">
                   {selectedId ? t('pricing:templateRevise') : t('pricing:templateSave')}
                 </Button>
               </div>
               {error && <p role="alert" className="text-sm text-error">{t('pricing:templateValidation')}</p>}
               {mutation.isError && <ErrorState error={mutation.error} title={t('pricing:templateError')} />}
-              {saved && <p role="status" className="text-sm text-success" data-testid="template-saved">{t('pricing:templateSaved')}</p>}
             </fieldset>}
+          {/* Outside the read states: a refresh failing after the POST succeeded must not hide that it was saved. */}
+          {saved && <p role="status" className="text-sm text-success" data-testid="template-saved">{t('pricing:templateSaved')}</p>}
           {selectedId && selected.data && <section className="space-y-3" aria-labelledby="template-versions-title">
             <h3 id="template-versions-title" className="flex items-center gap-2 font-semibold text-text"><FileClock aria-hidden className="size-4" />{t('pricing:templateHistory')}</h3>
             <Badge tone="warning">{t('pricing:templateCurrent')}</Badge>

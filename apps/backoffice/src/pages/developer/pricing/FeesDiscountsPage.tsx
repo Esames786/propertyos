@@ -212,7 +212,8 @@ export default function FeesDiscountsPage() {
                 setDiscounts((old) => [...old, discountDefault(nextId)]); setNextId((n) => n + 1); changed();
               }}>{t('pricing:commercialAddDiscount')}</Button>
               <div className="flex flex-wrap items-center gap-3">
-                <Button variant="primary" icon={Save} isPending={mutation.isPending} onPress={() => void save()} data-testid="commercial-save">
+                {/* Nothing changed since the acknowledged save: sending it again would only duplicate it under a fresh key. */}
+                <Button variant="primary" icon={Save} isPending={mutation.isPending} isDisabled={saved} onPress={() => void save()} data-testid="commercial-save">
                   {selectedId ? t('pricing:commercialRevise') : t('pricing:commercialSave')}
                 </Button>
                 {saved && <span role="status" className="text-sm text-success">{t('pricing:commercialSaved')}</span>}

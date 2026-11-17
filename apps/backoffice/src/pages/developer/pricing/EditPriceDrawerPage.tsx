@@ -128,11 +128,14 @@ export default function EditPriceDrawerPage() {
         testId="edit-price-change-drawer" size="lg"
         footer={history.data && !drafts.isError && !!drafts.data ? <>
           <Button variant="secondary" isDisabled={saveMutation.isPending} onPress={() => openUnit(null)}>{t('pricing:priceChangeClose')}</Button>
-          <Button variant="primary" isDisabled={!!draftId && (selectedDraft.isError || selectedDraft.isPending || selectedDraft.data?.id !== draftId)} isPending={saveMutation.isPending} onPress={() => void save()} data-testid="price-change-save">
+          {/* `saved`: nothing changed since the acknowledged save; sending it again would only duplicate it under a fresh key. */}
+          <Button variant="primary" isDisabled={saved || (!!draftId && (selectedDraft.isError || selectedDraft.isPending || selectedDraft.data?.id !== draftId))} isPending={saveMutation.isPending} onPress={() => void save()} data-testid="price-change-save">
             {draftId ? t('pricing:priceChangeRevise') : t('pricing:priceChangeSave')}
           </Button>
         </> : undefined}>
         <div className="space-y-5">
+          {/* Above every read state: a refresh failing after the POST succeeded must not hide that it was saved. */}
+          {saved && <p role="status" className="text-sm text-success" data-testid="price-change-saved">{t('pricing:priceChangeSaved')}</p>}
           {history.isError ? <ErrorState error={history.error} title={t('pricing:unknown')} onRetry={() => void history.refetch()} />
             : !history.data ? <SkeletonBlock lines={4} />
               : <>
@@ -182,7 +185,6 @@ export default function EditPriceDrawerPage() {
                       </label>
                       {invalid && <p role="alert" className="text-sm text-error">{t('pricing:priceChangeValidation')}</p>}
                       {saveMutation.isError && <ErrorState error={saveMutation.error} title={t('pricing:priceChangeError')} />}
-                      {saved && <p role="status" className="text-sm text-success" data-testid="price-change-saved">{t('pricing:priceChangeSaved')}</p>}
                     </fieldset>}
                 </>}
                 {draftId && selectedDraft.data?.id === draftId && <section className="space-y-3">

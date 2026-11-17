@@ -202,14 +202,16 @@ export default function ApprovalRulesPage() {
                       const next = SUBJECTS.find((subject) => !rows.some((r) => r.subject === subject));
                       if (next) { setRows((old) => [...old, { id: sequence, subject: next, amount: '0.00', reviewers: '2' }]); setSequence((s) => s + 1); changed(); }
                     }}>{t('pricing:approvalAdd')}</Button>
-                  <Button variant="primary" icon={Save} isPending={mutation.isPending} onPress={() => void save()} data-testid="approval-draft-save">
+                  {/* Nothing changed since the acknowledged save: sending it again would only duplicate it under a fresh key. */}
+                  <Button variant="primary" icon={Save} isPending={mutation.isPending} isDisabled={saved} onPress={() => void save()} data-testid="approval-draft-save">
                     {selectedId ? t('pricing:approvalRevise') : t('pricing:approvalSave')}
                   </Button>
                 </div>
                 {invalid && <p role="alert" className="text-sm text-error">{t('pricing:approvalInvalid')}</p>}
                 {mutation.isError && <ErrorState error={mutation.error} title={t('pricing:approvalError')} />}
-                {saved && <p role="status" className="text-sm text-success">{t('pricing:approvalSaved')}</p>}
               </fieldset>}
+            {/* Outside the read states: a refresh failing after the POST succeeded must not hide that it was saved. */}
+            {saved && <p role="status" className="text-sm text-success">{t('pricing:approvalSaved')}</p>}
             <p className="text-sm text-muted">{t('pricing:approvalNoSelf')}</p>
             <p className="text-sm text-muted">{t('pricing:approvalDisclaimer')}</p>
           </section>
