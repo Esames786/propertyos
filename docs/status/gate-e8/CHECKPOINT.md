@@ -15,7 +15,7 @@ Agent 3 (Wave 2). Worktree `D:\laragon2\www\propertyos-e8`, branch `feature/gate
   - Zubair Ansari (`lsp_finance_controller`, checker): `supplier.view`, `supplier_bill.approve`, `supplier_payment.approve`, `expense.view`, `expense.approve`, `budget.approve`.
   - **New persona:** Rehan Saleem (`lsp_budget_holder`, `usr_lsp_0021`, role `budget_holder`), Larkspur Heights only (cost-centre-limited least-privilege role): `project.context.use`, `expense.view`, `expense.create`, `budget.manage`.
   - No original demo person gains anything. Nadia and Farah keep `supplier.view` and `expense.create` from their starter sets; writes also need the area's view permission, so they read suppliers and create nothing.
-- **Mock API:** `packages/fixtures/src/developer/payables/` (`rules.ts`, `state.ts`, `views.ts`, `handlers.ts`), registered once in E.0's `DEVELOPER_AREA_HANDLERS`. 47 endpoints; plan §4.2 order of checks; E.0 `scope.ts`, `idempotency.ts` (`replayOf`/`remember`), `projection.ts` (`projectHistory`, `wholeOnly`) and `developer/state.ts` only.
+- **Mock API:** `packages/fixtures/src/developer/payables/` (`rules.ts`, `state.ts`, `views.ts`, `handlers.ts`), registered once in E.0's `DEVELOPER_AREA_HANDLERS`. 46 endpoints; plan §4.2 order of checks; E.0 `scope.ts`, `idempotency.ts` (`replayOf`/`remember`), `projection.ts` (`projectHistory`, `wholeOnly`) and `developer/state.ts` only.
 - **Seed (fictional, evidence-based, bounded):** 6 suppliers; 7 bills (5 submitted with a labelled demo document, 2 drafts); 6 expenses and claims (5 submitted, 1 draft); 2 petty-cash floats (one count awaiting its witness); 3 budgets (2 version 1 submitted, 1 draft). Nothing seeded approved, paid, settled, posted, witnessed or instructed.
 - **Vectors:** `payables.vectors.json` and `budgets.vectors.json` (`payables.test.ts`).
 - **i18n:** `payables` namespace EN + UR (parity), plus labels in `nav.json`, `common.json` (role, welcome line) and `workspace.json` (permission labels).
@@ -31,14 +31,15 @@ SUP-001 suppliers, SUP-002 Supplier 360, SUP-003 bills, SUP-004 bill workspace, 
 - `payables.api.test.ts` 40/40 and `payables.test.ts` (vectors) 8/8; foundation, role-templates and gate-e-access unchanged and green (targeted Vitest).
 - Typecheck clean; ESLint, logical CSS and i18n parity clean.
 - Browser (targeted, `--workers=2`, my previews 8573–8575): the journeys, maker ≠ checker, bank boundary, cost-centre isolation and "Nadia reads only" tests pass; axe 0 in EN and UR at 1440 and 390 px; dark mode and keyboard pass. The 320 px / 200 % sweep found and drove these fixes: compact header-metric amounts, word joiners in decision codes (E‑17), references that wrap only when wider than their card, history sentences, flattened petty-cash nesting, wrapping year and kind switches, shorter filter defaults, a seed description without an en dash.
-- Commit `b01ca34` (step 1, building blocks) is local; the screens commit follows once the 320 px sweep is green.
+- Pushed (intermediate checkpoint, targeted browser runs): `b01ca34` step 1, `736db4b` steps 2–5.
+- Targeted: E.8 e2e 14/14, smoke 6/6 (Firefox + WebKit), evidence 6/6 (61 PNGs, widths OK, looked at: hyphen glyph, duplicate "(fictional)" and Urdu contact lines fixed after looking).
+- Mutations 1–10 caught (run paused under 100 % CPU; 11–30 to finish).
+
+- **Final:** complete Chromium run 528/528 (57.0 min, lock 19:20:59Z–20:22:45Z), Firefox + WebKit smoke 76/76, axe 1,693 scans / 0 violations, mutations 30/30 caught (details in `test-results.md`).
 
 ## Next
 
-1. Finish the targeted e2e, smoke and evidence runs; look at every PNG (widths, clipping, Urdu).
-2. Mutation checks on the guards.
-3. Full Vitest, build, complete Chromium run and Firefox/WebKit smoke under the lock (Agent 1 has priority).
-4. Commit and push; hand-off.
+STOPPED for GPT/owner review. All 17 screens are PARTIAL (see `FUNCTION_MATRIX.md` for what keeps each one PARTIAL). At Wave 2 integration: align names with Agent 1's canonical roster if it changes, add the E.13 record providers, tasks and activity hooks listed in `FUNCTION_MATRIX.md`, and reconcile the shared-file blocks marked "Gate E.8 (provisional)".
 
 ## How to resume
 
