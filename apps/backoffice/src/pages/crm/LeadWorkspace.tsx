@@ -40,6 +40,7 @@ import { LINKS } from '../../nav.config';
 import { useContactSheet } from './ContactSheet';
 import { initials, useCrmFormat, type CrmFormat } from './format';
 import { UnitQuickView } from './UnitQuickView';
+import { E1LeadLinks } from '../developer/crm/LeadLinks';
 
 const SLOTS = ['10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00'];
 
@@ -183,6 +184,8 @@ function Workspace({ data, back }: { data: LeadDetail; back: React.ReactNode }) 
           <Button variant="secondary" size="sm" icon={AlarmClock} onPress={() => setFollowUpOpen(true)} data-testid="lead-set-follow-up">
             {t('crm:lead.setFollowUp')}
           </Button>
+          {/* Gate E.1 (provisional): the lead's opportunity, conversion and reassignment. */}
+          <E1LeadLinks leadId={lead.id} status={lead.status} />
           <MenuButton
             label={t('crm:lead.changeStatus')}
             placement="bottom start"

@@ -33,6 +33,8 @@ export type PersonaId =
   | 'rb_landlord_tahira'
   | 'rb_landlord_kashif'
   | 'rb_tenant_adeel'
+  // Gate E.1 (provisional; reconcile with E.0): Larkspur's sales manager.
+  | 'sales_manager'
   | 'supreme_admin'
   | 'commercial_approver'
   | 'platform_support';
