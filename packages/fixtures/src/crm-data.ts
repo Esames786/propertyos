@@ -94,7 +94,8 @@ export function unitSummary(d: Pick<TenantDataset, 'towers' | 'floors' | 'projec
     areaSqft: unit.areaSqft,
     price: unit.price,
     status: hold ? 'held' : unit.status,
-    ...(hold ? { hold: { ...(hold.leadRef ? { leadRef: hold.leadRef } : {}), until: hold.until, ...(hold.releasable ? { releasable: true as const } : {}) } } : {}),
+    // Wave 1 integration (Issue #25): the one hold projection (crm-holds.ts holdViewFor), passed through as is.
+    ...(hold ? { hold } : {}),
   };
 }
 

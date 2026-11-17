@@ -10,6 +10,11 @@ export interface DrawerProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
+  /**
+   * Wave 1 integration (Issue #25): what the heading shows, when it needs markup (a reference kept whole). It
+   * must read exactly as `title`, which stays the dialog's name.
+   */
+  heading?: ReactNode;
   /** Short context line under the title (e.g. record reference). */
   subtitle?: ReactNode;
   children: ReactNode;
@@ -24,7 +29,7 @@ export interface DrawerProps {
  * Side drawer on tablet/desktop (inline-end edge, mirrors in RTL); full-height sheet on phones.
  * Modal semantics: focus trapped inside, Escape closes, focus returns to the opener.
  */
-export function Drawer({ isOpen, onOpenChange, title, subtitle, children, footer, banner, size = 'md', testId }: DrawerProps) {
+export function Drawer({ isOpen, onOpenChange, title, heading, subtitle, children, footer, banner, size = 'md', testId }: DrawerProps) {
   const { t } = useT();
   const clearance = useToastClearance();
   useToastOverlay(isOpen && !footer);
@@ -45,7 +50,7 @@ export function Drawer({ isOpen, onOpenChange, title, subtitle, children, footer
           <header className="flex items-start gap-3 border-b border-border px-5 py-4">
             <div className="min-w-0 flex-1">
               <Heading slot="title" className="text-lg font-semibold text-text">
-                {title}
+                {heading ?? title}
               </Heading>
               {subtitle && <div className="mt-0.5 text-sm text-muted">{subtitle}</div>}
             </div>

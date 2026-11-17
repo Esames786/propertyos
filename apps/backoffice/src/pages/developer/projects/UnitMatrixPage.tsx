@@ -243,7 +243,7 @@ function UnitGrid({ g, onOpen }: { g: MatrixGroup; onOpen: (id: string) => void 
           )}
           {r.cells.map((c, ci) => {
             const status = t(`projects:bucket.${c.bucket}`);
-            const extra = `${c.hold?.until ? t('projects:matrix.heldUntil', { until: f.when(c.hold.until) }) : ''}${c.storage ? t('projects:matrix.withStorage') : ''}${c.match ? '' : t('projects:matrix.notMatching')}`;
+            const extra = `${c.hold?.source === 'live' ? t('projects:matrix.heldUntil', { until: f.when(c.hold.until) }) : ''}${c.storage ? t('projects:matrix.withStorage') : ''}${c.match ? '' : t('projects:matrix.notMatching')}`;
             return (
               <div key={c.id} role="gridcell" className="min-w-0">
                 <button

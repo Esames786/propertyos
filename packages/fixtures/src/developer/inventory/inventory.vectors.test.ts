@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest';
 import { buildDashboard } from '../../dashboard';
 import { datasetFor, LARKSPUR } from '../../datasets';
 import { invSession } from './inv-test-kit';
-import { activeHolds, bucketOf, countBuckets, dashboardParity, dimensionsOf, holdActive, holdUntil, legacyOf, mayRelease, releasableBy, type HoldRecord } from './rules';
+// Wave 1 integration: the vectors pin E.0's one hold rule (crm-holds.ts), which E.2 now uses directly.
+import { activeHolds, holdActive, holdUntil, mayRelease, releasableBy, type StoredHold as HoldRecord } from '../../crm-holds';
+import { bucketOf, countBuckets, dashboardParity, dimensionsOf, legacyOf } from './rules';
 import vectors from './inventory.vectors.json';
 import type { UnitMatrix, AvailabilitySnapshot } from '@repo/contracts';
 

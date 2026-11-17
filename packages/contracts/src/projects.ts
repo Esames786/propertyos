@@ -1,4 +1,5 @@
 import type { ProjectKind, UnitStatus, UnitType } from './entities';
+import type { UnitHoldView } from './crm';
 import type { Money } from './money';
 
 /**
@@ -43,21 +44,11 @@ export type AvailabilityBucket = (typeof AVAILABILITY_BUCKETS)[number];
 
 export type BucketCounts = Record<AvailabilityBucket, number>;
 
-/** Where a unit's hold comes from: a live session hold (with an expiry) or the demo seed (no hold record). */
-export type HoldSource = 'live' | 'seed';
-
-export interface UnitHoldView {
-  source: HoldSource;
-  /** Live holds only: the instant the hold lapses (the demo clock that created it decides). */
-  until?: string;
-  /** The holder's name (staff); absent for seeded holds. */
-  holderName?: string;
-  /** The reader placed this hold (only they may release it). */
-  mine: boolean;
-  /** The lead the unit is held for; only for readers who may see that lead (history projection, §4.4). */
-  leadRef?: string;
-  leadId?: string;
-}
+/**
+ * Wave 1 integration (Issue #25): a unit's hold is E.0's `UnitHoldView` (contracts `crm.ts`), the one hold
+ * vocabulary of the CRM and the inventory screens (`source` live or seed; `releasable` for the initiator),
+ * imported above.
+ */
 
 // ---------------------------------------------------------------------------------------------------
 // Projects (PRJ-001, PRJ-002)
@@ -403,7 +394,8 @@ export interface ActiveHoldRow {
   projectName: string;
   until: string;
   holderName: string;
-  mine: boolean;
+  /** The reader placed it and may release it (the hold view's `releasable`; Wave 1 integration). */
+  releasable: boolean;
   leadRef?: string;
 }
 

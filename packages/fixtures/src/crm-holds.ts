@@ -1,4 +1,7 @@
+import type { UnitHoldView } from '@repo/contracts';
 import type { DemoOverlay } from './demo-store';
+import { decideRecord, projectRecord, type HandlerContext } from './handler-types';
+import { ALL_PERSONAS } from './people';
 
 /**
  * Unit holds of the developer CRM (Gate E.0 F-4, Issues #22/#23, validated in the E.0 foundation
@@ -46,4 +49,59 @@ export const holdUntil = (now: number): string => new Date(now + HOLD_DURATION_M
 /** Only the initiating principal; a legacy hold without a recorded principal is released by nobody. */
 export function releasableBy(hold: StoredHold, principalId: string | undefined): boolean {
   return typeof hold.principalId === 'string' && hold.principalId.length > 0 && hold.principalId === principalId;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Wave 1 integration (Issue #25): the one hold ledger of the CRM and the inventory screens
+// ---------------------------------------------------------------------------------------------
+// E.2 (INV-001/002/008) mirrored the rules above function for function in `developer/inventory/rules.ts`;
+// that copy is gone and E.2 reads these. Its extra helpers move here unchanged in meaning, and the hold view
+// that the CRM and E.2 each built is now one projection, so both say the same thing about the same hold.
+
+/** Holds whose time ran out at `now` (history only: they no longer count as held). The stored map is never changed. */
+export function lapsedHolds(all: Readonly<Record<string, StoredHold>>, now: number): Record<string, StoredHold> {
+  return Object.fromEntries(Object.entries(all).filter(([, h]) => !holdActive(h, now)));
+}
+
+/**
+ * Release is owner-only (Issue #23): a hold in force at `now`, released by its initiator. A different
+ * principal, an expired or unknown hold and a legacy hold are refused alike (one non-disclosing 404).
+ */
+export function mayRelease(hold: StoredHold | undefined, principalId: string | undefined, now: number): boolean {
+  return holdActive(hold, now) && releasableBy(hold, principalId);
+}
+
+/**
+ * One clock reading per request: the first read of a request is kept for that request's other checks
+ * (E.2's helper functions all ask; E.0's handlers read `holdClock()` once and pass it on, which is the same).
+ */
+const REQUEST_NOW = new WeakMap<object, number>();
+export function requestNow(req: object): number {
+  let now = REQUEST_NOW.get(req);
+  if (now === undefined) REQUEST_NOW.set(req, (now = holdClock()));
+  return now;
+}
+
+/** A unit held only in the demo seed: no hold record, no expiry, never releasable. */
+export const SEED_HOLD: UnitHoldView = { source: 'seed' };
+
+/**
+ * THE projection of a hold in force for one reader (§4.4), used by the CRM handlers and the inventory views:
+ * - its expiry on the one hold clock;
+ * - the lead it is for, only to a reader the access rule lets see a lead of that lead's project
+ *   (`decideRecord`: the CRM grant for the project's site, `lead.view` and the data scope);
+ * - the colleague who placed it (a person of this organisation only; a legacy hold names nobody);
+ * - `releasable` only for its initiator, while it is in force (Issue #23).
+ */
+export function holdViewFor(ctx: HandlerContext, hold: StoredHold, now: number): UnitHoldView {
+  const lead = ctx.demo.leads(ctx.data.leads).find((l) => l.id === hold.leadId);
+  const named = !!lead && decideRecord(ctx, 'crm', projectRecord(ctx, lead.projectId), 'lead.view').allowed;
+  const holder = hold.principalId ? ALL_PERSONAS.find((p) => p.principalId === hold.principalId && p.tenantId === ctx.tenantId)?.displayName : undefined;
+  return {
+    source: 'live',
+    until: hold.until,
+    ...(named ? { leadRef: hold.leadRef, leadId: hold.leadId } : {}),
+    ...(holder ? { holderName: holder } : {}),
+    ...(mayRelease(hold, ctx.persona?.principalId, now) ? { releasable: true as const } : {}),
+  };
 }

@@ -37,7 +37,8 @@ import { ownerName } from '../../crm-data';
 import { can, notFound, requires, type Handler, type HandlerContext } from '../../handler-types';
 import { directoryTenant } from '../../tenant-directory';
 import { remember, replayOf } from './idempotency';
-import { addBuckets, dimensionsOf, emptyBuckets, holdUntil, isSold, mayRelease, requestNow, type HoldRecord } from './rules';
+import { holdUntil, mayRelease, requestNow, type StoredHold } from '../../crm-holds';
+import { addBuckets, dimensionsOf, emptyBuckets, isSold } from './rules';
 import { fieldProblem, inventoryVisible, leadVisible, licensedOnSite, organisationWide, problem, PROJECT_READERS, projectVisible, scopedUnit, setupVisible, tenantProject } from './scope';
 import { addEvent, inventoryState, nextSeq, nowIso, saveState, type InventoryState, type SetupRecordState, type StorageRecord } from './state';
 import { buildAvailability, buildMatrix, buildUnitDetail, factsOf, groupRows, holdsOf, listedProjects, liveHolds, projectEvent, projectSummary, setupSummary, setupView, storageView, visibleSetup, type MatrixFilters } from './views';
@@ -538,7 +539,7 @@ export const DEV_INVENTORY_HANDLERS: readonly Handler[] = [
       if (!lead) fieldProblem(ctx, 'leadId', 'projects:problems.leadNotEligible');
       const who = ctx.persona!;
       const until = holdUntil(requestNow(ctx.req));
-      const record: HoldRecord = { leadId: lead.id, leadRef: lead.ref, until, principalId: who.principalId };
+      const record: StoredHold = { leadId: lead.id, leadRef: lead.ref, until, principalId: who.principalId };
       ctx.demo.hold(unit.id, record);
       ctx.demo.addActivity(lead.id, { id: ctx.demo.nextId('act'), at: nowIso(), actorName: who.displayName, messageKey: 'activity.unitHeld', params: { unit: unit.ref, until }, kind: 'status' });
       addEvent(ctx, s, { kind: 'unit_held', projectId: unit.projectId, unitId: unit.id, unitRef: unit.ref, leadId: lead.id, leadRef: lead.ref, note: until });

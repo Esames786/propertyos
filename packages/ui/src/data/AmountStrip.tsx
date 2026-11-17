@@ -22,6 +22,7 @@ export function AmountStrip({
   amount,
   end,
   className,
+  wrap = false,
 }: {
   tone: keyof typeof TONE;
   icon: LucideIcon;
@@ -30,6 +31,11 @@ export function AmountStrip({
   /** Optional trailing figure, e.g. "2 pending bills". */
   end?: ReactNode;
   className?: string;
+  /**
+   * Wave 1 integration (Issue #25, INV-002): the amount may wrap (at the space after its currency, then only if
+   * nothing else fits) instead of widening a narrow drawer at 320 px with 200 % text. Off by default.
+   */
+  wrap?: boolean;
 }) {
   const [bg, ink, square] = TONE[tone];
   return (
@@ -39,7 +45,7 @@ export function AmountStrip({
       </span>
       <div className="min-w-0 flex-1">
         <p className={cn('text-mini font-semibold tracking-[0.06em] uppercase', ink)}>{label}</p>
-        <p className={cn('text-xl leading-tight font-bold tracking-tight whitespace-nowrap tabular', ink)}>{amount}</p>
+        <p className={cn('text-xl leading-tight font-bold tracking-tight tabular', wrap ? 'whitespace-normal [overflow-wrap:anywhere]' : 'whitespace-nowrap', ink)}>{amount}</p>
       </div>
       {end && <div className={cn('shrink-0 border-s ps-3 text-end', tone === 'neutral' ? 'border-border' : 'border-current/20', ink)}>{end}</div>}
     </div>

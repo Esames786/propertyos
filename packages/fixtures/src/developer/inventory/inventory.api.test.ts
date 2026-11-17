@@ -147,7 +147,7 @@ describe('INV-001 / INV-002: unit matrix and quick view', () => {
     const d = await api.as('sales').get<UnitInventoryDetail>(`/inventory/units/${seeded.id}`);
     expect(d.dimensions.inventory).toBe('held');
     expect(d.legacy).toBe('held');
-    expect(d.hold).toEqual({ source: 'seed', mine: false });
+    expect(d.hold).toEqual({ source: 'seed' });
     expect(d.canHold).toBe(false);
     expect(d.canRelease).toBe(false);
     const r = await refusedUnchanged(() => api.post(`/inventory/units/${seeded.id}/release`));
@@ -165,7 +165,7 @@ describe('Holds: one in force per unit, owner-only release, expiry against the d
     expect(Date.parse(res.until) - Date.now()).toBeGreaterThan(47 * 3_600_000);
     const d = await api.get<UnitInventoryDetail>(`/inventory/units/${unit.id}`);
     expect(d.bucket).toBe('held');
-    expect(d.hold).toMatchObject({ source: 'live', mine: true, leadRef: lead.ref, holderName: 'Bilal Ahmed' });
+    expect(d.hold).toMatchObject({ source: 'live', releasable: true, leadRef: lead.ref, holderName: 'Bilal Ahmed' });
     expect(d.canRelease).toBe(true);
     const av = await api.get<AvailabilitySnapshot>('/inventory/availability');
     expect(av.holds.map((h) => h.unitRef)).toContain(unit.ref);
@@ -181,7 +181,7 @@ describe('Holds: one in force per unit, owner-only release, expiry against the d
     expect(same(notMine)).toBe(same(notHeld));
     expect(same(notMine)).toBe(same(unknown));
     const managerView = await api.get<UnitInventoryDetail>(`/inventory/units/${unit.id}`);
-    expect(managerView.hold!.mine).toBe(false);
+    expect(managerView.hold).not.toHaveProperty('releasable');
     expect(managerView.canRelease).toBe(false);
 
     api.as('sales');
@@ -212,7 +212,7 @@ describe('Holds: one in force per unit, owner-only release, expiry against the d
     api.as('manager');
     await api.post(`/inventory/units/${unit.id}/hold`, { leadId: openLead('prj_heights', 2).id });
     const after = await api.get<UnitInventoryDetail>(`/inventory/units/${unit.id}`);
-    expect(after.hold).toMatchObject({ mine: true, holderName: 'Nadia Rahman' });
+    expect(after.hold).toMatchObject({ releasable: true, holderName: 'Nadia Rahman' });
     expect(after.history.filter((e) => e.kind === 'unit_held')).toHaveLength(2);
   });
 
@@ -225,7 +225,7 @@ describe('Holds: one in force per unit, owner-only release, expiry against the d
     api.demo.partition('tnt_larkspur').hold(unit.id, { leadId: lead.id, leadRef: lead.ref, until: new Date(Date.now() + 3_600_000).toISOString() });
     const d = await api.get<UnitInventoryDetail>(`/inventory/units/${unit.id}`);
     expect(d.bucket).toBe('held');
-    expect(d.hold!.mine).toBe(false);
+    expect(d.hold).not.toHaveProperty('releasable');
     for (const who of ['sales', 'manager']) {
       const r = await refusedUnchanged(() => api.as(who).post(`/inventory/units/${unit.id}/release`));
       expect(r.status).toBe(404);

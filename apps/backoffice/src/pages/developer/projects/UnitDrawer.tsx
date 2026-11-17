@@ -151,7 +151,7 @@ function HoldSection({ u }: { u: UnitInventoryDetail }) {
         <div className="space-y-1 rounded-control border border-warning/40 bg-warning-soft p-3 text-sm text-text">
           <p className="flex flex-wrap items-center gap-2 font-medium">
             <Clock3 aria-hidden className="size-4 shrink-0" />
-            <span data-testid="inv-hold-until">{t('projects:unit.heldLive', { until: f.when(h.until!) })}</span>
+            <span data-testid="inv-hold-until">{t('projects:unit.heldLive', { until: f.when(h.until) })}</span>
           </p>
           {h.holderName && (
             <p>
@@ -167,7 +167,7 @@ function HoldSection({ u }: { u: UnitInventoryDetail }) {
               </Link>
             </p>
           )}
-          <p className="text-muted">{h.mine ? t('projects:unit.heldMine') : t('projects:unit.heldOther')}</p>
+          <p className="text-muted">{h.releasable ? t('projects:unit.heldMine') : t('projects:unit.heldOther')}</p>
         </div>
       ) : h?.source === 'seed' ? (
         <p className="rounded-control bg-sunken p-3 text-sm text-text" data-testid="inv-hold-seed">

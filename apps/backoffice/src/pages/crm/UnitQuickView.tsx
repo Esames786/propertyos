@@ -7,6 +7,24 @@ import { useCrmFormat } from './format';
 const isolatedRef = (ref: string) => `⁨${ref.replace(/[-–]/g, (c) => `${c}⁠`)}⁩`;
 
 /**
+ * Wave 1 integration (Issue #25, INV-002 at 320 px / 200 % text): the title shows the unit reference whole (it never
+ * breaks after a hyphen); the visible text is exactly the plain title, which stays the drawer's name.
+ */
+const REF = '\u0001';
+function WholeRef({ text, ref_ }: { text: string; ref_: string }) {
+  const [before, after = ''] = text.split(REF);
+  return (
+    <>
+      {before}
+      <bdi dir="ltr" className="whitespace-nowrap">{ref_}</bdi>
+      {after}
+    </>
+  );
+}
+/** An amount that may break at the space after its currency (the formatter joins them with a no-break space). */
+const breakable = (money: string) => money.replace(/[\u00a0\u202f]/g, ' ');
+
+/**
  * Unit quick view (INV-002) opened from a lead (`?unit=…`): photo, location, size, price and the
  * illustrative payment plan, with a demo hold for this lead (48 hours, session only).
  */
@@ -20,7 +38,7 @@ export function UnitQuickView({ unitId, lead, onClose }: { unitId: string | null
   const act = useApiMutation<{ ok: boolean; until?: string }>();
   const u = unit.data;
   // Gate E.0 (Issue #23): only the person who placed the hold may release it; the server says so.
-  const releasable = !!u?.hold?.releasable && u.hold.leadRef === lead.ref;
+  const releasable = u?.hold?.source === 'live' && !!u.hold.releasable && u.hold.leadRef === lead.ref;
 
   const hold = async () => {
     if (!u) return;
@@ -44,6 +62,7 @@ export function UnitQuickView({ unitId, lead, onClose }: { unitId: string | null
       isOpen={!!unitId}
       onOpenChange={(open) => !open && onClose()}
       title={u ? t('crm:unit.title', { ref: u.ref }) : t('crm:lead.quickView')}
+      heading={u ? <WholeRef text={t('crm:unit.title', { ref: REF })} ref_={u.ref} /> : undefined}
       subtitle={u ? t('crm:unit.subtitle', { project: u.projectName, location }) : undefined}
       testId="unit-quick-view"
       footer={
@@ -69,7 +88,7 @@ export function UnitQuickView({ unitId, lead, onClose }: { unitId: string | null
           <Photo imageKey={u.imageKey} sizes="(min-width: 768px) 30rem, 100vw" className="aspect-[16/9] w-full rounded-card" />
           <div className="flex flex-wrap items-center gap-2">
             <StatusLabel kind="unit" status={u.status} />
-            {u.hold && (
+            {u.hold?.source === 'live' && (
               <Badge tone="warning" icon={Clock3} data-testid="unit-hold-badge">
                 {u.hold.leadRef ? t('crm:unit.heldFor', { lead: isolatedRef(u.hold.leadRef), until: f.when(u.hold.until) }) : t('crm:unit.heldUntil', { until: f.when(u.hold.until) })}
               </Badge>
@@ -91,13 +110,15 @@ export function UnitQuickView({ unitId, lead, onClose }: { unitId: string | null
               tone="primary"
               icon={Wallet}
               label={t('crm:unit.downPayment', { percent: u.plan.downPaymentPercent })}
-              amount={<bdi dir="ltr" className="ltr-ref">{f.moneyExact(u.plan.downPayment)}</bdi>}
+              amount={<bdi dir="ltr" className="ltr-ref">{breakable(f.moneyExact(u.plan.downPayment))}</bdi>}
+              wrap
             />
             <AmountStrip
               tone="neutral"
               icon={Clock3}
               label={t('crm:unit.installments', { count: u.plan.installments })}
-              amount={<bdi dir="ltr" className="ltr-ref">{f.moneyExact(u.plan.perInstallment)}</bdi>}
+              amount={<bdi dir="ltr" className="ltr-ref">{breakable(f.moneyExact(u.plan.perInstallment))}</bdi>}
+              wrap
             />
           </section>
           <p className="rounded-control bg-sunken p-3 text-sm text-muted">{t('crm:unit.holdNote')}</p>

@@ -236,7 +236,7 @@ describe('Issue #23: hold expiry on one clock and one active-hold projection', (
     expect((await unitView(w)).status).toBe('held');
     expect((await listed(w)).status).toBe('held');
     const live = await w.as('manager').request<LeadDetail>({ method: 'GET', path: `/leads/${leadId}` });
-    expect(live.interestUnit?.hold?.until).toBeDefined();
+    expect(live.interestUnit?.hold).toMatchObject({ source: 'live', until: expect.any(String) });
     expect(live.matchedUnits[0]).toMatchObject({ id: heightsUnit.id, status: 'held' });
     expect(JSON.parse(await refusal(w.as('sales').request({ method: 'POST', path: `/units/${heightsUnit.id}/hold`, body: { leadId: heightsLead.id } }))).problem).toMatchObject({ status: 422, code: 'validation_failed' });
 
@@ -290,9 +290,9 @@ describe('Issue #23: only the initiating principal releases', () => {
   it('repair: only the initiator is told the hold is releasable (the drawer offers Release to nobody else)', async () => {
     const w = world();
     await w.as('sales').request({ method: 'POST', path: `/units/${heightsUnit.id}/hold`, body: { leadId: heightsLead.id } });
-    expect((await w.as('sales').request<UnitDetail>({ method: 'GET', path: `/units/${heightsUnit.id}` })).hold).toEqual({ leadRef: heightsLead.ref, until: expect.any(String), releasable: true });
-    expect((await w.as('res_e0_test_peer').request<UnitDetail>({ method: 'GET', path: `/units/${heightsUnit.id}` })).hold).toEqual({ leadRef: heightsLead.ref, until: expect.any(String) });
-    expect((await w.as('manager').request<UnitDetail>({ method: 'GET', path: `/units/${heightsUnit.id}` })).hold).toEqual({ leadRef: heightsLead.ref, until: expect.any(String) });
+    expect((await w.as('sales').request<UnitDetail>({ method: 'GET', path: `/units/${heightsUnit.id}` })).hold).toEqual({ source: 'live', leadRef: heightsLead.ref, leadId: heightsLead.id, until: expect.any(String), holderName: 'Bilal Ahmed', releasable: true });
+    expect((await w.as('res_e0_test_peer').request<UnitDetail>({ method: 'GET', path: `/units/${heightsUnit.id}` })).hold).toEqual({ source: 'live', leadRef: heightsLead.ref, leadId: heightsLead.id, until: expect.any(String), holderName: 'Bilal Ahmed' });
+    expect((await w.as('manager').request<UnitDetail>({ method: 'GET', path: `/units/${heightsUnit.id}` })).hold).toEqual({ source: 'live', leadRef: heightsLead.ref, leadId: heightsLead.id, until: expect.any(String), holderName: 'Bilal Ahmed' });
   });
 
   it('a legacy hold without a recorded initiator fails closed until it expires, and a demo reset clears it', async () => {
@@ -300,7 +300,7 @@ describe('Issue #23: only the initiating principal releases', () => {
     for (const who of ['manager', 'sales']) await signIn(w, who);
     w.demo.partition('tnt_larkspur').hold(heightsUnit.id, { leadId: heightsLead.id, leadRef: heightsLead.ref, until: new Date(T0 + 3_600_000).toISOString() });
     const before = w.snapshot();
-    expect((await w.as('manager').request<UnitDetail>({ method: 'GET', path: `/units/${heightsUnit.id}` })).hold).toEqual({ leadRef: heightsLead.ref, until: expect.any(String) });
+    expect((await w.as('manager').request<UnitDetail>({ method: 'GET', path: `/units/${heightsUnit.id}` })).hold).toEqual({ source: 'live', leadRef: heightsLead.ref, leadId: heightsLead.id, until: expect.any(String) });
     for (const who of ['manager', 'sales']) {
       expect(await refusal(w.as(who).request({ method: 'POST', path: `/units/${heightsUnit.id}/release`, body: {} })), who).toBe(NOT_FOUND);
     }
@@ -327,8 +327,9 @@ describe('Issue #23 with #22: a hold never names a lead the reader cannot see', 
     await w.as('sales').request({ method: 'POST', path: `/units/${heightsUnit.id}/hold`, body: { leadId: heightsLead.id } });
     const officer = await w.as('res_e0_test_inventory').request<UnitDetail>({ method: 'GET', path: `/units/${heightsUnit.id}` });
     expect(officer.status).toBe('held');
-    expect(officer.hold).toEqual({ until: expect.any(String) });
+    expect(officer.hold).toEqual({ source: 'live', until: expect.any(String), holderName: 'Bilal Ahmed' });
     expect(JSON.stringify(officer)).not.toContain(heightsLead.ref);
+    expect(JSON.stringify(officer)).not.toContain(heightsLead.id);
     const listed = (await w.as('res_e0_test_inventory').request<Unit[]>({ method: 'GET', path: '/units', query: { q: heightsUnit.ref } })).find((u) => u.id === heightsUnit.id)!;
     expect(listed.status).toBe('held');
     expect(JSON.stringify(listed)).not.toContain(heightsLead.ref);

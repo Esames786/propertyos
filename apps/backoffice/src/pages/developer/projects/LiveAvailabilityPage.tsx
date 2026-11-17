@@ -140,7 +140,7 @@ export default function LiveAvailabilityPage() {
         ) : (
           <ul className="divide-y divide-border" data-testid="availability-holds">
             {d.holds.map((h) => (
-              <li key={h.unitId} className="flex flex-wrap items-start justify-between gap-2 py-2.5 text-sm" data-testid="availability-hold" data-unit={h.unitId} data-mine={h.mine}>
+              <li key={h.unitId} className="flex flex-wrap items-start justify-between gap-2 py-2.5 text-sm" data-testid="availability-hold" data-unit={h.unitId} data-releasable={h.releasable}>
                 <div className="min-w-0 space-y-0.5">
                   <p>
                     <button type="button" className="rounded-control font-semibold text-primary underline-offset-4 outline-none hover:underline focus-visible:outline-2 focus-visible:outline-focus" onClick={() => set({ unit: h.unitId }, { replace: false })} data-testid="availability-hold-open">
@@ -154,7 +154,7 @@ export default function LiveAvailabilityPage() {
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  {h.mine && <Badge tone="info">{t('projects:availability.mine')}</Badge>}
+                  {h.releasable && <Badge tone="info">{t('projects:availability.mine')}</Badge>}
                   <Badge tone="warning" icon={Clock3}>
                     {remaining(h.until)}
                   </Badge>

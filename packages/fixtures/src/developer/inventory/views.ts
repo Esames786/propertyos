@@ -24,7 +24,8 @@ import type {
 import { ALL_PERSONAS } from '../../people';
 import { can, type HandlerContext } from '../../handler-types';
 import { directoryTenant } from '../../tenant-directory';
-import { activeHolds, bucketOf, countBuckets, dimensionsOf, emptyBuckets, lapsedHolds, legacyOf, mayRelease, requestNow, type HoldRecord } from './rules';
+import { activeHolds, holdViewFor, lapsedHolds, requestNow, SEED_HOLD, type StoredHold } from '../../crm-holds';
+import { bucketOf, countBuckets, dimensionsOf, emptyBuckets, legacyOf } from './rules';
 import { inventoryVisible, leadVisible, setupVisible, tenantProject, withheld } from './scope';
 import type { EventRecord, InventoryState, SetupRecordState, StorageRecord } from './state';
 
@@ -39,7 +40,7 @@ export const ROUTES = {
   matrix: (q: Record<string, string> = {}) => `/backoffice/inv/unit-matrix${Object.keys(q).length ? `?${new URLSearchParams(q)}` : ''}`,
 } as const;
 
-export const holdsOf = (ctx: HandlerContext) => ctx.demo.holds() as Readonly<Record<string, HoldRecord>>;
+export const holdsOf = (ctx: HandlerContext) => ctx.demo.holds() as Readonly<Record<string, StoredHold>>;
 /** The holds in force for this request (one clock reading per request). */
 export const liveHolds = (ctx: HandlerContext) => activeHolds(holdsOf(ctx), requestNow(ctx.req));
 
@@ -55,10 +56,10 @@ export interface UnitFacts {
   unit: Unit;
   dims: ReturnType<typeof dimensionsOf>;
   bucket: AvailabilityBucket;
-  live?: HoldRecord;
+  live?: StoredHold;
 }
 
-export function factsOf(unit: Unit, live: Readonly<Record<string, HoldRecord>>): UnitFacts {
+export function factsOf(unit: Unit, live: Readonly<Record<string, StoredHold>>): UnitFacts {
   const dims = dimensionsOf(unit.status);
   const hold = live[unit.id];
   // A hold in force on stock that is no longer available cannot exist through these endpoints; if the CRM
@@ -67,21 +68,13 @@ export function factsOf(unit: Unit, live: Readonly<Record<string, HoldRecord>>):
   return { unit, dims, bucket: bucketOf(dims, heldLive), ...(heldLive ? { live: hold } : {}) };
 }
 
-/** A hold as the reader may see it (§4.4: the lead only for readers who may see that lead). */
+/**
+ * A hold as the reader may see it (§4.4: the lead only for readers who may see that lead). Wave 1 integration:
+ * the CRM's projection (`holdViewFor`), so the matrix, the drawer and the CRM quick view agree word for word.
+ */
 export function holdView(ctx: HandlerContext, f: UnitFacts): UnitHoldView | undefined {
-  if (f.live) {
-    const lead = ctx.demo.leads(ctx.data.leads).find((l) => l.id === f.live!.leadId);
-    const showLead = !!lead && leadVisible(ctx, lead.projectId);
-    const holder = staffName(ctx, f.live.principalId);
-    return {
-      source: 'live',
-      until: f.live.until,
-      ...(holder ? { holderName: holder } : {}),
-      mine: mayRelease(f.live, ctx.persona?.principalId, requestNow(ctx.req)),
-      ...(showLead ? { leadRef: f.live.leadRef, leadId: f.live.leadId } : {}),
-    };
-  }
-  if (f.dims.inventory === 'held') return { source: 'seed', mine: false };
+  if (f.live) return holdViewFor(ctx, f.live, requestNow(ctx.req));
+  if (f.dims.inventory === 'held') return SEED_HOLD;
   return undefined;
 }
 
@@ -243,7 +236,7 @@ export function buildUnitDetail(ctx: HandlerContext, s: InventoryState, unit: Un
     bucket: f.bucket,
     ...(hold ? { hold } : {}),
     canHold,
-    canRelease: !!hold?.mine && can(ctx, 'unit.hold', 'operational'),
+    canRelease: hold?.source === 'live' && !!hold.releasable && can(ctx, 'unit.hold', 'operational'),
     storage: s.storage
       .filter((st) => st.state === 'allocated' && st.allocation?.unitId === unit.id)
       .map((st) => ({ storageId: st.id, storageRef: st.ref, location: st.location, allocatedAt: st.allocation!.at, byName: st.allocation!.byName })),
@@ -283,22 +276,22 @@ export function buildAvailability(ctx: HandlerContext, projects: Project[]): Ava
   const holds: ActiveHoldRow[] = out
     .flatMap((p) => p.facts.filter((f) => f.live))
     .map((f) => {
-      const view = holdView(ctx, f)!;
+      const view = holdViewFor(ctx, f.live!, now);
       return {
         unitId: f.unit.id,
         unitRef: f.unit.ref,
         projectId: f.unit.projectId,
         projectName: tenantProject(ctx, f.unit.projectId)!.name,
         until: f.live!.until,
-        holderName: view.holderName ?? '',
-        mine: view.mine,
-        ...(view.leadRef ? { leadRef: view.leadRef } : {}),
+        holderName: view.source === 'live' ? (view.holderName ?? '') : '',
+        releasable: view.source === 'live' && !!view.releasable,
+        ...(view.source === 'live' && view.leadRef ? { leadRef: view.leadRef } : {}),
       };
     })
     .sort((a, b) => Date.parse(a.until) - Date.parse(b.until));
   const lapsed = Object.entries(lapsedHolds(all, now))
     .map(([unitId, h]) => ({ unit: ctx.data.units.find((u) => u.id === unitId), h }))
-    .filter((x): x is { unit: Unit; h: HoldRecord } => !!x.unit && visibleIds.has(x.unit.projectId))
+    .filter((x): x is { unit: Unit; h: StoredHold } => !!x.unit && visibleIds.has(x.unit.projectId))
     .map(({ unit, h }) => ({ unitId: unit.id, unitRef: unit.ref, projectName: tenantProject(ctx, unit.projectId)!.name, until: h.until }))
     .sort((a, b) => Date.parse(b.until) - Date.parse(a.until));
   const seededFacts = out.flatMap((p) => p.facts);

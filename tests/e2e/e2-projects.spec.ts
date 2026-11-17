@@ -236,7 +236,7 @@ test.describe('INV-008: holds, owner-only release and expiry against the demo cl
     await page.keyboard.press('Escape');
 
     await open(page, '/backoffice/inv/live-availability', 'availability-hold');
-    await expect(page.locator(`[data-testid="availability-hold"][data-unit="${unitId}"]`)).toHaveAttribute('data-mine', 'true');
+    await expect(page.locator(`[data-testid="availability-hold"][data-unit="${unitId}"]`)).toHaveAttribute('data-releasable', 'true');
     await expect(page.getByTestId('availability-hold').first()).toContainText('48 h 0 min left');
 
     // Another person sees the hold but cannot release it (the server refuses the same way).

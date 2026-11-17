@@ -23,7 +23,7 @@ import {
 } from '@repo/contracts';
 import { normalizePkPhone } from '@repo/i18n/format';
 import { leadHistory, ownerName, projectName, unitDetail, unitSummary } from './crm-data';
-import { activeHolds, holdActive, holdClock, holdUntil, releasableBy, type StoredHold } from './crm-holds';
+import { activeHolds, holdActive, holdClock, holdUntil, holdViewFor, releasableBy, requestNow, type StoredHold } from './crm-holds';
 import { can, decideRecord, forbid, invalid, isScopeOnly, matches, notFound, projectRecord, refused, requires, unitPermitted, type Handler, type HandlerContext } from './handler-types';
 import { FIXTURE_NOW, pad } from './seed';
 
@@ -91,19 +91,14 @@ function requestedUnit(ctx: HandlerContext, unitId: string | undefined) {
 }
 
 /**
- * The holds in force at `now`, as this reader may see them (§4.4 projection): the lead a unit is held
- * for is named only to someone who may see that lead (lead permission and project scope); only the
- * person who placed a hold is told they may release it.
+ * The holds in force at this request's instant, as this reader may see them (§4.4 projection): the lead a
+ * unit is held for is named only to someone who may see that lead; only the person who placed a hold is told
+ * they may release it. Wave 1 integration (Issue #25): the one projection the inventory screens use too
+ * (`crm-holds.ts` `holdViewFor`), on the one clock reading of the request (`requestNow`).
  */
 function holdViews(ctx: HandlerContext, live: Readonly<Record<string, StoredHold>>): Record<string, UnitHoldView> {
-  const leads = can(ctx, 'lead.view') ? ctx.demo.leads(ctx.data.leads) : [];
-  return Object.fromEntries(
-    Object.entries(live).map(([unitId, h]) => {
-      const lead = leads.find((l) => l.id === h.leadId);
-      const named = !!lead && isScopeOnly(ctx, lead.projectId);
-      return [unitId, { ...(named ? { leadRef: h.leadRef } : {}), until: h.until, ...(releasableBy(h, ctx.persona?.principalId) ? { releasable: true as const } : {}) }];
-    }),
-  );
+  const now = requestNow(ctx.req);
+  return Object.fromEntries(Object.entries(live).map(([unitId, h]) => [unitId, holdViewFor(ctx, h, now)]));
 }
 
 function listItem(ctx: HandlerContext, lead: Lead): LeadListItem {
@@ -319,7 +314,7 @@ export const CRM_HANDLERS: readonly Handler[] = [
       const lead = findLead(ctx, ctx.params.leadId!) as Lead & { interestUnitId?: string };
       const party = partyById(ctx, lead.partyId)!;
       // One clock reading per request; matching and every unit card use the same active-hold projection.
-      const holds = activeHolds(ctx.demo.holds(), holdClock());
+      const holds = activeHolds(ctx.demo.holds(), requestNow(ctx.req));
       const holdView = holdViews(ctx, holds);
       const interest = permittedUnit(ctx, lead.interestUnitId);
       const budget = Number(lead.budget.amount);
@@ -458,7 +453,7 @@ export const CRM_HANDLERS: readonly Handler[] = [
     access: requires('inventory', 'unit.view', 'operational'),
     handle: (ctx) => {
       const unit = requestedUnit(ctx, ctx.params.unitId);
-      return unitDetail(ctx.data, unit, holdViews(ctx, activeHolds(ctx.demo.holds(), holdClock())));
+      return unitDetail(ctx.data, unit, holdViews(ctx, activeHolds(ctx.demo.holds(), requestNow(ctx.req))));
     },
   },
   {

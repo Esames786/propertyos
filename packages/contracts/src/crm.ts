@@ -128,12 +128,31 @@ export interface UnitSummary {
   hold?: UnitHoldView;
 }
 
-/** A unit hold as one reader sees it (Gate E.0, Issues #22/#23). */
-export interface UnitHoldView {
-  leadRef?: string;
-  until: string;
-  releasable?: true;
-}
+/**
+ * A unit hold as one reader sees it (Gate E.0, Issues #22/#23).
+ *
+ * Wave 1 integration (Issue #25): the ONE hold vocabulary of the CRM (unit list, Unit 360, the quick view of
+ * matching units) and of the inventory screens (INV-001 matrix, INV-002 drawer, INV-008 availability). Both
+ * read the one hold store through one clock and one projection (`holdViewFor`, fixtures `crm-holds.ts`).
+ */
+export type UnitHoldView =
+  | {
+      /** A session hold in force. */
+      source: 'live';
+      /** When it lapses (the one hold clock). */
+      until: string;
+      /** The lead it is held for: only for a reader who may see that lead (§4.4). */
+      leadRef?: string;
+      leadId?: string;
+      /** The colleague who placed it (staff of this organisation; absent for a legacy hold). */
+      holderName?: string;
+      /** The reader placed it and may release it (Issue #23); nobody else is told so. */
+      releasable?: true;
+    }
+  | {
+      /** Held in the demo seed only: no hold record, no expiry, never releasable (E-10, until E.4). */
+      source: 'seed';
+    };
 
 export interface UnitDetail extends UnitSummary {
   plan: { downPaymentPercent: number; installments: number; perInstallment: Money; downPayment: Money };
