@@ -2,20 +2,24 @@ import { DOCUMENT_LINK_TYPES, type RecordRef, type RelatedResponse, type Unified
 import type { HandlerContext } from '../../handler-types';
 import { DOCUMENT_PROVIDERS } from '../documents/providers';
 import { canAttachTo, canViewDocuments, current, docHref, summaryOf, visibleDocs } from '../documents/views';
+import { CRM_RECORD_PROVIDERS } from '../crm/records';
+import { INVENTORY_RECORD_PROVIDERS } from '../inventory/records';
+import { LEDGER_RECORD_PROVIDERS } from '../ledger/records';
 import { CORE_PROVIDERS, otherSearch, resolveWith, type RecordProvider } from './records';
 import { isFavourite } from './store';
 
 /**
  * Gate E.13 record registry: every kind of record the workspace can find, keep and relate.
- * **Integration hook (Wave 1):** other slices append their providers here (E.1 opportunities and
- * visits, E.2 projects/units/storage replacing the core project and unit providers, E.7 accounts and
- * journals). Order matters only where prefixes overlap: the first provider that owns an id decides it.
+ * Wave 1 integration (Issue #25): E.1's opportunities and site visits, E.2's storage and E.7's ledger accounts
+ * and journals are registered here, each answering through its own area's scope. Projects and units keep the
+ * shell's rule (GET /access/record) and now open E.2's live PRJ-002 and INV-002 screens. No two providers own
+ * the same id prefix (registry.integration.test.ts), so order never decides anything.
  */
-export const PROVIDERS: readonly RecordProvider[] = [...DOCUMENT_PROVIDERS, ...CORE_PROVIDERS];
+export const PROVIDERS: readonly RecordProvider[] = [...DOCUMENT_PROVIDERS, ...CRM_RECORD_PROVIDERS, ...INVENTORY_RECORD_PROVIDERS, ...LEDGER_RECORD_PROVIDERS, ...CORE_PROVIDERS];
 
 export const resolveRecord = (ctx: HandlerContext, id: string): RecordRef | null => resolveWith(PROVIDERS, ctx, id);
 
-const TYPE_ORDER: readonly WorkspaceRecordType[] = ['document', 'lead', 'party', 'unit', 'project', 'invoice', 'lease', 'template', 'request', 'maintenance', 'pass', 'vehicle', 'notice', 'tenant'];
+const TYPE_ORDER: readonly WorkspaceRecordType[] = ['document', 'lead', 'opportunity', 'visit', 'party', 'unit', 'project', 'storage', 'invoice', 'account', 'journal', 'lease', 'template', 'request', 'maintenance', 'pass', 'vehicle', 'notice', 'tenant'];
 const byTypeOrder = (a: WorkspaceRecordType, b: WorkspaceRecordType) => TYPE_ORDER.indexOf(a) - TYPE_ORDER.indexOf(b);
 
 export const PAGE_SIZE = 20;

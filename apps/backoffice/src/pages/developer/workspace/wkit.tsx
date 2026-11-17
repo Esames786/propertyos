@@ -4,6 +4,11 @@ import { cn, dynamicT, Link, Switch, useAnnounce, useApiQuery, useCan, useT, use
 import { useQueryClient } from '@tanstack/react-query';
 import {
   Activity,
+  Archive,
+  BookOpen,
+  CalendarClock,
+  NotebookPen,
+  Target,
   Building2,
   Car,
   ClipboardList,
@@ -67,6 +72,12 @@ export const TYPE_ICON: Record<WorkspaceRecordType, LucideIcon> = {
   vehicle: Car,
   notice: Megaphone,
   tenant: Landmark,
+  // Wave 1 integration: E.1, E.2 and E.7 record kinds.
+  opportunity: Target,
+  visit: CalendarClock,
+  storage: Archive,
+  account: BookOpen,
+  journal: NotebookPen,
 };
 
 /** A reference never breaks inside itself: it moves to the next line whole (320 px at 200 % text). */

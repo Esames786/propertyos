@@ -6,6 +6,10 @@ import { canApproveTemplates, canDraftTemplates, canViewDocuments, current, docH
 import { addDays } from './common';
 import { visibleLead } from './records';
 import { resolveRecord } from './registry';
+import { inventoryState } from '../inventory/state';
+import { visibleSetup } from '../inventory/views';
+import { mayUse } from '../ledger/scope';
+import { ledgerState } from '../ledger/state';
 
 /**
  * Gate E.13 task providers (HOME-002 my tasks, HOME-004 work queue). Each provider declares what it
@@ -167,8 +171,42 @@ const PROVIDERS: readonly TaskProvider[] = [
 
 const RANK: Record<TaskUrgency, number> = { overdue: 0, today: 1, soon: 2, later: 3 };
 
+/**
+ * Wave 1 integration (Issue #25): E.7's journals waiting for approval and E.2's project setups waiting for
+ * activation, for the people who may decide them (the checker's permission, over the whole entity or the
+ * project's site). "Mine" is work the reader may decide: never their own (maker ≠ checker by principal).
+ */
+const AREA_PROVIDERS: readonly TaskProvider[] = [
+  {
+    kind: 'journal_approval',
+    module: 'accounting',
+    available: (ctx) => can(ctx, 'journal.approve', 'operational'),
+    collect: (ctx, scope) =>
+      ledgerState(ctx).journals.flatMap((j): TaskItem[] => {
+        if (j.state !== 'submitted' || !mayUse(ctx, 'accounting', j.entityId, 'journal.approve')) return [];
+        const mine = j.makerId !== ctx.persona?.principalId;
+        if (scope === 'mine' && !mine) return [];
+        const record = resolveRecord(ctx, j.id);
+        if (!record) return [];
+        return [{ id: `journal_approval:${j.id}`, kind: 'journal_approval', module: 'accounting', urgency: urgencyOf(ctx.at, j.date), due: j.date, record, actionHref: record.href, owner: { name: j.makerName, mine } }];
+      }),
+  },
+  {
+    kind: 'project_activation',
+    module: 'projects',
+    available: (ctx) => can(ctx, 'project.approve', 'operational'),
+    collect: (ctx, scope) =>
+      visibleSetup(ctx, inventoryState(ctx)).flatMap((r): TaskItem[] => {
+        if (r.state !== 'submitted') return [];
+        const mine = r.makerPrincipal !== ctx.persona?.principalId;
+        if (scope === 'mine' && !mine) return [];
+        return [{ id: `project_activation:${r.id}`, kind: 'project_activation', module: 'projects', urgency: 'soon', actionHref: `/backoffice/prj/project-setup?record=${r.id}`, owner: { name: r.makerName, mine }, titleKey: 'workspace:hub.tasks.setupItem', params: { ref: r.ref, name: r.basics?.name ?? r.ref } }];
+      }),
+  },
+];
+
 export function tasksFor(ctx: HandlerContext, scope: Scope): { items: TaskItem[]; kinds: TaskKind[] } {
-  const live = PROVIDERS.filter((p) => p.available(ctx));
+  const live = [...PROVIDERS, ...AREA_PROVIDERS].filter((p) => p.available(ctx));
   const items = live
     .flatMap((p) => p.collect(ctx, scope))
     .sort((a, b) => RANK[a.urgency] - RANK[b.urgency] || (a.due ?? '9999').localeCompare(b.due ?? '9999') || a.id.localeCompare(b.id));

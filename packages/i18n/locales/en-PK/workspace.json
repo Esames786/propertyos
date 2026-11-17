@@ -159,7 +159,12 @@
       "pass": "Visitor pass",
       "vehicle": "Vehicle",
       "notice": "Notice",
-      "tenant": "Organisation"
+      "tenant": "Organisation",
+      "opportunity": "Opportunity",
+      "visit": "Site visit",
+      "storage": "Storage",
+      "account": "Ledger account",
+      "journal": "Journal"
     },
     "typesPlural": {
       "lead": "Leads",
@@ -175,7 +180,12 @@
       "pass": "Visitor passes",
       "vehicle": "Vehicles",
       "notice": "Notices",
-      "tenant": "Organisations"
+      "tenant": "Organisations",
+      "opportunity": "Opportunities",
+      "visit": "Site visits",
+      "storage": "Storage",
+      "account": "Ledger accounts",
+      "journal": "Journals"
     },
     "today": "Today",
     "sessionNote": "Kept for this sign-in only: signing out or switching identity clears this list. A record you can no longer open disappears from it.",
@@ -270,7 +280,9 @@
         "template_approval": "Draft version {{version}} awaits approval",
         "template_returned": "Draft version {{version}} was returned",
         "society_task": "Society task",
-        "society_approval": "Waiting for approval"
+        "society_approval": "Waiting for approval",
+        "journal_approval": "Journal waiting for approval",
+        "project_activation": "Project setup waiting for approval"
       },
       "kindName": {
         "follow_up": "Follow-ups",
@@ -280,7 +292,9 @@
         "template_approval": "Template approvals",
         "template_returned": "Returned drafts",
         "society_task": "Society tasks",
-        "society_approval": "Society approvals"
+        "society_approval": "Society approvals",
+        "journal_approval": "Journal approvals",
+        "project_activation": "Project activations"
       },
       "action": {
         "follow_up": "Log follow-up",
@@ -290,7 +304,9 @@
         "template_approval": "Review draft",
         "template_returned": "Revise draft",
         "society_task": "Open",
-        "society_approval": "Review"
+        "society_approval": "Review",
+        "journal_approval": "Review journal",
+        "project_activation": "Review setup"
       },
       "approvalItem": "{{label}}",
       "due": "Due {{when}}",
@@ -302,7 +318,8 @@
       "noneFiltered": "No work matches these filters",
       "noneBody": "Only work on records you can open is listed and counted.",
       "showAll_one": "Show all {{count}}",
-      "showAll_other": "Show all {{count}}"
+      "showAll_other": "Show all {{count}}",
+      "setupItem": "{{ref}} · {{name}}"
     },
     "queue": {
       "title": "Work queue",

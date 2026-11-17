@@ -91,8 +91,9 @@ test.describe('PRJ-001 / PRJ-002: projects and Project 360', () => {
     await expect(page.getByTestId('p360-tab-outcome')).toContainText('E.5');
     await page.getByRole('tab', { name: 'Leads' }).click();
     await expect(page.getByTestId('p360-lead').first()).toBeVisible();
+    // Wave 1 integration: the Documents tab is E.13's (document.view); Nadia holds no document permission.
     await page.goto(`${BO}/backoffice/prj/project-360-workspace?record=prj_heights&tab=documents`);
-    await expect(page.getByTestId('p360-documents')).toContainText('E.13');
+    await expect(page.getByTestId('p360-tab-outcome')).toHaveAttribute('data-state', 'no_permission');
     await page.goto(`${BO}/backoffice/prj/project-360-workspace?record=prj_heights&tab=maintenance`);
     await expect(page.getByTestId('p360-tab-outcome')).toHaveAttribute('data-state', /planned|not_in_plan/);
     expect(consoleErrors).toEqual([]);

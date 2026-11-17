@@ -159,7 +159,12 @@
       "pass": "وزیٹر پاس",
       "vehicle": "گاڑی",
       "notice": "نوٹس",
-      "tenant": "ادارہ"
+      "tenant": "ادارہ",
+      "opportunity": "موقع",
+      "visit": "سائٹ وزٹ",
+      "storage": "اسٹوریج",
+      "account": "لیجر اکاؤنٹ",
+      "journal": "جرنل"
     },
     "typesPlural": {
       "lead": "لیڈز",
@@ -175,7 +180,12 @@
       "pass": "وزیٹر پاس",
       "vehicle": "گاڑیاں",
       "notice": "نوٹس",
-      "tenant": "ادارے"
+      "tenant": "ادارے",
+      "opportunity": "مواقع",
+      "visit": "سائٹ وزٹس",
+      "storage": "اسٹوریج",
+      "account": "لیجر اکاؤنٹس",
+      "journal": "جرنلز"
     },
     "today": "آج",
     "sessionNote": "صرف اس سائن اِن کے لیے محفوظ: سائن آؤٹ کرنے یا شناخت بدلنے سے یہ فہرست صاف ہو جاتی ہے۔ جو ریکارڈ آپ اب نہیں کھول سکتے وہ اس سے غائب ہو جاتا ہے۔",
@@ -270,7 +280,9 @@
         "template_approval": "مسودہ ورژن {{version}} منظوری کا منتظر",
         "template_returned": "مسودہ ورژن {{version}} واپس کیا گیا",
         "society_task": "سوسائٹی کا کام",
-        "society_approval": "منظوری کا منتظر"
+        "society_approval": "منظوری کا منتظر",
+        "journal_approval": "منظوری کا منتظر جرنل",
+        "project_activation": "منظوری کا منتظر پروجیکٹ سیٹ اپ"
       },
       "kindName": {
         "follow_up": "فالو اپس",
@@ -280,7 +292,9 @@
         "template_approval": "ٹیمپلیٹ کی منظوریاں",
         "template_returned": "واپس کیے گئے مسودے",
         "society_task": "سوسائٹی کے کام",
-        "society_approval": "سوسائٹی کی منظوریاں"
+        "society_approval": "سوسائٹی کی منظوریاں",
+        "journal_approval": "جرنل کی منظوریاں",
+        "project_activation": "پروجیکٹ کی فعالیاں"
       },
       "action": {
         "follow_up": "فالو اپ درج کریں",
@@ -290,7 +304,9 @@
         "template_approval": "مسودہ دیکھیں",
         "template_returned": "مسودے میں ترمیم کریں",
         "society_task": "کھولیں",
-        "society_approval": "دیکھیں"
+        "society_approval": "دیکھیں",
+        "journal_approval": "جرنل دیکھیں",
+        "project_activation": "سیٹ اپ دیکھیں"
       },
       "approvalItem": "{{label}}",
       "due": "مقررہ وقت {{when}}",
@@ -302,7 +318,8 @@
       "noneFiltered": "ان فلٹرز سے کوئی کام نہیں ملتا",
       "noneBody": "صرف ان ریکارڈز کا کام دکھایا اور گنا جاتا ہے جو آپ کھول سکتے ہیں۔",
       "showAll_one": "تمام {{count}} دکھائیں",
-      "showAll_other": "تمام {{count}} دکھائیں"
+      "showAll_other": "تمام {{count}} دکھائیں",
+      "setupItem": "{{ref}} · {{name}}"
     },
     "queue": {
       "title": "کام کی قطار",

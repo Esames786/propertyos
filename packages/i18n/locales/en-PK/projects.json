@@ -183,7 +183,6 @@
     "owner": "Owner",
     "budget": "Budget",
     "documentsTitle": "Documents",
-    "documentsEmpty": "No documents are linked to this project in the demo yet. The document centre arrives with Gate E.13; documents will follow this project's permissions.",
     "activityTitle": "Activity",
     "activityEmpty": "Nothing has happened to this project in this demo session yet. Holds, storage allocations and setup steps appear here.",
     "setupNote": "This project was set up and approved in this demo session. It has no units yet: unit creation arrives with a later slice.",

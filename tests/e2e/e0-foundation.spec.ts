@@ -73,36 +73,39 @@ test.describe('Gate E.0: unit holds belong to the person who placed them (Issue 
 });
 
 test.describe('Gate E.0: the new maker-checker people and the developer areas', () => {
-  test('the sign-in page offers the four new fictional Larkspur people', async ({ page }) => {
+  test('the sign-in page offers the new fictional Larkspur people (the reconciled Wave 1 roster)', async ({ page }) => {
     await seed(page, { persona: null });
     await page.goto(`${BO}/backoffice/sign-in`);
-    for (const [id, name] of [['lsp_sales_manager', 'Hamza Rashid'], ['lsp_project_manager', 'Mehwish Kazmi'], ['lsp_accounts', 'Faiza Noor'], ['lsp_finance_controller', 'Zubair Ansari']]) {
+    for (const [id, name] of [['lsp_sales_manager', 'Hamza Rashid'], ['lsp_project_manager', 'Mehwish Kazmi'], ['lsp_accounts', 'Faiza Noor'], ['lsp_finance_controller', 'Zubair Ansari'], ['lsp_ledger_clerk', 'Saad Hameed'], ['lsp_records_clerk', 'Haroon Qadri']]) {
       await expect(page.getByTestId(`sign-in-${id}`), id).toContainText(name!);
     }
   });
 
-  test('the accounts officer gets Accounting (planned until E.7 lands) and no Projects; My access names her permissions', async ({ page, consoleErrors }) => {
+  test('the accounts officer gets Accounting (E.7’s chart of accounts since the Wave 1 integration) and no Projects; My access names her permissions', async ({ page, consoleErrors }) => {
     await seed(page, { persona: as('lsp_accounts') });
     await page.goto(`${BO}/backoffice`);
     await expect(nav(page).getByRole('link', { name: 'Accounting', exact: true })).toBeVisible();
     await expect(nav(page).getByRole('link', { name: 'Projects', exact: true })).toHaveCount(0);
     await nav(page).getByRole('link', { name: 'Accounting', exact: true }).click();
     await expect(page).toHaveURL(/\/backoffice\/acc\/chart-of-accounts$/);
-    await expect(page.getByTestId('planned-screen')).toBeVisible();
+    await expect(page.getByTestId('ledger-chart')).toBeVisible();
+    await expect(page.getByTestId('access-outcome')).toHaveCount(0);
     await page.goto(`${BO}/backoffice/global/my-access`);
     await expect(page.getByTestId('my-access-area-accounting')).toContainText('Prepare journals');
     await expect(page.getByTestId('my-access-area-banking')).toContainText('Import bank statements');
     expect(consoleErrors).toEqual([]);
   });
 
-  test('the finance controller opens Projects and Accounting (the planned pages, not a refusal)', async ({ page }) => {
+  test('the finance controller opens Projects and Accounting (E.2’s and E.7’s live screens, not a refusal)', async ({ page }) => {
     await seed(page, { persona: as('lsp_finance_controller') });
     await page.goto(`${BO}/backoffice`);
     await expect(nav(page).getByRole('link', { name: 'Projects', exact: true })).toBeVisible();
     await expect(nav(page).getByRole('link', { name: 'Accounting', exact: true })).toBeVisible();
     await page.goto(`${BO}/backoffice/prj/projects-list`);
-    await expect(page.getByTestId('planned-screen')).toBeVisible();
+    await expect(page.getByTestId('project-card').first()).toBeVisible();
     await expect(page.getByTestId('access-outcome')).toHaveCount(0);
+    await page.goto(`${BO}/backoffice/acc/chart-of-accounts`);
+    await expect(page.getByTestId('ledger-chart')).toBeVisible();
   });
 
   for (const persona of ['manager', 'sales', 'finance'] as const) {

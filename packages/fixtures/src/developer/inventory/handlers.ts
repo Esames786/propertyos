@@ -201,8 +201,9 @@ const TAB_PLAN: Record<Project360Tab, { module: ModuleKey; gate?: string; permis
   handover: { module: 'handover', gate: 'E.11' },
   residents: { module: 'residents', gate: 'E-24' },
   maintenance: { module: 'maintenance', gate: 'E-24' },
-  // E.13 owns documents; no project document exists in the demo fixtures yet.
-  documents: { module: 'core', gate: 'E.13' },
+  // Wave 1 integration: E.13's documents of the project (each checked against the project by E.13's registry);
+  // the tab is live for readers with document.view.
+  documents: { module: 'core', permission: 'document.view' },
   analytics: { module: 'reports', gate: 'E.12' },
   activity: { module: 'projects' },
 };
@@ -213,7 +214,7 @@ function tabsFor(ctx: HandlerContext, siteId: string, projectId: string | null):
     if (!licensedOnSite(ctx, plan.module, siteId)) return { id, state: 'not_in_plan' };
     if (plan.gate) return { id, state: 'planned', gate: plan.gate };
     if (plan.permission && projectId) {
-      const visible = id === 'units' ? inventoryVisible(ctx, projectId) : leadVisible(ctx, projectId);
+      const visible = id === 'units' ? inventoryVisible(ctx, projectId) : id === 'documents' ? can(ctx, 'document.view', 'operational') : leadVisible(ctx, projectId);
       if (!visible) return { id, state: 'no_permission' };
     }
     if (plan.permission && !projectId && !can(ctx, plan.permission, 'operational')) return { id, state: 'no_permission' };

@@ -134,7 +134,8 @@ function unitRef(ctx: HandlerContext, u: (typeof ctx.data.units)[number]): Recor
     title: u.ref,
     ...(tower ? { subtitle: tower.name } : u.block ? { subtitle: u.block } : {}),
     subtitleKey: `status:unit.${held ? 'held' : u.status}`,
-    href: `/backoffice/inv/unit-360-workspace?record=${u.id}`,
+    // Wave 1 integration: E.2's live INV-002 (the quick view over the unit matrix), not the planned Unit 360.
+    href: `/backoffice/inv/unit-quick-view?record=${u.id}`,
     module: 'inventory',
     ...(projectOf(ctx, u.projectId) ? { project: projectOf(ctx, u.projectId)! } : {}),
     favouritable: true,

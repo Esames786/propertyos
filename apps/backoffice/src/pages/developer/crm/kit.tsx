@@ -9,8 +9,7 @@ import { unbroken } from '../../society/hr/hkit';
 /**
  * Gate E.1 shared pieces: addresses, stage badges and the notes every pipeline screen carries.
  * Links go only to screens that exist: Lead 360 (CRM-003), the unit quick view on Lead 360 (INV-002,
- * PARTIAL) and the project's register address (PRJ-002, which shows its planned page until Gate E.2
- * lands, and says so in the link's own text).
+ * PARTIAL) and Project 360 (PRJ-002, E.2's live screen since the Wave 1 integration).
  */
 
 const qs = (params: Record<string, string | undefined | null>) => {
@@ -27,7 +26,7 @@ export const E1 = {
   lead: (id: string, tab?: string) => `/backoffice/crm/lead-360-workspace${qs({ record: id, tab })}`,
   /** The unit quick view (INV-002) opens over the lead it was shown to. */
   unit: (leadId: string, unitId: string) => `/backoffice/crm/lead-360-workspace${qs({ record: leadId, tab: 'units', unit: unitId })}`,
-  /** PRJ-002 is built by Gate E.2; until then its register address shows the planned page. */
+  /** PRJ-002, Gate E.2's Project 360 (live since the Wave 1 integration). */
   project: (id: string) => `/backoffice/prj/project-360-workspace${qs({ record: id })}`,
 };
 
@@ -85,7 +84,7 @@ export function OwnerText({ owner }: { owner: SalesPerson }) {
   );
 }
 
-/** The project's page (planned until Gate E.2): the link says where it goes. */
+/** The project's page (E.2's Project 360): the link says where it goes. */
 export function ProjectLink({ id, name, testId }: { id: string; name: string; testId?: string }) {
   const { t } = useT();
   return (

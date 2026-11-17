@@ -3,6 +3,7 @@ import { Badge, DateTime, EmptyState, ErrorState, KeyValueList, Link, NotFoundSt
 import { BadgeCheck, Bookmark, CalendarClock, CheckCircle2, Grid3x3, Lock, PackageX } from 'lucide-react';
 import { Loading } from '../../society/kit';
 import { LinkButton } from '../../society/hr/hkit';
+import { RelatedRecords } from '../workspace/RelatedRecords';
 import { AreaNav, BucketBar, PRJ, ProvisionalNote, SeedNote, StateBadge, unbroken, useEventText, useInvFormat } from './pkit';
 
 /**
@@ -87,7 +88,7 @@ function ChooseProject() {
 }
 
 function TabBody({ d, tab }: { d: Project360; tab: Project360TabInfo }) {
-  if (tab.state !== 'live' && tab.id !== 'documents') return <TabOutcome tab={tab} site={d.project.siteName} />;
+  if (tab.state !== 'live') return <TabOutcome tab={tab} site={d.project.siteName} />;
   switch (tab.id as Project360Tab) {
     case 'overview':
       return <Overview d={d} />;
@@ -96,7 +97,7 @@ function TabBody({ d, tab }: { d: Project360; tab: Project360TabInfo }) {
     case 'leads':
       return <Leads d={d} />;
     case 'documents':
-      return <Documents />;
+      return <Documents projectId={d.project.id} />;
     case 'activity':
       return <Activity d={d} />;
     default:
@@ -278,13 +279,17 @@ function Leads({ d }: { d: Project360 }) {
   );
 }
 
-function Documents() {
+/**
+ * Wave 1 integration (Issue #25): the project's documents and related records from E.13's registry
+ * (GET /workspace/related): each document is checked against the project for this reader, with E.13's
+ * upload and favourite actions where the reader may use them.
+ */
+function Documents({ projectId }: { projectId: string }) {
   const { t } = useT();
   return (
     <Panel className="mt-4" title={t('projects:p360.documentsTitle')}>
-      <div className="flex items-start gap-3" data-testid="p360-documents" data-state="planned">
-        <Badge tone="neutral" icon={CalendarClock}>{`${t('projects:tabState.plannedTitle')} · E.13`}</Badge>
-        <p className="min-w-0 text-sm text-text">{t('projects:p360.documentsEmpty')}</p>
+      <div data-testid="p360-documents" data-state="live">
+        <RelatedRecords recordId={projectId} headingLevel={3} />
       </div>
     </Panel>
   );

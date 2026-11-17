@@ -90,7 +90,12 @@ describe('PRJ-001 / PRJ-002: projects in scope, figures per licence and permissi
   it('Project 360 tabs: E.2 tabs live, later slices planned with their gate, unlicensed ones not in the plan', async () => {
     const h = await api.as('manager').get<Project360>('/projects/prj_heights');
     const state = Object.fromEntries(h.tabs.map((t) => [t.id, t.gate ? `${t.state}:${t.gate}` : t.state]));
-    expect(state).toMatchObject({ overview: 'live', leads: 'live', units: 'live', activity: 'live', bookings: 'planned:E.5', construction: 'planned:E.10', handover: 'planned:E.11', documents: 'planned:E.13', analytics: 'planned:E.12' });
+    expect(state).toMatchObject({ overview: 'live', leads: 'live', units: 'live', activity: 'live', bookings: 'planned:E.5', construction: 'planned:E.10', handover: 'planned:E.11', analytics: 'planned:E.12' });
+    // Wave 1 integration: documents are E.13's, live for readers with document.view (Nadia holds none).
+    expect(state.documents).toBe('no_permission');
+    const mehwish = await api.as('lsp_project_manager').get<Project360>('/projects/prj_heights');
+    expect(mehwish.tabs.find((t) => t.id === 'documents')!.state).toBe('live');
+    api.as('manager');
     expect(h.tabs).toHaveLength(15);
     expect(h.inventory!.map((r) => r.label)).toEqual(['A', 'B', 'C']);
     expect(h.documents.items).toEqual([]);

@@ -30,6 +30,13 @@ export const WORKSPACE_RECORD_TYPES = [
   'vehicle',
   'notice',
   'tenant',
+  // Wave 1 integration (Issue #25): the record kinds of E.1 (opportunities, site visits), E.2 (storage) and E.7
+  // (ledger accounts, journals). E.2's projects and units are the kinds above.
+  'opportunity',
+  'visit',
+  'storage',
+  'account',
+  'journal',
 ] as const;
 export type WorkspaceRecordType = (typeof WORKSPACE_RECORD_TYPES)[number];
 
@@ -97,7 +104,8 @@ export interface SavedListResponse<T> {
 // ---------------------------------------------------------------------------------------------
 // HOME-002 my tasks, HOME-004 work queue
 // ---------------------------------------------------------------------------------------------
-export const TASK_KINDS = ['follow_up', 'site_visit', 'hold_expiry', 'document_expiry', 'template_approval', 'template_returned', 'society_task', 'society_approval'] as const;
+// Wave 1 integration (Issue #25): E.7's journals and E.2's project setups waiting for a second person.
+export const TASK_KINDS = ['follow_up', 'site_visit', 'hold_expiry', 'document_expiry', 'template_approval', 'template_returned', 'society_task', 'society_approval', 'journal_approval', 'project_activation'] as const;
 export type TaskKind = (typeof TASK_KINDS)[number];
 
 export const TASK_URGENCIES = ['overdue', 'today', 'soon', 'later'] as const;

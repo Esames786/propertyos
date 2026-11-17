@@ -26,7 +26,7 @@
     "phone": "Mobile",
     "previous": "Previous",
     "project": "Project",
-    "projectLink": "{{project}} (project page, planned)",
+    "projectLink": "{{project}} (project page)",
     "refused": "Not saved. Nothing was changed.",
     "scopeAssigned": "You see the leads, opportunities and visits assigned to you in your projects. A sales manager sees the whole project (proposed decision E-05, not yet approved).",
     "showing": "Showing {{from}}–{{to}} of {{total}}",
