@@ -1,4 +1,5 @@
 import type { RouteObject } from 'react-router';
+import { routes as payablesRoutes } from '../pages/developer/payables/routes'; // Gate E.8 (provisional; reconcile at integration)
 
 /**
  * Gate E.0 deliverable 6: the one place Gate E areas register their screens (plan §7.4: "E.0 adds one
@@ -25,7 +26,10 @@ export interface DeveloperArea {
 }
 
 /** Registered areas (none in E.0: it adds no screens). */
-export const DEVELOPER_AREAS: readonly DeveloperArea[] = [];
+export const DEVELOPER_AREAS: readonly DeveloperArea[] = [
+  // Gate E.8 (provisional; reconcile at integration): suppliers, payables and expenses (SUP-001…008, EXP-001…009).
+  { area: 'payables', routes: payablesRoutes },
+];
 
 /** Every registered Gate E route, spread into the backoffice shell by `routes.tsx`. */
 export const DEVELOPER_ROUTES: RouteObject[] = DEVELOPER_AREAS.flatMap((a) => [...a.routes]);
