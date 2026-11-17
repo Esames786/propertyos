@@ -331,3 +331,23 @@ for (const f of FAMILIES) {
     });
   });
 }
+
+describe('E.3 previews need unit.view as well as pricing.manage (mutation V13 found no test for it)', () => {
+  it('without unit.view, COM-004 and COM-002 previews answer a real unit exactly like one that does not exist; nothing written', async () => {
+    const w = world();
+    const f = FAMILIES.find((x) => x.name.startsWith('COM-004'))!;
+    const d = await w.send<Draft>('POST', f.create(), f.createBody('prj_heights'), 'qa-preview-key-000001');
+    const allowed = await w.send<{ illustrativePayable: { amount: string } }>('POST', '/pricing/commercial-preview', { draftId: d.id, unitId: HEIGHTS_UNIT });
+    expect(allowed.illustrativePayable.amount).toMatch(/^\d+\.\d\d$/);
+    // The same person keeps pricing.manage but loses unit.view, mid-session.
+    w.revoked.set(E3QA_PRICING.id, ['unit.view']);
+    const before = w.state();
+    const named = await refused(w.send('POST', '/pricing/commercial-preview', { draftId: d.id, unitId: HEIGHTS_UNIT }));
+    const unknown = await refused(w.send('POST', '/pricing/commercial-preview', { draftId: d.id, unitId: 'unt_lh_never_issued' }));
+    expect(named).toEqual(unknown);
+    expect(named).toEqual({ status: 404, code: 'not_found', changed: false });
+    const plan = { allocations: [{ kind: 'down_payment', shareBps: 10000 }] };
+    expect(await refused(w.send('POST', '/pricing/plan-preview', { unitId: HEIGHTS_UNIT, ...plan }))).toEqual(await refused(w.send('POST', '/pricing/plan-preview', { unitId: 'unt_lh_never_issued', ...plan })));
+    expect(w.state()).toBe(before);
+  });
+});
