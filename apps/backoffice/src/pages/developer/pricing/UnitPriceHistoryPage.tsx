@@ -1,4 +1,5 @@
 import { ApiError, type UnitPriceHistory, type UnitPricePickerResponse } from '@repo/contracts';
+import { wrappable } from './amount';
 import { Badge, EmptyState, ErrorState, Link, PageHeader, SkeletonBlock, useApiQuery, useQueryParam, useT } from '@repo/ui';
 import { Search, History, LockKeyhole, Layers3 } from 'lucide-react';
 import { useState } from 'react';
@@ -72,7 +73,7 @@ export default function UnitPriceHistoryPage() {
                     >
                       <span className="font-semibold"><bdi dir="ltr">{unit.ref}</bdi></span>
                       <span className="break-words text-muted">{unit.projectName}</span>
-                      <span className="font-medium"><bdi dir="ltr">{money.moneyExact(unit.currentListedPrice)}</bdi></span>
+                      <span className="font-medium"><bdi dir="ltr" className="[overflow-wrap:anywhere]">{wrappable(money.moneyExact(unit.currentListedPrice))}</bdi></span>
                     </Link>
                   </li>
                 ))}
@@ -116,7 +117,7 @@ export default function UnitPriceHistoryPage() {
                 </div>
                 <div className="min-w-0 rounded-control bg-sunken p-3">
                   <dt className="text-sm text-muted">{t('pricing:listedPrice')}</dt>
-                  <dd className="font-semibold text-text"><bdi dir="ltr">{money.moneyExact(selected.data.baseline.price)}</bdi></dd>
+                  <dd className="font-semibold text-text"><bdi dir="ltr" className="[overflow-wrap:anywhere]">{wrappable(money.moneyExact(selected.data.baseline.price))}</bdi></dd>
                 </div>
               </dl>
               <div className="space-y-2 border-s-2 border-primary ps-4" data-testid="price-baseline">

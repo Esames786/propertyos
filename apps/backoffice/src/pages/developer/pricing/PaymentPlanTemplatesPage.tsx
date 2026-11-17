@@ -132,13 +132,13 @@ export default function PaymentPlanTemplatesPage() {
         <section className="min-w-0 space-y-4 rounded-card border border-border bg-panel p-4" aria-labelledby="template-list-title">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 id="template-list-title" className="font-semibold text-text">{t('pricing:templateList')}</h2>
-            <Button icon={Plus} variant="secondary" onPress={makeNew} isDisabled={mutation.isPending}>{t('pricing:templateStartNew')}</Button>
+            <Button className="max-w-full whitespace-normal" icon={Plus} variant="secondary" onPress={makeNew} isDisabled={mutation.isPending}>{t('pricing:templateStartNew')}</Button>
           </div>
-          <label className="flex flex-col gap-1 text-sm text-text">
+          <label className="flex min-w-0 flex-col gap-1 text-sm text-text">
             {t('pricing:templateSearch')}
             <input type="search" value={query} onChange={(event) => setQuery(event.target.value)}
               data-testid="template-search"
-              className="min-h-11 w-full rounded-control border border-border-control bg-panel px-3 text-text focus-visible:outline-2 focus-visible:outline-focus" />
+              className="min-h-11 w-full min-w-0 rounded-control border border-border-control bg-panel px-3 text-text focus-visible:outline-2 focus-visible:outline-focus" />
           </label>
           {templates.isError ? <ErrorState error={templates.error} onRetry={() => void templates.refetch()} />
             : !templates.data ? <SkeletonBlock lines={4} />
@@ -150,7 +150,7 @@ export default function PaymentPlanTemplatesPage() {
                         data-testid="template-list-item"
                         aria-current={selectedId === item.id ? 'true' : undefined}
                         onClick={() => { setCommittedFloor(null); setSelectedId(item.id); setSaved(false); setError(false); setDirty(false); renewRevision(); }}
-                        className="min-h-11 w-full rounded-control border border-border p-3 text-start text-text hover:bg-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+                        className="min-h-11 w-full min-w-0 rounded-control border border-border p-3 text-start text-text hover:bg-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
                         <span className="block break-words font-medium">{item.title}</span>
                         <span className="text-sm text-muted">{t('pricing:templateVersion', { version: item.currentVersion })}</span>
                       </button>
@@ -165,52 +165,52 @@ export default function PaymentPlanTemplatesPage() {
           {!projectsQuery.isError && !projectsQuery.data && <SkeletonBlock lines={2} />}
           {projectsQuery.data?.items.length === 0 && <EmptyState title={t('pricing:templateNoAccess')} />}
           {selectedId && selected.isError ? <ErrorState error={selected.error} onRetry={() => void selected.refetch()} /> :
-            <fieldset disabled={mutation.isPending || !projectsQuery.data || (!!selectedId && !selected.data)} className="space-y-4">
-              <label className="flex flex-col gap-1 text-sm text-text">{t('pricing:templateProject')}
+            <fieldset disabled={mutation.isPending || !projectsQuery.data || (!!selectedId && !selected.data)} className="min-w-0 space-y-4">
+              <label className="flex min-w-0 flex-col gap-1 text-sm text-text">{t('pricing:templateProject')}
                 <select value={projectId} disabled={!!selectedId} onChange={(event) => { setProjectId(event.target.value); change(); }}
                   data-testid="template-project"
-                  className="min-h-11 w-full rounded-control border border-border-control bg-panel px-3 text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+                  className="min-h-11 w-full min-w-0 rounded-control border border-border-control bg-panel px-3 text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
                   <option value="">{t('pricing:templateProjectPlaceholder')}</option>
                   {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
               </label>
-              <label className="flex flex-col gap-1 text-sm text-text">{t('pricing:templateName')}
+              <label className="flex min-w-0 flex-col gap-1 text-sm text-text">{t('pricing:templateName')}
                 <input type="text" maxLength={100} value={title} data-testid="template-name"
                   onChange={(event) => { setTitle(event.target.value); change(); }}
-                  className="min-h-11 w-full rounded-control border border-border-control bg-panel px-3 text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" />
+                  className="min-h-11 w-full min-w-0 rounded-control border border-border-control bg-panel px-3 text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" />
               </label>
               <h3 className="font-semibold text-text">{t('pricing:templateAllocations')}</h3>
               {rows.map((row, index) => (
                 <div key={row.id} className="grid min-w-0 gap-3 rounded-control border border-border bg-sunken p-3 @lg:grid-cols-2" data-testid="template-allocation">
-                  <label className="flex flex-col gap-1 text-sm text-text">{t('pricing:templateKind')}
+                  <label className="flex min-w-0 flex-col gap-1 text-sm text-text">{t('pricing:templateKind')}
                     <select value={row.kind} onChange={(event) => update(row.id, { kind: event.target.value as PlanAllocationKind })}
-                      className="min-h-11 min-w-0 rounded-control border border-border-control bg-panel px-3 text-text focus-visible:outline-2 focus-visible:outline-focus">
+                      className="min-h-11 w-full min-w-0 rounded-control border border-border-control bg-panel px-3 text-text focus-visible:outline-2 focus-visible:outline-focus">
                       {KINDS.map((kind) => <option key={kind} value={kind}>{options[kind]}</option>)}
                     </select>
                   </label>
-                  <label className="flex flex-col gap-1 text-sm text-text">{t('pricing:templatePercent')}
+                  <label className="flex min-w-0 flex-col gap-1 text-sm text-text">{t('pricing:templatePercent')}
                     <input type="text" inputMode="decimal" value={row.percent} data-testid={`template-share-${index}`}
                       onChange={(event) => update(row.id, { percent: event.target.value })}
                       className="min-h-11 w-full min-w-0 rounded-control border border-border-control bg-panel px-3 text-text focus-visible:outline-2 focus-visible:outline-focus" />
                   </label>
-                  {row.kind === 'instalments' && <label className="flex flex-col gap-1 text-sm text-text">{t('pricing:templateInstalments')}
+                  {row.kind === 'instalments' && <label className="flex min-w-0 flex-col gap-1 text-sm text-text">{t('pricing:templateInstalments')}
                     <input type="number" min="1" max="36" value={row.count} onChange={(event) => update(row.id, { count: event.target.value })}
-                      className="min-h-11 w-full rounded-control border border-border-control bg-panel px-3 text-text" />
+                      className="min-h-11 w-full min-w-0 rounded-control border border-border-control bg-panel px-3 text-text" />
                   </label>}
-                  {row.kind === 'construction_linked' && <label className="flex flex-col gap-1 text-sm text-text">{t('pricing:templateMilestone')}
+                  {row.kind === 'construction_linked' && <label className="flex min-w-0 flex-col gap-1 text-sm text-text">{t('pricing:templateMilestone')}
                     <input type="text" value={row.milestoneKey} onChange={(event) => update(row.id, { milestoneKey: event.target.value })}
-                      className="min-h-11 w-full rounded-control border border-border-control bg-panel px-3 text-text" />
+                      className="min-h-11 w-full min-w-0 rounded-control border border-border-control bg-panel px-3 text-text" />
                   </label>}
-                  <Button variant="secondary" icon={Trash2} isDisabled={rows.length === 1}
+                  <Button className="max-w-full whitespace-normal" variant="secondary" icon={Trash2} isDisabled={rows.length === 1}
                     onPress={() => { setRows((old) => old.filter((r) => r.id !== row.id)); change(); }}>{t('pricing:templateDelete')}</Button>
                 </div>
               ))}
               <div className="flex flex-wrap gap-3">
-                <Button variant="secondary" icon={Plus} isDisabled={rows.length >= 24}
+                <Button className="max-w-full whitespace-normal" variant="secondary" icon={Plus} isDisabled={rows.length >= 24}
                   onPress={() => { setRows((old) => [...old, { id: nextRowId, kind: 'balloon', percent: '0', count: '1', milestoneKey: '' }]); setNextRowId((n) => n + 1); change(); }}>
                   {t('pricing:templateAdd')}
                 </Button>
-                <Button variant="primary" icon={Save} isPending={mutation.isPending} onPress={() => void submit()} data-testid="template-save">
+                <Button className="max-w-full whitespace-normal" variant="primary" icon={Save} isPending={mutation.isPending} onPress={() => void submit()} data-testid="template-save">
                   {selectedId ? t('pricing:templateRevise') : t('pricing:templateSave')}
                 </Button>
               </div>

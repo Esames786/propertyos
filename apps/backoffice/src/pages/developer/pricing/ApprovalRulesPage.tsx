@@ -126,13 +126,13 @@ export default function ApprovalRulesPage() {
         <section className="min-w-0 space-y-4 rounded-card border border-border bg-panel p-4" aria-labelledby="approval-draft-list-title">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 id="approval-draft-list-title" className="font-semibold text-text">{t('pricing:approvalMy')}</h2>
-            <Button variant="secondary" icon={Plus} isDisabled={mutation.isPending} onPress={makeNew}>
+            <Button className="max-w-full whitespace-normal" variant="secondary" icon={Plus} isDisabled={mutation.isPending} onPress={makeNew}>
               {t('pricing:approvalStart')}
             </Button>
           </div>
-          <label className="flex flex-col gap-1 text-sm text-text">{t('pricing:approvalSearch')}
+          <label className="flex min-w-0 flex-col gap-1 text-sm text-text">{t('pricing:approvalSearch')}
             <input type="search" value={search} onChange={(e) => setSearch(e.target.value)}
-              className="min-h-11 w-full rounded-control border border-border-control bg-panel px-3 text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" />
+              className="min-h-11 w-full min-w-0 rounded-control border border-border-control bg-panel px-3 text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" />
           </label>
           {list.isError ? <ErrorState error={list.error} onRetry={() => void list.refetch()} /> :
             !list.data ? <SkeletonBlock lines={4} /> :
@@ -143,7 +143,7 @@ export default function ApprovalRulesPage() {
                   <button type="button" disabled={mutation.isPending}
                     aria-current={selectedId === item.id ? 'true' : undefined}
                     onClick={() => { setCommittedFloor(null); setSelectedId(item.id); setSaved(false); setDirty(false); renewRevision(); }}
-                    className="min-h-11 w-full rounded-control border border-border p-3 text-start text-text hover:bg-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+                    className="min-h-11 w-full min-w-0 rounded-control border border-border p-3 text-start text-text hover:bg-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
                     <span className="block break-words font-semibold">{item.title}</span>
                     <span className="text-sm text-muted">{t('pricing:approvalVersion', { version: item.currentVersion })}</span>
                   </button>
@@ -160,56 +160,56 @@ export default function ApprovalRulesPage() {
             {!projects.data && !projects.isError && <SkeletonBlock lines={2} />}
             {projects.data?.items.length === 0 && <EmptyState title={t('pricing:approvalNoProject')} />}
             {selectedId && detail.isError ? <ErrorState error={detail.error} onRetry={() => void detail.refetch()} /> :
-              <fieldset disabled={mutation.isPending || !projects.data || (!!selectedId && detail.data?.id !== selectedId)} className="space-y-4">
-                <label className="flex flex-col gap-1 text-sm text-text">
+              <fieldset disabled={mutation.isPending || !projects.data || (!!selectedId && detail.data?.id !== selectedId)} className="min-w-0 space-y-4">
+                <label className="flex min-w-0 flex-col gap-1 text-sm text-text">
                   {t('pricing:approvalProject')}
                   <select value={projectId} disabled={!!selectedId} onChange={(e) => { setProjectId(e.target.value); changed(); }}
-                    className="min-h-11 w-full rounded-control border border-border-control bg-panel px-3 text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+                    className="min-h-11 w-full min-w-0 rounded-control border border-border-control bg-panel px-3 text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
                     <option value="">{t('pricing:templateProjectPlaceholder')}</option>
                     {projects.data?.items.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
                 </label>
-                <label className="flex flex-col gap-1 text-sm text-text">
+                <label className="flex min-w-0 flex-col gap-1 text-sm text-text">
                   {t('pricing:approvalName')}
                   <input type="text" maxLength={100} value={title} onChange={(e) => { setTitle(e.target.value); changed(); }}
-                    className="min-h-11 w-full rounded-control border border-border-control bg-panel px-3 text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" />
+                    className="min-h-11 w-full min-w-0 rounded-control border border-border-control bg-panel px-3 text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" />
                 </label>
                 {rows.map((rule) => (
                   <div key={rule.id} className="space-y-3 rounded-control border border-border bg-sunken p-3" data-testid="approval-rule-row">
-                    <label className="flex flex-col gap-1 text-sm text-text">
+                    <label className="flex min-w-0 flex-col gap-1 text-sm text-text">
                       {t('pricing:approvalSubject')}
                       <select value={rule.subject} onChange={(e) => update(rule.id, { subject: e.target.value as PricingApprovalSubject })}
-                        className="min-h-11 rounded-control border border-border-control bg-panel px-3 text-text">
+                        className="min-h-11 w-full min-w-0 rounded-control border border-border-control bg-panel px-3 text-text">
                         {SUBJECTS.map((subject) => <option key={subject} value={subject}>{subjectLabels[subject]}</option>)}
                       </select>
                     </label>
                     <div className="grid gap-3 @lg:grid-cols-2">
-                      <label className="flex flex-col gap-1 text-sm text-text">
+                      <label className="flex min-w-0 flex-col gap-1 text-sm text-text">
                         {t('pricing:approvalThreshold')}
                         <input type="text" inputMode="decimal" value={rule.amount} onChange={(e) => update(rule.id, { amount: e.target.value })}
-                          className="min-h-11 w-full rounded-control border border-border-control bg-panel px-3 text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" />
+                          className="min-h-11 w-full min-w-0 rounded-control border border-border-control bg-panel px-3 text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" />
                       </label>
-                      <label className="flex flex-col gap-1 text-sm text-text">
+                      <label className="flex min-w-0 flex-col gap-1 text-sm text-text">
                         {t('pricing:approvalReviewers')}
                         <select value={rule.reviewers} onChange={(e) => update(rule.id, { reviewers: e.target.value })}
-                          className="min-h-11 w-full rounded-control border border-border-control bg-panel px-3 text-text">
+                          className="min-h-11 w-full min-w-0 rounded-control border border-border-control bg-panel px-3 text-text">
                           <option value="1">1</option><option value="2">2</option><option value="3">3</option>
                         </select>
                       </label>
                     </div>
-                    <Button variant="secondary" icon={Trash2} isDisabled={rows.length === 1}
+                    <Button className="max-w-full whitespace-normal" variant="secondary" icon={Trash2} isDisabled={rows.length === 1}
                       onPress={() => { setRows((old) => old.filter((r) => r.id !== rule.id)); changed(); }}>
                       {t('pricing:approvalRemove')}
                     </Button>
                   </div>
                 ))}
                 <div className="flex flex-wrap gap-3">
-                  <Button variant="secondary" icon={Plus} isDisabled={rows.length >= 4}
+                  <Button className="max-w-full whitespace-normal" variant="secondary" icon={Plus} isDisabled={rows.length >= 4}
                     onPress={() => {
                       const next = SUBJECTS.find((subject) => !rows.some((r) => r.subject === subject));
                       if (next) { setRows((old) => [...old, { id: sequence, subject: next, amount: '0.00', reviewers: '2' }]); setSequence((s) => s + 1); changed(); }
                     }}>{t('pricing:approvalAdd')}</Button>
-                  <Button variant="primary" icon={Save} isPending={mutation.isPending} onPress={() => void save()} data-testid="approval-draft-save">
+                  <Button className="max-w-full whitespace-normal" variant="primary" icon={Save} isPending={mutation.isPending} onPress={() => void save()} data-testid="approval-draft-save">
                     {selectedId ? t('pricing:approvalRevise') : t('pricing:approvalSave')}
                   </Button>
                 </div>

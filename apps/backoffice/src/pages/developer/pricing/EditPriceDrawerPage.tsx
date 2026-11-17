@@ -1,5 +1,6 @@
 import { ApiError, type UnitPriceChangeDraft, type UnitPriceChangeDraftList, type UnitPriceHistory, type UnitPricePickerResponse } from '@repo/contracts';
 import { useSavedFocus } from './saved-focus';
+import { wrappable } from './amount';
 import { Badge, Button, Drawer, EmptyState, ErrorState, Link, PageHeader, SkeletonBlock, useApiMutation, useApiQuery, useCreateKey, useQueryParam, useT } from '@repo/ui';
 import { FileClock, Pencil, Search } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -141,7 +142,7 @@ export default function EditPriceDrawerPage() {
                     data-testid="price-change-unit" data-unit-id={unit.id}>
                     <strong><bdi dir="ltr">{unit.ref}</bdi></strong>
                     <span className="break-words text-sm text-muted">{unit.projectName}</span>
-                    <span className="text-sm"><bdi dir="ltr">{money.moneyExact(unit.currentListedPrice)}</bdi></span>
+                    <span className="text-sm"><bdi dir="ltr" className="[overflow-wrap:anywhere]">{wrappable(money.moneyExact(unit.currentListedPrice))}</bdi></span>
                   </button>
                 </li>)}
               </ul>}
@@ -150,8 +151,8 @@ export default function EditPriceDrawerPage() {
         title={t('pricing:priceChangeTitle')} subtitle={history.data?.unit.ref}
         testId="edit-price-change-drawer" size="lg"
         footer={history.data && !drafts.isError && !!drafts.data ? <>
-          <Button variant="secondary" isDisabled={saveMutation.isPending} onPress={closeDrawer}>{t('pricing:priceChangeClose')}</Button>
-          <Button variant="primary" isDisabled={!!draftId && (selectedDraft.isError || selectedDraft.isPending || selectedDraft.data?.id !== draftId)} isPending={saveMutation.isPending} onPress={() => void save()} data-testid="price-change-save">
+          <Button className="max-w-full whitespace-normal" variant="secondary" isDisabled={saveMutation.isPending} onPress={closeDrawer}>{t('pricing:priceChangeClose')}</Button>
+          <Button className="max-w-full whitespace-normal" variant="primary" isDisabled={!!draftId && (selectedDraft.isError || selectedDraft.isPending || selectedDraft.data?.id !== draftId)} isPending={saveMutation.isPending} onPress={() => void save()} data-testid="price-change-save">
             {draftId ? t('pricing:priceChangeRevise') : t('pricing:priceChangeSave')}
           </Button>
         </> : undefined}>
@@ -164,7 +165,7 @@ export default function EditPriceDrawerPage() {
               : <>
                 <div className="rounded-control border border-border bg-sunken p-3">
                   <p className="text-sm text-muted">{t('pricing:priceChangeCurrent')}</p>
-                  <p className="font-semibold text-text"><bdi dir="ltr">{money.moneyExact(history.data.baseline.price)}</bdi></p>
+                  <p className="font-semibold text-text"><bdi dir="ltr" className="[overflow-wrap:anywhere]">{wrappable(money.moneyExact(history.data.baseline.price))}</bdi></p>
                   <Badge tone="info">{t('pricing:priceChangeBaseline')}</Badge>
                   <Link href={`/backoffice/inv/unit-price-history?record=${encodeURIComponent(history.data.unit.id)}`}
                     variant="plain" className="mt-2 block text-sm text-primary">{t('pricing:priceChangeViewHistory')}</Link>
@@ -176,7 +177,7 @@ export default function EditPriceDrawerPage() {
                 ) : !drafts.data ? <SkeletonBlock lines={2} /> : <>
                   <div className="space-y-2">
                     <h3 className="font-semibold text-text">{t('pricing:priceChangeYourDrafts')}</h3>
-                    <Button variant="secondary" icon={Pencil} isDisabled={saveMutation.isPending} onPress={() => chooseDraft(null)}>
+                    <Button className="max-w-full whitespace-normal" variant="secondary" icon={Pencil} isDisabled={saveMutation.isPending} onPress={() => chooseDraft(null)}>
                       {t('pricing:priceChangeNew')}
                     </Button>
                     {drafts.data.items.length === 0 ? <EmptyState title={t('pricing:priceChangeNone')} /> :
@@ -186,7 +187,7 @@ export default function EditPriceDrawerPage() {
                             aria-current={draftId === record.id ? 'true' : undefined}
                             className="min-h-11 w-full rounded-control border border-border p-3 text-start text-text hover:bg-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
                             <span className="font-medium">{t('pricing:priceChangeVersion', { version: record.currentVersion })}</span>
-                            <span className="ms-3"><bdi dir="ltr">{money.moneyExact(record.proposedPrice)}</bdi></span>
+                            <span className="ms-3"><bdi dir="ltr" className="[overflow-wrap:anywhere]">{wrappable(money.moneyExact(record.proposedPrice))}</bdi></span>
                           </button>
                         </li>)}
                       </ul>}
@@ -216,7 +217,7 @@ export default function EditPriceDrawerPage() {
                     {selectedDraft.data.versions.map((version) => <li key={version.version}
                       className="rounded-control border border-border p-3 text-sm text-text">
                       <strong>{t('pricing:priceChangeVersion', { version: version.version })}</strong>
-                      <p><bdi dir="ltr">{money.moneyExact(version.proposedPrice)}</bdi></p>
+                      <p><bdi dir="ltr" className="[overflow-wrap:anywhere]">{wrappable(money.moneyExact(version.proposedPrice))}</bdi></p>
                       <p className="whitespace-pre-wrap break-words text-muted">{version.reason}</p>
                     </li>)}
                   </ol>

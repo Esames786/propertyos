@@ -1,5 +1,6 @@
 import { ApiError, type CommercialDiscountRule, type CommercialFeeRule, type CommercialRulesDraft, type CommercialRulesDraftList, type CommercialRulesPreview, type UnitPricePickerResponse } from '@repo/contracts';
 import { useSavedFocus } from './saved-focus';
+import { wrappable } from './amount';
 import { Badge, Button, EmptyState, ErrorState, PageHeader, SkeletonBlock, useApiMutation, useApiQuery, useCreateKey, useT } from '@repo/ui';
 import { Calculator, Plus, Save, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -154,7 +155,7 @@ export default function FeesDiscountsPage() {
         <section className="min-w-0 space-y-4 rounded-card border border-border bg-panel p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="font-semibold text-text">{t('pricing:commercialMyDrafts')}</h2>
-            <Button variant="secondary" icon={Plus} isDisabled={mutation.isPending} onPress={reset}>{t('pricing:commercialCreate')}</Button>
+            <Button className="max-w-full whitespace-normal" variant="secondary" icon={Plus} isDisabled={mutation.isPending} onPress={reset}>{t('pricing:commercialCreate')}</Button>
           </div>
           {input(t('pricing:commercialSearch'), search, setSearch)}
           {list.isError ? <ErrorState error={list.error} onRetry={() => void list.refetch()} /> : !list.data ? <SkeletonBlock lines={4} />
@@ -163,7 +164,7 @@ export default function FeesDiscountsPage() {
                 {list.data.items.map((item) => <li key={item.id}>
                   <button type="button" disabled={mutation.isPending} onClick={() => { setCommittedFloor(null); setSelectedId(item.id); setSaved(false); setPreviewResult(null); setDirty(false); renewRevise(); }}
                     aria-current={selectedId === item.id ? 'true' : undefined}
-                    className="min-h-11 w-full rounded-control border border-border p-3 text-start text-text hover:bg-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+                    className="min-h-11 w-full min-w-0 rounded-control border border-border p-3 text-start text-text hover:bg-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
                     <span className="block break-words font-semibold">{item.title}</span>
                     <span className="text-sm text-muted">{t('pricing:commercialVersion', { version: item.currentVersion })}</span>
                   </button>
@@ -176,10 +177,10 @@ export default function FeesDiscountsPage() {
             {projects.isError && <ErrorState error={projects.error} onRetry={() => void projects.refetch()} />}
             {detail.isError && selectedId && <ErrorState error={detail.error} onRetry={() => void detail.refetch()} />}
             {projects.data?.items.length === 0 && <EmptyState title={t('pricing:commercialNoProject')} />}
-            <fieldset disabled={mutation.isPending || !projects.data || (!!selectedId && detail.data?.id !== selectedId)} className="space-y-4">
-              <label className="flex flex-col gap-1 text-sm text-text">{t('pricing:commercialProject')}
+            <fieldset disabled={mutation.isPending || !projects.data || (!!selectedId && detail.data?.id !== selectedId)} className="min-w-0 space-y-4">
+              <label className="flex min-w-0 flex-col gap-1 text-sm text-text">{t('pricing:commercialProject')}
                 <select value={projectId} disabled={!!selectedId} onChange={(e) => { setProjectId(e.target.value); setUnitId(''); changed(); }}
-                  className="min-h-11 w-full rounded-control border border-border-control bg-panel px-3 text-text">
+                  className="min-h-11 w-full min-w-0 rounded-control border border-border-control bg-panel px-3 text-text">
                   <option value="">{t('pricing:templateProjectPlaceholder')}</option>
                   {projects.data?.items.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
@@ -190,9 +191,9 @@ export default function FeesDiscountsPage() {
                 <div className="grid gap-3 @lg:grid-cols-2">
                   {input(t('pricing:commercialCode'), fee.code, (s) => { setFees((old) => old.map((f) => f.id === fee.id ? { ...f, code: s } : f)); changed(); })}
                   {input(t('pricing:commercialLabel'), fee.label, (s) => { setFees((old) => old.map((f) => f.id === fee.id ? { ...f, label: s } : f)); changed(); })}
-                  <label className="flex flex-col gap-1 text-sm text-text">{t('pricing:commercialMode')}
+                  <label className="flex min-w-0 flex-col gap-1 text-sm text-text">{t('pricing:commercialMode')}
                     <select value={fee.mode} onChange={(e) => { setFees((old) => old.map((f) => f.id === fee.id ? { ...f, mode: e.target.value as FeeDraft['mode'] } : f)); changed(); }}
-                      className="min-h-11 rounded-control border border-border-control bg-panel px-3 text-text">
+                      className="min-h-11 w-full min-w-0 rounded-control border border-border-control bg-panel px-3 text-text">
                       <option value="fixed">{t('pricing:commercialFixed')}</option>
                       <option value="rate_bps">{t('pricing:commercialPercent')}</option>
                     </select>
@@ -200,9 +201,9 @@ export default function FeesDiscountsPage() {
                   {fee.mode === 'fixed' ? input(t('pricing:commercialAmount'), fee.amount, (s) => { setFees((old) => old.map((f) => f.id === fee.id ? { ...f, amount: s } : f)); changed(); }, 'decimal')
                     : input(t('pricing:commercialPercent'), fee.bps, (s) => { setFees((old) => old.map((f) => f.id === fee.id ? { ...f, bps: s } : f)); changed(); }, 'numeric')}
                 </div>
-                <Button variant="secondary" icon={Trash2} onPress={() => { setFees((old) => old.filter((f) => f.id !== fee.id)); changed(); }}>{t('pricing:commercialRemove')}</Button>
+                <Button className="max-w-full whitespace-normal" variant="secondary" icon={Trash2} onPress={() => { setFees((old) => old.filter((f) => f.id !== fee.id)); changed(); }}>{t('pricing:commercialRemove')}</Button>
               </div>)}
-              <Button variant="secondary" icon={Plus} isDisabled={fees.length >= 16} onPress={() => {
+              <Button className="max-w-full whitespace-normal" variant="secondary" icon={Plus} isDisabled={fees.length >= 16} onPress={() => {
                 setFees((old) => [...old, feeDefault(nextId)]); setNextId((n) => n + 1); changed();
               }}>{t('pricing:commercialAddFee')}</Button>
               <h3 className="font-semibold text-text">{t('pricing:commercialDiscount')}</h3>
@@ -213,13 +214,13 @@ export default function FeesDiscountsPage() {
                   {input(t('pricing:commercialPercent'), discount.bps, (s) => { setDiscounts((old) => old.map((d) => d.id === discount.id ? { ...d, bps: s } : d)); changed(); }, 'numeric')}
                   {input(t('pricing:commercialCap'), discount.cap, (s) => { setDiscounts((old) => old.map((d) => d.id === discount.id ? { ...d, cap: s } : d)); changed(); }, 'decimal')}
                 </div>
-                <Button variant="secondary" icon={Trash2} onPress={() => { setDiscounts((old) => old.filter((d) => d.id !== discount.id)); changed(); }}>{t('pricing:commercialRemove')}</Button>
+                <Button className="max-w-full whitespace-normal" variant="secondary" icon={Trash2} onPress={() => { setDiscounts((old) => old.filter((d) => d.id !== discount.id)); changed(); }}>{t('pricing:commercialRemove')}</Button>
               </div>)}
-              <Button variant="secondary" icon={Plus} isDisabled={discounts.length >= 16} onPress={() => {
+              <Button className="max-w-full whitespace-normal" variant="secondary" icon={Plus} isDisabled={discounts.length >= 16} onPress={() => {
                 setDiscounts((old) => [...old, discountDefault(nextId)]); setNextId((n) => n + 1); changed();
               }}>{t('pricing:commercialAddDiscount')}</Button>
               <div className="flex flex-wrap items-center gap-3">
-                <Button variant="primary" icon={Save} isPending={mutation.isPending} onPress={() => void save()} data-testid="commercial-save">
+                <Button className="max-w-full whitespace-normal" variant="primary" icon={Save} isPending={mutation.isPending} onPress={() => void save()} data-testid="commercial-save">
                   {selectedId ? t('pricing:commercialRevise') : t('pricing:commercialSave')}
                 </Button>
                 {saved && <span role="status" ref={savedFocus} tabIndex={-1} className="text-sm text-success focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">{t('pricing:commercialSaved')}</span>}
@@ -245,17 +246,17 @@ export default function FeesDiscountsPage() {
             <h3 className="flex items-center gap-2 font-semibold text-text"><Calculator aria-hidden className="size-4" />{t('pricing:commercialPreview')}</h3>
             <p className="text-sm text-muted">{t('pricing:commercialPreviewOnly')}</p>
             {dirty && <p role="status" className="text-sm text-muted" data-testid="commercial-save-first">{t('pricing:commercialUnsaved')}</p>}
-            <label className="flex flex-col gap-1 text-sm text-text">{t('pricing:commercialUnit')}
+            <label className="flex min-w-0 flex-col gap-1 text-sm text-text">{t('pricing:commercialUnit')}
               <select value={unitId} onChange={(e) => { setUnitId(e.target.value); setPreviewResult(null); }}
                 disabled={preview.isPending}
-                className="min-h-11 rounded-control border border-border-control bg-panel px-3 text-text">
+                className="min-h-11 w-full min-w-0 rounded-control border border-border-control bg-panel px-3 text-text">
                 <option value="">{t('pricing:commercialSelectUnit')}</option>
                 {units.data?.items.filter((u) => u.projectId === projectId).map((u) => <option key={u.id} value={u.id}>{u.ref} — {u.projectName}</option>)}
               </select>
             </label>
             {units.isError && <ErrorState error={units.error} onRetry={() => void units.refetch()} />}
             {units.data?.items.filter((u) => u.projectId === projectId).length === 0 && <p className="text-sm text-muted">{t('pricing:commercialNoUnit')}</p>}
-            <Button variant="primary" icon={Calculator} isDisabled={!unitId || dirty || (committedFloor?.id === selectedId && (detail.data?.currentVersion ?? 0) < committedFloor.version) || preview.isPending} isPending={preview.isPending} onPress={() => void doPreview()}
+            <Button className="max-w-full whitespace-normal" variant="primary" icon={Calculator} isDisabled={!unitId || dirty || (committedFloor?.id === selectedId && (detail.data?.currentVersion ?? 0) < committedFloor.version) || preview.isPending} isPending={preview.isPending} onPress={() => void doPreview()}
               data-testid="commercial-compute">{t('pricing:commercialCompute')}</Button>
             {preview.isError && <ErrorState error={preview.error} title={t('pricing:commercialPreviewError')} />}
             {previewResult && <div className="space-y-3" data-testid="commercial-preview-result">
@@ -267,14 +268,14 @@ export default function FeesDiscountsPage() {
                   [t('pricing:commercialPayable'), previewResult.illustrativePayable],
                 ] as const).map(([label, amount]) => <div key={label} className="rounded-control bg-sunken p-3">
                   <dt className="text-sm text-muted">{label}</dt>
-                  <dd className="font-semibold text-text"><bdi dir="ltr">{fmt.moneyExact(amount)}</bdi></dd>
+                  <dd className="font-semibold text-text"><bdi dir="ltr" className="[overflow-wrap:anywhere]">{wrappable(fmt.moneyExact(amount))}</bdi></dd>
                 </div>)}
               </dl>
               <h4 className="font-semibold text-text">{t('pricing:commercialLines')}</h4>
               <ul className="divide-y divide-border">{previewResult.lines.map((line) =>
                 <li key={line.code} className="flex min-w-0 flex-wrap justify-between gap-3 py-3 text-sm">
                   <span className="break-words text-text">{line.label} ({line.code})</span>
-                  <strong className="text-text"><bdi dir="ltr">{fmt.moneyExact(line.amount)}</bdi></strong>
+                  <strong className="text-text"><bdi dir="ltr" className="[overflow-wrap:anywhere]">{wrappable(fmt.moneyExact(line.amount))}</bdi></strong>
                 </li>)}</ul>
             </div>}
           </section>}

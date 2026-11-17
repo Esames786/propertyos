@@ -1,4 +1,5 @@
 import { PricingRelatedLinks } from './PricingRelatedLinks';
+import { wrappable } from './amount';
 import type { PlanAllocationInput, PlanAllocationKind, PlanPreview, UnitPricePickerResponse } from '@repo/contracts';
 import { Badge, Button, EmptyState, ErrorState, PageHeader, SelectControl, SkeletonBlock, useApiMutation, useApiQuery, useT } from '@repo/ui';
 import { Calculator, Plus, Trash2 } from 'lucide-react';
@@ -112,7 +113,7 @@ export default function PaymentPlanBuilderPage() {
             {selectedUnit && (
               <p className="text-sm font-semibold text-text" data-testid="plan-unit-price">
                 <bdi dir="ltr">{selectedUnit.ref}</bdi>{' — '}
-                <bdi dir="ltr">{fmt.moneyExact(selectedUnit.currentListedPrice)}</bdi>
+                <bdi dir="ltr" className="[overflow-wrap:anywhere]">{wrappable(fmt.moneyExact(selectedUnit.currentListedPrice))}</bdi>
               </p>
             )}
             {!units.data.items.length && <EmptyState title={t('pricing:noneFound')} />}
@@ -146,6 +147,7 @@ export default function PaymentPlanBuilderPage() {
                   </label>
                   <div className="flex items-end">
                     <Button
+                      className="max-w-full whitespace-normal"
                       variant="secondary"
                       icon={Trash2}
                       isDisabled={rows.length <= 1}
@@ -184,7 +186,7 @@ export default function PaymentPlanBuilderPage() {
             </fieldset>
             <div className="flex flex-wrap items-center gap-3">
               <Button
-                variant="secondary" icon={Plus}
+                className="max-w-full whitespace-normal" variant="secondary" icon={Plus}
                 onPress={() => {
                   setRows((old) => [...old, { id: nextRowId, kind: 'balloon', percent: '0', count: '1', milestoneKey: '' }]);
                   setNextRowId((old) => old + 1); setPreviewData(null); setInvalid(false);
@@ -194,7 +196,7 @@ export default function PaymentPlanBuilderPage() {
               >
                 {t('pricing:previewAdd')}
               </Button>
-              <Button variant="primary" icon={Calculator} onPress={() => void onPreview()} isPending={compute.isPending} isDisabled={!unitId || compute.isPending} data-testid="plan-preview-submit">
+              <Button className="max-w-full whitespace-normal" variant="primary" icon={Calculator} onPress={() => void onPreview()} isPending={compute.isPending} isDisabled={!unitId || compute.isPending} data-testid="plan-preview-submit">
                 {t('pricing:previewCompute')}
               </Button>
             </div>
@@ -219,7 +221,7 @@ export default function PaymentPlanBuilderPage() {
                   ] as const).map(([label, value]) => (
                     <div key={label} className="min-w-0 rounded-control bg-sunken p-3">
                       <dt className="text-sm text-muted">{label}</dt>
-                      <dd className="font-semibold text-text"><bdi dir="ltr">{value}</bdi></dd>
+                      <dd className="font-semibold text-text"><bdi dir="ltr" className="[overflow-wrap:anywhere]">{wrappable(value)}</bdi></dd>
                     </div>
                   ))}
                 </dl>
@@ -232,7 +234,7 @@ export default function PaymentPlanBuilderPage() {
                         {line.instalmentNumber ? ` — ${t('pricing:previewNumber', { number: line.instalmentNumber, count: line.instalmentCount })}` : ''}
                         {line.milestoneKey ? ` — ${t('pricing:previewMilestoneLabel', { key: line.milestoneKey })}` : ''}
                       </span>
-                      <strong className="text-sm text-text"><bdi dir="ltr">{fmt.moneyExact(line.amount)}</bdi></strong>
+                      <strong className="text-sm text-text"><bdi dir="ltr" className="[overflow-wrap:anywhere]">{wrappable(fmt.moneyExact(line.amount))}</bdi></strong>
                     </li>
                   ))}
                 </ul>

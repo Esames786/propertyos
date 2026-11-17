@@ -140,13 +140,13 @@ export default function PricingPoliciesPage() {
         <section className="min-w-0 space-y-4 rounded-card border border-border bg-panel p-4" aria-labelledby="pricing-policy-list-heading">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 id="pricing-policy-list-heading" className="font-semibold text-text">{t('pricing:policyList')}</h2>
-            <Button icon={Plus} variant="secondary" isDisabled={mutation.isPending} onPress={clear}>
+            <Button className="max-w-full whitespace-normal" icon={Plus} variant="secondary" isDisabled={mutation.isPending} onPress={clear}>
               {t('pricing:policyStart')}
             </Button>
           </div>
-          <label className="flex flex-col gap-1 text-sm text-text">{t('pricing:policySearch')}
+          <label className="flex min-w-0 flex-col gap-1 text-sm text-text">{t('pricing:policySearch')}
             <input type="search" value={q} onChange={(event) => setQ(event.target.value)}
-              className="min-h-11 w-full rounded-control border border-border-control bg-panel px-3 text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" />
+              className="min-h-11 w-full min-w-0 rounded-control border border-border-control bg-panel px-3 text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" />
           </label>
           {list.isError ? <ErrorState error={list.error} onRetry={() => void list.refetch()} />
             : !list.data ? <SkeletonBlock lines={4} />
@@ -156,7 +156,7 @@ export default function PricingPoliciesPage() {
                     <button type="button" disabled={mutation.isPending}
                       onClick={() => { setCommittedFloor(null); setSelectedId(policy.id); setSuccess(false); setDirty(false); renewRevision(); }}
                       aria-current={selectedId === policy.id ? 'true' : undefined}
-                      className="min-h-11 w-full rounded-control border border-border p-3 text-start text-text hover:bg-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+                      className="min-h-11 w-full min-w-0 rounded-control border border-border p-3 text-start text-text hover:bg-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
                       <span className="block break-words font-semibold">{policy.title}</span>
                       <span className="text-sm text-muted">{t('pricing:policyVersion', { version: policy.currentVersion })}</span>
                     </button>
@@ -171,28 +171,28 @@ export default function PricingPoliciesPage() {
           {!projects.data && !projects.isError && <SkeletonBlock lines={2} />}
           {projects.data?.items.length === 0 && <EmptyState title={t('pricing:policyNoProjects')} />}
           {selectedId && detail.isError ? <ErrorState error={detail.error} onRetry={() => void detail.refetch()} /> :
-            <fieldset className="space-y-4" disabled={mutation.isPending || !projects.data || (!!selectedId && !detail.data)}>
-              <label className="flex flex-col gap-1 text-sm text-text">{t('pricing:policyProject')}
+            <fieldset className="min-w-0 space-y-4" disabled={mutation.isPending || !projects.data || (!!selectedId && !detail.data)}>
+              <label className="flex min-w-0 flex-col gap-1 text-sm text-text">{t('pricing:policyProject')}
                 <select value={projectId} disabled={!!selectedId} onChange={(event) => { setProjectId(event.target.value); edit(); }}
-                  className="min-h-11 w-full rounded-control border border-border-control bg-panel px-3 text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+                  className="min-h-11 w-full min-w-0 rounded-control border border-border-control bg-panel px-3 text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
                   <option value="">{t('pricing:templateProjectPlaceholder')}</option>
                   {projects.data?.items.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
               </label>
-              <label className="flex flex-col gap-1 text-sm text-text">{t('pricing:policyName')}
+              <label className="flex min-w-0 flex-col gap-1 text-sm text-text">{t('pricing:policyName')}
                 <input type="text" maxLength={100} value={title} onChange={(event) => { setTitle(event.target.value); edit(); }}
-                  className="min-h-11 w-full rounded-control border border-border-control bg-panel px-3 text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" />
+                  className="min-h-11 w-full min-w-0 rounded-control border border-border-control bg-panel px-3 text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" />
               </label>
               {rules.map((rule) =>
                 <div key={rule.id} className="space-y-3 rounded-control border border-border bg-sunken p-3" data-testid="pricing-policy-rule">
                   <div className="flex flex-wrap items-end justify-between gap-3">
                     <label className="flex min-w-0 flex-col gap-1 text-sm text-text">{t('pricing:policyUnitType')}
                       <select value={rule.unitType} onChange={(event) => updateRule(rule.id, { unitType: event.target.value as UnitKind })}
-                        className="min-h-11 rounded-control border border-border-control bg-panel px-3 text-text">
+                        className="min-h-11 w-full min-w-0 rounded-control border border-border-control bg-panel px-3 text-text">
                         {UNITS.map((kind) => <option key={kind} value={kind}>{typeLabels[kind]}</option>)}
                       </select>
                     </label>
-                    <Button icon={Trash2} variant="secondary" isDisabled={rules.length === 1}
+                    <Button className="max-w-full whitespace-normal" icon={Trash2} variant="secondary" isDisabled={rules.length === 1}
                       onPress={() => { setRules((old) => old.filter((r) => r.id !== rule.id)); edit(); }}>
                       {t('pricing:policyRemoveRule')}
                     </Button>
@@ -206,11 +206,11 @@ export default function PricingPoliciesPage() {
                 </div>,
               )}
               <div className="flex flex-wrap gap-3">
-                <Button variant="secondary" icon={Plus} isDisabled={rules.length >= 3} onPress={() => {
+                <Button className="max-w-full whitespace-normal" variant="secondary" icon={Plus} isDisabled={rules.length >= 3} onPress={() => {
                   const unused = UNITS.find((k) => !rules.some((r) => r.unitType === k));
                   if (unused) { setRules((old) => [...old, { id: nextRuleId, unitType: unused, amount: '0.00', floor: '0', corner: '0', park: '0' }]); setNextRuleId((n) => n + 1); edit(); }
                 }}>{t('pricing:policyAddRule')}</Button>
-                <Button variant="primary" icon={Save} isPending={mutation.isPending} onPress={() => void save()} data-testid="pricing-policy-save">
+                <Button className="max-w-full whitespace-normal" variant="primary" icon={Save} isPending={mutation.isPending} onPress={() => void save()} data-testid="pricing-policy-save">
                   {selectedId ? t('pricing:policyRevise') : t('pricing:policySave')}
                 </Button>
               </div>
