@@ -1,9 +1,8 @@
 import { ApiError, type UnitPriceChangeDraft, type UnitPriceChangeDraftList, type UnitPriceHistory, type UnitPricePickerResponse } from '@repo/contracts';
-import { Badge, Button, Drawer, EmptyState, ErrorState, Link, PageHeader, SkeletonBlock, useApiMutation, useApiQuery, useCreateKey, useT } from '@repo/ui';
+import { Badge, Button, Drawer, EmptyState, ErrorState, Link, PageHeader, SkeletonBlock, useApiMutation, useApiQuery, useCreateKey, useQueryParam, useT } from '@repo/ui';
 import { FileClock, Pencil, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { canHydrateDraft, expectedDraftVersion, pinDraftVersion, type CommittedDraftFloor } from './revision-sync';
-import { useSearchParams } from 'react-router';
 import { useCrmFormat } from '../../crm/format';
 
 /**
@@ -13,7 +12,8 @@ import { useCrmFormat } from '../../crm/format';
 export default function EditPriceDrawerPage() {
   const { t } = useT();
   const money = useCrmFormat();
-  const [params, setParams] = useSearchParams();
+  // The router seam (ADR-0001 §2.3): pages read and write the address through @repo/ui, never react-router.
+  const [unitId, setRecord] = useQueryParam('record');
   const [search, setSearch] = useState('');
   const [draftId, setDraftId] = useState<string | null>(null);
   const [price, setPrice] = useState('');
@@ -25,7 +25,6 @@ export default function EditPriceDrawerPage() {
   const [committedFloor, setCommittedFloor] = useState<CommittedDraftFloor | null>(null);
   const [createKey, renewCreate] = useCreateKey('unit-price-change');
   const [revisionKey, renewRevision] = useCreateKey('unit-price-revise');
-  const unitId = params.get('record');
   const isOpen = !!unitId;
   const units = useApiQuery<UnitPricePickerResponse>({ method: 'GET', path: '/pricing/units', query: { q: search.trim() } });
   const history = useApiQuery<UnitPriceHistory>(
@@ -39,12 +38,7 @@ export default function EditPriceDrawerPage() {
   );
   const saveMutation = useApiMutation<UnitPriceChangeDraft>();
   const openUnit = (id: string | null) => {
-    setParams((previous) => {
-      const next = new URLSearchParams(previous);
-      if (id) next.set('record', id);
-      else next.delete('record');
-      return next;
-    });
+    setRecord(id, { replace: false });
     setDraftId(null); setCommittedFloor(null); setPrice(''); setReason(''); setInvalid(false); setSaved(false); setDirty(false);
     renewCreate(); renewRevision();
   };

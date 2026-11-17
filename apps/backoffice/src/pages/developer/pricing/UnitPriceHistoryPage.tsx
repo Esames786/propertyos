@@ -1,8 +1,7 @@
 import type { UnitPriceHistory, UnitPricePickerResponse } from '@repo/contracts';
-import { Badge, EmptyState, ErrorState, Link, PageHeader, SkeletonBlock, useApiQuery, useT } from '@repo/ui';
+import { Badge, EmptyState, ErrorState, Link, PageHeader, SkeletonBlock, useApiQuery, useQueryParam, useT } from '@repo/ui';
 import { Search, History, LockKeyhole, Layers3 } from 'lucide-react';
 import { useState } from 'react';
-import { useSearchParams } from 'react-router';
 import { useCrmFormat } from '../../crm/format';
 
 /**
@@ -12,9 +11,9 @@ import { useCrmFormat } from '../../crm/format';
 export default function UnitPriceHistoryPage() {
   const { t } = useT();
   const money = useCrmFormat();
-  const [params, setParams] = useSearchParams();
+  // The router seam (ADR-0001 §2.3): pages read and write the address through @repo/ui, never react-router.
+  const [unitId, setRecord] = useQueryParam('record');
   const [search, setSearch] = useState('');
-  const unitId = params.get('record');
   const choices = useApiQuery<UnitPricePickerResponse>({
     method: 'GET', path: '/pricing/units', query: { q: search.trim() },
   });
@@ -22,12 +21,7 @@ export default function UnitPriceHistoryPage() {
     unitId ? { method: 'GET', path: `/units/${encodeURIComponent(unitId)}/prices` } : null,
   );
   const choose = (id: string | null) => {
-    setParams((prev) => {
-      const next = new URLSearchParams(prev);
-      if (id) next.set('record', id);
-      else next.delete('record');
-      return next;
-    });
+    setRecord(id, { replace: false });
   };
 
   return (
