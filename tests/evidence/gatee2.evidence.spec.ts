@@ -13,7 +13,7 @@ import { societyApi } from '../support/society';
  */
 const DIR = 'docs/status/gate-e2/screenshots';
 const lang = (l: Locale) => (l === 'ur-PK' ? 'ur' : 'en');
-const PRINCIPAL: Record<string, string> = { manager: 'usr_lsp_0001', sales: 'usr_lsp_0002', lk_project_officer: 'usr_lsp_0004', lk_projects_director: 'usr_lsp_0005' };
+const PRINCIPAL: Record<string, string> = { manager: 'usr_lsp_0001', sales: 'usr_lsp_0002', lsp_project_manager: 'usr_lsp_0005', lsp_finance_controller: 'usr_lsp_0007' };
 
 async function settle(page: Page, ms = 600) {
   await page.waitForLoadState('load');
@@ -55,7 +55,7 @@ async function stage(page: Page): Promise<{ setupId: string; unit: string }> {
   const unit = m.ok ? (m.res.groups.flatMap((g) => g.floors.flatMap((f) => f.cells)).find((c) => c.match)?.id ?? '') : '';
   const leads = await societyApi<Array<{ id: string }>>(page, `/inventory/units/${unit}/hold-leads`);
   if (leads.ok && leads.res[0]) await societyApi(page, `/inventory/units/${unit}/hold`, 'POST', { leadId: leads.res[0].id });
-  await become(page, 'lk_project_officer');
+  await become(page, 'lsp_project_manager');
   await go(page, '/backoffice/inv/storage-inventory?project=prj_heights', 'storage-card');
   const targets = await societyApi<Array<{ unitId: string }>>(page, '/inventory/storage/stg_lh_a01/targets');
   if (targets.ok) await societyApi(page, '/inventory/storage/stg_lh_a01/allocate', 'POST', { unitId: targets.res[0]!.unitId, note: 'Requested at booking (demo)' });
@@ -96,12 +96,12 @@ for (const locale of ['en-PK', 'ur-PK'] as const) {
     await shot(page, `e2-09-availability-1440-${l}`);
     await go(page, '/backoffice/inv/storage-inventory?project=prj_heights', 'storage-allocation');
     await shot(page, `e2-10-storage-1440-${l}`);
-    await become(page, 'lk_project_officer');
+    await become(page, 'lsp_project_manager');
     await go(page, `/backoffice/prj/project-setup?record=${setupId}`, 'setup-review');
     await shot(page, `e2-11-setup-submitted-maker-1440-${l}`);
     await go(page, '/backoffice/prj/project-setup?new=1', 'setup-name');
     await shot(page, `e2-12-setup-new-1440-${l}`, false);
-    await become(page, 'lk_projects_director');
+    await become(page, 'lsp_finance_controller');
     await go(page, `/backoffice/prj/project-setup?record=${setupId}`, 'setup-activate');
     await shot(page, `e2-13-setup-checker-1440-${l}`);
     await page.close();

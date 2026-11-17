@@ -4,11 +4,16 @@ import { demoFile, e13Session, GARDENS_ONLY, plus, refusal, sitesOnly } from '..
 
 /**
  * Gate E.13 documents (DOC-002…006) through the fail-closed mock transport, with Larkspur's fictional
- * people: Tehmina Durrani (document controller, all projects), Haroon Qadri (site records clerk,
+ * people of the reconciled Wave 1 roster: Hamza Rashid (sales manager: reads and uploads documents of every
+ * Larkspur record), Zubair Ansari (finance controller: approves templates), Mehwish Kazmi (project manager:
+ * drafts templates), Haroon Qadri (records clerk,
  * Larkspur Heights only), Nadia Rahman (manager, no document permission) and Bilal Ahmed (sales,
  * Heights). The demo's business date is Monday 26 October 2026.
  */
-const CONTROLLER = 'lsp_doc_controller';
+// Wave 1 integration: E.13's provisional document controller (Tehmina Durrani) is folded into the roster.
+const READER = 'lsp_sales_manager';
+const CHECKER = 'lsp_finance_controller';
+const MAKER = 'lsp_project_manager';
 const CLERK = 'lsp_records_clerk';
 const HEIGHTS_DOCS = ['doc_lsp_0001', 'doc_lsp_0002', 'doc_lsp_0003', 'doc_lsp_0006', 'doc_lsp_0007', 'doc_lsp_0009', 'doc_lsp_0010', 'doc_lsp_0013'];
 const GARDENS_DOCS = ['doc_lsp_0004', 'doc_lsp_0005', 'doc_lsp_0008', 'doc_lsp_0011', 'doc_lsp_0012', 'doc_lsp_0014'];
@@ -16,8 +21,8 @@ const GARDENS_DOCS = ['doc_lsp_0004', 'doc_lsp_0005', 'doc_lsp_0008', 'doc_lsp_0
 const ids = (l: { items: Array<{ id: string }> }) => l.items.map((i) => i.id).sort();
 
 describe('documents inherit their linked record’s access', () => {
-  it('the controller sees every Larkspur document; the Heights clerk sees Heights documents only', async () => {
-    const s = e13Session(CONTROLLER);
+  it('the full-scope reader sees every Larkspur document; the Heights clerk sees Heights documents only', async () => {
+    const s = e13Session(READER);
     const all = await s.get<DocumentsList>('/documents');
     expect(ids(all)).toEqual([...HEIGHTS_DOCS, ...GARDENS_DOCS].sort());
     const heights = await s.as(CLERK).get<DocumentsList>('/documents');
@@ -58,7 +63,7 @@ describe('documents inherit their linked record’s access', () => {
       out.push(JSON.stringify(await s.get('/documents/targets', { q: 'LG' })));
     };
     await read(CLERK, narrow);
-    await read(CONTROLLER, full);
+    await read(READER, full);
     const narrowText = narrow.join('\n');
     for (const hidden of GARDENS_ONLY) expect(narrowText, hidden).not.toContain(hidden);
     // The full reader still sees the legitimate history (positive control for the projection).
@@ -82,21 +87,21 @@ describe('documents inherit their linked record’s access', () => {
   });
 
   it('revoking scope hides documents at once: no stale list, detail or expiry entry', async () => {
-    const s = e13Session(CONTROLLER);
+    const s = e13Session(READER);
     expect((await s.get<DocumentsList>('/documents')).items.some((d) => d.id === 'doc_lsp_0004')).toBe(true);
-    s.change(CONTROLLER, sitesOnly('site_lk_heights'));
+    s.change(READER, sitesOnly('site_lk_heights'));
     expect(ids(await s.get<DocumentsList>('/documents'))).toEqual([...HEIGHTS_DOCS].sort());
     expect(await refusal(s.get('/documents/doc_lsp_0004'))).toMatchObject({ status: 404, code: 'not_found' });
     const expired = await s.get<ExpiringDocuments>('/documents/expiring', { window: 'expired' });
     expect(expired.items.map((d) => d.id)).toEqual(['doc_lsp_0003']);
-    s.change(CONTROLLER, null);
+    s.change(READER, null);
     expect((await s.get<DocumentsList>('/documents')).items.some((d) => d.id === 'doc_lsp_0004')).toBe(true);
   });
 });
 
 describe('expiry', () => {
   it('expired and expiring windows are worked out from the business date', async () => {
-    const s = e13Session(CONTROLLER);
+    const s = e13Session(READER);
     const expired = await s.get<ExpiringDocuments>('/documents/expiring', { window: 'expired' });
     expect(expired.items.map((d) => [d.id, d.daysLeft])).toEqual([
       ['doc_lsp_0014', -26],
@@ -120,26 +125,40 @@ describe('expiry', () => {
 describe('uploads and versions (demo files, bound idempotency)', () => {
   const upload = (recordId: string, extra: Record<string, unknown> = {}) => ({ recordId, title: 'Visit note — Amna Abbasi', kind: 'correspondence', ...demoFile(), note: 'Taken at the sales office', ...extra });
 
-  it('the clerk uploads to a Heights lead; the same request replays, a reused key is refused', async () => {
+  it('the clerk uploads to a Heights unit; the same request replays, a reused key is refused', async () => {
+    // Wave 1 integration: the clerk may not write to leads (F-3, next test), so his upload goes to a Heights unit.
     const s = e13Session(CLERK);
-    const first = await s.post<DocumentCreated>('/documents', upload('led_0004'), 'up-1');
+    const first = await s.post<DocumentCreated>('/documents', upload('unt_lh_a_0101'), 'up-1');
     expect(first).toMatchObject({ version: 1, replayed: false });
     expect(first.ref).toBe('DOC-LSP-0015');
     const detail = await s.get<DocumentDetail>(`/documents/${first.id}`);
     expect(detail.preview).toEqual({ kind: 'text', text: 'Fictional demo document' });
-    expect(detail.record).toMatchObject({ type: 'lead', id: 'led_0004' });
-    const again = await s.post<DocumentCreated>('/documents', upload('led_0004'), 'up-1');
+    expect(detail.record).toMatchObject({ type: 'unit', id: 'unt_lh_a_0101' });
+    const again = await s.post<DocumentCreated>('/documents', upload('unt_lh_a_0101'), 'up-1');
     expect(again).toEqual({ ...first, replayed: true });
     expect(s.docs().docs).toHaveLength(15);
     const before = s.snapshot();
-    expect(await refusal(s.post('/documents', upload('led_0004', { title: 'Another title' }), 'up-1'))).toMatchObject({ status: 409, code: 'idempotency_key_reused' });
-    expect(await refusal(s.post('/documents', upload('led_0007'), 'up-1'))).toMatchObject({ status: 409, code: 'idempotency_key_reused' });
+    expect(await refusal(s.post('/documents', upload('unt_lh_a_0101', { title: 'Another title' }), 'up-1'))).toMatchObject({ status: 409, code: 'idempotency_key_reused' });
+    expect(await refusal(s.post('/documents', upload('unt_lh_a_0102'), 'up-1'))).toMatchObject({ status: 409, code: 'idempotency_key_reused' });
     expect(s.snapshot()).toBe(before);
     // Another person can never replay the clerk's key (their own sign-in is recorded first).
-    await s.as(CONTROLLER).get('/documents');
+    await s.as(READER).get('/documents');
     const other = s.snapshot();
-    expect(await refusal(s.post('/documents', upload('led_0004'), 'up-1'))).toMatchObject({ status: 409, code: 'idempotency_key_reused' });
+    expect(await refusal(s.post('/documents', upload('unt_lh_a_0101'), 'up-1'))).toMatchObject({ status: 409, code: 'idempotency_key_reused' });
     expect(s.snapshot()).toBe(other);
+  });
+
+  it('F-3 (Wave 1 integration): a lead’s documents are written only by people who may work the lead', async () => {
+    const s = e13Session(CLERK);
+    await s.get('/documents');
+    const before = s.snapshot();
+    // The clerk sees the Heights lead (lead.view) but may not write to it (no lead.manage): refused, nothing stored.
+    expect(await refusal(s.post('/documents', upload('led_0004'), 'f3-1'))).toMatchObject({ status: 403, code: 'forbidden' });
+    expect(await refusal(s.post('/documents/doc_lsp_0009/versions', { ...demoFile(), note: 'Renewed CNIC', expiresOn: '2031-01-01' }, 'f3-2'))).toMatchObject({ status: 403, code: 'forbidden' });
+    expect(s.snapshot()).toBe(before);
+    // The sales manager holds lead.manage: the same upload is accepted.
+    const ok = await s.as(READER).post<DocumentCreated>('/documents', upload('led_0004'), 'f3-3');
+    expect(ok).toMatchObject({ version: 1, replayed: false });
   });
 
   it('a Gardens lead is unknown to the clerk (same answer as an id never issued), and nothing changes', async () => {
@@ -169,7 +188,7 @@ describe('uploads and versions (demo files, bound idempotency)', () => {
       [{ recordId: 'inv_0001' }, 'recordId', 'documents:problems.recordKind'],
     ];
     for (const [patch, field, code] of cases) {
-      const r = await refusal(s.post('/documents', upload('led_0004', patch), `v-${field}-${code}`));
+      const r = await refusal(s.post('/documents', upload('unt_lh_a_0101', patch), `v-${field}-${code}`));
       if (patch.recordId === 'inv_0001') {
         // An invoice the clerk cannot see is unknown (404) before any field is looked at.
         expect(r).toMatchObject({ status: 404 });
@@ -182,12 +201,12 @@ describe('uploads and versions (demo files, bound idempotency)', () => {
   });
 
   it('a new version is appended (never overwritten); older versions stay previewable', async () => {
-    const s = e13Session(CONTROLLER);
+    const s = e13Session(READER);
     const added = await s.post<DocumentCreated>('/documents/doc_lsp_0004/versions', { ...demoFile('Revision 4 (demo)'), note: 'Phase 3 added' }, 'ver-1');
     expect(added).toMatchObject({ id: 'doc_lsp_0004', version: 4, replayed: false });
     const d = await s.get<DocumentDetail>('/documents/doc_lsp_0004');
     expect(d.versions.map((v) => [v.n, v.current])).toEqual([[4, true], [3, false], [2, false], [1, false]]);
-    expect(d.history[0]).toMatchObject({ action: 'version_added', version: 4, byName: 'Tehmina Durrani' });
+    expect(d.history[0]).toMatchObject({ action: 'version_added', version: 4, byName: 'Hamza Rashid' });
     const v1 = await s.get<DocumentDetail>('/documents/doc_lsp_0004', { version: '1' });
     expect(v1.previewVersion).toBe(1);
     expect(v1.preview.kind).toBe('page');
@@ -206,7 +225,7 @@ describe('uploads and versions (demo files, bound idempotency)', () => {
   });
 
   it('the demo store keeps uploads under its budget', async () => {
-    const s = e13Session(CONTROLLER);
+    const s = e13Session(READER);
     const big = 'x'.repeat(1_000_000);
     for (let i = 0; i < 4; i++) await s.post('/documents', upload('prj_heights', { ...demoFile(`${big}${i}`), title: `Large demo file ${i}` }), `big-${i}`);
     const before = s.snapshot();
@@ -223,16 +242,20 @@ describe('templates and policies: draft, then approved by another person', () =>
     expect(await refusal(s.get('/document-templates/dtp_lsp_004'))).toEqual(await refusal(s.get('/document-templates/dtp_lsp_999')));
   });
 
-  it('the controller approves the clerk’s draft; nobody approves their own; the clerk cannot approve at all', async () => {
-    const s = e13Session(CONTROLLER);
+  it('the finance controller approves the clerk’s draft; nobody approves their own; the clerk cannot approve at all', async () => {
+    const s = e13Session(CHECKER);
     const before = await s.get<TemplatesList>('/document-templates');
-    expect(before.awaitingYou).toBe(1);
+    // Two drafts await him: Mehwish's allotment letter v2 and Haroon's safety policy v2 (he drafted neither).
+    expect(before.awaitingYou).toBe(2);
+    // Mehwish drafted the allotment letter's v2: even holding the approval permission, she cannot approve her own.
+    s.change(MAKER, plus('document_template.approve'));
+    expect((await s.as(MAKER).get<TemplatesList>('/document-templates')).awaitingYou).toBe(1);
     const snap = s.snapshot();
     expect(await refusal(s.post('/document-templates/dtp_lsp_001/versions/2/decision', { decision: 'approve', note: '' }))).toMatchObject({ status: 403, code: 'separation_of_duties' });
     expect(await refusal(s.as(CLERK).post('/document-templates/dtp_lsp_003/versions/2/decision', { decision: 'approve', note: '' }))).toMatchObject({ status: 403, code: 'permission_missing' });
     expect(s.snapshot()).toBe(snap);
-    const approved = await s.as(CONTROLLER).post<TemplateDetail>('/document-templates/dtp_lsp_003/versions/2/decision', { decision: 'approve', note: 'Approved for November' });
-    expect(approved.versions[0]).toMatchObject({ n: 2, state: 'scheduled', decidedByName: 'Tehmina Durrani' });
+    const approved = await s.as(CHECKER).post<TemplateDetail>('/document-templates/dtp_lsp_003/versions/2/decision', { decision: 'approve', note: 'Approved for November' });
+    expect(approved.versions[0]).toMatchObject({ n: 2, state: 'scheduled', decidedByName: 'Zubair Ansari' });
     expect(approved.versions[1]).toMatchObject({ n: 1, state: 'effective' });
     expect(await refusal(s.post('/document-templates/dtp_lsp_003/versions/2/decision', { decision: 'approve', note: '' }))).toMatchObject({ status: 409, code: 'not_pending' });
   });
@@ -242,7 +265,7 @@ describe('templates and policies: draft, then approved by another person', () =>
     const draft = { body: 'SITE VISIT SAFETY (illustrative)\n\nVisitors sign in at the gate.', effectiveFrom: '2026-12-01', note: 'Adds sign-in' };
     expect(await refusal(s.post('/document-templates/dtp_lsp_003/versions', draft, 'd1'))).toMatchObject({ status: 409, code: 'version_pending' });
     expect(await refusal(s.post('/document-templates/dtp_lsp_002/versions', draft, 'd2'))).toMatchObject({ status: 403, code: 'forbidden' });
-    expect(await refusal(s.as(CONTROLLER).post('/document-templates/dtp_lsp_003/versions/2/decision', { decision: 'return', note: '' }))).toMatchObject({ fields: ['note'] });
+    expect(await refusal(s.as(CHECKER).post('/document-templates/dtp_lsp_003/versions/2/decision', { decision: 'return', note: '' }))).toMatchObject({ fields: ['note'] });
     await s.post('/document-templates/dtp_lsp_003/versions/2/decision', { decision: 'return', note: 'Name the Tower C supervisor' });
     const v3 = await s.as(CLERK).post<TemplateDetail>('/document-templates/dtp_lsp_003/versions', draft, 'd3');
     expect(v3.versions[0]).toMatchObject({ n: 3, state: 'pending', mine: true, canDecide: false });

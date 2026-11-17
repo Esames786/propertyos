@@ -1,8 +1,4 @@
 {
-  "roles": {
-    "projectOfficer": "Projects and inventory officer (provisional)",
-    "projectsDirector": "Projects director (provisional)"
-  },
   "nav": {
     "label": "Projects and inventory",
     "projects": "Projects",

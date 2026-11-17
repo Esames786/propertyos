@@ -46,8 +46,8 @@ async function choose(page: Page, select: string, option: RegExp) {
 test('a journal prepared by one person, approved and posted by another; the trial balance moves by its amount', async ({ page, consoleErrors }) => {
   test.setTimeout(180_000);
   await at(page);
-  await seed(page, { persona: 'lk_accounts' as PersonaId });
-  await as(page, 'lk_accounts', '/backoffice/acc/create-journal', 'journal-form');
+  await seed(page, { persona: 'lsp_ledger_clerk' as PersonaId });
+  await as(page, 'lsp_ledger_clerk', '/backoffice/acc/create-journal', 'journal-form');
   await page.getByTestId('journal-date').fill('2026-10-24');
   await page.getByTestId('journal-memo').fill('Demo accrual — security services, October (fictional)');
   await choose(page, 'journal-line-0-account', /^5200/);
@@ -58,14 +58,14 @@ test('a journal prepared by one person, approved and posted by another; the tria
   await page.getByTestId('journal-send').click();
   await expect(page.getByTestId('journal-detail')).toHaveAttribute('data-state', 'submitted');
   const id = new URL(page.url()).searchParams.get('record')!;
-  await as(page, 'lk_controller', `/backoffice/acc/journal-entries?record=${id}`, 'journal-approve');
+  await as(page, 'lsp_finance_controller', `/backoffice/acc/journal-entries?record=${id}`, 'journal-approve');
   for (const step of ['approve', 'post'] as const) {
     await page.getByTestId(`journal-${step}`).click();
     await page.getByTestId('journal-ack').click();
     await page.getByTestId('journal-confirm').click();
     await expect(page.getByTestId('journal-detail')).toHaveAttribute('data-state', step === 'approve' ? 'approved' : 'posted');
   }
-  await as(page, 'lk_controller', '/backoffice/acc/trial-balance', 'ledger-tb');
+  await as(page, 'lsp_finance_controller', '/backoffice/acc/trial-balance', 'ledger-tb');
   await expect(page.getByTestId('ledger-tb')).toHaveAttribute('data-debit', '176775000.00');
   expect(appErrors(consoleErrors)).toEqual([]);
 });
@@ -73,8 +73,8 @@ test('a journal prepared by one person, approved and posted by another; the tria
 test('a statement import preview flags duplicates and an invalid row; nothing is imported until someone else approves', async ({ page, consoleErrors }) => {
   test.setTimeout(120_000);
   await at(page);
-  await seed(page, { persona: 'lk_treasury' as PersonaId });
-  await as(page, 'lk_treasury', '/backoffice/bank/bank-import', 'bank-new');
+  await seed(page, { persona: 'lsp_accounts' as PersonaId });
+  await as(page, 'lsp_accounts', '/backoffice/bank/bank-import', 'bank-new');
   await page.getByTestId('bank-preview').click();
   const counts = page.getByTestId('bank-import-counts');
   await expect(counts).toHaveAttribute('data-new', '3');
@@ -89,14 +89,14 @@ test('320 × 700, Urdu, 200 %: the journals and the trial balance are not clippe
   test.setTimeout(180_000);
   await at(page);
   await page.setViewportSize({ width: 320, height: 700 });
-  await seed(page, { persona: 'lk_controller' as PersonaId, locale: 'ur-PK' });
-  for (const p of ['usr_lsp_0011', 'usr_lsp_0012']) await page.addInitScript(({ key }) => localStorage.setItem(key, JSON.stringify({ version: 2, textScale: 2, chosenAt: '2026-10-26T00:00:00Z', updatedAt: '2026-10-26T00:00:00Z' })), { key: `pref:display:v1:backoffice:tnt_larkspur:${p}` });
+  await seed(page, { persona: 'lsp_finance_controller' as PersonaId, locale: 'ur-PK' });
+  for (const p of ['usr_lsp_0008', 'usr_lsp_0007']) await page.addInitScript(({ key }) => localStorage.setItem(key, JSON.stringify({ version: 2, textScale: 2, chosenAt: '2026-10-26T00:00:00Z', updatedAt: '2026-10-26T00:00:00Z' })), { key: `pref:display:v1:backoffice:tnt_larkspur:${p}` });
   for (const [path, ready] of [
     ['/backoffice/acc/journal-entries', 'journal-list'],
     ['/backoffice/acc/journal-entries?record=jnl_lke_0007', 'journal-detail'],
     ['/backoffice/acc/trial-balance', 'tb-list'],
   ] as const) {
-    await as(page, 'lk_controller', path, ready);
+    await as(page, 'lsp_finance_controller', path, ready);
     expect(await layoutProblems(page), path).toEqual([]);
   }
   expect(appErrors(consoleErrors)).toEqual([]);

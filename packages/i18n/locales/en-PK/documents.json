@@ -1,8 +1,4 @@
 {
-  "roles": {
-    "controller": "Document controller",
-    "clerk": "Site records clerk"
-  },
   "demoFile": "Demo file",
   "version": "Version {{n}}",
   "linkedTo": "Linked to",

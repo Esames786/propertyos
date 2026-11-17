@@ -7,9 +7,9 @@ import { VIEWPORTS } from '../support/viewports';
 
 /**
  * Gate E.7 (provisional, Wave 1): the developer ledger and the bank import through the office app, with
- * Larkspur's new fictional people: Saad (accounts officer: prepares journals, no bank permission),
- * Mehreen (finance controller: approves and posts what someone else prepared, closes months, approves
- * statement imports) and Kashan (treasury officer: uploads statement imports). Nadia (manager) and
+ * Larkspur's fictional people of the reconciled Wave 1 roster: Saad (ledger clerk: prepares journals, no bank
+ * permission), Faiza (accounts officer: chart and posting-rule drafts, statement imports) and Zubair (finance
+ * controller: approves and posts what someone else prepared, closes months, approves statement imports). Nadia (manager) and
  * Farah (finance) read imports but hold no ledger permission; Bilal (sales) holds neither. The rules
  * are the server's (ledger.api.test.ts, ledger.vectors.json); these tests check the screens carry them.
  * The demo's business date is Monday 26 October 2026.
@@ -18,7 +18,7 @@ const LK = 'tnt_larkspur';
 const PHONE = { width: 320, height: 700 };
 const OFFICE_HEADER = '[data-testid="app-header"]';
 const OFFICE_BAR = '[data-testid="bottom-nav"]';
-const STAFF: Record<string, string> = { lk_accounts: 'usr_lsp_0011', lk_controller: 'usr_lsp_0012', lk_treasury: 'usr_lsp_0013', manager: 'usr_lsp_0001', finance: 'usr_lsp_0003' };
+const STAFF: Record<string, string> = { lsp_ledger_clerk: 'usr_lsp_0008', lsp_finance_controller: 'usr_lsp_0007', lsp_accounts: 'usr_lsp_0006', manager: 'usr_lsp_0001', finance: 'usr_lsp_0003' };
 const OFFICE_DISPLAY = (principal: string) => `pref:display:v1:backoffice:${LK}:${principal}`;
 const as = (id: string) => id as PersonaId;
 
@@ -43,7 +43,7 @@ async function office(page: Page, persona: string, path: string, ready: string) 
   await expect(page.getByTestId(ready).first()).toBeVisible();
 }
 
-async function start(page: Page, persona = 'lk_accounts', locale: Locale = 'en-PK') {
+async function start(page: Page, persona = 'lsp_ledger_clerk', locale: Locale = 'en-PK') {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.clock.setFixedTime(new Date('2026-10-26T15:10:00+05:00'));
   await seed(page, { persona: as(persona), locale });
@@ -104,7 +104,7 @@ test.describe('Gate E.7 — journals: create, approve by someone else, post, rev
     await expect(page.getByTestId('journal-approve')).toHaveCount(0);
     await expect(page.getByTestId('journal-blocked')).toBeVisible();
 
-    await office(page, 'lk_controller', `/backoffice/acc/journal-entries?record=${id}`, 'journal-detail');
+    await office(page, 'lsp_finance_controller', `/backoffice/acc/journal-entries?record=${id}`, 'journal-detail');
     await page.getByTestId('journal-approve').click();
     await confirmChecked(page);
     await expect(drawer(page)).toHaveAttribute('data-state', 'approved');
@@ -123,8 +123,8 @@ test.describe('Gate E.7 — journals: create, approve by someone else, post, rev
     await expect(page.getByTestId('bs-result')).toHaveAttribute('data-amount', '-1775000.00');
     for (const tie of ['tie-bs', 'tie-pl', 'tie-tb']) await expect(page.getByTestId(tie)).toHaveAttribute('data-ok', 'true');
 
-    // The posted journal is corrected only by a reversal, requested by Saad, approved and posted by Mehreen.
-    await office(page, 'lk_accounts', `/backoffice/acc/journal-entries?record=${id}`, 'journal-detail');
+    // The posted journal is corrected only by a reversal, requested by Saad, approved and posted by Zubair.
+    await office(page, 'lsp_ledger_clerk', `/backoffice/acc/journal-entries?record=${id}`, 'journal-detail');
     await expect(page.getByTestId('journal-edit')).toHaveCount(0);
     await page.getByTestId('journal-reverse').click();
     await expect(page.getByTestId('reverse-form')).toBeVisible();
@@ -136,7 +136,7 @@ test.describe('Gate E.7 — journals: create, approve by someone else, post, rev
     await expect(page.getByTestId('journal-reversal-of')).toContainText(wj('LKE-JV-2026-0009'));
     const reversal = recordOf(page);
 
-    await office(page, 'lk_controller', `/backoffice/acc/journal-entries?record=${reversal}`, 'journal-detail');
+    await office(page, 'lsp_finance_controller', `/backoffice/acc/journal-entries?record=${reversal}`, 'journal-detail');
     await page.getByTestId('journal-approve').click();
     await confirmChecked(page);
     await expect(drawer(page)).toHaveAttribute('data-state', 'approved');
@@ -188,7 +188,8 @@ test.describe('Gate E.7 — journals: create, approve by someone else, post, rev
 
   test('a chart change is a draft until someone else approves it', async ({ page, consoleErrors }) => {
     test.setTimeout(90_000);
-    await start(page);
+    // Chart drafts need gl.manage (Faiza); Zubair approves.
+    await start(page, 'lsp_accounts');
     await page.goto(`${BO}/backoffice/acc/chart-of-accounts`);
     await expect(page.getByTestId('ledger-chart')).toHaveAttribute('data-version', '2');
     await page.getByTestId('account-draft-open').click();
@@ -199,7 +200,7 @@ test.describe('Gate E.7 — journals: create, approve by someone else, post, rev
     const draft = page.locator('[data-testid="chart-account"][data-code="5600"]');
     await expect(draft).toHaveAttribute('data-state', 'draft');
     await expect(draft.getByTestId('account-approve')).toHaveCount(0);
-    await office(page, 'lk_controller', '/backoffice/acc/chart-of-accounts', 'ledger-chart');
+    await office(page, 'lsp_finance_controller', '/backoffice/acc/chart-of-accounts', 'ledger-chart');
     await page.locator('[data-testid="chart-account"][data-code="5600"]').getByTestId('account-approve').click();
     await expect(page.locator('[data-testid="chart-account"][data-code="5600"]')).toHaveAttribute('data-state', 'active');
     await expect(page.getByTestId('ledger-chart')).toHaveAttribute('data-version', '3');
@@ -210,7 +211,7 @@ test.describe('Gate E.7 — journals: create, approve by someone else, post, rev
 test.describe('Gate E.7 — bank import (BANK-005)', () => {
   test('preview → validated rows → duplicates flagged → submitted → approved by someone else → unmatched lines only', async ({ page, consoleErrors }) => {
     test.setTimeout(120_000);
-    await start(page, 'lk_treasury');
+    await start(page, 'lsp_accounts');
     await page.goto(`${BO}/backoffice/bank/bank-import`);
     await expect(page.getByTestId('bank-import')).toBeVisible();
     await expect(page.getByTestId('bank-boundary')).toBeVisible();
@@ -229,7 +230,7 @@ test.describe('Gate E.7 — bank import (BANK-005)', () => {
     await expect(page.getByTestId('bank-import-approve')).toHaveCount(0);
     await expect(page.getByTestId('bank-import-blocked')).toBeVisible();
     const id = recordOf(page);
-    await office(page, 'lk_controller', `/backoffice/bank/bank-import?record=${id}`, 'bank-import-detail');
+    await office(page, 'lsp_finance_controller', `/backoffice/bank/bank-import?record=${id}`, 'bank-import-detail');
     await page.getByTestId('bank-import-approve').click();
     await page.getByRole('alertdialog').getByRole('button', { name: /Approve the import/ }).click();
     await expect(page.getByTestId('bank-import-detail')).toHaveAttribute('data-state', 'committed');
@@ -243,7 +244,7 @@ test.describe('Gate E.7 — bank import (BANK-005)', () => {
 
   test('an unverified account and a file of another account are refused, nothing imported', async ({ page, consoleErrors }) => {
     test.setTimeout(90_000);
-    await start(page, 'lk_treasury');
+    await start(page, 'lsp_accounts');
     await page.goto(`${BO}/backoffice/bank/bank-import`);
     await choose(page, 'bank-account-select', /Escrow/);
     await page.getByTestId('bank-preview').click();
@@ -277,8 +278,8 @@ test.describe('Gate E.7 — access: the bank boundary and people without the led
     expect(consoleErrors).toEqual([]);
   });
 
-  test('Mehreen (bank permission) sees the linked bank account, masked, and its unmatched lines', async ({ page, consoleErrors }) => {
-    await start(page, 'lk_controller');
+  test('Zubair (bank permission) sees the linked bank account, masked, and its unmatched lines', async ({ page, consoleErrors }) => {
+    await start(page, 'lsp_finance_controller');
     await page.goto(`${BO}/backoffice/acc/account-workspace?record=gla_lke_c1000`);
     await expect(page.getByTestId('account-bank')).toContainText(/•••• /);
     await expect(page.getByTestId('account-statement-lines')).toContainText(/4 unmatched statement lines/);
@@ -310,19 +311,19 @@ test.describe('Gate E.7 — access: the bank boundary and people without the led
 // ---------------------------------------------------------------------------------------------
 
 const SCREENS: Array<[string, string, string, string]> = [
-  ['chart', 'lk_accounts', '/backoffice/acc/chart-of-accounts', 'chart-accounts'],
-  ['account', 'lk_controller', '/backoffice/acc/account-workspace?record=gla_lke_c1000', 'account-workspace'],
-  ['account-lines', 'lk_accounts', '/backoffice/acc/account-workspace?record=gla_lke_c2200', 'account-workspace'],
-  ['journals', 'lk_controller', '/backoffice/acc/journal-entries', 'journal-list'],
-  ['journal-drawer', 'lk_controller', '/backoffice/acc/journal-entries?record=jnl_lke_0007', 'journal-detail'],
-  ['create', 'lk_accounts', '/backoffice/acc/create-journal', 'journal-form'],
-  ['reverse', 'lk_accounts', '/backoffice/acc/reverse-journal?record=jnl_lke_0003', 'reverse-form'],
-  ['trial-balance', 'lk_accounts', '/backoffice/acc/trial-balance', 'ledger-tb'],
-  ['profit-and-loss', 'lk_accounts', '/backoffice/acc/profit-and-loss', 'ledger-pl'],
-  ['balance-sheet', 'lk_accounts', '/backoffice/acc/balance-sheet', 'ledger-bs'],
-  ['periods', 'lk_controller', '/backoffice/acc/accounting-periods', 'ledger-periods'],
-  ['rules', 'lk_accounts', '/backoffice/acc/posting-rules', 'ledger-rules'],
-  ['bank-import', 'lk_treasury', '/backoffice/bank/bank-import?record=bim_lke_0001', 'bank-import-detail'],
+  ['chart', 'lsp_ledger_clerk', '/backoffice/acc/chart-of-accounts', 'chart-accounts'],
+  ['account', 'lsp_finance_controller', '/backoffice/acc/account-workspace?record=gla_lke_c1000', 'account-workspace'],
+  ['account-lines', 'lsp_ledger_clerk', '/backoffice/acc/account-workspace?record=gla_lke_c2200', 'account-workspace'],
+  ['journals', 'lsp_finance_controller', '/backoffice/acc/journal-entries', 'journal-list'],
+  ['journal-drawer', 'lsp_finance_controller', '/backoffice/acc/journal-entries?record=jnl_lke_0007', 'journal-detail'],
+  ['create', 'lsp_ledger_clerk', '/backoffice/acc/create-journal', 'journal-form'],
+  ['reverse', 'lsp_ledger_clerk', '/backoffice/acc/reverse-journal?record=jnl_lke_0003', 'reverse-form'],
+  ['trial-balance', 'lsp_ledger_clerk', '/backoffice/acc/trial-balance', 'ledger-tb'],
+  ['profit-and-loss', 'lsp_ledger_clerk', '/backoffice/acc/profit-and-loss', 'ledger-pl'],
+  ['balance-sheet', 'lsp_ledger_clerk', '/backoffice/acc/balance-sheet', 'ledger-bs'],
+  ['periods', 'lsp_finance_controller', '/backoffice/acc/accounting-periods', 'ledger-periods'],
+  ['rules', 'lsp_ledger_clerk', '/backoffice/acc/posting-rules', 'ledger-rules'],
+  ['bank-import', 'lsp_accounts', '/backoffice/bank/bank-import?record=bim_lke_0001', 'bank-import-detail'],
 ];
 
 const lang = (locale: Locale) => (locale === 'ur-PK' ? 'ur' : 'en');
@@ -330,7 +331,7 @@ const lang = (locale: Locale) => (locale === 'ur-PK' ? 'ur' : 'en');
 for (const locale of ['en-PK', 'ur-PK'] as const) {
   test(`E.7 screens in ${lang(locale)}: axe at 1440, 768 and 390 px, no sideways scroll`, async ({ page, consoleErrors }, testInfo) => {
     test.setTimeout(420_000);
-    await start(page, 'lk_accounts', locale);
+    await start(page, 'lsp_ledger_clerk', locale);
     for (const [name, persona, path, ready] of SCREENS) {
       await become(page, persona);
       for (const [vp, size] of [['1440', VIEWPORTS.desktop], ['768', VIEWPORTS.tablet], ['390', VIEWPORTS.phone]] as const) {
@@ -347,7 +348,7 @@ for (const locale of ['en-PK', 'ur-PK'] as const) {
   test(`320 × 700, ${lang(locale)}, text 200 %: every E.7 screen and drawer is not clipped, spilled or broken mid-word (statements become lists)`, async ({ page, consoleErrors }) => {
     test.setTimeout(300_000);
     await page.setViewportSize(PHONE);
-    await start(page, 'lk_accounts', locale);
+    await start(page, 'lsp_ledger_clerk', locale);
     for (const principal of Object.values(STAFF)) await page.addInitScript(({ key }) => localStorage.setItem(key, JSON.stringify({ version: 2, textScale: 2, chosenAt: '2026-10-26T00:00:00Z', updatedAt: '2026-10-26T00:00:00Z' })), { key: OFFICE_DISPLAY(principal) });
     for (const [name, persona, path, ready] of SCREENS) {
       await become(page, persona);
@@ -356,10 +357,12 @@ for (const locale of ['en-PK', 'ur-PK'] as const) {
       expect(await layoutProblems(page), `${name} ${lang(locale)} 200 %`).toEqual([]);
     }
     // Reports and journal lines are lists here, not tables.
-    await become(page, 'lk_accounts');
+    await become(page, 'lsp_ledger_clerk');
     await page.goto(`${BO}/backoffice/acc/trial-balance`);
     await expect(page.getByTestId('tb-list')).toBeVisible();
     await expect(page.getByTestId('tb-table')).toBeHidden();
+    // The chart-draft drawer is Faiza's (gl.manage).
+    await become(page, 'lsp_accounts');
     await page.goto(`${BO}/backoffice/acc/chart-of-accounts`);
     await page.getByTestId('account-draft-open').click();
     await expect(page.getByTestId('account-draft')).toBeVisible();
@@ -370,9 +373,9 @@ for (const locale of ['en-PK', 'ur-PK'] as const) {
   test(`dark mode with high contrast (${lang(locale)}, 390 px): the E.7 screens pass axe with nothing clipped`, async ({ page, consoleErrors }, testInfo) => {
     test.setTimeout(300_000);
     await page.setViewportSize(VIEWPORTS.phone);
-    await start(page, 'lk_accounts', locale);
+    await start(page, 'lsp_ledger_clerk', locale);
     const html = (name: string) => page.evaluate((n) => document.documentElement.getAttribute(n), name);
-    for (const persona of ['lk_accounts', 'lk_controller', 'lk_treasury']) {
+    for (const persona of ['lsp_ledger_clerk', 'lsp_finance_controller', 'lsp_accounts']) {
       await office(page, persona, '/backoffice/global/accessibility-preferences', 'hub-theme');
       await page.getByTestId('hub-theme-dark').click();
       await page.getByTestId('hub-contrast-high').click();
@@ -392,7 +395,7 @@ for (const locale of ['en-PK', 'ur-PK'] as const) {
   test(`320 × 700, ${lang(locale)}, 200 %: the keyboard reaches every control of the journals, the form and the bank import without the header or bar covering it`, async ({ page, consoleErrors }) => {
     test.setTimeout(240_000);
     await page.setViewportSize(PHONE);
-    await start(page, 'lk_accounts', locale);
+    await start(page, 'lsp_ledger_clerk', locale);
     for (const principal of Object.values(STAFF)) await page.addInitScript(({ key }) => localStorage.setItem(key, JSON.stringify({ version: 2, textScale: 2, chosenAt: '2026-10-26T00:00:00Z', updatedAt: '2026-10-26T00:00:00Z' })), { key: OFFICE_DISPLAY(principal) });
     for (const [name, persona, path, ready] of [SCREENS[3]!, SCREENS[5]!, SCREENS[12]!]) {
       await become(page, persona);
@@ -408,7 +411,7 @@ for (const locale of ['en-PK', 'ur-PK'] as const) {
 
 test('keyboard only: a journal opens from the list, and the ledger controls draw a visible focus ring (B2 rule)', async ({ page, context, consoleErrors }) => {
   test.setTimeout(120_000);
-  await start(page, 'lk_controller');
+  await start(page, 'lsp_finance_controller');
   await page.goto(`${BO}/backoffice/acc/journal-entries`);
   const row = page.locator('[data-testid="journal-row"][data-ref="LKE-JV-2026-0007"] a');
   await keyboardFocus(page, row);

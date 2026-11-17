@@ -28,9 +28,9 @@ export const HEIGHTS_STORAGE_CLERK: Persona = {
   principalId: 'usr_test_e2_clerk',
   app: 'backoffice',
   displayName: 'Test Clerk (E.2 test principal)',
-  roleKey: 'projects:roles.projectOfficer',
+  roleKey: 'common:roles.project_manager',
   email: 'clerk@example.com',
-  permissions: ['project.context.use', 'unit.view', 'storage.manage', 'unit.hold', 'lead.view'],
+  permissions: ['project.context.use', 'unit.view', 'inventory.manage', 'unit.hold', 'lead.view'],
   projectScope: ['prj_heights'],
 };
 
@@ -41,7 +41,7 @@ export const SECOND_OFFICER: Persona = {
   principalId: 'usr_test_e2_officer2',
   app: 'backoffice',
   displayName: 'Test Officer (E.2 test principal)',
-  roleKey: 'projects:roles.projectOfficer',
+  roleKey: 'common:roles.project_manager',
   email: 'officer2@example.com',
   permissions: ['project.context.use', 'unit.view', 'project.view', 'project.manage'],
   projectScope: 'all',

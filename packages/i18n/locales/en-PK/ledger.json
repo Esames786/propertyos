@@ -1,7 +1,4 @@
 {
-  "roles": {
-    "treasury_officer": "Treasury officer"
-  },
   "nav": {
     "label": "Accounting screens",
     "compact": "Accounting screens: {{screen}}",

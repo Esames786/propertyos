@@ -44,7 +44,15 @@ export interface HandlerContext {
  * - `visitor`: open before sign-in (prototype workspace-setup simulation and demo reset only).
  */
 export type HandlerAccess =
-  | { kind: 'tenant'; module: ModuleKey; permission: Permission | readonly Permission[] | 'signed_in'; suspension: SuspensionClass; feature?: FeatureKey }
+  | {
+      kind: 'tenant';
+      module: ModuleKey;
+      permission: Permission | readonly Permission[] | 'signed_in';
+      suspension: SuspensionClass;
+      feature?: FeatureKey;
+      /** Wave 1 integration (Issue #25): permissions also required, every one of them (`requiresAll`). */
+      alsoRequires?: readonly Permission[];
+    }
   | { kind: 'visitor'; why: string }
   | {
       /**
@@ -65,6 +73,19 @@ export const requires = (module: ModuleKey, permission: Permission | readonly Pe
   permission,
   suspension,
   ...(feature ? { feature } : {}),
+});
+
+/**
+ * Wave 1 integration (Issue #25): an endpoint that needs EVERY one of several permissions (all-of), checked by
+ * the transport before the handler runs, exactly like `requires`. Used where two canonical permissions together
+ * define the work (the CRM pipeline: `lead.manage` and `lead.assign`).
+ */
+export const requiresAll = (module: ModuleKey, permissions: readonly [Permission, ...Permission[]], suspension: SuspensionClass): HandlerAccess => ({
+  kind: 'tenant',
+  module,
+  permission: permissions[0],
+  suspension,
+  ...(permissions.length > 1 ? { alsoRequires: permissions.slice(1) } : {}),
 });
 
 /** An endpoint before sign-in scoped to one organisation by a token or code the caller holds (Gate D.1). */

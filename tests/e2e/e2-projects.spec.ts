@@ -7,15 +7,15 @@ import { societyApi as api } from '../support/society';
 /**
  * Gate E.2 (projects and inventory, provisional) through the office app with Larkspur's fictional
  * people: Nadia Rahman (manager, all projects), Bilal Ahmed (sales, Larkspur Heights only), Farah
- * Javed (finance, no inventory), and the two provisional E.2 personas: Hina Baig (projects and
- * inventory officer: prepares projects, allocates storage) and Kashan Lodhi (projects director:
+ * Javed (finance, no inventory), and the reconciled Wave 1 roster's project setup pair: Mehwish Kazmi (project
+ * manager: prepares projects, allocates storage) and Zubair Ansari (finance controller:
  * approves a project someone else prepared). Crescent Bay's manager shows the per-site licence. The
  * rules are the server's (inventory.api.test.ts, inventory.vectors.json); these tests check that the
  * screens carry them.
  */
 const OFFICE_HEADER = '[data-testid="app-header"]';
 const OFFICE_BAR = '[data-testid="bottom-nav"]';
-const PRINCIPAL: Record<string, string> = { manager: 'usr_lsp_0001', sales: 'usr_lsp_0002', lk_project_officer: 'usr_lsp_0004', lk_projects_director: 'usr_lsp_0005' };
+const PRINCIPAL: Record<string, string> = { manager: 'usr_lsp_0001', sales: 'usr_lsp_0002', lsp_project_manager: 'usr_lsp_0005', lsp_finance_controller: 'usr_lsp_0007' };
 const lang = (l: Locale) => (l === 'ur-PK' ? 'ur' : 'en');
 
 async function start(page: Page, persona: PersonaId = 'manager', locale: Locale = 'en-PK', scale?: number) {
@@ -273,8 +273,8 @@ test.describe('INV-008: holds, owner-only release and expiry against the demo cl
 });
 
 test.describe('INV-010: storage allocation and release', () => {
-  test('Hina allocates a locker to a booked Heights unit and releases it with a reason; the history keeps both; nobody else gets the buttons', async ({ page, consoleErrors }) => {
-    await start(page, 'lk_project_officer');
+  test('Mehwish allocates a locker to a booked Heights unit and releases it with a reason; the history keeps both; nobody else gets the buttons', async ({ page, consoleErrors }) => {
+    await start(page, 'lsp_project_manager');
     await open(page, '/backoffice/inv/storage-inventory?project=prj_heights', 'storage-card');
     const card = page.locator('[data-testid="storage-card"][data-storage="stg_lh_a01"]');
     await card.getByTestId('storage-allocate').click();
@@ -285,7 +285,7 @@ test.describe('INV-010: storage allocation and release', () => {
     await drawer.getByTestId('storage-allocate-confirm').click();
     await expect(page.getByTestId('toast-success').filter({ hasText: 'is allocated to' })).toBeVisible();
     await expect(card).toHaveAttribute('data-state', 'allocated');
-    await expect(card.getByTestId('storage-allocation')).toContainText('Hina Baig');
+    await expect(card.getByTestId('storage-allocation')).toContainText('Mehwish Kazmi');
     // Not twice: the server refuses a second allocation of the same locker.
     expect(await api(page, '/inventory/storage/stg_lh_a01/allocate', 'POST', { unitId: 'unt_lh_a_0101' })).toMatchObject({ ok: false, code: 'storage_unavailable' });
     // Never to another project's unit.
@@ -310,9 +310,9 @@ test.describe('INV-010: storage allocation and release', () => {
 });
 
 test.describe('PRJ-003: project setup with maker ≠ checker', () => {
-  test('Hina prepares and submits; she cannot approve her own; Kashan activates; the project appears in the list; invalid input is refused first', async ({ page, consoleErrors }) => {
+  test('Mehwish prepares and submits; she cannot approve her own; Zubair activates; the project appears in the list; invalid input is refused first', async ({ page, consoleErrors }) => {
     test.setTimeout(120_000);
-    await start(page, 'lk_project_officer');
+    await start(page, 'lsp_project_manager');
     await open(page, '/backoffice/prj/project-setup', 'project-setup');
     await page.getByTestId('setup-new').click();
     // Invalid input: the browser refuses before sending anything.
@@ -349,13 +349,13 @@ test.describe('PRJ-003: project setup with maker ≠ checker', () => {
     await expect(page.getByTestId('setup-waiting')).toBeVisible();
     const id = await page.getByTestId('project-setup').getAttribute('data-setup');
 
-    await become(page, 'lk_projects_director');
+    await become(page, 'lsp_finance_controller');
     await open(page, '/backoffice/prj/project-setup', 'setup-row');
     await page.locator(`[data-testid="setup-row"][data-setup="${id}"]`).getByTestId('setup-open').click();
     await page.getByTestId('setup-activate').click();
     await page.getByRole('alertdialog').getByRole('button', { name: 'Approve and activate' }).click();
     await expect(page.getByTestId('project-setup')).toHaveAttribute('data-state', 'active');
-    await expect(page.getByTestId('setup-active')).toContainText('Kashan Lodhi');
+    await expect(page.getByTestId('setup-active')).toContainText('Zubair Ansari');
 
     await become(page, 'manager');
     await open(page, '/backoffice/prj/projects-list', 'project-card');
@@ -390,7 +390,7 @@ for (const locale of ['en-PK', 'ur-PK'] as const) {
       await open(page, '/backoffice/inv/unit-matrix?project=prj_heights&tower=twr_lh_a&unit=unt_lh_a_0101', 'inv-unit');
       await axe(page, testInfo, `quick-view-${width}-${locale}`);
       expect(await layoutProblems(page.getByTestId('inv-quick-view')), `quick view ${width} ${lang(locale)}`).toEqual([]);
-      await become(page, 'lk_project_officer');
+      await become(page, 'lsp_project_manager');
       await open(page, '/backoffice/prj/project-setup?new=1', 'setup-name');
       await axe(page, testInfo, `setup-${width}-${locale}`);
       expect(await layoutProblems(page), `setup ${width} ${lang(locale)}`).toEqual([]);
@@ -436,7 +436,7 @@ test('dark mode with high contrast (390 px, Urdu): the E.2 screens pass axe with
 
 test('keyboard on a phone: every control of the matrix and storage is reachable and never hidden under the header or the bottom bar', async ({ page, consoleErrors }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await start(page, 'lk_project_officer');
+  await start(page, 'lsp_project_manager');
   for (const [path, ready] of [
     ['/backoffice/inv/unit-matrix?project=prj_heights&tower=twr_lh_c', 'matrix-row'],
     ['/backoffice/inv/storage-inventory?project=prj_heights', 'storage-card'],

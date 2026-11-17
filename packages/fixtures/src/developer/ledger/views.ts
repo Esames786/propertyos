@@ -41,7 +41,7 @@ export function accountView(ctx: HandlerContext, st: LedgerState, a: StoredGlAcc
   const pending = st.journals.filter((j) => j.entityId === a.entityId && (j.state === 'draft' || j.state === 'submitted' || j.state === 'approved') && j.lines.some((l) => l.accountId === a.id)).length;
   const balance = balances(st, a.entityId).get(a.id) ?? 0n;
   const bank = a.bankAccountId && seesBank(ctx, a.entityId) ? st.bankAccounts.find((b) => b.id === a.bankAccountId) : undefined;
-  const checker = a.state === 'draft' && can(ctx, 'journal.approve') && mayUse(ctx, 'accounting', a.entityId, 'journal.approve');
+  const checker = a.state === 'draft' && can(ctx, 'gl.approve') && mayUse(ctx, 'accounting', a.entityId, 'gl.approve');
   const own = a.draftedBy === me(ctx).by;
   return {
     id: a.id,
@@ -115,23 +115,25 @@ export function journalView(ctx: HandlerContext, st: LedgerState, j: StoredJourn
   const t = journalTotals(j.lines);
   const closed = isClosed(st, j.entityId, j.date);
   const maker = isMaker(j, who);
+  // Wave 1 integration: the maker's steps (edit, submit, cancel, reverse) need journal.create; posting needs gl.post.
+  const preparer = can(ctx, 'journal.create') && mayUse(ctx, 'accounting', j.entityId, 'journal.create');
   const poster = can(ctx, 'gl.post') && mayUse(ctx, 'accounting', j.entityId, 'gl.post');
   const checker = can(ctx, 'journal.approve') && mayUse(ctx, 'accounting', j.entityId, 'journal.approve');
   const rev = reversible(st, j);
   const actions = {
-    edit: j.state === 'draft' && maker && poster && !closed,
-    submit: j.state === 'draft' && maker && poster && !closed,
-    cancel: (j.state === 'draft' || j.state === 'submitted') && maker && poster,
+    edit: j.state === 'draft' && maker && preparer && !closed,
+    submit: j.state === 'draft' && maker && preparer && !closed,
+    cancel: (j.state === 'draft' || j.state === 'submitted') && maker && preparer,
     approve: j.state === 'submitted' && checker && !maker && !closed,
     reject: j.state === 'submitted' && checker && !maker,
     post: j.state === 'approved' && poster && !maker && !closed,
-    reverse: rev === 'ok' && poster,
+    reverse: rev === 'ok' && preparer,
   };
   let blocked: JournalView['blocked'];
   // The maker always learns why the next step is not theirs (approval and posting are someone else's).
   if ((j.state === 'submitted' || j.state === 'approved') && maker) blocked = 'own_journal';
   else if ((j.state === 'submitted' && checker) || (j.state === 'approved' && poster)) blocked = closed ? 'period_closed' : undefined;
-  else if (j.state === 'posted' && poster && rev !== 'ok' && rev !== 'not_posted') blocked = rev;
+  else if (j.state === 'posted' && preparer && rev !== 'ok' && rev !== 'not_posted') blocked = rev;
   return {
     ...journalSummary(st, j),
     ...scope,
@@ -160,7 +162,7 @@ export function periodView(ctx: HandlerContext, st: LedgerState, entityId: strin
   };
   const checks = closeChecks(st, entityId, period, ctx.at.slice(0, 10));
   const closer = can(ctx, 'period.close') && mayUse(ctx, 'banking', entityId, 'period.close');
-  const requester = (can(ctx, 'gl.post') && mayUse(ctx, 'accounting', entityId, 'gl.post')) || closer;
+  const requester = (can(ctx, 'journal.create') && mayUse(ctx, 'accounting', entityId, 'journal.create')) || closer;
   const own = p.reopenRequest?.by === me(ctx).by;
   const blocking = checks.some((c) => c.outcome === 'blocking');
   const posted = new Set(postedLines(st, entityId).filter((x) => periodOfDate(x.journal.date) === period).map((x) => x.journal.id)).size;
@@ -197,7 +199,7 @@ export function ruleView(ctx: HandlerContext, st: LedgerState, r: StoredRule): P
     versions: r.versions.map((v) => ({ n: v.n, effectiveFrom: v.effectiveFrom, debit: acc(v.debitAccountId), credit: acc(v.creditAccountId), state: 'proposed', draftedByName: v.draftedByName, draftedAt: v.draftedAt, ...(v.note ? { note: v.note } : {}) })),
     ...(today ? { versionToday: today.n } : {}),
     history: r.history,
-    actions: { draftVersion: can(ctx, 'gl.post') && mayUse(ctx, 'accounting', r.entityId, 'gl.post') },
+    actions: { draftVersion: can(ctx, 'gl.manage') && mayUse(ctx, 'accounting', r.entityId, 'gl.manage') },
   };
 }
 
@@ -227,13 +229,15 @@ export function importSummary(st: LedgerState, imp: StoredImport): BankImportSum
 
 export function importView(ctx: HandlerContext, st: LedgerState, imp: StoredImport, scope: LedgerScope): BankImportView {
   const who = me(ctx).by;
-  const reconciler = can(ctx, 'bank.reconcile') && mayUse(ctx, 'banking', imp.entityId, 'bank.reconcile');
+  // Wave 1 integration: the preparer imports (bank.import); a second person approves (bank.import.approve).
+  const importer = can(ctx, 'bank.import') && mayUse(ctx, 'banking', imp.entityId, 'bank.import');
+  const approver = can(ctx, 'bank.import.approve') && mayUse(ctx, 'banking', imp.entityId, 'bank.import.approve');
   const own = imp.preparedBy === who;
   const actions = {
-    submit: imp.state === 'preview' && own && reconciler,
-    approve: imp.state === 'awaiting_approval' && !own && reconciler,
-    reject: imp.state === 'awaiting_approval' && !own && reconciler,
-    discard: (imp.state === 'preview' || imp.state === 'awaiting_approval') && own && reconciler,
+    submit: imp.state === 'preview' && own && importer,
+    approve: imp.state === 'awaiting_approval' && !own && approver,
+    reject: imp.state === 'awaiting_approval' && !own && approver,
+    discard: (imp.state === 'preview' || imp.state === 'awaiting_approval') && own && importer,
   };
   return {
     ...importSummary(st, imp),
@@ -242,7 +246,7 @@ export function importView(ctx: HandlerContext, st: LedgerState, imp: StoredImpo
     ...(imp.rejectedByName ? { rejectedByName: imp.rejectedByName, rejectReason: imp.rejectReason ?? '' } : {}),
     history: imp.history,
     actions,
-    ...(imp.state === 'awaiting_approval' && reconciler && own ? { blocked: 'own_import' as const } : imp.state === 'awaiting_approval' && !reconciler ? { blocked: 'permission_missing' as const } : {}),
+    ...(imp.state === 'awaiting_approval' && (importer || approver) && own ? { blocked: 'own_import' as const } : imp.state === 'awaiting_approval' && !approver ? { blocked: 'permission_missing' as const } : {}),
   };
 }
 

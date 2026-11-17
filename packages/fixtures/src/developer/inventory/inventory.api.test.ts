@@ -95,7 +95,7 @@ describe('PRJ-001 / PRJ-002: projects in scope, figures per licence and permissi
     expect(h.inventory!.map((r) => r.label)).toEqual(['A', 'B', 'C']);
     expect(h.documents.items).toEqual([]);
     // The projects officer reads units but not leads: the leads tab says so, and no lead is returned.
-    const o = await api.as('lk_project_officer').get<Project360>('/projects/prj_heights');
+    const o = await api.as('lsp_project_manager').get<Project360>('/projects/prj_heights');
     expect(o.tabs.find((t) => t.id === 'leads')!.state).toBe('no_permission');
     expect(o.leads).toBeNull();
     expect(JSON.stringify(o)).not.toMatch(/LD-2026-|led_\d/);
@@ -216,10 +216,13 @@ describe('Holds: one in force per unit, owner-only release, expiry against the d
     expect(after.history.filter((e) => e.kind === 'unit_held')).toHaveLength(2);
   });
 
-  it('a legacy hold without a recorded principal (the CRM path today) counts while in force and is never releasable here', async () => {
+  it('a legacy hold without a recorded principal counts while in force and is never releasable here', async () => {
     const unit = avail('prj_heights', 2);
+    const lead = openLead('prj_heights');
     api.as('sales');
-    await api.post(`/units/${unit.id}/hold`, { leadId: openLead('prj_heights').id });
+    // Wave 1 integration: since E.0's F-4 the CRM path records the initiator too, so a legacy hold (stored before
+    // initiators were recorded) is written into the one hold store directly, as E.0's own validation test does.
+    api.demo.partition('tnt_larkspur').hold(unit.id, { leadId: lead.id, leadRef: lead.ref, until: new Date(Date.now() + 3_600_000).toISOString() });
     const d = await api.get<UnitInventoryDetail>(`/inventory/units/${unit.id}`);
     expect(d.bucket).toBe('held');
     expect(d.hold!.mine).toBe(false);
@@ -272,7 +275,7 @@ describe('Holds: one in force per unit, owner-only release, expiry against the d
     const unit = avail('prj_heights', 7);
     api.as('manager');
     await api.get('/inventory/matrix');
-    expect(await refusedUnchanged(() => api.as('lk_project_officer').post(`/inventory/units/${unit.id}/hold`, { leadId: openLead('prj_heights').id }))).toMatchObject({ status: 403, code: 'permission_missing' });
+    expect(await refusedUnchanged(() => api.as('lsp_project_manager').post(`/inventory/units/${unit.id}/hold`, { leadId: openLead('prj_heights').id }))).toMatchObject({ status: 403, code: 'permission_missing' });
     expect(await refusedUnchanged(() => api.as('finance').get('/inventory/matrix'))).toMatchObject({ status: 403 });
     api.as('sales');
     await api.post(`/inventory/units/${unit.id}/hold`, { leadId: openLead('prj_heights').id });
@@ -304,9 +307,9 @@ describe('INV-010 storage: dedicated records, allocation history, no double allo
 
   it('allocate to sold stock of the same project, then release with a reason; history kept; no double allocation', async () => {
     const target = sold('prj_heights');
-    api.as('lk_project_officer');
+    api.as('lsp_project_manager');
     const v = await api.post<StorageUnitView>(`/inventory/storage/${heightsLocker}/allocate`, { unitId: target.id, note: 'Requested at booking (demo)' });
-    expect(v).toMatchObject({ state: 'allocated', allocation: { unitRef: target.ref, byName: 'Hina Baig' } });
+    expect(v).toMatchObject({ state: 'allocated', allocation: { unitRef: target.ref, byName: 'Mehwish Kazmi' } });
     const m = await api.get<UnitMatrix>('/inventory/matrix', { project: 'prj_heights' });
     const cell = m.groups.flatMap((g) => g.floors!.flatMap((f) => f.cells)).find((c) => c.id === target.id)!;
     expect(cell.storage).toBe(1);
@@ -323,7 +326,7 @@ describe('INV-010 storage: dedicated records, allocation history, no double allo
   });
 
   it('cross-project protection: another project’s unit is refused; hidden units and storage answer like unknown ones', async () => {
-    api.as('lk_project_officer');
+    api.as('lsp_project_manager');
     await api.get('/inventory/storage');
     const cross = await refusedUnchanged(() => api.post(`/inventory/storage/${heightsLocker}/allocate`, { unitId: sold('prj_gardens').id }));
     expect(cross).toMatchObject({ status: 422, code: 'cross_project_forbidden' });
@@ -348,7 +351,7 @@ describe('INV-010 storage: dedicated records, allocation history, no double allo
   });
 
   it('bound idempotency on allocation; unauthorised and revoked allocators are refused; state unchanged', async () => {
-    api.as('lk_project_officer');
+    api.as('lsp_project_manager');
     const t = sold('prj_heights', 2);
     const a = await api.post<StorageUnitView>('/inventory/storage/stg_lh_a02/allocate', { unitId: t.id }, { key: 'k-alloc' });
     const b = await api.post<StorageUnitView>('/inventory/storage/stg_lh_a02/allocate', { unitId: t.id }, { key: 'k-alloc' });
@@ -357,7 +360,7 @@ describe('INV-010 storage: dedicated records, allocation history, no double allo
     expect(await refusedUnchanged(() => api.post('/inventory/storage/stg_lh_a03/allocate', { unitId: t.id }, { key: 'k-alloc' }))).toMatchObject({ status: 409, code: 'idempotency_key_reused' });
     expect(await refusedUnchanged(() => api.as('manager').post('/inventory/storage/stg_lh_a03/allocate', { unitId: t.id }))).toMatchObject({ status: 403, code: 'permission_missing' });
     expect(await refusedUnchanged(() => api.as('sales').post('/inventory/storage/stg_lh_a03/allocate', { unitId: t.id }))).toMatchObject({ status: 403 });
-    api.as('lk_project_officer').change('lk_project_officer', minus('storage.manage'));
+    api.as('lsp_project_manager').change('lsp_project_manager', minus('inventory.manage'));
     expect(await refusedUnchanged(() => api.post('/inventory/storage/stg_lh_a02/release', { reason: 'Revoked test' }))).toMatchObject({ status: 403 });
   });
 });
@@ -367,7 +370,7 @@ describe('PRJ-003 project setup: draft → submitted → activated by someone el
   const structure = { towers: [{ name: 'A', floors: 12, unitsPerFloor: 6 }, { name: 'B', floors: 10, unitsPerFloor: 6 }] };
 
   async function prepared(): Promise<ProjectSetupRecord> {
-    api.as('lk_project_officer');
+    api.as('lsp_project_manager');
     const r = await api.post<ProjectSetupRecord>('/projects', { basics });
     await api.post(`/projects/${r.id}/setup/site`, { value: { siteId: 'site_lk_heights' } });
     await api.post(`/projects/${r.id}/setup/structure`, { value: structure });
@@ -377,10 +380,10 @@ describe('PRJ-003 project setup: draft → submitted → activated by someone el
   it('the officer prepares and submits; the director activates; the project then appears for every projects reader', async () => {
     const r = await prepared();
     expect(r).toMatchObject({ state: 'submitted', plannedUnits: 132, canDecide: false, mine: true });
-    const list = await api.as('lk_projects_director').get<ProjectSetupList>('/projects/setup');
+    const list = await api.as('lsp_finance_controller').get<ProjectSetupList>('/projects/setup');
     expect(list.items[0]).toMatchObject({ id: r.id, canDecide: true, mine: false });
     const done = await api.post<ProjectSetupRecord>(`/projects/${r.id}/activate`);
-    expect(done).toMatchObject({ state: 'active', decidedByName: 'Kashan Lodhi' });
+    expect(done).toMatchObject({ state: 'active', decidedByName: 'Zubair Ansari' });
     const p = await api.as('manager').get<ProjectsPortfolio>('/projects/portfolio');
     expect(p.items.find((x) => x.id === r.id)).toMatchObject({ name: basics.name, state: 'active', units: { total: 0 } });
     const p360 = await api.get<Project360>(`/projects/${r.id}`);
@@ -392,25 +395,25 @@ describe('PRJ-003 project setup: draft → submitted → activated by someone el
 
   it('nobody approves their own project, even holding both permissions (checked by principal)', async () => {
     const r = await prepared();
-    api.change('lk_project_officer', plus('project.approve'));
-    const own = await refusedUnchanged(() => api.as('lk_project_officer').post(`/projects/${r.id}/activate`));
+    api.change('lsp_project_manager', plus('project.approve'));
+    const own = await refusedUnchanged(() => api.as('lsp_project_manager').post(`/projects/${r.id}/activate`));
     expect(own).toMatchObject({ status: 403, code: 'separation_of_duties' });
     const view = await api.get<ProjectSetupRecord>(`/projects/${r.id}/setup`);
     expect(view).toMatchObject({ canDecide: false, decideBlocked: 'own_request' });
     // The checker cannot prepare: no project.manage.
-    expect(await refusedUnchanged(() => api.as('lk_projects_director').post(`/projects/${r.id}/setup/basics`, { value: basics }))).toMatchObject({ status: 403, code: 'permission_missing' });
+    expect(await refusedUnchanged(() => api.as('lsp_finance_controller').post(`/projects/${r.id}/setup/basics`, { value: basics }))).toMatchObject({ status: 403, code: 'permission_missing' });
     // Nothing is approved twice.
-    await api.as('lk_projects_director').post(`/projects/${r.id}/activate`);
+    await api.as('lsp_finance_controller').post(`/projects/${r.id}/activate`);
     expect(await refusedUnchanged(() => api.post(`/projects/${r.id}/activate`))).toMatchObject({ status: 409, code: 'setup_not_submitted' });
   });
 
   it('return with a reason, edit and resubmit; validation of every field before anything is stored', async () => {
     const r = await prepared();
-    api.as('lk_projects_director');
+    api.as('lsp_finance_controller');
     expect(await refusedUnchanged(() => api.post(`/projects/${r.id}/return`, { reason: 'short' }))).toMatchObject({ status: 422, errors: { reason: [{ code: 'projects:problems.returnReason' }] } });
     const back = await api.post<ProjectSetupRecord>(`/projects/${r.id}/return`, { reason: 'Tower B needs a basement storage plan first.' });
     expect(back).toMatchObject({ state: 'returned', returnReason: 'Tower B needs a basement storage plan first.' });
-    api.as('lk_project_officer');
+    api.as('lsp_project_manager');
     expect(await refusedUnchanged(() => api.post(`/projects/${r.id}/setup/basics`, { value: { ...basics, code: 'lh' } }))).toMatchObject({ status: 422, errors: { code: [{ code: 'projects:problems.codeTaken' }] } });
     expect(await refusedUnchanged(() => api.post(`/projects/${r.id}/setup/basics`, { value: { ...basics, code: 'TOO-LONG', name: 'X' } }))).toMatchObject({
       status: 422,
@@ -421,11 +424,11 @@ describe('PRJ-003 project setup: draft → submitted → activated by someone el
     expect(await refusedUnchanged(() => api.post(`/projects/${r.id}/setup/site`, { value: { siteId: 'site_lk_heights', legalEntityId: 'le_crescent' } }))).toMatchObject({ status: 422, errors: { legalEntityId: [{ code: 'projects:problems.entityFixed' }] } });
     await api.post(`/projects/${r.id}/setup/structure`, { value: { towers: [{ name: 'A', floors: 12, unitsPerFloor: 6 }] } });
     expect((await api.post<ProjectSetupRecord>(`/projects/${r.id}/submit`)).state).toBe('submitted');
-    expect((await api.as('lk_projects_director').post<ProjectSetupRecord>(`/projects/${r.id}/activate`)).state).toBe('active');
+    expect((await api.as('lsp_finance_controller').post<ProjectSetupRecord>(`/projects/${r.id}/activate`)).state).toBe('active');
   });
 
   it('an incomplete draft cannot be submitted; a submitted one cannot be edited; only the maker edits', async () => {
-    api.as('lk_project_officer');
+    api.as('lsp_project_manager');
     const r = await api.post<ProjectSetupRecord>('/projects', { basics: { ...basics, code: 'LQ', kind: 'plots' } });
     expect(await refusedUnchanged(() => api.post(`/projects/${r.id}/submit`))).toMatchObject({ status: 422, errors: { site: [{ code: 'projects:problems.stepMissing.site' }], structure: [{ code: 'projects:problems.stepMissing.structure' }] } });
     expect(await refusedUnchanged(() => api.post(`/projects/${r.id}/setup/structure`, { value: { towers: [{ name: 'A', floors: 3, unitsPerFloor: 3 }] } }))).toMatchObject({ status: 422 });
@@ -436,7 +439,7 @@ describe('PRJ-003 project setup: draft → submitted → activated by someone el
   });
 
   it('only the person who prepared a draft changes or submits it; another preparer is refused and nothing changes', async () => {
-    api.as('lk_project_officer');
+    api.as('lsp_project_manager');
     const r = await api.post<ProjectSetupRecord>('/projects', { basics: { ...basics, code: 'LW' } });
     api.as('test_e2_officer2');
     const view = await api.get<ProjectSetupRecord>(`/projects/${r.id}/setup`);
@@ -455,7 +458,7 @@ describe('PRJ-003 project setup: draft → submitted → activated by someone el
     expect(portfolio.inSetup).toBe(0);
     expect(JSON.stringify(portfolio)).not.toContain(r.id);
     expect(await refusal(api.get(`/projects/${r.id}`))).toMatchObject({ status: 404 });
-    api.as('lk_projects_director').change('lk_projects_director', projectsOnly('prj_heights'));
+    api.as('lsp_finance_controller').change('lsp_finance_controller', projectsOnly('prj_heights'));
     const hidden = await refusal(api.get(`/projects/${r.id}/setup`));
     const unknown = await refusal(api.get('/projects/psu_999/setup'));
     expect(hidden.status).toBe(404);
@@ -464,7 +467,7 @@ describe('PRJ-003 project setup: draft → submitted → activated by someone el
   });
 
   it('bound idempotency on create: identical replays the same draft; a changed request with the key is refused', async () => {
-    api.as('lk_project_officer');
+    api.as('lsp_project_manager');
     const a = await api.post<ProjectSetupRecord>('/projects', { basics: { ...basics, code: 'LK' } }, { key: 'k-create' });
     const b = await api.post<ProjectSetupRecord>('/projects', { basics: { ...basics, code: 'LK' } }, { key: 'k-create' });
     expect(b.id).toBe(a.id);
@@ -478,7 +481,7 @@ describe('Nested-history projection (§4.4): a narrow reader never receives lead
     const unit = avail('prj_heights', 8);
     const lead = openLead('prj_heights');
     await api.as('sales').post(`/inventory/units/${unit.id}/hold`, { leadId: lead.id });
-    await api.as('lk_project_officer').post(`/inventory/storage/stg_lh_c01/allocate`, { unitId: sold('prj_heights', 3).id });
+    await api.as('lsp_project_manager').post(`/inventory/storage/stg_lh_c01/allocate`, { unitId: sold('prj_heights', 3).id });
     const narrow = [
       await api.get(`/projects/prj_heights`),
       await api.get(`/inventory/units/${unit.id}`),

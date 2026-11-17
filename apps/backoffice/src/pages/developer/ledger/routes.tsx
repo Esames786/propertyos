@@ -1,14 +1,14 @@
 import type { AccessTarget } from '@repo/contracts';
-import { lazy, Suspense, type ComponentType, type LazyExoticComponent } from 'react';
-import type { RouteHandle } from '../../../prototype/handle';
-import { registerLoader } from '../../../prototype/register';
-import { BANK_VIEW, GL_POST, GL_VIEW, LedgerGate } from './lkit';
+import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
+import { devRoute, DevScreen } from '../../../prototype/dev-screen';
+import { BANK_VIEW, GL_CREATE, GL_VIEW } from './lkit';
 
 /**
- * Gate E.7 (provisional; reconcile with E.0's developer route module at Wave 1 integration): the eleven
- * ledger and bank-import screens at the register's addresses (ACC-001…010, BANK-005). Each screen asks
- * for its permission; anyone without it gets the Gate B access-outcome page (the server refuses the
- * same way). No menu entry, quick-create item or edition gate is added here: those come from E.0.
+ * Gate E.7 area route module: the eleven ledger and bank-import screens at the register's addresses
+ * (ACC-001…010, BANK-005), registered once in E.0's `prototype/routes.developer.tsx` (`DEVELOPER_AREAS`,
+ * Wave 1 integration). They serve the register's DEV+COMM edition. Each screen asks for its permission;
+ * anyone without it gets the Gate B access-outcome page (the server refuses the same way). The menu entry
+ * is E.0's canonical Accounting item (`tenantWorkspace.ts`).
  */
 const Chart = lazy(() => import('./ChartPage'));
 const Account = lazy(() => import('./AccountWorkspacePage'));
@@ -22,28 +22,18 @@ const Periods = lazy(() => import('./PeriodsPage'));
 const Rules = lazy(() => import('./PostingRulesPage'));
 const BankImport = lazy(() => import('./BankImportPage'));
 
-function Screen({ page: Page, target }: { page: LazyExoticComponent<ComponentType>; target: AccessTarget }) {
-  return (
-    <LedgerGate target={target}>
-      <Suspense fallback={null}>
-        <Page />
-      </Suspense>
-    </LedgerGate>
-  );
-}
+const screen = (page: LazyExoticComponent<ComponentType>, target: AccessTarget) => <DevScreen page={page} target={target} edition="DEV+COMM" refusal="outcome" />;
 
-const h = (handle: RouteHandle) => handle;
-
-export const LEDGER_ROUTES = [
-  { path: 'acc/chart-of-accounts', loader: registerLoader, element: <Screen page={Chart} target={GL_VIEW} />, handle: h({ title: (t) => t('ledger:chart.title') }) },
-  { path: 'acc/account-workspace', loader: registerLoader, element: <Screen page={Account} target={GL_VIEW} />, handle: h({ title: (t) => t('ledger:account.title') }) },
-  { path: 'acc/journal-entries', loader: registerLoader, element: <Screen page={Journals} target={GL_VIEW} />, handle: h({ title: (t) => t('ledger:journals.title') }) },
-  { path: 'acc/create-journal', loader: registerLoader, element: <Screen page={Create} target={GL_POST} />, handle: h({ title: (t) => t('ledger:create.title') }) },
-  { path: 'acc/reverse-journal', loader: registerLoader, element: <Screen page={Reverse} target={GL_VIEW} />, handle: h({ title: (t) => t('ledger:reverse.title') }) },
-  { path: 'acc/trial-balance', loader: registerLoader, element: <Screen page={TrialBalance} target={GL_VIEW} />, handle: h({ title: (t) => t('ledger:tb.title') }) },
-  { path: 'acc/profit-and-loss', loader: registerLoader, element: <Screen page={ProfitAndLoss} target={GL_VIEW} />, handle: h({ title: (t) => t('ledger:pl.title') }) },
-  { path: 'acc/balance-sheet', loader: registerLoader, element: <Screen page={BalanceSheet} target={GL_VIEW} />, handle: h({ title: (t) => t('ledger:bs.title') }) },
-  { path: 'acc/accounting-periods', loader: registerLoader, element: <Screen page={Periods} target={GL_VIEW} />, handle: h({ title: (t) => t('ledger:periods.title') }) },
-  { path: 'acc/posting-rules', loader: registerLoader, element: <Screen page={Rules} target={GL_VIEW} />, handle: h({ title: (t) => t('ledger:rules.title') }) },
-  { path: 'bank/bank-import', loader: registerLoader, element: <Screen page={BankImport} target={BANK_VIEW} />, handle: h({ title: (t) => t('ledger:bank.title') }) },
+export const routes = [
+  devRoute('acc/chart-of-accounts', screen(Chart, GL_VIEW), (t) => t('ledger:chart.title')),
+  devRoute('acc/account-workspace', screen(Account, GL_VIEW), (t) => t('ledger:account.title')),
+  devRoute('acc/journal-entries', screen(Journals, GL_VIEW), (t) => t('ledger:journals.title')),
+  devRoute('acc/create-journal', screen(Create, GL_CREATE), (t) => t('ledger:create.title')),
+  devRoute('acc/reverse-journal', screen(Reverse, GL_VIEW), (t) => t('ledger:reverse.title')),
+  devRoute('acc/trial-balance', screen(TrialBalance, GL_VIEW), (t) => t('ledger:tb.title')),
+  devRoute('acc/profit-and-loss', screen(ProfitAndLoss, GL_VIEW), (t) => t('ledger:pl.title')),
+  devRoute('acc/balance-sheet', screen(BalanceSheet, GL_VIEW), (t) => t('ledger:bs.title')),
+  devRoute('acc/accounting-periods', screen(Periods, GL_VIEW), (t) => t('ledger:periods.title')),
+  devRoute('acc/posting-rules', screen(Rules, GL_VIEW), (t) => t('ledger:rules.title')),
+  devRoute('bank/bank-import', screen(BankImport, BANK_VIEW), (t) => t('ledger:bank.title')),
 ];

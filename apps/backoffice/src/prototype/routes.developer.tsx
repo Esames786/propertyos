@@ -1,4 +1,8 @@
 import type { RouteObject } from 'react-router';
+import { routes as crmPipelineRoutes } from '../pages/developer/crm/routes';
+import { routes as ledgerRoutes } from '../pages/developer/ledger/routes';
+import { INVENTORY_ROUTES, PROJECT_ROUTES } from './routes.projects';
+import { DOCUMENT_ROUTES, WORKSPACE_ROUTES } from './routes.workspace';
 
 /**
  * Gate E.0 deliverable 6: the one place Gate E areas register their screens (plan §7.4: "E.0 adds one
@@ -24,8 +28,20 @@ export interface DeveloperArea {
   routes: readonly RouteObject[];
 }
 
-/** Registered areas (none in E.0: it adds no screens). */
-export const DEVELOPER_AREAS: readonly DeveloperArea[] = [];
+/**
+ * Registered areas. Wave 1 integration (Issue #25): the four Wave 1 slices, each registered here once (their
+ * provisional hooks in `routes.tsx` are gone). Each area's screens are wrapped in `DevScreen` (edition, then
+ * access). `tests/e2e/register.spec.ts` opens every register address; the integration's route audit
+ * (docs/status/integration-e-wave1) checks one route per address, with no duplicate or shadowed path.
+ */
+export const DEVELOPER_AREAS: readonly DeveloperArea[] = [
+  { area: 'crm', routes: crmPipelineRoutes }, // E.1: CRM-006…009, CRM-011
+  { area: 'projects', routes: PROJECT_ROUTES }, // E.2: PRJ-001…003
+  { area: 'inventory', routes: INVENTORY_ROUTES }, // E.2: INV-001/002/008/010
+  { area: 'ledger', routes: ledgerRoutes }, // E.7: ACC-001…010, BANK-005
+  { area: 'workspace', routes: WORKSPACE_ROUTES }, // E.13: GLOBAL-002/005/006, HOME-002/004/005
+  { area: 'documents', routes: DOCUMENT_ROUTES }, // E.13: DOC-002…006
+];
 
 /** Every registered Gate E route, spread into the backoffice shell by `routes.tsx`. */
 export const DEVELOPER_ROUTES: RouteObject[] = DEVELOPER_AREAS.flatMap((a) => [...a.routes]);

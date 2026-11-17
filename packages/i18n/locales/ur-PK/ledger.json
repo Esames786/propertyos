@@ -1,7 +1,4 @@
 {
-  "roles": {
-    "treasury_officer": "ٹریژری آفیسر"
-  },
   "nav": {
     "label": "اکاؤنٹنگ اسکرینیں",
     "compact": "اکاؤنٹنگ اسکرینیں: {{screen}}",

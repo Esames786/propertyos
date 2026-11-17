@@ -290,8 +290,10 @@ export const CORE_PROVIDERS: readonly RecordProvider[] = [
         ...(others.length ? [{ type: 'lead' as const, relationKey: 'workspace:hub.related.rel.otherLeads', items: others.slice(0, 5).map((l) => leadRef(ctx, l)), more: others.length > 5 }] : []),
       ];
     },
-    // Today the CRM's own writes need `lead.view` in the lead's project (plan F-3; E.0 adds `lead.manage`).
-    attachable: (ctx, id) => visibleLead(ctx, id) !== null,
+    // Wave 1 integration (Issue #25): a lead's documents are a write to the lead, which E.0's F-3 reserves to
+    // `lead.manage` (activity, status and follow-ups need it too). A reader who may see the lead but not work it
+    // (the records clerk) is refused (403; the lead is visible to them, so this names nothing new).
+    attachable: (ctx, id) => visibleLead(ctx, id) !== null && can(ctx, 'lead.manage', 'operational'),
   },
   {
     type: 'party',

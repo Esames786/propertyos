@@ -460,7 +460,7 @@ export interface StorageList {
   items: StorageUnitView[];
   counts: Record<StorageFilter, number>;
   projects: Array<{ id: string; name: string }>;
-  /** The reader may allocate and release (storage.manage) in at least one listed project. */
+  /** The reader may allocate and release (inventory.manage; E.2's provisional storage.manage was retired at the Wave 1 integration) in at least one listed project. */
   canManage: boolean;
 }
 

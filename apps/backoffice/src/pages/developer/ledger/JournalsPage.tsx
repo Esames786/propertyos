@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { ApiError } from '@repo/contracts';
 import { Loading, ScrollRegion, useSocietyFormat } from '../../society/kit';
 import { LinkButton, unbroken, useProblemToast } from '../../society/hr/hkit';
-import { ACC, AccountRef, Blocked, DemoBadge, EntityBar, GL_POST, History, JournalBadge, LedgerNav, ProvisionalNotice, Ref, useAccountName, useEntityParam, WRAP, KEEP, Amount } from './lkit';
+import { ACC, AccountRef, Blocked, DemoBadge, EntityBar, GL_CREATE, History, JournalBadge, LedgerNav, ProvisionalNotice, Ref, useAccountName, useEntityParam, WRAP, KEEP, Amount } from './lkit';
 
 /**
  * ACC-003 Journal entries (PARTIAL, Gate E.7 Wave 1). The entity's journals by state, with search;
@@ -32,7 +32,7 @@ export default function JournalsPage() {
       <PageHeader
         title={t('ledger:journals.title')}
         description={t('ledger:journals.intro')}
-        actions={allows(GL_POST) && d.canCreate ? <LinkButton href={ACC.create(d.entity.id)} variant="primary" icon={FilePlus2} testId="journal-new">{t('ledger:journals.new')}</LinkButton> : undefined}
+        actions={allows(GL_CREATE) && d.canCreate ? <LinkButton href={ACC.create(d.entity.id)} variant="primary" icon={FilePlus2} testId="journal-new">{t('ledger:journals.new')}</LinkButton> : undefined}
       />
       <LedgerNav current="journals" entity={entity} />
       <ProvisionalNotice screen="journals" />

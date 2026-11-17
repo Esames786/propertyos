@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { Loading, ProblemAlert, useSocietyFormat } from '../../society/kit';
 import { DateInput, fieldErrorKey, useFieldError, unbroken } from '../../society/hr/hkit';
 import { JournalLines } from './JournalsPage';
-import { AccountRef, EntityBar, GL_POST, History, LedgerNav, ProvisionalNotice, Ref, useAccountName, useEntityParam, WRAP, KEEP } from './lkit';
+import { AccountRef, EntityBar, GL_MANAGE, History, LedgerNav, ProvisionalNotice, Ref, useAccountName, useEntityParam, WRAP, KEEP } from './lkit';
 
 /**
  * ACC-010 Posting rules (PARTIAL, Gate E.7 Wave 1; decisions E-15, E-16, E-17, E-18, E-33). Versioned
@@ -77,7 +77,7 @@ function Rule({ r, entityId, today }: { r: PostingRuleView; entityId: string; to
           <Button className={WRAP} icon={Eye} onPress={() => setPreviewing(true)} data-testid="rule-preview-open">
             {t('ledger:rules.preview')}
           </Button>
-          {allows(GL_POST) && r.actions.draftVersion && (
+          {allows(GL_MANAGE) && r.actions.draftVersion && (
             <Button className={WRAP} icon={FilePlus2} onPress={() => setDrafting(true)} data-testid="rule-draft-open">
               {t('ledger:rules.draftVersion')}
             </Button>

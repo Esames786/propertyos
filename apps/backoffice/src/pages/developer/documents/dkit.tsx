@@ -1,29 +1,16 @@
 import { DOCUMENT_MAX_BYTES, DOCUMENT_MIME_TYPES, type AttachTargets, type DocumentDetail, type DocumentSummary, type ExpiryState, type RecordRef } from '@repo/contracts';
-import { AccessOutcomeView, Badge, cn, Link, Spinner, useApiQuery, useSession, useT, type StatusTone } from '@repo/ui';
+import { Badge, cn, Link, Spinner, useApiQuery, useT, type StatusTone } from '@repo/ui';
 import { CalendarCheck2, CalendarX2, Clock3, Search, type LucideIcon } from 'lucide-react';
-import { Suspense, useEffect, useState, type ComponentType, type LazyExoticComponent } from 'react';
+import { useEffect, useState } from 'react';
 import { ComboBox, Input, Label, ListBox, ListBoxItem, Popover } from 'react-aria-components';
 import { unbroken } from '../../society/hr/hkit';
-import { LINKS } from '../../../nav.config';
 import { NOWRAP, RecordLine, TYPE_ICON, useHubFormat } from '../workspace/wkit';
 
 /**
- * Gate E.13 documents kit: the route guard (`document.view`), expiry badges that never rely on colour
+ * Gate E.13 documents kit (the route guard is E.0's `DevScreen` since the Wave 1 integration): expiry badges that never rely on colour
  * alone, the demo-file reader (type and size checked in the browser before the server checks them
  * again), the download of a demo file, and the searchable record picker for uploads.
  */
-
-/** DOC-002…006 need `document.view`; anyone else gets the access outcome "not part of your role". */
-export function DocumentsScreen({ page: Page }: { page: LazyExoticComponent<ComponentType> }) {
-  const { can, tenant } = useSession();
-  return can('document.view') ? (
-    <Suspense fallback={null}>
-      <Page />
-    </Suspense>
-  ) : (
-    <AccessOutcomeView reason="permission_missing" module="core" organisation={tenant.name} startHref={LINKS.start} />
-  );
-}
 
 const EXPIRY: Record<ExpiryState, [StatusTone, LucideIcon]> = {
   none: ['neutral', CalendarCheck2],

@@ -24,7 +24,7 @@ import {
   trialBalance,
 } from './engine';
 import { ledgerSamples } from './samples';
-import { accountId, COLLECTION_ACCOUNT, emptyLedger, KASHAN, LEDGER_TODAY, MEHREEN, OPERATING_ACCOUNT, SAAD, seedLarkspur, type LedgerState } from './state';
+import { accountId, COLLECTION_ACCOUNT, emptyLedger, FAIZA, LEDGER_TODAY, OPERATING_ACCOUNT, SAAD, seedLarkspur, ZUBAIR, type LedgerState } from './state';
 import vectors from './ledger.vectors.json';
 
 /**
@@ -120,9 +120,9 @@ describe('Gate E.7 ledger vectors', () => {
     // Nothing reaches a report before posting.
     expect(reports(s, LEDGER_TODAY).tb.debit).toBe(before.tb.debit);
     expect(() => approveJournal(j, SAAD, 'x')).toThrow();
-    approveJournal(j, MEHREEN, '2026-10-24T11:00:00+05:00');
+    approveJournal(j, ZUBAIR, '2026-10-24T11:00:00+05:00');
     expect(() => postJournal(s, j, SAAD, 'x')).toThrow();
-    postJournal(s, j, MEHREEN, '2026-10-24T11:05:00+05:00');
+    postJournal(s, j, ZUBAIR, '2026-10-24T11:05:00+05:00');
     const after = reports(s, LEDGER_TODAY);
     const a = vectors.scenario.afterPost;
     expect(fromPaisa(after.tb.debit)).toBe(a.trialBalance);
@@ -139,8 +139,8 @@ describe('Gate E.7 ledger vectors', () => {
     expect(JSON.stringify(j.lines)).toBe(original);
     expect(r.lines.map((l) => [l.accountId, l.debit, l.credit])).toEqual(j.lines.map((l) => [l.accountId, l.credit, l.debit]));
     expect(() => reverseJournal(s, j, '2026-10-25', 'again', SAAD, 'x')).toThrow();
-    approveJournal(r, MEHREEN, '2026-10-25T10:00:00+05:00');
-    postJournal(s, r, MEHREEN, '2026-10-25T10:05:00+05:00');
+    approveJournal(r, ZUBAIR, '2026-10-25T10:00:00+05:00');
+    postJournal(s, r, ZUBAIR, '2026-10-25T10:05:00+05:00');
     const back = reports(s, LEDGER_TODAY);
     const b = vectors.scenario.afterReversal;
     expect(fromPaisa(back.tb.debit)).toBe(b.trialBalance);
@@ -173,8 +173,8 @@ describe('Gate E.7 ledger vectors', () => {
     const s = seeded();
     const n = normaliseJournal(s, E, { date: '2026-09-15', memo: 'Late accrual', lines: lines([{ code: '5200', debit: '1.00' }, { code: '2200', credit: '1.00' }]) }, LEDGER_TODAY);
     const j = addJournal(s, n.journal!, SAAD, 'x', { submit: true });
-    approveJournal(j, MEHREEN, 'x');
-    expect(() => postJournal(s, j, MEHREEN, 'x')).toThrow();
+    approveJournal(j, ZUBAIR, 'x');
+    expect(() => postJournal(s, j, ZUBAIR, 'x')).toThrow();
     expect(j.state).toBe('approved');
   });
 
@@ -199,10 +199,10 @@ describe('Gate E.7 ledger vectors', () => {
     const s = seeded();
     const samples = ledgerSamples({ collection: COLLECTION_ACCOUNT, operating: OPERATING_ACCOUNT });
     if ('afterSample' in v && v.afterSample) {
-      const first = createImport(s, { entityId: E, accountId: COLLECTION_ACCOUNT.id, fileName: 'a.csv', sample: true, content: samples[v.afterSample - 1]!.content }, KASHAN, 'x', LEDGER_TODAY);
-      submitImport(first, KASHAN, 'x');
-      expect(() => approveImport(s, first, COLLECTION_ACCOUNT.iban, KASHAN, 'x')).toThrow();
-      approveImport(s, first, COLLECTION_ACCOUNT.iban, MEHREEN, 'x');
+      const first = createImport(s, { entityId: E, accountId: COLLECTION_ACCOUNT.id, fileName: 'a.csv', sample: true, content: samples[v.afterSample - 1]!.content }, FAIZA, 'x', LEDGER_TODAY);
+      submitImport(first, FAIZA, 'x');
+      expect(() => approveImport(s, first, COLLECTION_ACCOUNT.iban, FAIZA, 'x')).toThrow();
+      approveImport(s, first, COLLECTION_ACCOUNT.iban, ZUBAIR, 'x');
     }
     const rows = classify(parseStatement(samples[v.sample - 1]!.content, LEDGER_TODAY), COLLECTION_ACCOUNT.id, s.lines);
     expect(rows.map((r) => r.status)).toEqual(v.statuses);
@@ -215,9 +215,9 @@ describe('Gate E.7 ledger vectors', () => {
     const s = seeded();
     const samples = ledgerSamples({ collection: COLLECTION_ACCOUNT, operating: OPERATING_ACCOUNT });
     const go = () => {
-      const imp = createImport(s, { entityId: E, accountId: COLLECTION_ACCOUNT.id, fileName: 'a.csv', sample: true, content: samples[0]!.content }, KASHAN, 'x', LEDGER_TODAY);
-      submitImport(imp, KASHAN, 'x');
-      return approveImport(s, imp, COLLECTION_ACCOUNT.iban, MEHREEN, 'x');
+      const imp = createImport(s, { entityId: E, accountId: COLLECTION_ACCOUNT.id, fileName: 'a.csv', sample: true, content: samples[0]!.content }, FAIZA, 'x', LEDGER_TODAY);
+      submitImport(imp, FAIZA, 'x');
+      return approveImport(s, imp, COLLECTION_ACCOUNT.iban, ZUBAIR, 'x');
     };
     const before = s.lines.length;
     expect(go()).toHaveLength(3);
@@ -241,8 +241,8 @@ describe('Gate E.7 ledger vectors', () => {
       const n = normaliseJournal(s, E, { date: '2026-10-24', memo: `Sweep ${i}`, lines: lines([{ code: dr, debit: amount }, { code: cr, credit: amount }]) }, LEDGER_TODAY);
       const j = addJournal(s, n.journal!, SAAD, 'x');
       submitJournal(j, SAAD, 'x');
-      approveJournal(j, MEHREEN, 'x');
-      postJournal(s, j, MEHREEN, 'x');
+      approveJournal(j, ZUBAIR, 'x');
+      postJournal(s, j, ZUBAIR, 'x');
       const { tb, pl, bs } = reports(s, LEDGER_TODAY);
       expect(tb.debit).toBe(tb.credit);
       expect(bs.balances).toBe(true);

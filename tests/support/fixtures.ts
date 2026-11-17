@@ -33,11 +33,13 @@ export type PersonaId =
   | 'rb_landlord_tahira'
   | 'rb_landlord_kashif'
   | 'rb_tenant_adeel'
-  // Gate E.1 (provisional; reconcile with E.0): Larkspur's sales manager.
-  | 'sales_manager'
-  // Gate E.2 (provisional): Larkspur's project setup maker and checker.
-  | 'lk_project_officer'
-  | 'lk_projects_director'
+  // Gate E.0 + Wave 1 integration: the one developer-ERP roster (packages/fixtures/src/role-templates.ts LARKSPUR_ERP_ROLES).
+  | 'lsp_sales_manager'
+  | 'lsp_project_manager'
+  | 'lsp_accounts'
+  | 'lsp_finance_controller'
+  | 'lsp_ledger_clerk'
+  | 'lsp_records_clerk'
   | 'supreme_admin'
   | 'commercial_approver'
   | 'platform_support';

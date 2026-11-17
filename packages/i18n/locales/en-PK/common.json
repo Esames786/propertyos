@@ -108,7 +108,9 @@
     "lsp_sales_manager": "Assign leads to your salespeople and follow every project’s pipeline.",
     "lsp_project_manager": "Prepare project setup and storage records for someone else to approve.",
     "lsp_accounts": "Prepare journals and statement imports for the finance controller to approve.",
-    "lsp_finance_controller": "Approve and post what someone else prepared. You never approve your own work."
+    "lsp_finance_controller": "Approve and post what someone else prepared. You never approve your own work.",
+    "lsp_ledger_clerk": "Prepare journals for the finance controller to approve. Bank accounts and statements are not part of your role.",
+    "lsp_records_clerk": "Keep Larkspur Heights’ documents: upload files and new versions, and draft templates for someone else to approve."
   },
   "demo": {
     "signInTitle": "Choose a demo identity",
@@ -304,7 +306,9 @@
     "finance_controller": "Finance controller",
     "client_money_officer": "Client money accounts officer",
     "sales_manager": "Sales manager",
-    "project_manager": "Project manager"
+    "project_manager": "Project manager",
+    "ledger_clerk": "Ledger clerk",
+    "records_clerk": "Records clerk"
   },
   "stepper": {
     "stepOf": "Step {{n}} of {{total}}",

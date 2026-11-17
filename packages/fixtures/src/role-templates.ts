@@ -205,7 +205,21 @@ const withDeveloperExtra = (tenantId: string, roles: readonly TenantRoleTemplate
 
 const larkspurRole = (id: string, labelKey: string, permissions: readonly Permission[], holder: string): TenantRoleTemplate => ({ id, tenantId: 'tnt_larkspur', starter: null, labelKey, permissions, holders: [holder] });
 
-/** Gate E.0: Larkspur's own developer-ERP roles (Wave 1 maker-checker pairs). */
+/**
+ * Gate E.0: Larkspur's own developer-ERP roles (Wave 1 maker-checker pairs).
+ *
+ * Wave 1 integration (Issue #25): this is the ONE roster of the developer ERP. The provisional people of
+ * the module branches were folded into it (decision E-06 stays open; see
+ * docs/status/integration-e-wave1/INTEGRATION_REPORT.md, "Reconciled principals and permissions"):
+ * - E.1's Samina Latif (sales manager) → Hamza Rashid; E.2's Hina Baig (project officer) → Mehwish Kazmi;
+ *   E.2's Kashan Lodhi (projects director), E.7's Mehreen Aslam (controller) and E.13's Tehmina Durrani
+ *   (template approver) → Zubair Ansari; E.7's Kashan Wasti (statement importer) → Faiza Noor.
+ * - Two people stay because their role is a distinct least-privilege one: Saad Hameed, a journal maker with
+ *   no bank permission at all (the `bank.view` boundary of E.7), and Haroon Qadri, a records clerk limited
+ *   to Larkspur Heights (the project-limited reader of E.13's per-record document access).
+ * - The finance controller gains `period.close`, the one permission of E.7's merged controller role that
+ *   no canonical role held (closing a month, approving a reopen someone else asked for). Listed for the owner.
+ */
 export const LARKSPUR_ERP_ROLES: readonly TenantRoleTemplate[] = [
   // Assigns leads to salespeople and works every lead of every project (E.1).
   larkspurRole('sales_manager', 'common:roles.sales_manager', [...STARTER_PERMISSIONS.sales, 'lead.manage', 'lead.assign', 'project.view', 'document.view', 'document.upload'], 'lsp_sales_manager'),
@@ -214,8 +228,15 @@ export const LARKSPUR_ERP_ROLES: readonly TenantRoleTemplate[] = [
   // Maker: journals, chart and posting-rule drafts, statement imports (E.7).
   larkspurRole('accounts_officer', 'common:roles.accounts_officer', ['project.context.use', 'gl.view', 'gl.manage', 'journal.create', 'bank.view', 'bank.import', 'document.view', 'document.upload'], 'lsp_accounts'),
   // Checker: approves and posts what someone else prepared; activates projects (reads their inventory: the
-  // Projects area is gated by unit.view, unchanged); approves templates.
-  larkspurRole('finance_controller', 'common:roles.finance_controller', ['project.context.use', 'reports.view', 'unit.view', 'project.view', 'project.approve', 'gl.view', 'gl.approve', 'journal.approve', 'gl.post', 'bank.view', 'bank.import.approve', 'document.view', 'document_template.approve'], 'lsp_finance_controller'),
+  // Projects area is gated by unit.view, unchanged); approves templates; closes accounting periods and
+  // approves a reopen someone else requested (period.close, Wave 1 integration).
+  larkspurRole('finance_controller', 'common:roles.finance_controller', ['project.context.use', 'reports.view', 'unit.view', 'project.view', 'project.approve', 'gl.view', 'gl.approve', 'journal.approve', 'gl.post', 'period.close', 'bank.view', 'bank.import.approve', 'document.view', 'document_template.approve'], 'lsp_finance_controller'),
+  // Wave 1 integration (from E.7): a journal maker with no bank permission at all, so no ledger screen, read
+  // model or search may show a bank account, statement line or import to him (the bank.view boundary).
+  larkspurRole('ledger_clerk', 'common:roles.ledger_clerk', ['gl.view', 'journal.create'], 'lsp_ledger_clerk'),
+  // Wave 1 integration (from E.13): Larkspur Heights only (people.ts). Uploads documents and drafts templates
+  // for the records he may open; never approves. Reads the records documents hang on.
+  larkspurRole('records_clerk', 'common:roles.records_clerk', ['project.context.use', 'lead.view', 'unit.view', 'customer.view', 'document.view', 'document.upload', 'document_template.manage'], 'lsp_records_clerk'),
 ];
 
 const TENANT_ROLES: Readonly<Record<string, readonly TenantRoleTemplate[]>> = {

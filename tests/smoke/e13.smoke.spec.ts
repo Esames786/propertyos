@@ -9,7 +9,8 @@ import { societyApi } from '../support/society';
  * favourites and document pages at 320 px with 200 % text in Urdu. The full checks run in Chromium
  * (tests/e2e/e13-workspaces.spec.ts). Business date: 26 October 2026.
  */
-const CONTROLLER = 'lsp_doc_controller' as PersonaId;
+// Wave 1 integration: the full-scope document reader of the reconciled roster (Hamza, sales manager).
+const CONTROLLER = 'lsp_sales_manager' as PersonaId;
 const CLERK = 'lsp_records_clerk' as PersonaId;
 
 async function start(page: Page, persona: PersonaId, locale: 'en-PK' | 'ur-PK' = 'en-PK') {
@@ -81,7 +82,7 @@ test('320 px at 200 % text in Urdu: favourites, the documents list and a documen
   test.setTimeout(150_000);
   await page.setViewportSize({ width: 320, height: 700 });
   await start(page, CONTROLLER, 'ur-PK');
-  await page.addInitScript(() => localStorage.setItem('pref:display:v1:backoffice:tnt_larkspur:usr_lsp_d0001', JSON.stringify({ version: 2, textScale: 2, chosenAt: '2026-10-26T00:00:00Z', updatedAt: '2026-10-26T00:00:00Z' })));
+  await page.addInitScript(() => localStorage.setItem('pref:display:v1:backoffice:tnt_larkspur:usr_lsp_0004', JSON.stringify({ version: 2, textScale: 2, chosenAt: '2026-10-26T00:00:00Z', updatedAt: '2026-10-26T00:00:00Z' })));
   for (const [path, ready] of [
     ['/backoffice/global/favorites', 'favourites'],
     ['/backoffice/doc/document-preview', 'documents-finder'],

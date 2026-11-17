@@ -63,11 +63,22 @@ export function decideEndpoint(access: EffectiveAccess, declared: Extract<Handle
   const base = { at, suspension: declared.suspension, ...(declared.feature ? { feature: declared.feature } : {}) } as const;
   if (declared.permission === 'signed_in') return decide(access, { module: declared.module, ...base });
   const options: readonly Permission[] = typeof declared.permission === 'string' ? [declared.permission] : declared.permission;
+  const one = (permission: Permission): AccessDecision => {
+    const own = PERMISSION_MODULE[permission];
+    return [decide(access, { module: declared.module, permission, ...base }), ...(own && own !== declared.module ? [decide(access, { module: own, permission, ...base })] : [])].find((d) => !d.allowed) ?? { allowed: true as const };
+  };
   let first: AccessDecision | undefined;
   for (const permission of options) {
-    const own = PERMISSION_MODULE[permission];
-    const decision = [decide(access, { module: declared.module, permission, ...base }), ...(own && own !== declared.module ? [decide(access, { module: own, permission, ...base })] : [])].find((d) => !d.allowed) ?? { allowed: true as const };
-    if (decision.allowed) return decision;
+    const decision = one(permission);
+    if (decision.allowed) {
+      // Wave 1 integration (Issue #25): an endpoint may also require further permissions, every one of them
+      // (`requiresAll`), refused here like any missing permission, before anything is read or recorded.
+      for (const extra of declared.alsoRequires ?? []) {
+        const also = one(extra);
+        if (!also.allowed) return also;
+      }
+      return decision;
+    }
     first ??= decision;
   }
   return first ?? { allowed: false, reason: 'permission_missing' };

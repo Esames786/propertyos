@@ -128,6 +128,12 @@ export const PERSONAS: readonly Persona[] = [
   { id: 'lsp_project_manager', tenantId: TENANT.id, principalId: 'usr_lsp_0005', app: 'backoffice', displayName: 'Mehwish Kazmi', email: 'mehwish.kazmi@example.com', ...holds(TENANT.id, 'project_manager'), projectScope: 'all' },
   { id: 'lsp_accounts', tenantId: TENANT.id, principalId: 'usr_lsp_0006', app: 'backoffice', displayName: 'Faiza Noor', email: 'faiza.noor@example.com', ...holds(TENANT.id, 'accounts_officer'), projectScope: 'all' },
   { id: 'lsp_finance_controller', tenantId: TENANT.id, principalId: 'usr_lsp_0007', app: 'backoffice', displayName: 'Zubair Ansari', email: 'zubair.ansari@example.com', ...holds(TENANT.id, 'finance_controller'), projectScope: 'all' },
+  // Wave 1 integration (Issue #25): the two module people kept because their role is a distinct least-privilege
+  // one (role-templates.ts). Saad (from E.7) prepares journals and holds no bank permission; Haroon (from E.13)
+  // keeps Larkspur Heights' records only. Every other provisional person of E.1/E.2/E.7/E.13 was folded into
+  // the four above. Both fictional.
+  { id: 'lsp_ledger_clerk', tenantId: TENANT.id, principalId: 'usr_lsp_0008', app: 'backoffice', displayName: 'Saad Hameed', email: 'saad.hameed@example.com', ...holds(TENANT.id, 'ledger_clerk'), projectScope: 'all' },
+  { id: 'lsp_records_clerk', tenantId: TENANT.id, principalId: 'usr_lsp_0009', app: 'backoffice', displayName: 'Haroon Qadri', email: 'haroon.qadri@example.com', ...holds(TENANT.id, 'records_clerk'), projectScope: ['prj_heights'] },
   {
     id: 'resident',
     tenantId: TENANT.id,

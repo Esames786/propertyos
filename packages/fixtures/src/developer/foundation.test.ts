@@ -18,7 +18,10 @@ import { DEVELOPER_SECTION, developerState, developerStateForWrite, ENTITY_PROFI
  * helpers on a multi-entity fixture, the read-only administration endpoints, permissions and personas.
  */
 const GATE_E = Object.keys(table.permissions);
-const NEW_PERSONAS = ['lsp_sales_manager', 'lsp_project_manager', 'lsp_accounts', 'lsp_finance_controller'];
+// Wave 1 integration (Issue #25): E.0's four plus the two module people kept as distinct least-privilege roles.
+const NEW_PERSONAS = ['lsp_sales_manager', 'lsp_project_manager', 'lsp_accounts', 'lsp_finance_controller', 'lsp_ledger_clerk', 'lsp_records_clerk'];
+/** The records clerk keeps one project's records only (E.13's project-limited document reader). */
+const SCOPE_OF: Record<string, 'all' | string[]> = { lsp_records_clerk: ['prj_heights'] };
 const L = datasetFor('tnt_larkspur')!;
 const heightsLead = L.leads.find((l) => l.projectId === 'prj_heights')!;
 const NEVER_LEAD = 'led_never_issued_e0';
@@ -67,11 +70,11 @@ describe('permissions and personas (E-06, E-07)', () => {
     for (const r of rolesOf('tnt_test_dev', 'developer')) expect(r.permissions.some((x) => GATE_E.includes(x)), r.id).toBe(false);
   });
 
-  it('the four new fictional Larkspur people each hold exactly their own new role', () => {
+  it('the new fictional Larkspur people each hold exactly their own new role', () => {
     for (const id of NEW_PERSONAS) {
       const p = findPersona(id)!;
       const role = LARKSPUR_ERP_ROLES.find((r) => r.id === p.roleId)!;
-      expect(p).toMatchObject({ tenantId: 'tnt_larkspur', app: 'backoffice', projectScope: 'all' });
+      expect(p).toMatchObject({ tenantId: 'tnt_larkspur', app: 'backoffice', projectScope: SCOPE_OF[id] ?? 'all' });
       expect(role.holders).toEqual([id]);
       expect(p.permissions).toEqual(role.permissions);
       expect(p.email.endsWith('@example.com')).toBe(true);

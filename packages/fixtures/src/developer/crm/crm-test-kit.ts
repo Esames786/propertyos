@@ -21,7 +21,7 @@ type AccessFor = (p: Persona) => EffectiveAccess | null;
 export function crmSession(options: { accessFor?: AccessFor; personas?: readonly Persona[]; persona?: string } = {}) {
   const storage = memory();
   const demo = new DemoStore(storage);
-  let personaId: string | null = options.persona ?? 'sales_manager';
+  let personaId: string | null = options.persona ?? 'lsp_sales_manager';
   let projectId = 'all';
   let accessFor = options.accessFor;
   const t = new MockTransport({

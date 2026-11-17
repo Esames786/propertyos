@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { PERSONAS } from './people';
 import { PlatformStore } from './platform/store';
 import { PlatformMockTransport } from './platform/transport';
-import { rolesOf, starterRoles } from './role-templates';
+import { LARKSPUR_ERP_ROLES, rolesOf, starterRoles } from './role-templates';
 import { TENANT_DIRECTORY } from './tenant-directory';
 
 /**
@@ -21,10 +21,21 @@ describe('tenant roles', () => {
   it('every workspace has roles of its own kind; Shalimar defined its own facility manager; Al-Noor added an accounts officer', () => {
     for (const t of TENANT_DIRECTORY) {
       const roles = rolesOf(t.id, t.type);
-      // Gate E.0 (E-06): Larkspur added four roles of its own for the developer ERP's maker-checker pairs.
-      expect(roles.length, t.id).toBe(t.id === 'tnt_alnoor' ? 7 : t.id === 'tnt_larkspur' ? 10 : 6);
+      // Gate E.0 (E-06) + Wave 1 integration: Larkspur keeps its six starters and adds the developer ERP's own
+      // roles. The count is derived from the reconciled roster (LARKSPUR_ERP_ROLES), never a branch's constant;
+      // the roster itself is pinned by id below, so a role cannot slip in unnoticed.
+      expect(roles.length, t.id).toBe(t.id === 'tnt_alnoor' ? 7 : t.id === 'tnt_larkspur' ? STARTER_ROLE_SETS.developer.length + LARKSPUR_ERP_ROLES.length : 6);
       expect(roles.every((r) => r.tenantId === t.id)).toBe(true);
     }
+    // Wave 1 integration (Issue #25): the one developer-ERP roster, each role held by exactly one fictional person.
+    expect(LARKSPUR_ERP_ROLES.map((r) => [r.id, r.holders])).toEqual([
+      ['sales_manager', ['lsp_sales_manager']],
+      ['project_manager', ['lsp_project_manager']],
+      ['accounts_officer', ['lsp_accounts']],
+      ['finance_controller', ['lsp_finance_controller']],
+      ['ledger_clerk', ['lsp_ledger_clerk']],
+      ['records_clerk', ['lsp_records_clerk']],
+    ]);
     expect(rolesOf('tnt_alnoor', 'association').find((r) => r.id === 'accounts_officer')).toMatchObject({ starter: null, holders: ['alnoor_accounts'] });
     // Posting is finance's (owner decision, C.1 review): the building manager no longer holds it.
     expect(rolesOf('tnt_alnoor', 'association').find((r) => r.id === 'manager')!.permissions).not.toContain('billing_run.post');

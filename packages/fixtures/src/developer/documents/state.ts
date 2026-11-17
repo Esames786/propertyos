@@ -94,8 +94,12 @@ export const nextTemplateRef = (s: DocumentsState) => `TPL-${s.code}-${String(s.
 // Seeds (fictional)
 // ---------------------------------------------------------------------------------------------
 const NADIA = { by: 'usr_lsp_0001', name: 'Nadia Rahman' };
-const TEHMINA = { by: 'usr_lsp_d0001', name: 'Tehmina Durrani' };
-const HAROON = { by: 'usr_lsp_d0002', name: 'Haroon Qadri' };
+// Wave 1 integration: the reconciled roster (people.ts). Tehmina Durrani's seeded actions are Zubair's (template
+// decisions), Mehwish's (template drafts, project and unit uploads) or Hamza's (lead and customer uploads).
+const ZUBAIR = { by: 'usr_lsp_0007', name: 'Zubair Ansari' };
+const MEHWISH = { by: 'usr_lsp_0005', name: 'Mehwish Kazmi' };
+const HAMZA = { by: 'usr_lsp_0004', name: 'Hamza Rashid' };
+const HAROON = { by: 'usr_lsp_0009', name: 'Haroon Qadri' };
 const ZAIN = { by: 'usr_cbd_0001', name: 'Zain Abbasi' };
 
 type Who = typeof NADIA;
@@ -131,25 +135,25 @@ function seedLarkspur(s: DocumentsState): void {
   // Larkspur Gardens (project): its version notes must never reach a Heights-only reader.
   doc(s, 'doc_lsp_0004', 'Larkspur Gardens master plan (Demo)', 'drawing', 'prj_gardens', 'Larkspur Estates planning (fictional)', (id) => [
     v(id, 1, NADIA, '2026-01-15T11:00:00Z', 'LG-master-plan-r1.pdf', PDF, 702_310, 'First issue'),
-    v(id, 2, TEHMINA, '2026-05-04T09:30:00Z', 'LG-master-plan-r2.pdf', PDF, 715_002, 'Revised plot sizes after CDA review'),
-    v(id, 3, TEHMINA, '2026-08-19T13:05:00Z', 'LG-master-plan-r3.pdf', PDF, 719_448, 'Block C road widened to 40 ft'),
+    v(id, 2, MEHWISH, '2026-05-04T09:30:00Z', 'LG-master-plan-r2.pdf', PDF, 715_002, 'Revised plot sizes after CDA review'),
+    v(id, 3, MEHWISH, '2026-08-19T13:05:00Z', 'LG-master-plan-r3.pdf', PDF, 719_448, 'Block C road widened to 40 ft'),
   ]);
-  doc(s, 'doc_lsp_0005', 'CDA layout approval — Larkspur Gardens (Demo)', 'approval', 'prj_gardens', 'Capital Development Authority (fictional)', (id) => [v(id, 1, TEHMINA, '2025-12-11T10:00:00Z', 'LG-cda-layout-approval.pdf', PDF, 356_771, 'Layout approval letter', '2026-12-10')]);
+  doc(s, 'doc_lsp_0005', 'CDA layout approval — Larkspur Gardens (Demo)', 'approval', 'prj_gardens', 'Capital Development Authority (fictional)', (id) => [v(id, 1, MEHWISH, '2025-12-11T10:00:00Z', 'LG-cda-layout-approval.pdf', PDF, 356_771, 'Layout approval letter', '2026-12-10')]);
   // Units
   doc(s, 'doc_lsp_0006', 'Allotment letter — LH-A-0101 (Demo)', 'allotment', 'unt_lh_a_0101', 'Larkspur Estates sales office (fictional)', (id) => [v(id, 1, HAROON, '2026-06-03T06:45:00Z', 'LH-A-0101-allotment.pdf', PDF, 128_904, 'Issued after booking approval')]);
   doc(s, 'doc_lsp_0007', 'Floor plan — LH-A-0103 (Demo)', 'drawing', 'unt_lh_a_0103', 'Larkspur Estates planning (fictional)', (id) => [v(id, 1, HAROON, '2026-02-20T12:00:00Z', 'LH-A-0103-floor-plan.jpg', JPG, 244_118, 'As-built layout')]);
-  doc(s, 'doc_lsp_0008', 'Plot possession checklist — LG-P1-002 (Demo)', 'other', 'unt_lg_p1_002', 'Larkspur Gardens site office (fictional)', (id) => [v(id, 1, TEHMINA, '2026-09-28T08:00:00Z', 'LG-P1-002-possession-checklist.pdf', PDF, 96_310, 'Boundary pillars to verify on site', '2026-11-30')]);
+  doc(s, 'doc_lsp_0008', 'Plot possession checklist — LG-P1-002 (Demo)', 'other', 'unt_lg_p1_002', 'Larkspur Gardens site office (fictional)', (id) => [v(id, 1, MEHWISH, '2026-09-28T08:00:00Z', 'LG-P1-002-possession-checklist.pdf', PDF, 96_310, 'Boundary pillars to verify on site', '2026-11-30')]);
   // Leads
   doc(s, 'doc_lsp_0009', 'CNIC copy — Amna Abbasi (Demo)', 'identity', 'led_0004', 'Fictional identity copy', (id) => [v(id, 1, HAROON, '2026-10-02T09:20:00Z', 'amna-abbasi-cnic.jpg', JPG, 188_402, 'Front and back, fictional numbers', '2026-11-05')]);
   doc(s, 'doc_lsp_0010', 'Payment plan proposal — LD-2026-00007 (Demo)', 'payment_plan', 'led_0007', 'Larkspur Estates sales office (fictional)', (id) => [
     v(id, 1, HAROON, '2026-10-12T11:10:00Z', 'LD-2026-00007-plan-v1.pdf', PDF, 64_220, 'Illustrative 36-month plan'),
     v(id, 2, HAROON, '2026-10-19T15:45:00Z', 'LD-2026-00007-plan-v2.pdf', PDF, 66_015, 'Customer asked for a longer plan: 48 months (illustrative)'),
   ]);
-  doc(s, 'doc_lsp_0011', 'CNIC copy — Hina Chaudhry (Demo)', 'identity', 'led_0006', 'Fictional identity copy', (id) => [v(id, 1, TEHMINA, '2026-09-14T10:00:00Z', 'hina-chaudhry-cnic.jpg', JPG, 176_550, 'Gardens enquiry: identity copy', '2026-10-30')]);
-  doc(s, 'doc_lsp_0012', 'Site visit feedback — Haris Sheikh (Demo)', 'correspondence', 'led_0025', 'Larkspur Gardens site office (fictional)', (id) => [v(id, 1, TEHMINA, '2026-10-08T14:30:00Z', 'haris-sheikh-visit-feedback.txt', 'text/plain', 2_310, 'Prefers a corner plot in Phase 2')]);
+  doc(s, 'doc_lsp_0011', 'CNIC copy — Hina Chaudhry (Demo)', 'identity', 'led_0006', 'Fictional identity copy', (id) => [v(id, 1, HAMZA, '2026-09-14T10:00:00Z', 'hina-chaudhry-cnic.jpg', JPG, 176_550, 'Gardens enquiry: identity copy', '2026-10-30')]);
+  doc(s, 'doc_lsp_0012', 'Site visit feedback — Haris Sheikh (Demo)', 'correspondence', 'led_0025', 'Larkspur Gardens site office (fictional)', (id) => [v(id, 1, HAMZA, '2026-10-08T14:30:00Z', 'haris-sheikh-visit-feedback.txt', 'text/plain', 2_310, 'Prefers a corner plot in Phase 2')]);
   // Customers
   doc(s, 'doc_lsp_0013', 'NTN certificate — Evergreen Holdings (Demo)', 'identity', 'pty_0012', 'Fictional tax registration', (id) => [v(id, 1, NADIA, '2026-02-01T09:00:00Z', 'evergreen-ntn.pdf', PDF, 88_640, 'Company registration copy', '2027-02-01')]);
-  doc(s, 'doc_lsp_0014', 'Passport copy — Fatima Siddiqui (Demo)', 'identity', 'pty_0032', 'Fictional identity copy', (id) => [v(id, 1, TEHMINA, '2026-03-30T10:40:00Z', 'fatima-siddiqui-passport.jpg', JPG, 205_771, 'Overseas buyer: Gardens only', '2026-09-30')]);
+  doc(s, 'doc_lsp_0014', 'Passport copy — Fatima Siddiqui (Demo)', 'identity', 'pty_0032', 'Fictional identity copy', (id) => [v(id, 1, HAMZA, '2026-03-30T10:40:00Z', 'fatima-siddiqui-passport.jpg', JPG, 205_771, 'Overseas buyer: Gardens only', '2026-09-30')]);
 
   s.templates.push(
     {
@@ -159,8 +163,8 @@ function seedLarkspur(s: DocumentsState): void {
       category: 'template',
       projectId: null,
       versions: [
-        tv(1, 'ALLOTMENT LETTER (illustrative template)\n\nDear {{buyer.name}},\n\nWe confirm the allotment of unit {{unit.ref}} in {{project.name}} on the terms of booking {{booking.ref}}.\nThis letter does not confirm any payment; payments are confirmed only by receipts.\n\nLarkspur Estates (Demo)', '2026-04-01', 'First approved wording', NADIA, '2026-03-20T09:00:00Z', { kind: 'approved', ...who(TEHMINA), at: '2026-03-25T11:00:00Z', note: 'Approved for use' }),
-        tv(2, 'ALLOTMENT LETTER (illustrative template)\n\nDear {{buyer.name}},\n\nWe confirm the allotment of unit {{unit.ref}} in {{project.name}} on the terms of booking {{booking.ref}} and payment plan {{plan.ref}}.\nThis letter does not confirm any payment; payments are confirmed only by receipts.\n\nLarkspur Estates (Demo)', '2026-11-01', 'Adds the payment plan reference', TEHMINA, '2026-10-20T10:30:00Z'),
+        tv(1, 'ALLOTMENT LETTER (illustrative template)\n\nDear {{buyer.name}},\n\nWe confirm the allotment of unit {{unit.ref}} in {{project.name}} on the terms of booking {{booking.ref}}.\nThis letter does not confirm any payment; payments are confirmed only by receipts.\n\nLarkspur Estates (Demo)', '2026-04-01', 'First approved wording', NADIA, '2026-03-20T09:00:00Z', { kind: 'approved', ...who(ZUBAIR), at: '2026-03-25T11:00:00Z', note: 'Approved for use' }),
+        tv(2, 'ALLOTMENT LETTER (illustrative template)\n\nDear {{buyer.name}},\n\nWe confirm the allotment of unit {{unit.ref}} in {{project.name}} on the terms of booking {{booking.ref}} and payment plan {{plan.ref}}.\nThis letter does not confirm any payment; payments are confirmed only by receipts.\n\nLarkspur Estates (Demo)', '2026-11-01', 'Adds the payment plan reference', MEHWISH, '2026-10-20T10:30:00Z'),
       ],
     },
     {
@@ -170,8 +174,8 @@ function seedLarkspur(s: DocumentsState): void {
       category: 'policy',
       projectId: null,
       versions: [
-        tv(1, 'BOOKING CANCELLATION POLICY (illustrative, not legal advice)\n\n1. A cancellation request is recorded with its reason.\n2. Any refund is proposed under this policy and approved by a second person.\n3. No amount is forfeited automatically.', '2026-01-01', 'First version', NADIA, '2025-12-15T09:00:00Z', { kind: 'approved', ...who(TEHMINA), at: '2025-12-20T09:00:00Z', note: '' }),
-        tv(2, 'BOOKING CANCELLATION POLICY (illustrative, not legal advice)\n\n1. A cancellation request is recorded with its reason and the customer is told within 3 working days.\n2. Any refund is proposed under this policy and approved by a second person.\n3. No amount is forfeited automatically.\n4. A refund is settled only on bank evidence.', '2026-07-01', 'Adds notice period and evidence rule', NADIA, '2026-06-10T09:00:00Z', { kind: 'approved', ...who(TEHMINA), at: '2026-06-18T12:00:00Z', note: 'Approved' }),
+        tv(1, 'BOOKING CANCELLATION POLICY (illustrative, not legal advice)\n\n1. A cancellation request is recorded with its reason.\n2. Any refund is proposed under this policy and approved by a second person.\n3. No amount is forfeited automatically.', '2026-01-01', 'First version', NADIA, '2025-12-15T09:00:00Z', { kind: 'approved', ...who(ZUBAIR), at: '2025-12-20T09:00:00Z', note: '' }),
+        tv(2, 'BOOKING CANCELLATION POLICY (illustrative, not legal advice)\n\n1. A cancellation request is recorded with its reason and the customer is told within 3 working days.\n2. Any refund is proposed under this policy and approved by a second person.\n3. No amount is forfeited automatically.\n4. A refund is settled only on bank evidence.', '2026-07-01', 'Adds notice period and evidence rule', NADIA, '2026-06-10T09:00:00Z', { kind: 'approved', ...who(ZUBAIR), at: '2026-06-18T12:00:00Z', note: 'Approved' }),
       ],
     },
     {
@@ -181,7 +185,7 @@ function seedLarkspur(s: DocumentsState): void {
       category: 'policy',
       projectId: 'prj_heights',
       versions: [
-        tv(1, 'SITE VISIT SAFETY (illustrative)\n\nVisitors wear a helmet and stay with a staff member on every construction floor.', '2026-05-01', 'First version', HAROON, '2026-04-20T08:00:00Z', { kind: 'approved', ...who(TEHMINA), at: '2026-04-22T08:00:00Z', note: '' }),
+        tv(1, 'SITE VISIT SAFETY (illustrative)\n\nVisitors wear a helmet and stay with a staff member on every construction floor.', '2026-05-01', 'First version', HAROON, '2026-04-20T08:00:00Z', { kind: 'approved', ...who(ZUBAIR), at: '2026-04-22T08:00:00Z', note: '' }),
         tv(2, 'SITE VISIT SAFETY (illustrative)\n\nVisitors wear a helmet and high-visibility vest and stay with a staff member on every construction floor. Children under 12 do not enter Tower C until handover.', '2026-11-01', 'Adds vests and the Tower C rule', HAROON, '2026-10-24T09:15:00Z'),
       ],
     },
@@ -192,8 +196,8 @@ function seedLarkspur(s: DocumentsState): void {
       category: 'template',
       projectId: 'prj_gardens',
       versions: [
-        tv(1, 'PLOT HANDOVER CHECKLIST (illustrative)\n\n[ ] Boundary pillars shown\n[ ] Plot number plate fixed\n[ ] Possession letter signed', '2026-06-01', 'First version', TEHMINA, '2026-05-20T09:00:00Z', { kind: 'approved', ...who(NADIA), at: '2026-05-22T09:00:00Z', note: '' }),
-        tv(2, 'PLOT HANDOVER CHECKLIST (illustrative)\n\n[ ] Boundary pillars shown\n[ ] Plot number plate fixed\n[ ] Possession letter signed\n[ ] Road access confirmed', '2026-10-15', 'Adds road access', TEHMINA, '2026-10-01T09:00:00Z', { kind: 'returned', ...who(NADIA), at: '2026-10-03T10:00:00Z', note: 'Add the CDA boundary marker step before approval' }),
+        tv(1, 'PLOT HANDOVER CHECKLIST (illustrative)\n\n[ ] Boundary pillars shown\n[ ] Plot number plate fixed\n[ ] Possession letter signed', '2026-06-01', 'First version', MEHWISH, '2026-05-20T09:00:00Z', { kind: 'approved', ...who(ZUBAIR), at: '2026-05-22T09:00:00Z', note: '' }),
+        tv(2, 'PLOT HANDOVER CHECKLIST (illustrative)\n\n[ ] Boundary pillars shown\n[ ] Plot number plate fixed\n[ ] Possession letter signed\n[ ] Road access confirmed', '2026-10-15', 'Adds road access', MEHWISH, '2026-10-01T09:00:00Z', { kind: 'returned', ...who(ZUBAIR), at: '2026-10-03T10:00:00Z', note: 'Add the CDA boundary marker step before approval' }),
       ],
     },
   );

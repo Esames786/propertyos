@@ -18,7 +18,7 @@ import { mayHold } from './scope';
 
 const BILAL = 'usr_lsp_0002';
 const NADIA = 'usr_lsp_0001';
-const SAMINA = 'usr_lsp_0004';
+const HAMZA = 'usr_lsp_0004';
 const FARAH = 'usr_lsp_0003';
 const CRESCENT_MANAGER = PERSONAS.find((p) => p.id === 'cb_manager')!.principalId;
 const GARDENS = 'Larkspur Gardens';
@@ -164,7 +164,7 @@ describe('Gate E.1: lead assignment (assignee must hold the lead’s project)', 
     const s = crmSession();
     const lead = heightsLead();
     const options = await s.get<{ items: AssigneeOption[] }>('/crm/assignees', { leads: lead.id });
-    expect(options.items.map((o) => o.principalId).sort()).toEqual([NADIA, BILAL, SAMINA].sort());
+    expect(options.items.map((o) => o.principalId).sort()).toEqual([NADIA, BILAL, HAMZA].sort());
     const res = await s.post<{ assigned: number }>('/leads/assign', { leadIds: [lead.id], assigneeId: BILAL, reason: 'Bilal covers Tower B this month' });
     expect(res.assigned).toBe(1);
     const detail = await s.get<LeadDetail>(`/leads/${lead.id}`);
@@ -249,7 +249,7 @@ describe('Gate E.1: conversion with request-bound idempotency', () => {
 
   it('the key is bound to the principal: another manager replaying it is refused', async () => {
     // A test-only second sales manager (same permissions and scope, another principal).
-    const twin: Persona = { ...PERSONAS.find((p) => p.id === 'sales_manager')!, id: 'res_twin_manager', principalId: 'usr_lsp_test2' };
+    const twin: Persona = { ...PERSONAS.find((p) => p.id === 'lsp_sales_manager')!, id: 'res_twin_manager', principalId: 'usr_lsp_test2' };
     const shared = crmSession({ personas: [twin] });
     const l2 = await convertible(shared);
     await shared.post(`/leads/${l2.id}/opportunities`, {}, { key: 'conv-q' });
@@ -262,7 +262,7 @@ describe('Gate E.1: conversion with request-bound idempotency', () => {
     const s = crmSession();
     const lead = await convertible(s, 'prj_gardens');
     await s.post(`/leads/${lead.id}/opportunities`, {}, { key: 'conv-g' });
-    s.access(changed(['sales_manager'], sitesOnly('site_lk_heights')));
+    s.access(changed(['lsp_sales_manager'], sitesOnly('site_lk_heights')));
     const hidden = await unchanged(s, () => s.post(`/leads/${lead.id}/opportunities`, {}, { key: 'conv-g' }));
     expect({ ...hidden }).toEqual({ ...(await refusal(s.post('/leads/led_9999/opportunities', {}, { key: 'conv-x' }))) });
   });
@@ -393,7 +393,7 @@ describe('Gate E.1: the positive journey and projection (narrow vs full readers)
     const narrowJson = JSON.stringify([narrow, await s.get(`/leads/${lead!.id}/assignments`), await board(s), await s.get('/visits/calendar', RANGE)]);
     for (const secret of ['Nadia overloaded', GARDENS]) expect(narrowJson).not.toContain(secret);
     // The full reader keeps the whole audit.
-    s.as('sales_manager');
+    s.as('lsp_sales_manager');
     const full = JSON.stringify(await s.get(`/leads/${lead!.id}/assignments`));
     expect(full).toContain('Nadia overloaded');
     expect(full).toContain('Nadia Rahman');
@@ -404,13 +404,13 @@ describe('Gate E.1: the positive journey and projection (narrow vs full readers)
     const o = (await board(s)).items.find((x) => x.projectId === 'prj_heights' && x.owner.principalId === NADIA)!;
     await s.post('/leads/assign', { leadIds: [o.leadId], assigneeId: BILAL, reason: 'Confidential: Nadia on medical leave' });
     const full = await s.get<OpportunityDetail>(`/opportunities/${o.id}`);
-    expect(full.timeline[0]).toMatchObject({ kind: 'assigned', from: 'Nadia Rahman', to: 'Bilal Ahmed', reason: 'Confidential: Nadia on medical leave', actorName: 'Samina Latif' });
+    expect(full.timeline[0]).toMatchObject({ kind: 'assigned', from: 'Nadia Rahman', to: 'Bilal Ahmed', reason: 'Confidential: Nadia on medical leave', actorName: 'Hamza Rashid' });
     s.as('sales');
     const narrow = await s.get<OpportunityDetail>(`/opportunities/${o.id}`);
     expect(narrow.timeline[0]).toEqual({ id: expect.any(String), at: expect.any(String), kind: 'assigned', sanitised: true });
     const json = JSON.stringify(narrow);
     // The reason and the person who reassigned it appear nowhere (Nadia's own earlier stage moves stay visible).
-    for (const secret of ['medical leave', 'Samina Latif']) expect(json, secret).not.toContain(secret);
+    for (const secret of ['medical leave', 'Hamza Rashid']) expect(json, secret).not.toContain(secret);
     for (const e of narrow.timeline.filter((x) => x.kind === 'assigned')) expect(Object.keys(e).sort()).toEqual(['at', 'id', 'kind', 'sanitised']);
   });
 
@@ -428,14 +428,14 @@ describe('Gate E.1: the positive journey and projection (narrow vs full readers)
     const s = crmSession();
     const gardens = (await board(s)).items.find((o) => o.projectId === 'prj_gardens')!;
     expect((await s.get<OpportunityDetail>(`/opportunities/${gardens.id}`)).opportunity.id).toBe(gardens.id);
-    s.access(changed(['sales_manager'], sitesOnly('site_lk_heights')));
+    s.access(changed(['lsp_sales_manager'], sitesOnly('site_lk_heights')));
     expect((await refusal(s.get(`/opportunities/${gardens.id}`))).status).toBe(404);
     const narrowed = await board(s);
     expect(narrowed.items.every((o) => o.projectId === 'prj_heights')).toBe(true);
     expect(JSON.stringify(narrowed)).not.toContain(GARDENS);
-    s.access(changed(['sales_manager'], minus('lead.view')));
+    s.access(changed(['lsp_sales_manager'], minus('lead.view')));
     expect((await refusal(board(s))).status).toBe(403);
-    s.access(changed(['sales_manager'], minus('lead.assign')));
+    s.access(changed(['lsp_sales_manager'], minus('lead.assign')));
     expect((await board(s)).scope).toBe('assigned');
   });
 });

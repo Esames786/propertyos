@@ -13,9 +13,10 @@ import { BO, seed, test, type Locale, type PersonaId } from '../support/fixtures
  */
 const DIR = 'docs/status/gate-e13/screenshots';
 const lang = (l: Locale) => (l === 'ur-PK' ? 'ur' : 'en');
-const CONTROLLER = 'lsp_doc_controller' as PersonaId;
+// Wave 1 integration: the full-scope document reader of the reconciled roster (Hamza, sales manager).
+const CONTROLLER = 'lsp_sales_manager' as PersonaId;
 const CLERK = 'lsp_records_clerk' as PersonaId;
-const PRINCIPALS = ['usr_lsp_0001', 'usr_lsp_0002', 'usr_lsp_d0001', 'usr_lsp_d0002'];
+const PRINCIPALS = ['usr_lsp_0001', 'usr_lsp_0002', 'usr_lsp_0004', 'usr_lsp_0009'];
 
 async function settle(page: Page, ms = 500) {
   await page.waitForLoadState('load');
@@ -142,13 +143,13 @@ test('who sees what: the Heights clerk vs the controller; a hidden document read
   await shot(page, 'e13-scope-controller-documents-1440-en');
   await as(page, 'manager', '/backoffice/doc/document-preview', 'access-outcome');
   await shot(page, 'e13-scope-manager-no-documents-1440-en', false);
-  // Revocation: Tehmina's favourite on a Gardens document disappears once her scope is narrowed.
+  // Revocation: Hamza's favourite on a Gardens document disappears once her scope is narrowed.
   await as(page, CONTROLLER, '/backoffice/doc/document-preview?record=doc_lsp_0004', 'document-workspace');
   await page.getByTestId('document-favourite').click();
   await page.getByTestId('toast-success').last().waitFor();
   await as(page, CONTROLLER, '/backoffice/global/favorites', 'favourites');
   await shot(page, 'e13-revoke-before-1440-en');
-  await page.evaluate(() => sessionStorage.setItem('demo:site-scope', JSON.stringify({ lsp_doc_controller: ['site_lk_heights'] })));
+  await page.evaluate(() => sessionStorage.setItem('demo:site-scope', JSON.stringify({ lsp_sales_manager: ['site_lk_heights'] })));
   await as(page, CONTROLLER, '/backoffice/global/favorites', 'favourites');
   await shot(page, 'e13-revoke-after-1440-en');
   await page.context().close();

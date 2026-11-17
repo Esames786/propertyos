@@ -1,8 +1,6 @@
 import type { AccessTarget, JournalState, LedgerEntityRef, LedgerEvent, LedgerScope } from '@repo/contracts';
-import { AccessOutcomeView, Badge, cn, DateTime, dynamicT, InlineAlert, Link, SelectControl, useQueryParam, useSession, useT, type StatusTone } from '@repo/ui';
+import { Badge, cn, DateTime, dynamicT, InlineAlert, Link, SelectControl, useQueryParam, useSession, useT, type StatusTone } from '@repo/ui';
 import { Ban, BadgeCheck, CircleDashed, FlaskConical, Hourglass, Lock, PencilLine, ShieldCheck, Undo2, XCircle, type LucideIcon } from 'lucide-react';
-import type { ReactNode } from 'react';
-import { LINKS } from '../../../nav.config';
 import { unbroken } from '../../society/hr/hkit';
 import { useSocietyFormat } from '../../society/kit';
 
@@ -13,11 +11,14 @@ export { WrapMoney as Amount } from '../../society/finance/fkit';
  * Gate E.7 (provisional, Wave 1): shared pieces of the developer ledger and bank-import screens.
  * Section navigation between the eleven screens, the legal-entity switcher (every read is for one
  * entity), journal states that never rely on colour alone and never call anything "paid" or
- * "settled", the access gate (the Gate B outcome page for a person without the permission), and the
+ * "settled" (the access gate is E.0's `DevScreen` with the Gate B outcome since the Wave 1 integration), and the
  * provisional notice every screen carries while it is PARTIAL.
  */
 export const GL_VIEW: AccessTarget = { module: 'accounting', permission: 'gl.view', suspension: 'history_read' };
-export const GL_POST: AccessTarget = { module: 'accounting', permission: 'gl.post' };
+// Wave 1 integration: E.0's canonical names. Preparing journals needs journal.create; drafting chart and
+// posting-rule changes needs gl.manage (E.7's provisional single gl.post is split as E.0 defines it).
+export const GL_CREATE: AccessTarget = { module: 'accounting', permission: 'journal.create' };
+export const GL_MANAGE: AccessTarget = { module: 'accounting', permission: 'gl.manage' };
 export const BANK_VIEW: AccessTarget = { module: 'banking', permission: 'bank.view', suspension: 'history_read' };
 
 /** A list keeps showing what it had while a new search, filter or month loads (no flash of the whole screen). */
@@ -47,19 +48,12 @@ export const ACC = {
   bankImport: (p: { entity?: string; record?: string } = {}) => withQuery('/backoffice/bank/bank-import', p),
 };
 
-/** The person may open the screen, or sees the Gate B outcome page saying why not. */
-export function LedgerGate({ target, children }: { target: AccessTarget; children: ReactNode }) {
-  const { decide, tenant, can } = useSession();
-  const d = decide(target);
-  if (d.allowed) return <>{children}</>;
-  return <AccessOutcomeView reason={d.reason} {...(target.module ? { module: target.module } : {})} organisation={tenant.name} startHref={LINKS.start} {...(can('admin.view') ? { planHref: LINKS.plan } : {})} />;
-}
 
 type Section = 'chart' | 'journals' | 'create' | 'trialBalance' | 'profitAndLoss' | 'balanceSheet' | 'periods' | 'rules' | 'bank';
 
 const SECTIONS: Array<{ id: Section; href: (entity?: string) => string; target: AccessTarget }> = [
   { id: 'journals', href: (e) => ACC.journals({ ...(e ? { entity: e } : {}) }), target: GL_VIEW },
-  { id: 'create', href: (e) => ACC.create(e), target: GL_POST },
+  { id: 'create', href: (e) => ACC.create(e), target: GL_CREATE },
   { id: 'chart', href: (e) => ACC.chart(e), target: GL_VIEW },
   { id: 'trialBalance', href: (e) => ACC.trialBalance({ ...(e ? { entity: e } : {}) }), target: GL_VIEW },
   { id: 'profitAndLoss', href: (e) => ACC.profitAndLoss({ ...(e ? { entity: e } : {}) }), target: GL_VIEW },

@@ -2,6 +2,10 @@ import type { DevApprovalPolicyVersion, DevCollectionAccount, DevCostCentre, Dev
 import { notFound, requires, type Handler, type HandlerContext } from '../handler-types';
 import { costCentreVisible, entityVisible, requireEntity, type ScopeNeed } from './scope';
 import { developerState } from './state';
+import { CRM_PIPELINE_HANDLERS } from './crm/handlers';
+import { DEV_INVENTORY_HANDLERS } from './inventory/handlers';
+import { LEDGER_HANDLERS } from './ledger/handlers';
+import { E13_HANDLERS } from './workspace/handlers';
 
 /**
  * Gate E.0 deliverable 6 (mock API): the developer ERP's handler registration point.
@@ -94,12 +98,14 @@ export const DEVELOPER_CORE_HANDLERS: readonly Handler[] = [
 ];
 
 /**
- * One entry per Gate E area, added at Wave 1 integration (and by later waves), for example:
- *   import { CRM_PIPELINE_HANDLERS } from './crm/handlers';      // E.1
- *   import { INVENTORY_HANDLERS } from './inventory/handlers';   // E.2
- *   import { LEDGER_HANDLERS } from './ledger/handlers';         // E.7
- *   import { DOCUMENT_HANDLERS } from './documents/handlers';    // E.13
+ * One entry per Gate E area. Wave 1 integration (Issue #25): the four Wave 1 slices are registered here, once;
+ * their provisional entries in `handlers.ts` are gone. Later waves add theirs the same way.
  */
-export const DEVELOPER_AREA_HANDLERS: ReadonlyArray<readonly Handler[]> = [];
+export const DEVELOPER_AREA_HANDLERS: ReadonlyArray<readonly Handler[]> = [
+  CRM_PIPELINE_HANDLERS, // E.1: opportunities, lead assignment, the visit calendar and visit workspace
+  DEV_INVENTORY_HANDLERS, // E.2: projects, project setup, the unit matrix, holds, availability and storage
+  LEDGER_HANDLERS, // E.7: the ledger and the statement import
+  E13_HANDLERS, // E.13: search, favourites, recent records, tasks, activity, related records, documents, templates
+];
 
 export const DEVELOPER_HANDLERS: readonly Handler[] = [...DEVELOPER_CORE_HANDLERS, ...DEVELOPER_AREA_HANDLERS.flat()];

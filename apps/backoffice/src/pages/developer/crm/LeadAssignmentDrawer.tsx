@@ -96,7 +96,7 @@ function AssignmentBody({ presetLeadId, onClose }: { presetLeadId: string | null
     setSelected((s) => (on ? [...new Set([...s, id])] : s.filter((x) => x !== id)));
     setAssignee(null);
   };
-  const options = (assignees.data?.items ?? []).map((p) => ({ id: p.principalId, label: p.name, hint: [t(p.roleKey as 'sales:roles.salesManager'), p.owns ? t('sales:assign.owns', { count: p.owns }) : ''].filter(Boolean).join(' · ') }));
+  const options = (assignees.data?.items ?? []).map((p) => ({ id: p.principalId, label: p.name, hint: [t(p.roleKey as 'common:roles.sales_manager'), p.owns ? t('sales:assign.owns', { count: p.owns }) : ''].filter(Boolean).join(' · ') }));
   const assigneeName = options.find((o) => o.id === assignee)?.label ?? '';
 
   const submit = async () => {

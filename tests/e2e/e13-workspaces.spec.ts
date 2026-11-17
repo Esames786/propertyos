@@ -7,13 +7,18 @@ import { societyApi as api } from '../support/society';
 /**
  * Gate E.13 connected workspace and documents through the office app, with Larkspur's fictional
  * people: Nadia Rahman (manager, all projects, no document permission), Bilal Ahmed (sales, Larkspur
- * Heights), Tehmina Durrani (document controller, all projects) and Haroon Qadri (records clerk, Larkspur
- * Heights only). The rules are the server's (workspace.api.test.ts, documents.api.test.ts); these
+ * Heights), and the reconciled Wave 1 roster: Hamza Rashid (sales manager: documents of every Larkspur record),
+ * Mehwish Kazmi (project manager: drafts templates), Zubair Ansari (finance controller: approves templates) and
+ * Haroon Qadri (records clerk, Larkspur Heights only). The rules are the server's (workspace.api.test.ts, documents.api.test.ts); these
  * tests check that the screens carry them. Business date: Monday 26 October 2026.
  */
-const CONTROLLER = 'lsp_doc_controller' as PersonaId;
+// Wave 1 integration: E.13's provisional document controller is folded into the roster: the full-scope reader and
+// uploader is the sales manager (Hamza), the template checker the finance controller (Zubair), the maker Mehwish.
+const CONTROLLER = 'lsp_sales_manager' as PersonaId;
+const CHECKER = 'lsp_finance_controller' as PersonaId;
+const MAKER = 'lsp_project_manager' as PersonaId;
 const CLERK = 'lsp_records_clerk' as PersonaId;
-const PRINCIPAL: Record<string, string> = { manager: 'usr_lsp_0001', sales: 'usr_lsp_0002', lsp_doc_controller: 'usr_lsp_d0001', lsp_records_clerk: 'usr_lsp_d0002' };
+const PRINCIPAL: Record<string, string> = { manager: 'usr_lsp_0001', sales: 'usr_lsp_0002', lsp_sales_manager: 'usr_lsp_0004', lsp_records_clerk: 'usr_lsp_0009', lsp_finance_controller: 'usr_lsp_0007', lsp_project_manager: 'usr_lsp_0005' };
 const OFFICE_DISPLAY = (principal: string) => `pref:display:v1:backoffice:tnt_larkspur:${principal}`;
 const HEADER = '[data-testid="app-header"]';
 const BAR = '[data-testid="bottom-nav"]';
@@ -171,13 +176,17 @@ test.describe('E.13 positive journeys', () => {
     expect(consoleErrors).toEqual([]);
   });
 
-  test('templates: the controller approves the clerk’s draft; never their own', async ({ page, consoleErrors }) => {
-    await start(page, CONTROLLER);
-    await open(page, '/backoffice/doc/templates-and-policies', 'templates');
-    await expect(page.getByTestId('templates-awaiting')).toContainText('1 draft is waiting for your approval');
-    await page.locator('[data-testid="template-row"][data-template="dtp_lsp_001"]').getByTestId('template-link').click();
+  test('templates: the finance controller approves the clerk’s draft; a maker never approves their own', async ({ page, consoleErrors }) => {
+    // Wave 1 integration: the maker of the allotment letter's v2 is Mehwish; her own draft is marked and offers
+    // no decision. (Holding both permissions is refused by the server: documents.api.test.ts.)
+    await start(page, MAKER);
+    await open(page, '/backoffice/doc/templates-and-policies?record=dtp_lsp_001', 'template-workspace');
     await expect(page.getByTestId('template-own-draft')).toBeVisible();
     await expect(page.getByTestId('template-approve')).toHaveCount(0);
+    // The canonical checker drafted neither pending version: both wait for him.
+    await become(page, CHECKER);
+    await open(page, '/backoffice/doc/templates-and-policies', 'templates');
+    await expect(page.getByTestId('templates-awaiting')).toContainText('2 drafts are waiting for your approval');
     await open(page, '/backoffice/doc/templates-and-policies?record=dtp_lsp_003', 'template-workspace');
     await page.getByTestId('template-approve').click();
     await page.getByRole('alertdialog').getByRole('button', { name: 'Approve' }).click();
@@ -240,8 +249,8 @@ test.describe('E.13 access, scope and partitioning', () => {
     await open(page, '/backoffice/global/favorites', 'favourites');
     await expect(page.locator('[data-testid="favourite-row"][data-record="doc_lsp_0004"]')).toBeVisible();
     await expect(page.locator('[data-testid="favourite-row"]')).toHaveCount(1);
-    // The organisation narrows Tehmina to Larkspur Heights (prototype switch: the same access for screens and server).
-    await page.evaluate(() => sessionStorage.setItem('demo:site-scope', JSON.stringify({ lsp_doc_controller: ['site_lk_heights'] })));
+    // The organisation narrows Hamza to Larkspur Heights (prototype switch: the same access for screens and server).
+    await page.evaluate(() => sessionStorage.setItem('demo:site-scope', JSON.stringify({ lsp_sales_manager: ['site_lk_heights'] })));
     await open(page, '/backoffice/global/favorites', 'favourites');
     await expect(page.getByTestId('favourite-row')).toHaveCount(0);
     await expect(page.getByTestId('state-empty')).toBeVisible();

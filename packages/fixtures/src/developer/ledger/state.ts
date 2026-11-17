@@ -222,10 +222,14 @@ export const emptyLedger = (): LedgerState => ({
   idempotency: {},
 });
 
-/** Fictional people of the seeded ledger (people.ts personas lk_accounts, lk_controller, lk_treasury). */
-export const SAAD: Actor = { by: 'usr_lsp_0011', byName: 'Saad Hameed' };
-export const MEHREEN: Actor = { by: 'usr_lsp_0012', byName: 'Mehreen Aslam' };
-export const KASHAN: Actor = { by: 'usr_lsp_0013', byName: 'Kashan Wasti' };
+/**
+ * Fictional people of the seeded ledger, from the reconciled Wave 1 roster (people.ts): Saad prepares journals
+ * (lsp_ledger_clerk, no bank permission), Faiza prepares chart and posting-rule changes and statement imports
+ * (lsp_accounts), Zubair approves, posts and closes (lsp_finance_controller). Nobody approves their own work.
+ */
+export const SAAD: Actor = { by: 'usr_lsp_0008', byName: 'Saad Hameed' };
+export const FAIZA: Actor = { by: 'usr_lsp_0006', byName: 'Faiza Noor' };
+export const ZUBAIR: Actor = { by: 'usr_lsp_0007', byName: 'Zubair Ansari' };
 
 export const LARKSPUR_ENTITY = 'le_larkspur';
 export const BOOKS_FROM = '2026-07';
@@ -290,7 +294,7 @@ export function seedEntity(s: LedgerState, entity: StoredEntity, opts: { costCen
 }
 
 /** A seeded journal through the journal path: drafted by the maker, approved and posted by someone else. */
-function journal(s: LedgerState, entityId: string, raw: RawJournal, day: string, stage: 'draft' | 'submitted' | 'posted', maker = SAAD, checker = MEHREEN) {
+function journal(s: LedgerState, entityId: string, raw: RawJournal, day: string, stage: 'draft' | 'submitted' | 'posted', maker = SAAD, checker = ZUBAIR) {
   const n = normaliseJournal(s, entityId, raw, LEDGER_TODAY);
   if (!n.journal) throw new Error(`seed journal invalid: ${JSON.stringify(n.problems)}`);
   const j = addJournal(s, n.journal, maker, pkt(day, '10:00'), { demo: true });
@@ -308,8 +312,8 @@ export function seedLarkspur(s: LedgerState): void {
   const chartAt = pkt('2026-07-01', '09:00');
   seedEntity(s, { id: LARKSPUR_ENTITY, name: 'Larkspur Estates (Pvt) Ltd (Demo)', code: 'LKE', fiscalYearStartMonth: 7, booksFrom: BOOKS_FROM }, {
     at: chartAt,
-    by: SAAD,
-    approver: MEHREEN,
+    by: FAIZA,
+    approver: ZUBAIR,
     costCentres: [
       { id: 'cc_lke_head', code: 'HO', labelKey: 'ledger:costCentres.head' },
       { id: 'cc_lke_heights', code: 'LH', labelKey: 'ledger:costCentres.heights', projectId: 'prj_heights' },
@@ -330,8 +334,8 @@ export function seedLarkspur(s: LedgerState): void {
     event,
     sourceSlice,
     blockedBy,
-    versions: [{ n: 1, effectiveFrom: '2026-07-01', debitAccountId: accountId('LKE', dr), creditAccountId: accountId('LKE', cr), draftedBy: MEHREEN.by, draftedByName: MEHREEN.byName, draftedAt: pkt('2026-07-01', '09:30') }],
-    history: [{ at: pkt('2026-07-01', '09:30'), by: MEHREEN.by, byName: MEHREEN.byName, action: 'rule_proposed' }],
+    versions: [{ n: 1, effectiveFrom: '2026-07-01', debitAccountId: accountId('LKE', dr), creditAccountId: accountId('LKE', cr), draftedBy: FAIZA.by, draftedByName: FAIZA.byName, draftedAt: pkt('2026-07-01', '09:30') }],
+    history: [{ at: pkt('2026-07-01', '09:30'), by: FAIZA.by, byName: FAIZA.byName, action: 'rule_proposed' }],
   });
   s.rules.push(
     rule(1, 'instalment_invoiced', 'E.6', ['E-15', 'E-17'], '1100', '2100'),
@@ -343,8 +347,8 @@ export function seedLarkspur(s: LedgerState): void {
   s.counters['le_larkspur:rule'] = 5;
   // A second, later version of the supplier-bill rule (versions apply by effective date).
   const bills = s.rules[2]!;
-  bills.versions.push({ n: 2, effectiveFrom: '2026-11-01', debitAccountId: accountId('LKE', '5100'), creditAccountId: accountId('LKE', '2000'), draftedBy: SAAD.by, draftedByName: SAAD.byName, draftedAt: pkt('2026-10-19', '12:10'), note: 'Bills of the head office go to office expenses from November (proposed).' });
-  bills.history.push({ at: pkt('2026-10-19', '12:10'), by: SAAD.by, byName: SAAD.byName, action: 'rule_version_drafted', values: { version: '2', from: '2026-11-01' } });
+  bills.versions.push({ n: 2, effectiveFrom: '2026-11-01', debitAccountId: accountId('LKE', '5100'), creditAccountId: accountId('LKE', '2000'), draftedBy: FAIZA.by, draftedByName: FAIZA.byName, draftedAt: pkt('2026-10-19', '12:10'), note: 'Bills of the head office go to office expenses from November (proposed).' });
+  bills.history.push({ at: pkt('2026-10-19', '12:10'), by: FAIZA.by, byName: FAIZA.byName, action: 'rule_version_drafted', values: { version: '2', from: '2026-11-01' } });
 
   // July: opening balances (no cash: cash at bank changes only on evidence).
   journal(s, LARKSPUR_ENTITY, {
@@ -361,33 +365,33 @@ export function seedLarkspur(s: LedgerState): void {
   }, '2026-07-01', 'posted');
 
   // Chart version 2: an account added by draft → approval (September).
-  const charges = draftAccount(s, { entityId: LARKSPUR_ENTITY, code: '5400', name: 'Bank charges', type: 'expense' }, SAAD, pkt('2026-09-08', '11:00'));
-  approveAccount(s, charges, MEHREEN, pkt('2026-09-09', '10:20'));
+  const charges = draftAccount(s, { entityId: LARKSPUR_ENTITY, code: '5400', name: 'Bank charges', type: 'expense' }, FAIZA, pkt('2026-09-08', '11:00'));
+  approveAccount(s, charges, ZUBAIR, pkt('2026-09-09', '10:20'));
 
   journal(s, LARKSPUR_ENTITY, { date: '2026-09-20', memo: 'Demo accrual — consultant fees, September (fictional)', lines: [L('5300', '1200000.00', '', { costCentreId: 'cc_lke_head' }), L('2200', '', '1200000.00')] }, '2026-09-20', 'posted');
 
   // The first three months are closed (no posting in them any more).
-  closePeriod(s, LARKSPUR_ENTITY, '2026-07', MEHREEN, pkt('2026-08-04', '17:00'));
-  closePeriod(s, LARKSPUR_ENTITY, '2026-08', MEHREEN, pkt('2026-09-03', '17:00'));
-  closePeriod(s, LARKSPUR_ENTITY, '2026-09', MEHREEN, pkt('2026-10-05', '17:00'));
+  closePeriod(s, LARKSPUR_ENTITY, '2026-07', ZUBAIR, pkt('2026-08-04', '17:00'));
+  closePeriod(s, LARKSPUR_ENTITY, '2026-08', ZUBAIR, pkt('2026-09-03', '17:00'));
+  closePeriod(s, LARKSPUR_ENTITY, '2026-09', ZUBAIR, pkt('2026-10-05', '17:00'));
 
   // October (open).
   journal(s, LARKSPUR_ENTITY, { date: '2026-10-05', memo: 'Demo accrual — October office rent (fictional)', lines: [L('5100', '450000.00', '', { costCentreId: 'cc_lke_head' }), L('2200', '', '450000.00')] }, '2026-10-05', 'posted');
   const twice = journal(s, LARKSPUR_ENTITY, { date: '2026-10-08', memo: 'Demo accrual — October office rent, entered twice by mistake (fictional)', lines: [L('5100', '450000.00', '', { costCentreId: 'cc_lke_head' }), L('2200', '', '450000.00')] }, '2026-10-08', 'posted');
   const reversal = reverseJournal(s, twice, '2026-10-09', 'Rent accrual entered twice (demo)', SAAD, pkt('2026-10-09', '09:40'));
-  approveJournal(reversal, MEHREEN, pkt('2026-10-09', '11:15'));
-  postJournal(s, reversal, MEHREEN, pkt('2026-10-09', '11:20'));
+  approveJournal(reversal, ZUBAIR, pkt('2026-10-09', '11:15'));
+  postJournal(s, reversal, ZUBAIR, pkt('2026-10-09', '11:20'));
   journal(s, LARKSPUR_ENTITY, { date: '2026-10-12', memo: 'Demo reclassification — contractor advance applied to work in progress (fictional)', lines: [L('1310', '2500000.00', '', { costCentreId: 'cc_lke_heights' }), L('1200', '', '2500000.00', { costCentreId: 'cc_lke_heights' })] }, '2026-10-12', 'posted');
   journal(s, LARKSPUR_ENTITY, { date: '2026-10-20', memo: 'Demo accrual — marketing agency retainer, October (fictional)', lines: [L('5200', '300000.00', '', { costCentreId: 'cc_lke_heights' }), L('2200', '', '300000.00')] }, '2026-10-20', 'submitted');
   journal(s, LARKSPUR_ENTITY, { date: '2026-10-23', memo: 'Demo accrual — audit fee estimate (fictional)', lines: [L('5300', '600000.00', '', { costCentreId: 'cc_lke_head' }), L('2200', '', '600000.00')] }, '2026-10-23', 'draft');
 
   // A chart change waiting for approval.
-  draftAccount(s, { entityId: LARKSPUR_ENTITY, code: '5500', name: 'Insurance', type: 'expense' }, SAAD, pkt('2026-10-21', '14:30'));
+  draftAccount(s, { entityId: LARKSPUR_ENTITY, code: '5500', name: 'Insurance', type: 'expense' }, FAIZA, pkt('2026-10-21', '14:30'));
 
   // One statement already imported for the collection account (unmatched statement lines only).
-  const prior = createImport(s, { entityId: LARKSPUR_ENTITY, accountId: COLLECTION_ACCOUNT.id, fileName: 'sample-larkspur-collection-2026-10-01-09.csv', sample: true, content: priorStatement(COLLECTION_ACCOUNT.iban) }, KASHAN, pkt('2026-10-10', '10:00'), '2026-10-10');
-  submitImport(prior, KASHAN, pkt('2026-10-10', '10:05'));
-  approveImport(s, prior, COLLECTION_ACCOUNT.iban, MEHREEN, pkt('2026-10-10', '12:40'));
+  const prior = createImport(s, { entityId: LARKSPUR_ENTITY, accountId: COLLECTION_ACCOUNT.id, fileName: 'sample-larkspur-collection-2026-10-01-09.csv', sample: true, content: priorStatement(COLLECTION_ACCOUNT.iban) }, FAIZA, pkt('2026-10-10', '10:00'), '2026-10-10');
+  submitImport(prior, FAIZA, pkt('2026-10-10', '10:05'));
+  approveImport(s, prior, COLLECTION_ACCOUNT.iban, ZUBAIR, pkt('2026-10-10', '12:40'));
 }
 
 /** Created on first use; seeded for Larkspur only (others start empty: no developer tenant else licenses accounting). */

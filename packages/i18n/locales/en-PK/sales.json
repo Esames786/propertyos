@@ -1,7 +1,4 @@
 {
-  "roles": {
-    "salesManager": "Sales manager"
-  },
   "common": {
     "actions": "Actions",
     "allOwners": "Everyone",

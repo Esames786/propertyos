@@ -11,7 +11,7 @@ import { ACC, Blocked, EntityBar, History, LedgerNav, ProvisionalNotice, Ref, us
  * shell and the server refuse anyone else). A labelled sample statement (or a pasted CSV) is checked
  * on the server for one of the entity's verified accounts: every row is validated, a transaction seen
  * earlier in the file or already imported for that account is flagged, nothing is stored yet. The
- * uploader submits the preview; someone else with bank.reconcile approves it, and only the new rows
+ * uploader submits the preview; someone else with bank.import.approve approves it, and only the new rows
  * become **unmatched statement lines**: never receipts, never payments, never settlements, and no
  * journal is created from them. An unknown, other-entity or unverified account gets one refusal.
  */

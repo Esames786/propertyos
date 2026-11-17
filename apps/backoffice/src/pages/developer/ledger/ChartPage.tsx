@@ -4,7 +4,7 @@ import { BadgeCheck, FilePlus2, Hourglass, Landmark, XCircle } from 'lucide-reac
 import { useState } from 'react';
 import { Loading, ProblemAlert, useSocietyFormat } from '../../society/kit';
 import { fieldErrorKey, useProblemToast } from '../../society/hr/hkit';
-import { ACC, AccountRef, Blocked, EntityBar, GL_POST, LedgerNav, LockBadge, ProvisionalNotice, useAccountName, useEntityParam, WRAP, KEEP, Amount } from './lkit';
+import { ACC, AccountRef, Blocked, EntityBar, GL_MANAGE, LedgerNav, LockBadge, ProvisionalNotice, useAccountName, useEntityParam, WRAP, KEEP, Amount } from './lkit';
 
 /**
  * ACC-001 Chart of accounts (PARTIAL, Gate E.7 Wave 1; decision E-16). An illustrative chart per legal
@@ -35,7 +35,7 @@ export default function ChartPage() {
         description={t('ledger:chart.intro')}
         badge={<Badge tone="neutral" icon={Landmark}>{t('ledger:chart.illustrative')}</Badge>}
         actions={
-          allows(GL_POST) && d.canDraft ? (
+          allows(GL_MANAGE) && d.canDraft ? (
             <Button variant="primary" icon={FilePlus2} className={WRAP} onPress={() => setDrafting(true)} data-testid="account-draft-open">
               {t('ledger:chart.draft')}
             </Button>

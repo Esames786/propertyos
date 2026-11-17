@@ -601,14 +601,14 @@ export const DEV_INVENTORY_HANDLERS: readonly Handler[] = [
         items: searched.filter((v) => status === 'all' || v.state === status),
         counts,
         projects: projects.map((p) => ({ id: p.id, name: p.name })),
-        canManage: can(ctx, 'storage.manage'),
+        canManage: can(ctx, 'inventory.manage'),
       };
     },
   },
   {
     method: 'GET',
     pattern: /^\/inventory\/storage\/(?<id>[\w-]+)\/targets$/,
-    access: requires('inventory', 'storage.manage', 'operational'),
+    access: requires('inventory', 'inventory.manage', 'operational'),
     handle: (ctx): StorageTarget[] => {
       const s = inventoryState(ctx);
       const st = scopedStorage(ctx, s, ctx.params.id);
@@ -625,7 +625,7 @@ export const DEV_INVENTORY_HANDLERS: readonly Handler[] = [
   {
     method: 'POST',
     pattern: /^\/inventory\/storage\/(?<id>[\w-]+)\/allocate$/,
-    access: requires('inventory', 'storage.manage', 'operational'),
+    access: requires('inventory', 'inventory.manage', 'operational'),
     handle: (ctx): StorageUnitView => {
       const s = inventoryState(ctx);
       const st = scopedStorage(ctx, s, ctx.params.id);
@@ -655,7 +655,7 @@ export const DEV_INVENTORY_HANDLERS: readonly Handler[] = [
   {
     method: 'POST',
     pattern: /^\/inventory\/storage\/(?<id>[\w-]+)\/release$/,
-    access: requires('inventory', 'storage.manage', 'operational'),
+    access: requires('inventory', 'inventory.manage', 'operational'),
     handle: (ctx): StorageUnitView => {
       const s = inventoryState(ctx);
       const st = scopedStorage(ctx, s, ctx.params.id);

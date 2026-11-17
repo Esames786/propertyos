@@ -40,17 +40,8 @@ export interface Persona {
     | 'rb_landlord_tahira'
     | 'rb_landlord_kashif'
     | 'rb_tenant_adeel'
-    /** Gate E.1 (provisional; reconcile with E.0): Larkspur's sales manager (decision E-06). */
-    | 'sales_manager'
-    /** Gate E.2 (provisional; reconcile with E.0's personas at Wave 1 integration, decision E-06): Larkspur's project setup maker and checker. */
-    | 'lk_project_officer'
-    | 'lk_projects_director'
-    /** Gate E.7 (provisional; reconcile with E.0): Larkspur's ledger people (accounts officer, finance controller, treasury officer). */
-    | 'lk_accounts'
-    | 'lk_controller'
-    | 'lk_treasury'
-    /** Gate E.13 (provisional; reconcile with E.0): Larkspur's document controller and site records clerk. */
-    | 'lsp_doc_controller'
+    /** Wave 1 integration (Issue #25): the two module people kept as distinct least-privilege roles (E.7's bank-less journal maker, E.13's Heights-only records clerk). */
+    | 'lsp_ledger_clerk'
     | 'lsp_records_clerk'
     /** Gate D.1: a resident who joined by invitation (generated from the society register). */
     | `res_${string}`;

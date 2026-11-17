@@ -5,7 +5,7 @@ import { MockTransport } from '../../mock-transport';
 import { ALL_PERSONAS } from '../../people';
 import { effectiveAccessFor } from '../../tenant-directory';
 import { addJournal, approveJournal, normaliseJournal, postJournal, submitJournal } from './engine';
-import { accountId, LEDGER_SECTION, LEDGER_TODAY, MEHREEN, SAAD, seedEntity, type LedgerState } from './state';
+import { accountId, FAIZA, LEDGER_SECTION, LEDGER_TODAY, SAAD, seedEntity, ZUBAIR, type LedgerState } from './state';
 
 /**
  * TEST ONLY helpers for the Gate E.7 API tests: one demo session through the fail-closed mock transport,
@@ -50,16 +50,16 @@ export const SECOND = { id: 'le_lk_test2', code: 'LGD', name: 'Larkspur Gardens 
 export function addSecondEntity(s: LedgerState): { journalId: string; accountIds: { expense: string; accrued: string; cash: string } } {
   seedEntity(s, { id: SECOND.id, name: SECOND.name, code: SECOND.code, fiscalYearStartMonth: 7, booksFrom: '2026-07' }, {
     at: pkt('2026-07-01', '09:00'),
-    by: SAAD,
-    approver: MEHREEN,
+    by: FAIZA,
+    approver: ZUBAIR,
     costCentres: [{ id: SECOND.cc, code: 'TG', labelKey: 'ledger:costCentres.gardens' }],
     banks: [{ id: SECOND.bank, entityId: SECOND.id, name: 'Test-only second entity account', bankName: 'Demo Bank (fictional)', iban: SECOND.iban, verified: true, glAccountId: accountId(SECOND.code, '1000') }],
   });
   const n = normaliseJournal(s, SECOND.id, { date: '2026-10-10', memo: SECOND.journalMemo, lines: [{ accountId: accountId(SECOND.code, '5300'), debit: '777777.77', costCentreId: SECOND.cc }, { accountId: accountId(SECOND.code, '2200'), credit: '777777.77' }] }, LEDGER_TODAY);
   const j = addJournal(s, n.journal!, SAAD, pkt('2026-10-10', '10:00'));
   submitJournal(j, SAAD, pkt('2026-10-10', '10:01'));
-  approveJournal(j, MEHREEN, pkt('2026-10-10', '11:00'));
-  postJournal(s, j, MEHREEN, pkt('2026-10-10', '11:01'));
+  approveJournal(j, ZUBAIR, pkt('2026-10-10', '11:00'));
+  postJournal(s, j, ZUBAIR, pkt('2026-10-10', '11:01'));
   s.lines.push({
     id: 'bsl_lgd_test_0001',
     statementId: 'bim_lgd_test',
@@ -82,7 +82,7 @@ export function addSecondEntity(s: LedgerState): { journalId: string; accountIds
 
 export function ledgerSession(options: { accessFor?: AccessFor; personas?: readonly Persona[] } = {}) {
   const demo = new DemoStore(memory());
-  let personaId: string | null = 'lk_accounts';
+  let personaId: string | null = 'lsp_ledger_clerk';
   const t = new MockTransport({ getContext: () => ({ personaId, projectId: 'all' }), getMode: () => 'fast', demo, ...(options.accessFor ? { accessFor: options.accessFor } : {}), ...(options.personas ? { personas: [...ALL_PERSONAS, ...options.personas] } : {}) });
   const api = {
     as(id: string | null) {

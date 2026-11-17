@@ -55,7 +55,7 @@ test('projects and Project 360; the matrix grid and quick view; a hold placed an
   await open(page, `/backoffice/inv/live-availability`, 'availability-project');
   await expect(page.locator(`[data-testid="availability-hold"][data-unit="${unitId}"]`)).toHaveCount(0);
 
-  await become(page, 'lk_project_officer');
+  await become(page, 'lsp_project_manager');
   await open(page, '/backoffice/inv/storage-inventory?project=prj_heights', 'storage-card');
   const card = page.locator('[data-testid="storage-card"][data-storage="stg_lh_c01"]');
   await card.getByTestId('storage-allocate').click();
@@ -74,7 +74,7 @@ test('projects and Project 360; the matrix grid and quick view; a hold placed an
 test('a project prepared by one person is activated by another; nobody approves their own', async ({ page, consoleErrors }) => {
   test.setTimeout(120_000);
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await seed(page, { persona: 'lk_project_officer' });
+  await seed(page, { persona: 'lsp_project_manager' });
   await open(page, '/backoffice/prj/project-setup', 'project-setup');
   const created = await societyApi<{ id: string }>(page, '/projects', 'POST', { basics: { name: 'Larkspur Meadows (Demo)', code: 'LM', city: 'Islamabad', kind: 'plots' } });
   expect(created.ok).toBe(true);
@@ -85,7 +85,7 @@ test('a project prepared by one person is activated by another; nobody approves 
   await page.getByTestId('setup-submit').click();
   await expect(page.getByTestId('project-setup')).toHaveAttribute('data-state', 'submitted');
   await expect(page.getByTestId('setup-activate')).toHaveCount(0);
-  await become(page, 'lk_projects_director');
+  await become(page, 'lsp_finance_controller');
   await open(page, `/backoffice/prj/project-setup?record=${id}`, 'setup-activate');
   await page.getByTestId('setup-activate').click();
   await page.getByRole('alertdialog').getByRole('button', { name: 'Approve and activate' }).click();

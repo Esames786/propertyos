@@ -144,7 +144,7 @@ const ledger = (ctx: HandlerContext) => ledgerState(ctx);
 // Scoped finders: unknown and out-of-scope ids answer alike
 // ---------------------------------------------------------------------------------------------
 
-function journalOf(ctx: HandlerContext, st: LedgerState, permission: 'gl.view' | 'gl.post' | 'journal.approve', id = ctx.params.id): StoredJournal {
+function journalOf(ctx: HandlerContext, st: LedgerState, permission: 'gl.view' | 'journal.create' | 'gl.post' | 'journal.approve', id = ctx.params.id): StoredJournal {
   const j = st.journals.find((x) => x.id === id);
   if (!j || !mayUse(ctx, 'accounting', j.entityId, permission)) hidden(ctx);
   return j;
@@ -156,7 +156,7 @@ function scopeFor(ctx: HandlerContext, st: LedgerState, entityId: string, module
 }
 
 /** A period addressed by its id ("fpd_lke_202610"): one of the entity's book months. */
-function periodOf(ctx: HandlerContext, st: LedgerState, permissions: ReadonlyArray<'gl.view' | 'gl.post' | 'period.close'>): { entity: StoredEntity; period: string } {
+function periodOf(ctx: HandlerContext, st: LedgerState, permissions: ReadonlyArray<'gl.view' | 'journal.create' | 'period.close'>): { entity: StoredEntity; period: string } {
   const m = /^fpd_([a-z0-9]+)_(\d{4})(\d{2})$/.exec(ctx.params.id ?? '');
   const entity = m ? st.entities.find((e) => e.code.toLowerCase() === m[1]) : undefined;
   const period = m ? `${m[2]}-${m[3]}` : '';
@@ -169,7 +169,7 @@ function storedPeriod(st: LedgerState, entity: StoredEntity, period: string): St
   return periodRecord(st, entity.id, period);
 }
 
-function importOf(ctx: HandlerContext, st: LedgerState, permission: 'bank.view' | 'bank.reconcile', id = ctx.params.id): StoredImport {
+function importOf(ctx: HandlerContext, st: LedgerState, permission: 'bank.view' | 'bank.import' | 'bank.import.approve', id = ctx.params.id): StoredImport {
   const imp = st.imports.find((x) => x.id === id);
   if (!imp || !mayUse(ctx, 'banking', imp.entityId, permission)) hidden(ctx);
   return imp;
@@ -242,7 +242,7 @@ const chartHandlers: Handler[] = [
           .sort((a, b) => b.version - a.version)
           .map((v) => ({ version: v.version, at: v.at, byName: v.byName, ...(v.approvedByName ? { approvedByName: v.approvedByName } : {}), change: v.change, ...(v.accountCode ? { accountCode: v.accountCode } : {}) })),
         accounts,
-        canDraft: mayUse(ctx, 'accounting', scope.entity.id, 'gl.post'),
+        canDraft: mayUse(ctx, 'accounting', scope.entity.id, 'gl.manage'),
       };
     },
   },
@@ -285,12 +285,12 @@ const chartHandlers: Handler[] = [
     // E-16: a chart change is a draft until someone else approves it.
     method: 'POST',
     pattern: /^\/ledger\/accounts$/,
-    access: requires('accounting', 'gl.post', W),
+    access: requires('accounting', 'gl.manage', W),
     handle: (ctx) => {
       official(ctx);
       const st = ledger(ctx);
       const b = body(ctx);
-      const { entity } = entityOf(ctx, st, b.entityId, 'accounting', 'gl.post');
+      const { entity } = entityOf(ctx, st, b.entityId, 'accounting', 'gl.manage');
       const input = { entityId: entity.id, code: str(b.code, 4), name: str(b.name, 80), type: str(b.type, 20) };
       const idem = bound(ctx, st, 'account.draft', entity.id, input);
       if (idem.replay) {
@@ -317,12 +317,12 @@ const chartHandlers: Handler[] = [
     (decision): Handler => ({
       method: 'POST',
       pattern: new RegExp(`^/ledger/accounts/(?<id>[\\w-]+)/${decision}$`),
-      access: requires('accounting', 'journal.approve', W),
+      access: requires('accounting', 'gl.approve', W),
       handle: (ctx) => {
         official(ctx);
         const st = ledger(ctx);
         const a = st.accounts.find((x) => x.id === ctx.params.id);
-        if (!a || !mayUse(ctx, 'accounting', a.entityId, 'journal.approve')) hidden(ctx);
+        if (!a || !mayUse(ctx, 'accounting', a.entityId, 'gl.approve')) hidden(ctx);
         const note = decision === 'reject' ? str(body(ctx).reason, 300) : '';
         const idem = bound(ctx, st, `account.${decision}`, a.id, { note });
         if (idem.replay) return accountView(ctx, st, a);
@@ -381,7 +381,7 @@ const journalHandlers: Handler[] = [
         .filter((j) => !term || matches(term, j.ref, j.memo, j.makerName))
         .sort((a, b) => b.date.localeCompare(a.date) || b.ref.localeCompare(a.ref));
       const counts = Object.fromEntries(JOURNAL_FILTERS.map((f) => [f, mine.filter((j) => inFilter(st, j, f)).length])) as JournalsList['counts'];
-      return { ...scope, items: mine.filter((j) => inFilter(st, j, filter)).map((j) => journalSummary(st, j)), counts, canCreate: mayUse(ctx, 'accounting', scope.entity.id, 'gl.post') };
+      return { ...scope, items: mine.filter((j) => inFilter(st, j, filter)).map((j) => journalSummary(st, j)), counts, canCreate: mayUse(ctx, 'accounting', scope.entity.id, 'journal.create') };
     },
   },
   {
@@ -396,10 +396,10 @@ const journalHandlers: Handler[] = [
   {
     method: 'GET',
     pattern: /^\/ledger\/journal-form$/,
-    access: requires('accounting', 'gl.post', R),
+    access: requires('accounting', 'journal.create', R),
     handle: (ctx): JournalFormOptions => {
       const st = ledger(ctx);
-      const { entity, entities } = entityOf(ctx, st, q(ctx, 'entity'), 'accounting', 'gl.post');
+      const { entity, entities } = entityOf(ctx, st, q(ctx, 'entity'), 'accounting', 'journal.create');
       return {
         ...scopeOf(ctx, entity, entities),
         accounts: st.accounts
@@ -415,12 +415,12 @@ const journalHandlers: Handler[] = [
   {
     method: 'POST',
     pattern: /^\/ledger\/journals$/,
-    access: requires('accounting', 'gl.post', W),
+    access: requires('accounting', 'journal.create', W),
     handle: (ctx): JournalView => {
       official(ctx);
       const st = ledger(ctx);
       const b = body(ctx);
-      const { entity } = entityOf(ctx, st, b.entityId, 'accounting', 'gl.post');
+      const { entity } = entityOf(ctx, st, b.entityId, 'accounting', 'journal.create');
       const idem = bound(ctx, st, 'journal.create', entity.id, journalPrint(b));
       if (idem.replay) return replayJournal(ctx, st, idem.replay, entity.id);
       assertOpenOn(ctx, st, entity.id, b.date);
@@ -436,11 +436,11 @@ const journalHandlers: Handler[] = [
     // A draft may change; a posted journal never does (corrections are reversals).
     method: 'POST',
     pattern: /^\/ledger\/journals\/(?<id>[\w-]+)\/edit$/,
-    access: requires('accounting', 'gl.post', W),
+    access: requires('accounting', 'journal.create', W),
     handle: (ctx): JournalView => {
       official(ctx);
       const st = ledger(ctx);
-      const j = journalOf(ctx, st, 'gl.post');
+      const j = journalOf(ctx, st, 'journal.create');
       const b = body(ctx);
       const idem = bound(ctx, st, 'journal.edit', j.id, journalPrint({ ...b, entityId: j.entityId }));
       if (idem.replay) return view(ctx, st, j);
@@ -459,11 +459,11 @@ const journalHandlers: Handler[] = [
   {
     method: 'POST',
     pattern: /^\/ledger\/journals\/(?<id>[\w-]+)\/submit$/,
-    access: requires('accounting', 'gl.post', W),
+    access: requires('accounting', 'journal.create', W),
     handle: (ctx): JournalView => {
       official(ctx);
       const st = ledger(ctx);
-      const j = journalOf(ctx, st, 'gl.post');
+      const j = journalOf(ctx, st, 'journal.create');
       const idem = bound(ctx, st, 'journal.submit', j.id, {});
       if (idem.replay) return view(ctx, st, j);
       if (j.state !== 'draft') invalidState(ctx);
@@ -539,11 +539,11 @@ const journalHandlers: Handler[] = [
   {
     method: 'POST',
     pattern: /^\/ledger\/journals\/(?<id>[\w-]+)\/cancel$/,
-    access: requires('accounting', 'gl.post', W),
+    access: requires('accounting', 'journal.create', W),
     handle: (ctx): JournalView => {
       official(ctx);
       const st = ledger(ctx);
-      const j = journalOf(ctx, st, 'gl.post');
+      const j = journalOf(ctx, st, 'journal.create');
       const idem = bound(ctx, st, 'journal.cancel', j.id, {});
       if (idem.replay) return view(ctx, st, j);
       if (j.state === 'posted') problem(ctx, 409, 'journal_posted', 'ledger:problems.journalPosted');
@@ -559,11 +559,11 @@ const journalHandlers: Handler[] = [
     // ACC-005: a posted journal is corrected only by a reversal journal (approved and posted by someone else).
     method: 'POST',
     pattern: /^\/ledger\/journals\/(?<id>[\w-]+)\/reverse$/,
-    access: requires('accounting', 'gl.post', W),
+    access: requires('accounting', 'journal.create', W),
     handle: (ctx): JournalView => {
       official(ctx);
       const st = ledger(ctx);
-      const j = journalOf(ctx, st, 'gl.post');
+      const j = journalOf(ctx, st, 'journal.create');
       const b = body(ctx);
       const input = { date: str(b.date, 10), reason: str(b.reason, 300) };
       const idem = bound(ctx, st, 'journal.reverse', j.id, input);
@@ -702,11 +702,11 @@ const periodHandlers: Handler[] = [
   {
     method: 'POST',
     pattern: /^\/ledger\/periods\/(?<id>[\w-]+)\/reopen-request$/,
-    access: requires('accounting', ['gl.post', 'period.close'], W),
+    access: requires('accounting', ['journal.create', 'period.close'], W),
     handle: (ctx) => {
       official(ctx);
       const st = ledger(ctx);
-      const { entity, period } = periodOf(ctx, st, ['gl.post', 'period.close']);
+      const { entity, period } = periodOf(ctx, st, ['journal.create', 'period.close']);
       const note = str(body(ctx).reason, 300);
       const idem = bound(ctx, st, 'period.reopen_request', `${entity.id}:${period}`, { note });
       if (idem.replay) return periodView(ctx, st, entity.id, period);
@@ -746,7 +746,7 @@ const periodHandlers: Handler[] = [
 // Posting rules (ACC-010): proposals only; nothing applies them until E-15…E-17 are decided
 // ---------------------------------------------------------------------------------------------
 
-function ruleOf(ctx: HandlerContext, st: LedgerState, permission: 'gl.view' | 'gl.post') {
+function ruleOf(ctx: HandlerContext, st: LedgerState, permission: 'gl.view' | 'gl.manage') {
   const r = st.rules.find((x) => x.id === ctx.params.id);
   if (!r || !mayUse(ctx, 'accounting', r.entityId, permission)) hidden(ctx);
   return r;
@@ -764,7 +764,7 @@ const ruleHandlers: Handler[] = [
         ...scopeOf(ctx, entity, entities),
         rules: st.rules.filter((r) => r.entityId === entity.id).map((r) => ruleView(ctx, st, r)),
         proposedEvents: 0,
-        canDraft: mayUse(ctx, 'accounting', entity.id, 'gl.post'),
+        canDraft: mayUse(ctx, 'accounting', entity.id, 'gl.manage'),
       };
     },
   },
@@ -787,11 +787,11 @@ const ruleHandlers: Handler[] = [
   {
     method: 'POST',
     pattern: /^\/ledger\/posting-rules\/(?<id>[\w-]+)\/versions$/,
-    access: requires('accounting', 'gl.post', W),
+    access: requires('accounting', 'gl.manage', W),
     handle: (ctx) => {
       official(ctx);
       const st = ledger(ctx);
-      const r = ruleOf(ctx, st, 'gl.post');
+      const r = ruleOf(ctx, st, 'gl.manage');
       const b = body(ctx);
       const input = { effectiveFrom: str(b.effectiveFrom, 10), debitAccountId: str(b.debitAccountId, 60), creditAccountId: str(b.creditAccountId, 60), note: str(b.note, 200) };
       const idem = bound(ctx, st, 'rule.version', r.id, input);
@@ -816,12 +816,12 @@ const ruleHandlers: Handler[] = [
     // The blocked action, refused on the server too: no rule applies until an adviser decides.
     method: 'POST',
     pattern: /^\/ledger\/posting-rules\/(?<id>[\w-]+)\/apply$/,
-    access: requires('accounting', 'journal.approve', W),
+    access: requires('accounting', 'gl.approve', W),
     handle: (ctx) => {
       official(ctx);
       const st = ledger(ctx);
       const r = ruleOf(ctx, st, 'gl.view');
-      if (!mayUse(ctx, 'accounting', r.entityId, 'journal.approve')) hidden(ctx);
+      if (!mayUse(ctx, 'accounting', r.entityId, 'gl.approve')) hidden(ctx);
       problem(ctx, 409, 'decision_pending', 'ledger:problems.decisionPending', { rule: [{ code: 'ledger:problems.decisionPendingDetail', params: { decisions: r.blockedBy.join(', ') } }] });
     },
   },
@@ -848,15 +848,16 @@ const bankHandlers: Handler[] = [
       const st = ledger(ctx);
       const scope = importScope(ctx, st, q(ctx, 'entity'));
       const id = scope.entity.id;
-      const reconciler = mayUse(ctx, 'banking', id, 'bank.reconcile');
+      const importer = mayUse(ctx, 'banking', id, 'bank.import');
+      const approver = mayUse(ctx, 'banking', id, 'bank.import.approve');
       return {
         ...scope,
         accounts: st.bankAccounts.filter((b) => b.entityId === id).map(bankRef),
         imports: st.imports.filter((i) => i.entityId === id).sort((a, b) => b.preparedAt.localeCompare(a.preparedAt) || b.ref.localeCompare(a.ref)).map((i) => importSummary(st, i)),
         lines: statementLines(st, id),
-        samples: reconciler ? samplesOf(st, id) : [],
-        canImport: reconciler,
-        canApprove: reconciler,
+        samples: importer ? samplesOf(st, id) : [],
+        canImport: importer,
+        canApprove: approver,
       };
     },
   },
@@ -874,12 +875,12 @@ const bankHandlers: Handler[] = [
     // Preview: parse and validate the file, flag duplicates (in the file, against earlier imports).
     method: 'POST',
     pattern: /^\/bank\/imports$/,
-    access: requires('banking', 'bank.reconcile', W),
+    access: requires('banking', 'bank.import', W),
     handle: (ctx): BankImportView => {
       official(ctx);
       const st = ledger(ctx);
       const b = body(ctx);
-      const { entity } = entityOf(ctx, st, b.entityId, 'banking', 'bank.reconcile');
+      const { entity } = entityOf(ctx, st, b.entityId, 'banking', 'bank.import');
       const sampleNo = Number(b.sample ?? 0);
       const sample = sampleNo ? samplesOf(st, entity.id).find((s) => s.n === sampleNo) : undefined;
       const content = sample ? sample.content : typeof b.content === 'string' ? b.content.slice(0, 100_001) : '';
@@ -910,11 +911,12 @@ const bankHandlers: Handler[] = [
     (step): Handler => ({
       method: 'POST',
       pattern: new RegExp(`^/bank/imports/(?<id>[\\w-]+)/${step}$`),
-      access: requires('banking', 'bank.reconcile', W),
+      // The preparer's steps need bank.import; the second person's need bank.import.approve (E.0 canonical pair).
+      access: requires('banking', step === 'submit' || step === 'discard' ? 'bank.import' : 'bank.import.approve', W),
       handle: (ctx): BankImportView => {
         official(ctx);
         const st = ledger(ctx);
-        const imp = importOf(ctx, st, 'bank.reconcile');
+        const imp = importOf(ctx, st, step === 'submit' || step === 'discard' ? 'bank.import' : 'bank.import.approve');
         const note = step === 'reject' ? str(body(ctx).reason, 300) : '';
         const idem = bound(ctx, st, `bank_import.${step}`, imp.id, { note });
         if (idem.replay) return importView(ctx, st, imp, importScope(ctx, st, imp.entityId));

@@ -51,7 +51,7 @@ const appErrors = (errors: string[]) => errors.filter((e) => !(e.includes('downl
 test('assign → convert → move by menu → visit outcome with a follow-up; Bilal sees only his Heights records', async ({ page, consoleErrors }) => {
   test.setTimeout(300_000);
   await at(page);
-  await seed(page, { persona: 'sales_manager' });
+  await seed(page, { persona: 'lsp_sales_manager' });
   await page.goto(`${BO}${PIPELINE}`);
   await waitForApp(page);
   await expect(page.getByTestId('pipeline-page')).toBeVisible();
@@ -103,7 +103,7 @@ test('Urdu, 320 px, 200 % text: the pipeline (one stage at a time) and the calen
   await at(page);
   await page.setViewportSize({ width: 320, height: 700 });
   await page.addInitScript(() => localStorage.setItem('pref:display:v1:backoffice:tnt_larkspur:usr_lsp_0004', JSON.stringify({ version: 2, textScale: 2, chosenAt: '2026-10-26T00:00:00Z', updatedAt: '2026-10-26T00:00:00Z' })));
-  await seed(page, { persona: 'sales_manager', locale: 'ur-PK' });
+  await seed(page, { persona: 'lsp_sales_manager', locale: 'ur-PK' });
   await page.goto(`${BO}${PIPELINE}`);
   await waitForApp(page);
   await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');

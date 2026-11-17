@@ -31,7 +31,7 @@ import {
 } from '@repo/contracts';
 import { zonedStamp } from '../../clock';
 import { projectName } from '../../crm-data';
-import { can, matches, notFound, requires, unitPermitted, type Handler, type HandlerContext } from '../../handler-types';
+import { can, matches, notFound, requires, requiresAll, unitPermitted, type Handler, type HandlerContext } from '../../handler-types';
 import { ALL_PERSONAS } from '../../people';
 import { bound } from './idempotency';
 import { byStage, canConvert, isOpen, stageSummaries, transition, type StageRefusal } from './pipeline';
@@ -96,6 +96,15 @@ function fieldError(ctx: HandlerContext, field: string, code: string, params?: R
 }
 
 /** Practice mode has no pipeline records: every change is refused before anything is read. */
+/**
+ * Wave 1 integration (Issue #25): moving the pipeline (convert, stage, lost, reopen, and the conversion
+ * picker) is a sales manager's work, as E.1 built and tested it. E.0's F-3 gave `lead.manage` to everyone who
+ * already wrote to leads (Nadia, Bilal, Zain), so `lead.manage` alone would silently give them the pipeline:
+ * these endpoints need `lead.manage` AND `lead.assign` (both canonical E.0 names; no new permission), checked
+ * by the transport before anything is read or recorded (`requiresAll`).
+ */
+const PIPELINE_MANAGER = requiresAll('crm', ['lead.manage', 'lead.assign'], 'operational');
+
 function official(ctx: HandlerContext): void {
   if (ctx.req.training) refuse(ctx, 403, 'training_not_supported');
 }
@@ -259,7 +268,7 @@ const OPPORTUNITY_HANDLERS: readonly Handler[] = [
     // Qualified leads the reader may convert (the conversion dialog's picker).
     method: 'GET',
     pattern: /^\/crm\/convertible-leads$/,
-    access: requires('crm', 'lead.manage', 'operational'),
+    access: PIPELINE_MANAGER,
     handle: (ctx) => {
       const c = open(ctx);
       const items = visibleLeads(c)
@@ -272,7 +281,7 @@ const OPPORTUNITY_HANDLERS: readonly Handler[] = [
   {
     method: 'POST',
     pattern: /^\/leads\/(?<leadId>[\w-]+)\/opportunities$/,
-    access: requires('crm', 'lead.manage', 'operational'),
+    access: PIPELINE_MANAGER,
     handle: (ctx): Opportunity => {
       official(ctx);
       const c = open(ctx);
@@ -321,7 +330,7 @@ const OPPORTUNITY_HANDLERS: readonly Handler[] = [
   {
     method: 'POST',
     pattern: /^\/opportunities\/(?<id>[\w-]+)\/stage$/,
-    access: requires('crm', 'lead.manage', 'operational'),
+    access: PIPELINE_MANAGER,
     handle: (ctx): Opportunity => {
       official(ctx);
       const c = open(ctx);
@@ -338,7 +347,7 @@ const OPPORTUNITY_HANDLERS: readonly Handler[] = [
   {
     method: 'POST',
     pattern: /^\/opportunities\/(?<id>[\w-]+)\/lost$/,
-    access: requires('crm', 'lead.manage', 'operational'),
+    access: PIPELINE_MANAGER,
     handle: (ctx): Opportunity => {
       official(ctx);
       const c = open(ctx);
@@ -357,7 +366,7 @@ const OPPORTUNITY_HANDLERS: readonly Handler[] = [
   {
     method: 'POST',
     pattern: /^\/opportunities\/(?<id>[\w-]+)\/reopen$/,
-    access: requires('crm', 'lead.manage', 'operational'),
+    access: PIPELINE_MANAGER,
     handle: (ctx): Opportunity => {
       official(ctx);
       const c = open(ctx);

@@ -46,7 +46,7 @@ async function open(page: Page, persona: PersonaId, path: string, ready: string)
   await expect(page.getByTestId(ready).first()).toBeVisible();
 }
 
-async function start(page: Page, persona: PersonaId = 'sales_manager', locale: Locale = 'en-PK') {
+async function start(page: Page, persona: PersonaId = 'lsp_sales_manager', locale: Locale = 'en-PK') {
   await at(page);
   await seed(page, { persona, locale });
   await page.goto(`${BO}${PIPELINE}`);
@@ -136,7 +136,7 @@ test.describe('Gate E.1: the journey and the board', () => {
     await drawer.getByTestId('assign-reason').fill('Bilal covers Tower A this month');
     await drawer.getByTestId('assign-submit').click();
     await toast(page, '1 lead assigned to Bilal Ahmed');
-    await expect(drawer.getByTestId('assign-preset').getByTestId('assign-history-entry').first()).toContainText('Samina Latif reassigned it from Nadia Rahman to Bilal Ahmed');
+    await expect(drawer.getByTestId('assign-preset').getByTestId('assign-history-entry').first()).toContainText('Hamza Rashid reassigned it from Nadia Rahman to Bilal Ahmed');
     await expect(drawer.getByTestId('assign-preset').getByTestId('assign-history-entry').first()).toContainText('Bilal covers Tower A this month');
     await page.keyboard.press('Escape');
     await expect(page).toHaveURL(new RegExp(`${PIPELINE}$`));
@@ -406,7 +406,7 @@ test.describe('Gate E.1: access (E-05 default), no oracle, revocation', () => {
     const gardens = all.items.find((o) => o.projectId === 'prj_gardens')!;
     await page.goto(`${BO}/backoffice/crm/opportunity-360-workspace?record=${gardens.id}`);
     await expect(page.getByTestId('opportunity-360')).toBeVisible();
-    await page.evaluate(() => sessionStorage.setItem('demo:site-scope', JSON.stringify({ sales_manager: ['site_lk_heights'] })));
+    await page.evaluate(() => sessionStorage.setItem('demo:site-scope', JSON.stringify({ lsp_sales_manager: ['site_lk_heights'] })));
     await page.reload();
     await expect(page.getByTestId('state-not-found')).toBeVisible();
     await page.goto(`${BO}${PIPELINE}`);
@@ -456,7 +456,7 @@ for (const locale of ['en-PK', 'ur-PK'] as const) {
   test.describe(`Gate E.1 accessibility (${lang})`, () => {
     test(`every E.1 screen passes axe at 1440 and 390 with nothing clipped (${lang})`, async ({ page, consoleErrors }, testInfo) => {
       test.setTimeout(360_000);
-      await start(page, 'sales_manager', locale);
+      await start(page, 'lsp_sales_manager', locale);
       if (locale === 'ur-PK') await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
       for (const viewport of [VIEWPORTS.desktop, VIEWPORTS.phone]) {
         await page.setViewportSize(viewport);
@@ -484,7 +484,7 @@ for (const locale of ['en-PK', 'ur-PK'] as const) {
       test.setTimeout(240_000);
       await page.setViewportSize({ width: 320, height: 700 });
       for (const p of PRINCIPALS) await page.addInitScript(({ key }) => localStorage.setItem(key, JSON.stringify({ version: 2, textScale: 2, chosenAt: '2026-10-26T00:00:00Z', updatedAt: '2026-10-26T00:00:00Z' })), { key: `pref:display:v1:backoffice:tnt_larkspur:${p}` });
-      await start(page, 'sales_manager', locale);
+      await start(page, 'lsp_sales_manager', locale);
       for (const [name, path, ready] of SCREENS) {
         await page.goto(`${BO}${path}`);
         await expect(page.getByTestId(ready).first()).toBeVisible();

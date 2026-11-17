@@ -22,7 +22,7 @@ export interface CrmScope {
   me: string;
   /** Sees every record of the projects in scope (`lead.assign`). */
   whole: boolean;
-  /** May convert, move, lose and reopen (`lead.manage`). */
+  /** May convert, move, lose and reopen (`lead.manage` and `lead.assign`; Wave 1 integration, see handlers.ts `PIPELINE_MANAGER`). */
   manage: boolean;
   projectVisible: (projectId: string) => boolean;
   ownerOf: (lead: Lead) => string;
@@ -41,7 +41,7 @@ export function crmScope(ctx: HandlerContext): CrmScope {
   const staff = staffOf(ctx);
   const me = ctx.persona?.principalId ?? '';
   const whole = can(ctx, 'lead.assign');
-  const manage = can(ctx, 'lead.manage');
+  const manage = can(ctx, 'lead.manage') && can(ctx, 'lead.assign');
   const projects = new Map<string, boolean>();
   const projectVisible = (projectId: string) => {
     if (!projects.has(projectId)) projects.set(projectId, ctx.data.projects.some((p) => p.id === projectId) && ctx.allowsProject(projectId) && permits(ctx, 'crm', projectRecord(ctx, projectId), 'lead.view'));
@@ -59,14 +59,19 @@ export function crmScope(ctx: HandlerContext): CrmScope {
 }
 
 /**
- * Whether a person may be given a lead: staff of the same organisation who hold `lead.view` for the
- * lead's project (their own project scope and effective access). Anyone else, and any id that is not
- * a person of this organisation, is refused with the same answer.
+ * Whether a person may be given a lead: staff of the same organisation who hold `lead.view` and
+ * `lead.manage` for the lead's project (their own project scope and effective access). Anyone else, and
+ * any id that is not a person of this organisation, is refused with the same answer.
+ *
+ * Wave 1 integration (Issue #25): an owner must be able to work the lead. Since E.0's F-3, activity, status
+ * and follow-ups need `lead.manage`, so a person who only reads leads (E.13's records clerk reads them for
+ * their documents) is never offered as an owner.
  */
 export function mayHold(ctx: HandlerContext, person: Persona, projectId: string): boolean {
   if (person.tenantId !== ctx.tenantId || person.app !== 'backoffice' || person.unlisted) return false;
   if (person.projectScope !== 'all' && !person.projectScope.includes(projectId)) return false;
   const access = effectiveAccessFor(person);
   if (!access) return false;
-  return decide(access, { module: 'crm', permission: 'lead.view', record: projectRecord(ctx, projectId), at: ctx.at, suspension: 'operational' }).allowed;
+  const allowed = (permission: 'lead.view' | 'lead.manage') => decide(access, { module: 'crm', permission, record: projectRecord(ctx, projectId), at: ctx.at, suspension: 'operational' }).allowed;
+  return allowed('lead.view') && allowed('lead.manage');
 }

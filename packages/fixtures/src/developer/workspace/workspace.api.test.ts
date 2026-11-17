@@ -1,11 +1,12 @@
 import type { ActivityResponse, FavouriteItem, RecentItem, RecordAccess, RecordRef, RelatedResponse, SavedListResponse, TasksResponse, UnifiedSearchResponse, WorkQueueResponse } from '@repo/contracts';
 import { describe, expect, it } from 'vitest';
-import { e13Session, GARDENS_ONLY, refusal, sitesOnly, withoutModules } from './e13-test-kit';
+import { e13Session, GARDENS_ONLY, plus, refusal, sitesOnly, withoutModules } from './e13-test-kit';
 
 /**
  * Gate E.13 connected workspace (GLOBAL-002/005/006, HOME-002/004/005, related records) through the
  * fail-closed mock transport. Larkspur: Nadia Rahman (manager, all projects), Bilal Ahmed (sales,
- * Heights only), Tehmina Durrani (document controller), Haroon Qadri (records clerk, Heights).
+ * Heights only), Hamza Rashid (sales manager, documents of every record), Mehwish Kazmi (project manager,
+ * drafts templates), Zubair Ansari (finance controller, approves templates), Haroon Qadri (records clerk, Heights).
  * Crescent Bay: Zain Abbasi. Riverbend: Sadia Rauf (rentals). Business date 26 October 2026.
  */
 const favs = (s: ReturnType<typeof e13Session>, query?: Record<string, string>) => s.get<SavedListResponse<FavouriteItem>>('/workspace/favourites', query);
@@ -16,7 +17,7 @@ describe('the registry answers like GET /access/record (one rule for every recor
   it('for leads, units, projects, invoices and parties, a record resolves exactly when the address check allows it', async () => {
     const s = e13Session();
     const sample = ['led_0004', 'led_0006', 'led_9999', 'unt_lh_a_0101', 'unt_lg_p1_002', 'prj_heights', 'prj_gardens', 'inv_0001', 'inv_0040', 'pty_0004', 'pty_0032'];
-    for (const persona of ['manager', 'sales', 'finance', 'lsp_records_clerk', 'lsp_doc_controller']) {
+    for (const persona of ['manager', 'sales', 'finance', 'lsp_records_clerk', 'lsp_sales_manager', 'lsp_project_manager', 'lsp_accounts', 'lsp_finance_controller', 'lsp_ledger_clerk']) {
       s.as(persona);
       for (const id of sample) {
         const access = await s.get<RecordAccess>('/access/record', { id });
@@ -63,8 +64,8 @@ describe('GLOBAL-002 universal search', () => {
     expect(page2.groups[0]!.items[0]!.id).not.toBe(units.groups[0]!.items[0]!.id);
   });
 
-  it('the controller finds documents and templates; the clerk never finds a Gardens one', async () => {
-    const s = e13Session('lsp_doc_controller');
+  it('the full-scope reader finds documents and templates; the clerk never finds a Gardens one', async () => {
+    const s = e13Session('lsp_sales_manager');
     const full = await s.get<UnifiedSearchResponse>('/workspace/search', { q: 'master plan' });
     expect(allItems(full).map((r) => r.id)).toContain('doc_lsp_0004');
     const narrow = await s.as('lsp_records_clerk').get<UnifiedSearchResponse>('/workspace/search', { q: 'master plan' });
@@ -187,17 +188,23 @@ describe('HOME-002 my tasks and HOME-004 work queue', () => {
     const s = e13Session('lsp_records_clerk');
     const clerk = await s.get<WorkQueueResponse>('/workspace/queue', { kind: 'document_expiry' });
     expect(clerk.items.map((i) => i.record!.id).sort()).toEqual(['doc_lsp_0001', 'doc_lsp_0003', 'doc_lsp_0009']);
-    const controller = await s.as('lsp_doc_controller').get<TasksResponse>('/workspace/tasks', { kind: 'template_approval' });
-    expect(controller.items.map((i) => i.record!.id)).toEqual(['dtp_lsp_003']);
+    // Wave 1 integration: Mehwish drafted the allotment letter's v2. Given the approval permission for this test,
+    // her approval tasks still leave out her own draft, and the queue says it is not hers to decide.
+    s.change('lsp_project_manager', plus('document_template.approve'));
+    const maker = await s.as('lsp_project_manager').get<TasksResponse>('/workspace/tasks', { kind: 'template_approval' });
+    expect(maker.items.map((i) => i.record!.id)).toEqual(['dtp_lsp_003']);
     const queue = await s.get<WorkQueueResponse>('/workspace/queue', { kind: 'template_approval' });
     expect(queue.items.map((i) => [i.record!.id, i.owner!.mine])).toEqual([
       ['dtp_lsp_001', false],
       ['dtp_lsp_003', true],
     ]);
+    // The canonical checker drafted neither, so both are his.
+    const checker = await s.as('lsp_finance_controller').get<TasksResponse>('/workspace/tasks', { kind: 'template_approval' });
+    expect(checker.items.map((i) => i.record!.id).sort()).toEqual(['dtp_lsp_001', 'dtp_lsp_003']);
   });
 
   it('a returned draft is its drafter’s task', async () => {
-    const s = e13Session('lsp_doc_controller');
+    const s = e13Session('lsp_project_manager');
     const t = await s.get<TasksResponse>('/workspace/tasks', { kind: 'template_returned' });
     expect(t.items.map((i) => i.record!.id)).toEqual(['dtp_lsp_004']);
     expect((await s.as('lsp_records_clerk').get<TasksResponse>('/workspace/tasks', { kind: 'template_returned' })).items).toEqual([]);
@@ -218,7 +225,7 @@ describe('HOME-005 recent activity (scope-projected)', () => {
     expect(narrow.items.length).toBeGreaterThan(0);
     const text = JSON.stringify(narrow);
     for (const hidden of GARDENS_ONLY) expect(text, hidden).not.toContain(hidden);
-    const full = await s.as('lsp_doc_controller').get<ActivityResponse>('/workspace/activity', { range: '30d', limit: '400' });
+    const full = await s.as('lsp_sales_manager').get<ActivityResponse>('/workspace/activity', { range: '30d', limit: '400' });
     expect(JSON.stringify(full)).toContain('corner plot in Phase 2');
   });
 
@@ -237,7 +244,10 @@ describe('related records', () => {
     const r = await s.get<RelatedResponse>('/workspace/related', { record: 'led_0004' });
     expect(r.groups.map((g) => g.type)).toEqual(expect.arrayContaining(['party', 'project']));
     expect(r.documents!.map((d) => d.id)).toEqual(['doc_lsp_0009']);
-    expect(r.canAttach).toBe(true);
+    // Wave 1 integration (F-3): the clerk reads the lead but may not write to it, so he may not attach to it;
+    // the sales manager (lead.manage) may.
+    expect(r.canAttach).toBe(false);
+    expect((await s.as('lsp_sales_manager').get<RelatedResponse>('/workspace/related', { record: 'led_0004' })).canAttach).toBe(true);
     const bilal = await s.as('sales').get<RelatedResponse>('/workspace/related', { record: 'led_0004' });
     expect(bilal.documents).toBeNull();
     expect(bilal.canAttach).toBe(false);
