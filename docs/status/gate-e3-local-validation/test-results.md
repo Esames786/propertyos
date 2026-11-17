@@ -65,4 +65,19 @@ classes are defensive there.
 
 ## 5. Complete regression (under the shared lock)
 
-_Filled in after the run._
+**Pre-regression checkpoint: the complete Chromium regression and the Firefox/WebKit smoke have NOT yet been
+run (blocked on AC).** The PC has been on battery since about 20:30 UTC; Agent 1 holds the shared lock with
+priority until AC returns. `test-results-e3qa/scratch/wait-and-run.sh` waits, yields to Agent 1, needs AC, then
+runs `final.sh`; the results will be added here in a separate docs/test-results commit.
+
+What was run on this code (product source identical to `8a341a0`; later commits are docs only):
+
+| Check | Result |
+|---|---|
+| typecheck | exit 0 |
+| lint (ESLint, logical CSS, i18n parity) | exit 0 |
+| Vitest | 79 files, 1,872 tests: 1,870 passed + 2 timed out at 5 s under full CPU (`community.test.ts`, `finance.api.test.ts`, untouched by this branch), which pass alone (78/78) |
+| E.3 browser specs, Chromium (64) | last result per spec on this branch: GPT `e3-*` 16/16, `e3qa-authorized` 9/9, `e3qa-editors` 19/19, `e3qa-conflict` 5/5 (run q4, build of `ab223d2`'s source + the uncommitted reflow work, before `cefed5e`…`df0bd28`); `e3qa-quality` 10/10 and `e3qa-keyboard` 5/5 (run q9, final product source) |
+| Evidence (`e3qa.evidence.spec.ts`) | 9/9 on the final product source; 60 PNGs, widths 60/60, reviewed |
+| Mutations | Vitest 22/25 caught (V03, V12, V16 equivalent); browser 12/14 caught (B09, B13: defensive classes) |
+| Shipped-build proof | 0 files with the test principals; Playwright build: 1 |
