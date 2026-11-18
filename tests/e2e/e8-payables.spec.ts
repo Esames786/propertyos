@@ -197,9 +197,18 @@ test.describe('Gate E.8 — maker ≠ checker, scope, the bank boundary and no o
     await page.goto(`${BO}/backoffice/exp/expense-workspace?record=exp_never_issued_e8`);
     await expect(page.getByTestId('state-not-found')).toBeVisible();
     expect(await page.locator('main').innerText()).toBe(hidden);
-    // No supplier permission: the supplier screens are not his (the register's page answers).
+    // No supplier permission: the supplier screens are not his. Wave 2 integration: the access outcome says so in
+    // words (DevScreen refusal="outcome"), with no data.
     await page.goto(`${BO}/backoffice/sup/suppliers-list`);
-    await expect(page.getByTestId('pay-suppliers')).toHaveCount(0);
+    await expect(page.getByTestId('access-outcome')).toBeVisible();
+    await expect(page.getByTestId('pay-supplier-list')).toHaveCount(0);
+    // A record screen without a record of its kind answers like a record never issued.
+    await page.goto(`${BO}/backoffice/exp/expense-workspace?record=bud_lsp_heights_fy27`);
+    await expect(page.getByTestId('state-not-found')).toBeVisible();
+    expect(await page.locator('main').innerText()).toBe(hidden);
+    await page.goto(`${BO}/backoffice/exp/expense-workspace`);
+    await expect(page.getByTestId('state-not-found')).toBeVisible();
+    expect(await page.locator('main').innerText()).toBe(hidden);
     expect(consoleErrors).toEqual([]);
   });
 
@@ -211,9 +220,10 @@ test.describe('Gate E.8 — maker ≠ checker, scope, the bank boundary and no o
     await expect(page.locator('[data-tour-id="nav-primary"] a', { hasText: 'Suppliers and bills' })).toHaveCount(0);
     await page.goto(`${BO}/backoffice/sup/new-supplier-bill`);
     await expect(page.getByTestId('pay-new-bill-readonly')).toBeVisible();
-    // No expense.view: the expense screens keep the register's page.
+    // No expense.view: the expense screens tell her so (the access outcome), with no data.
     await page.goto(`${BO}/backoffice/exp/expenses-list`);
-    await expect(page.getByTestId('pay-expenses')).toHaveCount(0);
+    await expect(page.getByTestId('access-outcome')).toBeVisible();
+    await expect(page.getByTestId('pay-expense-list')).toHaveCount(0);
     expect(consoleErrors).toEqual([]);
   });
 });
