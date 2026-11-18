@@ -2,6 +2,7 @@ import { ownReplay, requireDraftRequestKey } from './request-key';
 import { ApiError, type CommercialRulesDraft, type CommercialRulesDraftList, type CommercialRulesDraftVersion, type CommercialRulesPreview } from '@repo/contracts';
 import { invalid, notFound, requires, type Handler, type HandlerContext } from '../../handler-types';
 import { projectVisible } from '../scope';
+import { inventoryVisible } from '../inventory/scope';
 import { InvalidCommercialRule, previewCommercial, validateCommercialRules } from './commercial-calculator';
 
 const SECTION = 'developer.pricing.commercial';
@@ -155,7 +156,7 @@ export const COMMERCIAL_HANDLERS: readonly Handler[] = [
       const draft = typeof raw.draftId === 'string' ? getDraft(ctx, raw.draftId) : notFound(ctx);
       const unit = typeof raw.unitId === 'string'
         ? ctx.data.units.find((u) => u.id === raw.unitId && u.projectId === draft.projectId &&
-          projectVisible(ctx, u.projectId, { module: 'inventory', permission: 'unit.view' }) &&
+          inventoryVisible(ctx, u.projectId) &&
           inProject(ctx, u.projectId))
         : undefined;
       if (!unit) notFound(ctx);

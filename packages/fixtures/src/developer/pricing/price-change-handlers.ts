@@ -2,19 +2,20 @@ import { ownReplay, requireDraftRequestKey } from './request-key';
 import { ApiError, type UnitPriceChangeDraft, type UnitPriceChangeDraftList, type UnitPriceChangeDraftVersion } from '@repo/contracts';
 import { invalid, notFound, requires, type Handler, type HandlerContext } from '../../handler-types';
 import { projectVisible } from '../scope';
+import { inventoryVisible } from '../inventory/scope';
 import { fromPaisa, toPaisa, InvalidCommercialRule } from './commercial-calculator';
 
 const SECTION = 'developer.pricing.price-change-drafts';
 const PRICE = { module: 'inventory', permission: 'pricing.manage' } as const;
-const VIEW = { module: 'inventory', permission: 'unit.view' } as const;
 type Op = 'create' | 'revise';
 interface Bound { op: Op; actor: string; target: string; fingerprint: string; result: UnitPriceChangeDraft }
 interface Store { version: 1; tenantId: string; next: number; drafts: UnitPriceChangeDraft[]; keys: Record<string, Bound> }
 const empty = (tenantId: string): Store => ({ version: 1, tenantId, next: 1, drafts: [], keys: Object.create(null) as Record<string, Bound> });
 const copy = <T,>(x: T): T => structuredClone(x);
 const actor = (ctx: HandlerContext) => ctx.persona?.principalId ?? '';
+// pricing.manage through E.0's projectVisible (header project applies), the unit through E.2's inventory scope.
 const allowed = (ctx: HandlerContext, projectId: string) =>
-  ctx.access?.tenant.type === 'developer' && projectVisible(ctx, projectId, PRICE) && projectVisible(ctx, projectId, VIEW);
+  ctx.access?.tenant.type === 'developer' && projectVisible(ctx, projectId, PRICE) && inventoryVisible(ctx, projectId);
 function recordStore(ctx: HandlerContext): Store | undefined {
   const value = ctx.demo.peekSection<Store>(SECTION);
   return value?.version === 1 && value.tenantId === ctx.tenantId ? value : undefined;

@@ -2,6 +2,7 @@ import type { PlanPreview, UnitPriceHistory, UnitPricePickerItem, UnitPricePicke
 import { invalid, matches, notFound, requires, type Handler, type HandlerContext } from '../../handler-types';
 import { calculatePlanPreview, InvalidPlanError } from './calculator';
 import { projectVisible } from '../scope';
+import { inventoryVisible } from '../inventory/scope';
 import { PLAN_TEMPLATE_HANDLERS } from './template-handlers';
 import { PRICING_POLICY_HANDLERS } from './policy-handlers';
 import { COMMERCIAL_HANDLERS } from './commercial-handlers';
@@ -17,7 +18,6 @@ import { UNIT_PRICE_CHANGE_HANDLERS } from './price-change-handlers';
  * Lists return only visible records/counts. Named hidden and unknown ids are 404.
  * No demo section is opened or written on these read endpoints.
  */
-const NEED = { module: 'inventory', permission: 'unit.view' } as const;
 const isDeveloper = (ctx: HandlerContext) => ctx.access?.tenant.type === 'developer';
 
 function item(ctx: HandlerContext, unit: HandlerContext['data']['units'][number]): UnitPricePickerItem {
@@ -31,9 +31,14 @@ function item(ctx: HandlerContext, unit: HandlerContext['data']['units'][number]
   };
 }
 
+/**
+ * Units through E.2's inventory scope (`inventoryVisible`: inventory licensed for the site, `unit.view`, persona
+ * scope; Wave 2 seam notes §10), narrowed by the header project as E.3's reviewed contract requires for every
+ * E.3 read (a unit outside the header project answers like an unknown id).
+ */
 function visible(ctx: HandlerContext) {
   if (!isDeveloper(ctx)) return [];
-  return ctx.data.units.filter((u) => projectVisible(ctx, u.projectId, NEED));
+  return ctx.data.units.filter((u) => inventoryVisible(ctx, u.projectId) && ctx.allowsProject(u.projectId));
 }
 
 export const PRICE_HISTORY_HANDLERS: readonly Handler[] = [
