@@ -85,6 +85,19 @@ describe('idempotency.ts — bound replay', () => {
     expect(replayOf(ctx({ key: 'k1', principal: '' }), store, { ...REQ, stillAuthorized: yes })).toBeUndefined();
   });
 
+  it('a key that names an Object.prototype member is an ordinary, unused key: created once, then replayed', () => {
+    for (const k of ['hasOwnProperty', 'constructor', 'toString', 'valueOf', '__proto__']) {
+      const store: IdempotencyStore = {};
+      expect(replayOf(ctx({ key: k }), store, { ...REQ, stillAuthorized: yes }), k).toBeUndefined();
+      remember(ctx({ key: k }), store, REQ, 'jnl_1');
+      expect(Object.hasOwn(store, k), k).toBe(true);
+      expect(Object.getPrototypeOf(store), k).toBe(Object.prototype);
+      expect(replayOf(ctx({ key: k }), store, { ...REQ, stillAuthorized: yes }), k).toBe('jnl_1');
+      // It survives the demo store's JSON round trip as the same own entry.
+      expect(replayOf(ctx({ key: k }), JSON.parse(JSON.stringify(store)) as IdempotencyStore, { ...REQ, stillAuthorized: yes }), k).toBe('jnl_1');
+    }
+  });
+
   it('the key: the transport’s key first, else the body’s (S.1 contract), trimmed and cut to 80 characters', () => {
     expect(requestKey(ctx({ key: ' abc ' }))).toBe('abc');
     expect(requestKey(ctx({ bodyKey: 'body-key' }))).toBe('body-key');
