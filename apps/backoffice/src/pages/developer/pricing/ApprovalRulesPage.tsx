@@ -1,5 +1,6 @@
 import { ApiError, type PricingApprovalDraft, type PricingApprovalDraftList, type PricingApprovalRule, type PricingApprovalSubject } from '@repo/contracts';
 import { useSavedFocus } from './saved-focus';
+import { FitSelect } from './FitSelect';
 import { isNotFound, useRecordAddress } from './record-address';
 import { Badge, Button, EmptyState, ErrorState, NotFoundState, PageHeader, SkeletonBlock, useApiMutation, useApiQuery, useCreateKey, useT } from '@repo/ui';
 import { FileClock, Plus, Save, Trash2 } from 'lucide-react';
@@ -173,11 +174,10 @@ export default function ApprovalRulesPage() {
               <fieldset disabled={mutation.isPending || !projects.data || (!!selectedId && detail.data?.id !== selectedId)} className="min-w-0 space-y-4">
                 <label className="flex min-w-0 flex-col gap-1 text-sm text-text">
                   {t('pricing:approvalProject')}
-                  <select value={projectId} disabled={!!selectedId} onChange={(e) => { setProjectId(e.target.value); changed(); }}
-                    className="min-h-11 w-full min-w-0 rounded-control border border-border-control bg-panel px-3 text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+                  <FitSelect value={projectId} disabled={!!selectedId} onChange={(e) => { setProjectId(e.target.value); changed(); }}>
                     <option value="">{t('pricing:templateProjectPlaceholder')}</option>
                     {projects.data?.items.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                  </select>
+                  </FitSelect>
                 </label>
                 <label className="flex min-w-0 flex-col gap-1 text-sm text-text">
                   {t('pricing:approvalName')}
@@ -188,10 +188,9 @@ export default function ApprovalRulesPage() {
                   <div key={rule.id} className="space-y-3 rounded-control border border-border bg-sunken p-3" data-testid="approval-rule-row">
                     <label className="flex min-w-0 flex-col gap-1 text-sm text-text">
                       {t('pricing:approvalSubject')}
-                      <select value={rule.subject} onChange={(e) => update(rule.id, { subject: e.target.value as PricingApprovalSubject })}
-                        className="min-h-11 w-full min-w-0 rounded-control border border-border-control bg-panel px-3 text-text">
+                      <FitSelect value={rule.subject} onChange={(e) => update(rule.id, { subject: e.target.value as PricingApprovalSubject })}>
                         {SUBJECTS.map((subject) => <option key={subject} value={subject}>{subjectLabels[subject]}</option>)}
-                      </select>
+                      </FitSelect>
                     </label>
                     <div className="grid gap-3 @lg:grid-cols-2">
                       <label className="flex min-w-0 flex-col gap-1 text-sm text-text">
@@ -201,10 +200,9 @@ export default function ApprovalRulesPage() {
                       </label>
                       <label className="flex min-w-0 flex-col gap-1 text-sm text-text">
                         {t('pricing:approvalReviewers')}
-                        <select value={rule.reviewers} onChange={(e) => update(rule.id, { reviewers: e.target.value })}
-                          className="min-h-11 w-full min-w-0 rounded-control border border-border-control bg-panel px-3 text-text">
+                        <FitSelect value={rule.reviewers} onChange={(e) => update(rule.id, { reviewers: e.target.value })}>
                           <option value="1">1</option><option value="2">2</option><option value="3">3</option>
-                        </select>
+                        </FitSelect>
                       </label>
                     </div>
                     <Button className="max-w-full whitespace-normal" variant="secondary" icon={Trash2} isDisabled={rows.length === 1}

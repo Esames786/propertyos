@@ -1,5 +1,6 @@
 import { PricingRelatedLinks } from './PricingRelatedLinks';
 import { useSavedFocus } from './saved-focus';
+import { FitSelect } from './FitSelect';
 import { isNotFound, useRecordAddress } from './record-address';
 import { ApiError, type PaymentPlanTemplate, type PaymentPlanTemplateList, type PlanAllocationInput, type PlanAllocationKind } from '@repo/contracts';
 import { Badge, Button, EmptyState, ErrorState, NotFoundState, PageHeader, SkeletonBlock, useApiMutation, useApiQuery, useCreateKey, useT } from '@repo/ui';
@@ -177,12 +178,11 @@ export default function PaymentPlanTemplatesPage() {
           {selectedId && selected.isError ? (isNotFound(selected.error) ? <NotFoundState /> : <ErrorState error={selected.error} onRetry={() => void selected.refetch()} />) :
             <fieldset disabled={mutation.isPending || !projectsQuery.data || (!!selectedId && !selected.data)} className="min-w-0 space-y-4">
               <label className="flex min-w-0 flex-col gap-1 text-sm text-text">{t('pricing:templateProject')}
-                <select value={projectId} disabled={!!selectedId} onChange={(event) => { setProjectId(event.target.value); change(); }}
-                  data-testid="template-project"
-                  className="min-h-11 w-full min-w-0 rounded-control border border-border-control bg-panel px-3 text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+                <FitSelect value={projectId} disabled={!!selectedId} onChange={(event) => { setProjectId(event.target.value); change(); }}
+                  data-testid="template-project">
                   <option value="">{t('pricing:templateProjectPlaceholder')}</option>
                   {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
+                </FitSelect>
               </label>
               <label className="flex min-w-0 flex-col gap-1 text-sm text-text">{t('pricing:templateName')}
                 <input type="text" maxLength={100} value={title} data-testid="template-name"
@@ -193,10 +193,9 @@ export default function PaymentPlanTemplatesPage() {
               {rows.map((row, index) => (
                 <div key={row.id} className="grid min-w-0 gap-3 rounded-control border border-border bg-sunken p-3 @lg:grid-cols-2" data-testid="template-allocation">
                   <label className="flex min-w-0 flex-col gap-1 text-sm text-text">{t('pricing:templateKind')}
-                    <select value={row.kind} onChange={(event) => update(row.id, { kind: event.target.value as PlanAllocationKind })}
-                      className="min-h-11 w-full min-w-0 rounded-control border border-border-control bg-panel px-3 text-text focus-visible:outline-2 focus-visible:outline-focus">
+                    <FitSelect value={row.kind} onChange={(event) => update(row.id, { kind: event.target.value as PlanAllocationKind })}>
                       {KINDS.map((kind) => <option key={kind} value={kind}>{options[kind]}</option>)}
-                    </select>
+                    </FitSelect>
                   </label>
                   <label className="flex min-w-0 flex-col gap-1 text-sm text-text">{t('pricing:templatePercent')}
                     <input type="text" inputMode="decimal" value={row.percent} data-testid={`template-share-${index}`}

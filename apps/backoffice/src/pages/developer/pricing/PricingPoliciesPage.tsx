@@ -1,5 +1,6 @@
 import { PricingRelatedLinks } from './PricingRelatedLinks';
 import { useSavedFocus } from './saved-focus';
+import { FitSelect } from './FitSelect';
 import { isNotFound, useRecordAddress } from './record-address';
 import { ApiError, type PricingPolicyDraft, type PricingPolicyDraftList, type PricingPolicyRule } from '@repo/contracts';
 import { Badge, Button, EmptyState, ErrorState, NotFoundState, PageHeader, SkeletonBlock, useApiMutation, useApiQuery, useCreateKey, useT } from '@repo/ui';
@@ -183,11 +184,10 @@ export default function PricingPoliciesPage() {
           {selectedId && detail.isError ? (isNotFound(detail.error) ? <NotFoundState /> : <ErrorState error={detail.error} onRetry={() => void detail.refetch()} />) :
             <fieldset className="min-w-0 space-y-4" disabled={mutation.isPending || !projects.data || (!!selectedId && !detail.data)}>
               <label className="flex min-w-0 flex-col gap-1 text-sm text-text">{t('pricing:policyProject')}
-                <select value={projectId} disabled={!!selectedId} onChange={(event) => { setProjectId(event.target.value); edit(); }}
-                  className="min-h-11 w-full min-w-0 rounded-control border border-border-control bg-panel px-3 text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+                <FitSelect value={projectId} disabled={!!selectedId} onChange={(event) => { setProjectId(event.target.value); edit(); }}>
                   <option value="">{t('pricing:templateProjectPlaceholder')}</option>
                   {projects.data?.items.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
+                </FitSelect>
               </label>
               <label className="flex min-w-0 flex-col gap-1 text-sm text-text">{t('pricing:policyName')}
                 <input type="text" maxLength={100} value={title} onChange={(event) => { setTitle(event.target.value); edit(); }}
@@ -197,10 +197,9 @@ export default function PricingPoliciesPage() {
                 <div key={rule.id} className="space-y-3 rounded-control border border-border bg-sunken p-3" data-testid="pricing-policy-rule">
                   <div className="flex flex-wrap items-end justify-between gap-3">
                     <label className="flex min-w-0 flex-col gap-1 text-sm text-text">{t('pricing:policyUnitType')}
-                      <select value={rule.unitType} onChange={(event) => updateRule(rule.id, { unitType: event.target.value as UnitKind })}
-                        className="min-h-11 w-full min-w-0 rounded-control border border-border-control bg-panel px-3 text-text">
+                      <FitSelect value={rule.unitType} onChange={(event) => updateRule(rule.id, { unitType: event.target.value as UnitKind })}>
                         {UNITS.map((kind) => <option key={kind} value={kind}>{typeLabels[kind]}</option>)}
-                      </select>
+                      </FitSelect>
                     </label>
                     <Button className="max-w-full whitespace-normal" icon={Trash2} variant="secondary" isDisabled={rules.length === 1}
                       onPress={() => { setRules((old) => old.filter((r) => r.id !== rule.id)); edit(); }}>

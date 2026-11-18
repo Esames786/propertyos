@@ -1,5 +1,6 @@
 import { ApiError, type CommercialDiscountRule, type CommercialFeeRule, type CommercialRulesDraft, type CommercialRulesDraftList, type CommercialRulesPreview, type UnitPricePickerResponse } from '@repo/contracts';
 import { useSavedFocus } from './saved-focus';
+import { FitSelect } from './FitSelect';
 import { isNotFound, useRecordAddress } from './record-address';
 import { deductionSign, wrappable } from './amount';
 import { Badge, Button, EmptyState, ErrorState, NotFoundState, PageHeader, SkeletonBlock, useApiMutation, useApiQuery, useCreateKey, useT } from '@repo/ui';
@@ -189,11 +190,10 @@ export default function FeesDiscountsPage() {
             {projects.data?.items.length === 0 && <EmptyState title={t('pricing:commercialNoProject')} />}
             {!(selectedId && isNotFound(detail.error)) && <fieldset disabled={mutation.isPending || !projects.data || (!!selectedId && detail.data?.id !== selectedId)} className="min-w-0 space-y-4">
               <label className="flex min-w-0 flex-col gap-1 text-sm text-text">{t('pricing:commercialProject')}
-                <select value={projectId} disabled={!!selectedId} onChange={(e) => { setProjectId(e.target.value); setUnitId(''); changed(); }}
-                  className="min-h-11 w-full min-w-0 rounded-control border border-border-control bg-panel px-3 text-text">
+                <FitSelect value={projectId} disabled={!!selectedId} onChange={(e) => { setProjectId(e.target.value); setUnitId(''); changed(); }}>
                   <option value="">{t('pricing:templateProjectPlaceholder')}</option>
                   {projects.data?.items.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
+                </FitSelect>
               </label>
               {input(t('pricing:commercialName'), title, (s) => { setTitle(s); changed(); })}
               <h3 className="font-semibold text-text">{t('pricing:commercialFee')}</h3>
@@ -202,11 +202,10 @@ export default function FeesDiscountsPage() {
                   {input(t('pricing:commercialCode'), fee.code, (s) => { setFees((old) => old.map((f) => f.id === fee.id ? { ...f, code: s } : f)); changed(); })}
                   {input(t('pricing:commercialLabel'), fee.label, (s) => { setFees((old) => old.map((f) => f.id === fee.id ? { ...f, label: s } : f)); changed(); })}
                   <label className="flex min-w-0 flex-col gap-1 text-sm text-text">{t('pricing:commercialMode')}
-                    <select value={fee.mode} onChange={(e) => { setFees((old) => old.map((f) => f.id === fee.id ? { ...f, mode: e.target.value as FeeDraft['mode'] } : f)); changed(); }}
-                      className="min-h-11 w-full min-w-0 rounded-control border border-border-control bg-panel px-3 text-text">
+                    <FitSelect value={fee.mode} onChange={(e) => { setFees((old) => old.map((f) => f.id === fee.id ? { ...f, mode: e.target.value as FeeDraft['mode'] } : f)); changed(); }}>
                       <option value="fixed">{t('pricing:commercialFixed')}</option>
                       <option value="rate_bps">{t('pricing:commercialPercent')}</option>
-                    </select>
+                    </FitSelect>
                   </label>
                   {fee.mode === 'fixed' ? input(t('pricing:commercialAmount'), fee.amount, (s) => { setFees((old) => old.map((f) => f.id === fee.id ? { ...f, amount: s } : f)); changed(); }, 'decimal')
                     : input(t('pricing:commercialPercent'), fee.bps, (s) => { setFees((old) => old.map((f) => f.id === fee.id ? { ...f, bps: s } : f)); changed(); }, 'numeric')}
@@ -257,12 +256,11 @@ export default function FeesDiscountsPage() {
             <p className="text-sm text-muted">{t('pricing:commercialPreviewOnly')}</p>
             {dirty && <p role="status" className="text-sm text-muted" data-testid="commercial-save-first">{t('pricing:commercialUnsaved')}</p>}
             <label className="flex min-w-0 flex-col gap-1 text-sm text-text">{t('pricing:commercialUnit')}
-              <select value={unitId} onChange={(e) => { setUnitId(e.target.value); setPreviewResult(null); }}
-                disabled={preview.isPending}
-                className="min-h-11 w-full min-w-0 rounded-control border border-border-control bg-panel px-3 text-text">
+              <FitSelect value={unitId} onChange={(e) => { setUnitId(e.target.value); setPreviewResult(null); }}
+                disabled={preview.isPending}>
                 <option value="">{t('pricing:commercialSelectUnit')}</option>
                 {units.data?.items.filter((u) => u.projectId === projectId).map((u) => <option key={u.id} value={u.id}>{u.ref}</option>)}
-              </select>
+              </FitSelect>
             </label>
             {units.isError && <ErrorState error={units.error} onRetry={() => void units.refetch()} />}
             {units.data?.items.filter((u) => u.projectId === projectId).length === 0 && <p className="text-sm text-muted">{t('pricing:commercialNoUnit')}</p>}
