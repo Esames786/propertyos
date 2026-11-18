@@ -7,7 +7,8 @@ import { seedPrincipal } from '../support/e3-pricing';
 import { EDITORS, SCREENS } from '../support/e3-editors';
 
 /**
- * Gate E.3 local validation evidence → docs/status/gate-e3-local-validation/screenshots.
+ * Gate E.3 evidence → docs/status/integration-e3/screenshots (Wave 2 integration; the local-validation set in
+ * docs/status/gate-e3-local-validation/screenshots stays as reviewed at 74241b0).
  * The seven E.3 screens (INV-006, INV-007, COM-001 … COM-005), each in its authorized, populated state with
  * the test-only pricing principal (Playwright build only): English and Urdu at 1440 px, 390 px and 320 px
  * with 200 % text, and dark mode at 1440 px (English) and 390 px (Urdu); plus keyboard focus on the save
@@ -15,7 +16,7 @@ import { EDITORS, SCREENS } from '../support/e3-editors';
  * Run against a Playwright build:
  * `E2E_PORT_OFFSET=3200 npx playwright test --project=evidence tests/evidence/e3qa.evidence.spec.ts`.
  */
-const DIR = 'docs/status/gate-e3-local-validation/screenshots';
+const DIR = 'docs/status/integration-e3/screenshots';
 const lang = (l: Locale) => (l === 'ur-PK' ? 'ur' : 'en');
 const SHOTS = [
   { mode: '1440', viewport: VIEWPORTS.desktop, textScale: 1, theme: 'light', locales: ['en-PK', 'ur-PK'] },
