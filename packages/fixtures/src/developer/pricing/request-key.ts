@@ -1,23 +1,19 @@
 import { invalid, type HandlerContext } from '../../handler-types';
+import { MAX_IDEMPOTENCY_KEY } from '../../idempotency';
 
 /**
  * E.3 draft mutations must not silently prefer a conflicting transport key.
  * Both copies, when supplied, must identify the SAME logical request.
+ *
+ * Wave 2 integration: at most E.0's MAX_IDEMPOTENCY_KEY (80) characters, because the shared helper keeps only
+ * that many; a longer key would be cut and two different keys could become one.
  */
+const KEY_FORMAT = new RegExp(`^[A-Za-z0-9._:-]{12,${MAX_IDEMPOTENCY_KEY}}$`);
 export function parseDraftRequestKey(header: unknown, body: unknown): string | null {
   if (header !== undefined && body !== undefined && header !== body) return null;
   const value = header ?? body;
-  if (typeof value !== 'string' || !/^[A-Za-z0-9._:-]{12,100}$/.test(value)) return null;
+  if (typeof value !== 'string' || !KEY_FORMAT.test(value)) return null;
   return value;
-}
-
-/**
- * The replay record a key names, if this map itself holds one. Replay maps come back from session storage
- * as plain objects, so `map[key]` would also find inherited members: a valid key such as `hasOwnProperty`
- * or `__defineGetter__` (12–100 of the allowed characters) found a function and was refused as "reused".
- */
-export function ownReplay<T>(map: Record<string, T> | undefined, key: string): T | undefined {
-  return map && Object.hasOwn(map, key) ? map[key] : undefined;
 }
 
 export function requireDraftRequestKey(ctx: HandlerContext, data?: Record<string, unknown>): string {

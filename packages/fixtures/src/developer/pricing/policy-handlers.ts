@@ -1,26 +1,22 @@
-import { ownReplay, requireDraftRequestKey } from './request-key';
-import { ApiError, type PricingPolicyDraft, type PricingPolicyDraftList, type PricingPolicyDraftVersion, type PricingPolicyRule } from '@repo/contracts';
+import { requireDraftRequestKey } from './request-key';
+import { rememberDraft, replayDraft, staleVersion } from './draft-replay';
+import type { IdempotencyStore } from '../../idempotency';
+import { type PricingPolicyDraft, type PricingPolicyDraftList, type PricingPolicyDraftVersion, type PricingPolicyRule } from '@repo/contracts';
 import { invalid, notFound, requires, type Handler, type HandlerContext } from '../../handler-types';
 import { projectVisible } from '../scope';
 
 const SECTION = 'developer.pricing.policies';
 const NEED = { module: 'inventory', permission: 'pricing.manage' } as const;
 type Op = 'create' | 'revise';
-interface RequestRecord {
-  op: Op;
-  principal: string;
-  target: string;
-  fingerprint: string;
-  response: PricingPolicyDraft;
-}
 interface Store {
   version: 1;
   tenantId: string;
   next: number;
   policies: PricingPolicyDraft[];
-  keys: Record<string, RequestRecord>;
+  /** E.0 bound idempotency entries (`replayOf` / `remember`); absent in a section written before Wave 2. */
+  idempotency?: IdempotencyStore;
 }
-const init = (tenantId: string): Store => ({ version: 1, tenantId, next: 1, policies: [], keys: Object.create(null) as Record<string, RequestRecord> });
+const init = (tenantId: string): Store => ({ version: 1, tenantId, next: 1, policies: [], idempotency: {} });
 const clone = (value: PricingPolicyDraft): PricingPolicyDraft => structuredClone(value);
 const principal = (ctx: HandlerContext) => ctx.persona?.principalId ?? '';
 const authProject = (ctx: HandlerContext, projectId: string): boolean =>
@@ -84,16 +80,11 @@ function validate(ctx: HandlerContext, input: Record<string, unknown>, allowed: 
   return { title, rules };
 }
 const keyOf = (ctx: HandlerContext, input: Record<string, unknown>): string => requireDraftRequestKey(ctx, input);
-function conflict(ctx: HandlerContext): never {
-  throw new ApiError({ status: 409, code: 'idempotency_key_reused', messageKey: 'pricing:policyConflict', correlationId: ctx.correlationId, changed: false });
-}
-function replay(ctx: HandlerContext, key: string, op: Op, target: string, fingerprint: string): PricingPolicyDraft | undefined {
-  const prior = ownReplay(state(ctx)?.keys, key);
-  if (!prior) return undefined;
-  if (prior.op !== op || prior.target !== target || prior.principal !== principal(ctx) || prior.fingerprint !== fingerprint) conflict(ctx);
-  own(ctx, prior.response.id); // Recheck current permission, project and creator *before* replay.
-  return clone(prior.response);
-}
+const stale = (ctx: HandlerContext): never => staleVersion(ctx, 'pricing:policyConflict');
+/** E.0's bound replay; current permission, project and creator are rechecked *before* a replay. */
+const replay = (ctx: HandlerContext, op: Op, target: string, input: unknown, stillAuthorized: () => boolean) =>
+  replayDraft(ctx, state(ctx)?.idempotency, { op: `pricing.policy.${op}`, target, input, stillAuthorized },
+    (id) => state(ctx)?.policies.find((p) => p.id === id && readable(ctx, p)));
 const summary = (p: PricingPolicyDraft) => ({
   id: p.id, projectId: p.projectId, title: p.versions.at(-1)!.title,
   currentVersion: p.currentVersion, state: 'draft' as const,
@@ -127,12 +118,12 @@ export const PRICING_POLICY_HANDLERS: readonly Handler[] = [
       const input = body(ctx);
       if (typeof input.projectId !== 'string' || !authProject(ctx, input.projectId)) notFound(ctx);
       const parsed = validate(ctx, input, ['projectId', 'title', 'rules', 'idempotencyKey']);
-      const key = keyOf(ctx, input);
-      const fingerprint = JSON.stringify(parsed);
-      const previous = replay(ctx, key, 'create', input.projectId, fingerprint);
+      keyOf(ctx, input);
+      const projectId = input.projectId;
+      const previous = replay(ctx, 'create', projectId, parsed, () => authProject(ctx, projectId));
       if (previous) return previous;
       const current = ctx.demo.peekSection<Store>(SECTION);
-      if (current && (current.version !== 1 || current.tenantId !== ctx.tenantId)) conflict(ctx);
+      if (current && (current.version !== 1 || current.tenantId !== ctx.tenantId)) stale(ctx);
       const store = ctx.demo.section<Store>(SECTION, () => init(ctx.tenantId!));
       const policy: PricingPolicyDraft = {
         id: `prp_${String(store.next).padStart(6, '0')}`,
@@ -143,7 +134,7 @@ export const PRICING_POLICY_HANDLERS: readonly Handler[] = [
       };
       store.next += 1;
       store.policies.push(policy);
-      store.keys[key] = { op: 'create', principal: principal(ctx), target: policy.projectId, fingerprint, response: clone(policy) };
+      rememberDraft(ctx, (store.idempotency ??= {}), { op: 'pricing.policy.create', target: policy.projectId, input: parsed }, policy);
       ctx.demo.save();
       return clone(policy);
     },
@@ -157,18 +148,19 @@ export const PRICING_POLICY_HANDLERS: readonly Handler[] = [
       const input = body(ctx);
       if (!Number.isSafeInteger(input.expectedVersion) || (input.expectedVersion as number) < 1) invalid(ctx, 'expectedVersion');
       const parsed = validate(ctx, input, ['expectedVersion', 'title', 'rules', 'idempotencyKey']);
-      const key = keyOf(ctx, input);
-      const fingerprint = JSON.stringify([input.expectedVersion, parsed]);
-      const previous = replay(ctx, key, 'revise', policy.id, fingerprint);
+      keyOf(ctx, input);
+      const bound = { expectedVersion: input.expectedVersion, ...parsed };
+      const previous = replay(ctx, 'revise', policy.id, bound, () => readable(ctx, policy));
       if (previous) return previous;
-      if (policy.currentVersion !== input.expectedVersion) conflict(ctx);
+      if (policy.currentVersion !== input.expectedVersion) stale(ctx);
       const next: PricingPolicyDraftVersion = {
         version: policy.currentVersion + 1, ...parsed, createdAt: ctx.at,
         createdBy: principal(ctx), state: 'draft',
       };
       policy.versions.push(next);
       policy.currentVersion = next.version;
-      state(ctx)!.keys[key] = { op: 'revise', principal: principal(ctx), target: policy.id, fingerprint, response: clone(policy) };
+      const store = state(ctx)!;
+      rememberDraft(ctx, (store.idempotency ??= {}), { op: 'pricing.policy.revise', target: policy.id, input: bound }, policy);
       ctx.demo.save();
       return clone(policy);
     },

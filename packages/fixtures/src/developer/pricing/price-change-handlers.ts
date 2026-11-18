@@ -1,5 +1,7 @@
-import { ownReplay, requireDraftRequestKey } from './request-key';
-import { ApiError, type UnitPriceChangeDraft, type UnitPriceChangeDraftList, type UnitPriceChangeDraftVersion } from '@repo/contracts';
+import { requireDraftRequestKey } from './request-key';
+import { rememberDraft, replayDraft, staleVersion } from './draft-replay';
+import type { IdempotencyStore } from '../../idempotency';
+import { type UnitPriceChangeDraft, type UnitPriceChangeDraftList, type UnitPriceChangeDraftVersion } from '@repo/contracts';
 import { invalid, notFound, requires, type Handler, type HandlerContext } from '../../handler-types';
 import { projectVisible } from '../scope';
 import { inventoryVisible } from '../inventory/scope';
@@ -8,9 +10,9 @@ import { fromPaisa, toPaisa, InvalidCommercialRule } from './commercial-calculat
 const SECTION = 'developer.pricing.price-change-drafts';
 const PRICE = { module: 'inventory', permission: 'pricing.manage' } as const;
 type Op = 'create' | 'revise';
-interface Bound { op: Op; actor: string; target: string; fingerprint: string; result: UnitPriceChangeDraft }
-interface Store { version: 1; tenantId: string; next: number; drafts: UnitPriceChangeDraft[]; keys: Record<string, Bound> }
-const empty = (tenantId: string): Store => ({ version: 1, tenantId, next: 1, drafts: [], keys: Object.create(null) as Record<string, Bound> });
+/** `idempotency`: E.0 bound entries (`replayOf` / `remember`); absent in a section written before Wave 2. */
+interface Store { version: 1; tenantId: string; next: number; drafts: UnitPriceChangeDraft[]; idempotency?: IdempotencyStore }
+const empty = (tenantId: string): Store => ({ version: 1, tenantId, next: 1, drafts: [], idempotency: {} });
 const copy = <T,>(x: T): T => structuredClone(x);
 const actor = (ctx: HandlerContext) => ctx.persona?.principalId ?? '';
 // pricing.manage through E.0's projectVisible (header project applies), the unit through E.2's inventory scope.
@@ -53,17 +55,11 @@ function proposed(ctx: HandlerContext, body: Record<string, unknown>, allowedKey
   return { proposedPrice: fromPaisa(cents), reason };
 }
 const key = (ctx: HandlerContext, body: Record<string, unknown>) => requireDraftRequestKey(ctx, body);
-function conflict(ctx: HandlerContext): never {
-  throw new ApiError({ status: 409, code: 'idempotency_key_reused',
-    messageKey: 'pricing:priceChangeConflict', correlationId: ctx.correlationId, changed: false });
-}
-function replay(ctx: HandlerContext, id: string, op: Op, target: string, fingerprint: string) {
-  const old = ownReplay(recordStore(ctx)?.keys, id);
-  if (!old) return undefined;
-  if (old.op !== op || old.actor !== actor(ctx) || old.target !== target || old.fingerprint !== fingerprint) conflict(ctx);
-  own(ctx, old.result.id); // Revalidate original draft/unit and current scope before returning.
-  return copy(old.result);
-}
+const stale = (ctx: HandlerContext): never => staleVersion(ctx, 'pricing:priceChangeConflict');
+/** E.0's bound replay; the original draft, its unit and the current scope are revalidated before returning. */
+const replay = (ctx: HandlerContext, op: Op, target: string, input: unknown, stillAuthorized: () => boolean) =>
+  replayDraft(ctx, recordStore(ctx)?.idempotency, { op: `pricing.price_change.${op}`, target, input, stillAuthorized },
+    (id) => recordStore(ctx)?.drafts.find((d) => d.id === id && canRead(ctx, d)));
 
 export const UNIT_PRICE_CHANGE_HANDLERS: readonly Handler[] = [
   {
@@ -94,11 +90,11 @@ export const UNIT_PRICE_CHANGE_HANDLERS: readonly Handler[] = [
       const body = requestBody(ctx);
       const fields = proposed(ctx, body, ['proposedPrice', 'reason', 'idempotencyKey']);
       if (toPaisa(fields.proposedPrice) === toPaisa(unit.price)) invalid(ctx, 'proposedPrice');
-      const reqKey = key(ctx, body), fingerprint = JSON.stringify(fields);
-      const old = replay(ctx, reqKey, 'create', unit.id, fingerprint);
+      key(ctx, body);
+      const old = replay(ctx, 'create', unit.id, fields, () => allowed(ctx, unit.projectId));
       if (old) return old;
       const previous = ctx.demo.peekSection<Store>(SECTION);
-      if (previous && (previous.tenantId !== ctx.tenantId || previous.version !== 1)) conflict(ctx);
+      if (previous && (previous.tenantId !== ctx.tenantId || previous.version !== 1)) stale(ctx);
       const state = ctx.demo.section<Store>(SECTION, () => empty(ctx.tenantId!));
       const draft: UnitPriceChangeDraft = {
         id: `pcd_${String(state.next).padStart(6, '0')}`, tenantId: ctx.tenantId!,
@@ -108,7 +104,7 @@ export const UNIT_PRICE_CHANGE_HANDLERS: readonly Handler[] = [
         state: 'draft', effective: false, approvalAllowed: false, changesListedPrice: false,
       };
       state.next += 1; state.drafts.push(draft);
-      state.keys[reqKey] = { op: 'create', actor: actor(ctx), target: unit.id, fingerprint, result: copy(draft) };
+      rememberDraft(ctx, (state.idempotency ??= {}), { op: 'pricing.price_change.create', target: unit.id, input: fields }, draft);
       ctx.demo.save();
       return copy(draft);
     },
@@ -122,17 +118,18 @@ export const UNIT_PRICE_CHANGE_HANDLERS: readonly Handler[] = [
       if (!Number.isSafeInteger(body.expectedVersion) || (body.expectedVersion as number) < 1) invalid(ctx, 'expectedVersion');
       const fields = proposed(ctx, body, ['expectedVersion', 'proposedPrice', 'reason', 'idempotencyKey']);
       if (toPaisa(fields.proposedPrice) === toPaisa(draft.baselinePrice)) invalid(ctx, 'proposedPrice');
-      const reqKey = key(ctx, body);
-      const fingerprint = JSON.stringify([body.expectedVersion, fields]);
-      const old = replay(ctx, reqKey, 'revise', draft.id, fingerprint);
+      key(ctx, body);
+      const bound = { expectedVersion: body.expectedVersion, ...fields };
+      const old = replay(ctx, 'revise', draft.id, bound, () => canRead(ctx, draft));
       if (old) return old;
-      if (draft.currentVersion !== body.expectedVersion) conflict(ctx);
+      if (draft.currentVersion !== body.expectedVersion) stale(ctx);
       const next: UnitPriceChangeDraftVersion = {
         version: draft.currentVersion + 1, ...fields, createdAt: ctx.at,
         createdBy: actor(ctx), state: 'draft',
       };
       draft.versions.push(next); draft.currentVersion = next.version;
-      recordStore(ctx)!.keys[reqKey] = { op: 'revise', actor: actor(ctx), target: draft.id, fingerprint, result: copy(draft) };
+      const state = recordStore(ctx)!;
+      rememberDraft(ctx, (state.idempotency ??= {}), { op: 'pricing.price_change.revise', target: draft.id, input: bound }, draft);
       ctx.demo.save();
       return copy(draft);
     },

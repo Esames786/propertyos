@@ -1,5 +1,7 @@
-import { ownReplay, requireDraftRequestKey } from './request-key';
-import { ApiError, type PaymentPlanTemplate, type PaymentPlanTemplateList, type PaymentPlanTemplateSummary, type PaymentPlanTemplateVersion } from '@repo/contracts';
+import { requireDraftRequestKey } from './request-key';
+import { rememberDraft, replayDraft, staleVersion } from './draft-replay';
+import type { IdempotencyStore } from '../../idempotency';
+import { type PaymentPlanTemplate, type PaymentPlanTemplateList, type PaymentPlanTemplateSummary, type PaymentPlanTemplateVersion } from '@repo/contracts';
 import { invalid, notFound, requires, type Handler, type HandlerContext } from '../../handler-types';
 import { projectVisible } from '../scope';
 import { allocationsOf, InvalidPlanError } from './calculator';
@@ -7,21 +9,15 @@ import { allocationsOf, InvalidPlanError } from './calculator';
 /** Drafts are tenant-partitioned, creator-private, and have no approval/publishing path. */
 const SECTION = 'developer.pricing.templates';
 const NEED = { module: 'inventory', permission: 'pricing.manage' } as const;
-interface BoundRequest {
-  operation: 'create' | 'revise';
-  principalId: string;
-  target: string;
-  fingerprint: string;
-  response: PaymentPlanTemplate;
-}
 interface TemplateStore {
   version: 1;
   tenantId: string;
   nextSequence: number;
   templates: PaymentPlanTemplate[];
-  requests: Record<string, BoundRequest>;
+  /** E.0 bound idempotency entries (`replayOf` / `remember`); absent in a section written before Wave 2. */
+  idempotency?: IdempotencyStore;
 }
-const empty = (tenantId: string): TemplateStore => ({ version: 1, tenantId, nextSequence: 1, templates: [], requests: {} });
+const empty = (tenantId: string): TemplateStore => ({ version: 1, tenantId, nextSequence: 1, templates: [], idempotency: {} });
 const snapshot = (v: PaymentPlanTemplate): PaymentPlanTemplate => structuredClone(v);
 const state = (ctx: HandlerContext): TemplateStore | undefined => {
   const stored = ctx.demo.peekSection<TemplateStore>(SECTION);
@@ -59,18 +55,13 @@ function parsed(ctx: HandlerContext, raw: Record<string, unknown>, keys: readonl
   }
   return { title, allocations };
 }
+/** E.3's stricter pre-check (a key is required; header and body keys agree), before E.0's bound replay. */
 const requestKey = (ctx: HandlerContext): string => requireDraftRequestKey(ctx);
-function collision(ctx: HandlerContext): never {
-  throw new ApiError({ status: 409, code: 'idempotency_key_reused', messageKey: 'pricing:templateConflict', correlationId: ctx.correlationId, changed: false });
-}
-function checkReplay(ctx: HandlerContext, key: string, operation: BoundRequest['operation'], target: string, fingerprint: string): PaymentPlanTemplate | undefined {
-  const record = ownReplay(state(ctx)?.requests, key);
-  if (!record) return undefined;
-  if (record.operation !== operation || record.target !== target || record.principalId !== principal(ctx) || record.fingerprint !== fingerprint) collision(ctx);
-  // Permission, project, tenant and current creator check always run BEFORE replay is returned.
-  own(ctx, record.response.id);
-  return snapshot(record.response);
-}
+const stale = (ctx: HandlerContext): never => staleVersion(ctx, 'pricing:templateConflict');
+/** E.0's bound replay; permission, project, tenant and creator are checked again before a replay is returned. */
+const replay = (ctx: HandlerContext, op: 'create' | 'revise', target: string, input: unknown, stillAuthorized: () => boolean) =>
+  replayDraft(ctx, state(ctx)?.idempotency, { op: `pricing.template.${op}`, target, input, stillAuthorized },
+    (id) => state(ctx)?.templates.find((t) => t.id === id && readable(ctx, t)));
 const summary = (t: PaymentPlanTemplate): PaymentPlanTemplateSummary => ({
   id: t.id, projectId: t.projectId,
   title: t.versions[t.versions.length - 1]!.title,
@@ -117,13 +108,12 @@ export const PLAN_TEMPLATE_HANDLERS: readonly Handler[] = [
       const input = body(ctx);
       const projectId = input.projectId;
       if (typeof projectId !== 'string' || !authProject(ctx, projectId)) notFound(ctx);
-      const key = requestKey(ctx);
+      requestKey(ctx);
       const validated = parsed(ctx, input, ['projectId', 'title', 'allocations', 'idempotencyKey']);
-      const fingerprint = JSON.stringify([validated.title, validated.allocations]);
-      const replay = checkReplay(ctx, key, 'create', projectId, fingerprint);
-      if (replay) return replay;
+      const replayed = replay(ctx, 'create', projectId, validated, () => authProject(ctx, projectId));
+      if (replayed) return replayed;
       const s = ctx.demo.section<TemplateStore>(SECTION, () => empty(ctx.tenantId!));
-      if (s.tenantId !== ctx.tenantId || s.version !== 1) collision(ctx);
+      if (s.tenantId !== ctx.tenantId || s.version !== 1) stale(ctx);
       const template: PaymentPlanTemplate = {
         id: `pt_${s.nextSequence.toString().padStart(6, '0')}`,
         tenantId: ctx.tenantId!, projectId, creatorPrincipalId: principal(ctx),
@@ -134,7 +124,7 @@ export const PLAN_TEMPLATE_HANDLERS: readonly Handler[] = [
       // These are the only writes; there is no approval, schedule, quote, invoice or settlement hook.
       s.nextSequence += 1;
       s.templates.push(template);
-      s.requests[key] = { operation: 'create', principalId: principal(ctx), target: projectId, fingerprint, response: snapshot(template) };
+      rememberDraft(ctx, (s.idempotency ??= {}), { op: 'pricing.template.create', target: projectId, input: validated }, template);
       ctx.demo.save();
       return snapshot(template);
     },
@@ -145,14 +135,14 @@ export const PLAN_TEMPLATE_HANDLERS: readonly Handler[] = [
     handle: (ctx): PaymentPlanTemplate => {
       const template = own(ctx, ctx.params.templateId);
       const input = body(ctx);
-      const key = requestKey(ctx);
+      requestKey(ctx);
       const expected = input.expectedVersion;
       if (!Number.isSafeInteger(expected) || (expected as number) < 1) invalid(ctx, 'expectedVersion');
       const validated = parsed(ctx, input, ['expectedVersion', 'title', 'allocations', 'idempotencyKey']);
-      const fingerprint = JSON.stringify([expected, validated.title, validated.allocations]);
-      const replay = checkReplay(ctx, key, 'revise', template.id, fingerprint);
-      if (replay) return replay;
-      if (template.currentVersion !== expected) collision(ctx);
+      const bound = { expectedVersion: expected, ...validated };
+      const replayed = replay(ctx, 'revise', template.id, bound, () => readable(ctx, template));
+      if (replayed) return replayed;
+      if (template.currentVersion !== expected) stale(ctx);
       const next: PaymentPlanTemplateVersion = {
         version: template.currentVersion + 1, ...validated, createdBy: principal(ctx),
         createdAt: ctx.at, state: 'draft',
@@ -160,7 +150,8 @@ export const PLAN_TEMPLATE_HANDLERS: readonly Handler[] = [
       // Mutate only after all permissions, schema, version and key checks pass.
       template.versions.push(next);
       template.currentVersion = next.version;
-      state(ctx)!.requests[key] = { operation: 'revise', principalId: principal(ctx), target: template.id, fingerprint, response: snapshot(template) };
+      const s = state(ctx)!;
+      rememberDraft(ctx, (s.idempotency ??= {}), { op: 'pricing.template.revise', target: template.id, input: bound }, template);
       ctx.demo.save();
       return snapshot(template);
     },

@@ -1,5 +1,7 @@
-import { ownReplay, requireDraftRequestKey } from './request-key';
-import { ApiError, type PricingApprovalDraft, type PricingApprovalDraftList, type PricingApprovalDraftVersion, type PricingApprovalRule, type PricingApprovalSubject } from '@repo/contracts';
+import { requireDraftRequestKey } from './request-key';
+import { rememberDraft, replayDraft, staleVersion } from './draft-replay';
+import type { IdempotencyStore } from '../../idempotency';
+import { type PricingApprovalDraft, type PricingApprovalDraftList, type PricingApprovalDraftVersion, type PricingApprovalRule, type PricingApprovalSubject } from '@repo/contracts';
 import { invalid, notFound, requires, type Handler, type HandlerContext } from '../../handler-types';
 import { projectVisible } from '../scope';
 import { fromPaisa, toPaisa, InvalidCommercialRule } from './commercial-calculator';
@@ -8,9 +10,9 @@ const SECTION = 'developer.pricing.approval-rules';
 const NEED = { module: 'inventory', permission: 'pricing.manage' } as const;
 const SUBJECTS: readonly PricingApprovalSubject[] = ['unit_price_change', 'discount_exception', 'fee_exception', 'payment_plan_exception'];
 type Op = 'create' | 'revise';
-interface Replay { op: Op; principalId: string; target: string; fingerprint: string; snapshot: PricingApprovalDraft }
-interface Store { version: 1; tenantId: string; next: number; drafts: PricingApprovalDraft[]; keys: Record<string, Replay> }
-const fresh = (tenantId: string): Store => ({ version: 1, tenantId, next: 1, drafts: [], keys: Object.create(null) as Record<string, Replay> });
+/** `idempotency`: E.0 bound entries (`replayOf` / `remember`); absent in a section written before Wave 2. */
+interface Store { version: 1; tenantId: string; next: number; drafts: PricingApprovalDraft[]; idempotency?: IdempotencyStore }
+const fresh = (tenantId: string): Store => ({ version: 1, tenantId, next: 1, drafts: [], idempotency: {} });
 const clone = (d: PricingApprovalDraft) => structuredClone(d);
 const principal = (ctx: HandlerContext) => ctx.persona?.principalId ?? '';
 const permitted = (ctx: HandlerContext, projectId: string): boolean =>
@@ -62,16 +64,11 @@ function normalize(ctx: HandlerContext, v: Record<string, unknown>, allowed: rea
   return { title, rules };
 }
 const key = (ctx: HandlerContext, v: Record<string, unknown>): string => requireDraftRequestKey(ctx, v);
-function collision(ctx: HandlerContext): never {
-  throw new ApiError({ status: 409, code: 'idempotency_key_reused', messageKey: 'pricing:approvalConflict', correlationId: ctx.correlationId, changed: false });
-}
-function replay(ctx: HandlerContext, k: string, op: Op, target: string, fingerprint: string) {
-  const r = ownReplay(stored(ctx)?.keys, k);
-  if (!r) return undefined;
-  if (r.op !== op || r.principalId !== principal(ctx) || r.target !== target || r.fingerprint !== fingerprint) collision(ctx);
-  own(ctx, r.snapshot.id); // Re-authorize original, not just the current request.
-  return clone(r.snapshot);
-}
+const stale = (ctx: HandlerContext): never => staleVersion(ctx, 'pricing:approvalConflict');
+/** E.0's bound replay; the original is re-authorized, not just the current request. */
+const replay = (ctx: HandlerContext, op: Op, target: string, input: unknown, stillAuthorized: () => boolean) =>
+  replayDraft(ctx, stored(ctx)?.idempotency, { op: `pricing.approval.${op}`, target, input, stillAuthorized },
+    (id) => stored(ctx)?.drafts.find((d) => d.id === id && visible(ctx, d)));
 const short = (d: PricingApprovalDraft) => ({
   id: d.id, projectId: d.projectId, title: d.versions.at(-1)!.title,
   currentVersion: d.currentVersion, state: 'draft' as const,
@@ -101,11 +98,12 @@ export const APPROVAL_DRAFT_HANDLERS: readonly Handler[] = [
       const body = input(ctx);
       if (typeof body.projectId !== 'string' || !permitted(ctx, body.projectId)) notFound(ctx);
       const v = normalize(ctx, body, ['projectId', 'title', 'rules', 'idempotencyKey']);
-      const k = key(ctx, body), fingerprint = JSON.stringify(v);
-      const old = replay(ctx, k, 'create', body.projectId, fingerprint);
+      key(ctx, body);
+      const projectId = body.projectId;
+      const old = replay(ctx, 'create', projectId, v, () => permitted(ctx, projectId));
       if (old) return old;
       const existing = ctx.demo.peekSection<Store>(SECTION);
-      if (existing && (existing.version !== 1 || existing.tenantId !== ctx.tenantId)) collision(ctx);
+      if (existing && (existing.version !== 1 || existing.tenantId !== ctx.tenantId)) stale(ctx);
       const store = ctx.demo.section<Store>(SECTION, () => fresh(ctx.tenantId!));
       const draft: PricingApprovalDraft = {
         id: `pad_${String(store.next).padStart(6, '0')}`, tenantId: ctx.tenantId!, projectId: body.projectId,
@@ -115,7 +113,7 @@ export const APPROVAL_DRAFT_HANDLERS: readonly Handler[] = [
       };
       store.next += 1;
       store.drafts.push(draft);
-      store.keys[k] = { op: 'create', principalId: principal(ctx), target: draft.projectId, fingerprint, snapshot: clone(draft) };
+      rememberDraft(ctx, (store.idempotency ??= {}), { op: 'pricing.approval.create', target: draft.projectId, input: v }, draft);
       ctx.demo.save();
       return clone(draft);
     },
@@ -127,15 +125,17 @@ export const APPROVAL_DRAFT_HANDLERS: readonly Handler[] = [
       const draft = own(ctx, ctx.params.draftId), body = input(ctx);
       if (!Number.isSafeInteger(body.expectedVersion) || (body.expectedVersion as number) < 1) invalid(ctx, 'expectedVersion');
       const v = normalize(ctx, body, ['title', 'rules', 'expectedVersion', 'idempotencyKey']);
-      const k = key(ctx, body), fingerprint = JSON.stringify([body.expectedVersion, v]);
-      const old = replay(ctx, k, 'revise', draft.id, fingerprint);
+      key(ctx, body);
+      const bound = { expectedVersion: body.expectedVersion, ...v };
+      const old = replay(ctx, 'revise', draft.id, bound, () => visible(ctx, draft));
       if (old) return old;
-      if (draft.currentVersion !== body.expectedVersion) collision(ctx);
+      if (draft.currentVersion !== body.expectedVersion) stale(ctx);
       const next: PricingApprovalDraftVersion = {
         version: draft.currentVersion + 1, ...v, createdAt: ctx.at, createdBy: principal(ctx), state: 'draft',
       };
       draft.versions.push(next); draft.currentVersion = next.version;
-      stored(ctx)!.keys[k] = { op: 'revise', principalId: principal(ctx), target: draft.id, fingerprint, snapshot: clone(draft) };
+      const store = stored(ctx)!;
+      rememberDraft(ctx, (store.idempotency ??= {}), { op: 'pricing.approval.revise', target: draft.id, input: bound }, draft);
       ctx.demo.save();
       return clone(draft);
     },

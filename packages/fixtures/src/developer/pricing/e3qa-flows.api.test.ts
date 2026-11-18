@@ -197,14 +197,39 @@ for (const f of FAMILIES) {
       expect(w.rows(f)).toHaveLength(2);
     });
 
-    it('a stale expected version is a 409 and changes nothing; the current version succeeds', async () => {
+    it('a stale expected version is a 409 stale_version (not a key reuse) and changes nothing; the current version succeeds', async () => {
       const w = world();
       const d = await w.send<Draft>('POST', f.create(), f.createBody(target), 'qa-create-key-000003');
       await w.send('POST', f.revise(d.id), f.reviseBody(1, 2), 'qa-tab-a-key-000004');
       const before = w.state();
-      expect(await refused(w.send('POST', f.revise(d.id), f.reviseBody(1, 3), 'qa-tab-b-key-000005'))).toEqual({ status: 409, code: 'idempotency_key_reused', changed: false });
+      expect(await refused(w.send('POST', f.revise(d.id), f.reviseBody(1, 3), 'qa-tab-b-key-000005'))).toEqual({ status: 409, code: 'stale_version', changed: false });
       expect(w.state()).toBe(before);
       expect((await w.send<Draft>('POST', f.revise(d.id), f.reviseBody(2, 3), 'qa-tab-b-key-000006')).currentVersion).toBe(3);
+    });
+
+    it('E.0 bound keys: an exact replay after later revisions returns what it returned then; any other use of a key is the one 409 idempotency_key_reused', async () => {
+      const w = world();
+      const d = await w.send<Draft>('POST', f.create(), f.createBody(target), 'qa-bound-key-000001');
+      const v2 = await w.send<Draft>('POST', f.revise(d.id), f.reviseBody(1, 2), 'qa-bound-key-000002');
+      await w.send<Draft>('POST', f.revise(d.id), f.reviseBody(2, 3), 'qa-bound-key-000003');
+      w.reload();
+      const before = w.state();
+      // History is append-only, so the original answers are rebuilt exactly (not today's draft).
+      expect(await w.send<Draft>('POST', f.create(), f.createBody(target), 'qa-bound-key-000001')).toEqual(d);
+      expect(await w.send<Draft>('POST', f.revise(d.id), f.reviseBody(1, 2), 'qa-bound-key-000002')).toEqual(v2);
+      const reused = { status: 409, code: 'idempotency_key_reused', changed: false };
+      // The create's key on a revision, a revision's key with other input, and a revision's key as a create.
+      expect(await refused(w.send('POST', f.revise(d.id), f.reviseBody(3, 4), 'qa-bound-key-000001'))).toEqual(reused);
+      expect(await refused(w.send('POST', f.revise(d.id), f.reviseBody(1, 9), 'qa-bound-key-000002'))).toEqual(reused);
+      expect(await refused(w.send('POST', f.create(), f.createBody(target), 'qa-bound-key-000003'))).toEqual(reused);
+      // Another person reusing the creator's key gets the same answer (bound to the principal), not the draft.
+      w.as(E3QA_PRICING_PEER.id);
+      expect(await refused(w.send('POST', f.create(), f.createBody(target), 'qa-bound-key-000001'))).toEqual(reused);
+      expect(w.state()).toBe(before);
+      // A stale version under a fresh key is told apart from a reused key.
+      w.as(E3QA_PRICING.id);
+      expect(await refused(w.send('POST', f.revise(d.id), f.reviseBody(1, 9), 'qa-bound-key-000004'))).toEqual({ status: 409, code: 'stale_version', changed: false });
+      expect(w.state()).toBe(before);
     });
 
     it('a header key and a body key that differ are refused (422) before any id, version or key is used', async () => {
@@ -309,8 +334,8 @@ for (const f of FAMILIES) {
     });
 
     it('a valid key that names an Object.prototype member is an ordinary key, before and after a reload', async () => {
-      // The request-key format admits 12–100 of [A-Za-z0-9._:-], so these are valid keys. The replay maps come
-      // back from session storage as plain objects, where `map[key]` finds the inherited member.
+      // The request-key format admits 12–80 of [A-Za-z0-9._:-], so these are valid keys. The E.0 key store comes
+      // back from session storage as a plain object, where `store[key]` would find the inherited member.
       for (const key of ['hasOwnProperty', 'isPrototypeOf', 'toLocaleString', 'propertyIsEnumerable', '__defineGetter__', '__lookupSetter__']) {
         const w = world();
         const first = await w.send<Draft>('POST', f.create(), f.createBody(target), 'qa-ordinary-key-0001');

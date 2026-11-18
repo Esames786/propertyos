@@ -1,5 +1,7 @@
-import { ownReplay, requireDraftRequestKey } from './request-key';
-import { ApiError, type CommercialRulesDraft, type CommercialRulesDraftList, type CommercialRulesDraftVersion, type CommercialRulesPreview } from '@repo/contracts';
+import { requireDraftRequestKey } from './request-key';
+import { rememberDraft, replayDraft, staleVersion } from './draft-replay';
+import type { IdempotencyStore } from '../../idempotency';
+import { type CommercialRulesDraft, type CommercialRulesDraftList, type CommercialRulesDraftVersion, type CommercialRulesPreview } from '@repo/contracts';
 import { invalid, notFound, requires, type Handler, type HandlerContext } from '../../handler-types';
 import { projectVisible } from '../scope';
 import { inventoryVisible } from '../inventory/scope';
@@ -8,22 +10,16 @@ import { InvalidCommercialRule, previewCommercial, validateCommercialRules } fro
 const SECTION = 'developer.pricing.commercial';
 const NEED = { module: 'inventory', permission: 'pricing.manage' } as const;
 type Operation = 'create' | 'revise';
-interface Remembered {
-  operation: Operation;
-  actor: string;
-  target: string;
-  fingerprint: string;
-  response: CommercialRulesDraft;
-}
 interface CommercialStore {
   version: 1;
   tenantId: string;
   next: number;
   drafts: CommercialRulesDraft[];
-  idempotency: Record<string, Remembered>;
+  /** E.0 bound idempotency entries (`replayOf` / `remember`); older unbound entries replay nothing. */
+  idempotency?: IdempotencyStore;
 }
 const make = (tenantId: string): CommercialStore => ({
-  version: 1, tenantId, next: 1, drafts: [], idempotency: Object.create(null) as Record<string, Remembered>,
+  version: 1, tenantId, next: 1, drafts: [], idempotency: {},
 });
 const clone = <T,>(value: T): T => structuredClone(value);
 const actor = (ctx: HandlerContext) => ctx.persona?.principalId ?? '';
@@ -61,16 +57,11 @@ function rulesOf(ctx: HandlerContext, raw: Record<string, unknown>, allowed: rea
   }
 }
 const keyOf = (ctx: HandlerContext, raw: Record<string, unknown>) => requireDraftRequestKey(ctx, raw);
-function conflict(ctx: HandlerContext): never {
-  throw new ApiError({ status: 409, code: 'idempotency_key_reused', messageKey: 'pricing:commercialConflict', correlationId: ctx.correlationId, changed: false });
-}
-function replay(ctx: HandlerContext, key: string, op: Operation, target: string, fingerprint: string) {
-  const prior = ownReplay(readStore(ctx)?.idempotency, key);
-  if (!prior) return undefined;
-  if (prior.operation !== op || prior.actor !== actor(ctx) || prior.target !== target || prior.fingerprint !== fingerprint) conflict(ctx);
-  getDraft(ctx, prior.response.id); // Authorization rechecked at time of retry.
-  return clone(prior.response);
-}
+const stale = (ctx: HandlerContext): never => staleVersion(ctx, 'pricing:commercialConflict');
+/** E.0's bound replay; authorization is rechecked at the time of the retry. */
+const replay = (ctx: HandlerContext, op: Operation, target: string, input: unknown, stillAuthorized: () => boolean) =>
+  replayDraft(ctx, readStore(ctx)?.idempotency, { op: `pricing.commercial.${op}`, target, input, stillAuthorized },
+    (id) => readStore(ctx)?.drafts.find((d) => d.id === id && canRead(ctx, d)));
 const summary = (d: CommercialRulesDraft) => ({
   id: d.id, projectId: d.projectId, title: d.versions.at(-1)!.title,
   currentVersion: d.currentVersion, state: 'draft' as const,
@@ -101,12 +92,12 @@ export const COMMERCIAL_HANDLERS: readonly Handler[] = [
       const raw = payload(ctx);
       if (typeof raw.projectId !== 'string' || !inProject(ctx, raw.projectId)) notFound(ctx);
       const values = rulesOf(ctx, raw, ['projectId', 'title', 'fees', 'discounts', 'idempotencyKey']);
-      const key = keyOf(ctx, raw);
-      const fingerprint = JSON.stringify(values);
-      const prior = replay(ctx, key, 'create', raw.projectId, fingerprint);
+      keyOf(ctx, raw);
+      const projectId = raw.projectId;
+      const prior = replay(ctx, 'create', projectId, values, () => inProject(ctx, projectId));
       if (prior) return prior;
       const previous = ctx.demo.peekSection<CommercialStore>(SECTION);
-      if (previous && (previous.version !== 1 || previous.tenantId !== ctx.tenantId)) conflict(ctx);
+      if (previous && (previous.version !== 1 || previous.tenantId !== ctx.tenantId)) stale(ctx);
       const store = ctx.demo.section<CommercialStore>(SECTION, () => make(ctx.tenantId!));
       const draft: CommercialRulesDraft = {
         id: `cdr_${String(store.next).padStart(6, '0')}`, tenantId: ctx.tenantId!,
@@ -117,7 +108,7 @@ export const COMMERCIAL_HANDLERS: readonly Handler[] = [
       };
       store.next += 1;
       store.drafts.push(draft);
-      store.idempotency[key] = { operation: 'create', actor: actor(ctx), target: raw.projectId, fingerprint, response: clone(draft) };
+      rememberDraft(ctx, (store.idempotency ??= {}), { op: 'pricing.commercial.create', target: projectId, input: values }, draft);
       ctx.demo.save();
       return clone(draft);
     },
@@ -130,17 +121,18 @@ export const COMMERCIAL_HANDLERS: readonly Handler[] = [
       const raw = payload(ctx);
       if (!Number.isSafeInteger(raw.expectedVersion) || (raw.expectedVersion as number) < 1) invalid(ctx, 'expectedVersion');
       const values = rulesOf(ctx, raw, ['expectedVersion', 'title', 'fees', 'discounts', 'idempotencyKey']);
-      const key = keyOf(ctx, raw);
-      const fingerprint = JSON.stringify([raw.expectedVersion, values]);
-      const prior = replay(ctx, key, 'revise', draft.id, fingerprint);
+      keyOf(ctx, raw);
+      const bound = { expectedVersion: raw.expectedVersion, ...values };
+      const prior = replay(ctx, 'revise', draft.id, bound, () => canRead(ctx, draft));
       if (prior) return prior;
-      if (draft.currentVersion !== raw.expectedVersion) conflict(ctx);
+      if (draft.currentVersion !== raw.expectedVersion) stale(ctx);
       const next: CommercialRulesDraftVersion = {
         version: draft.currentVersion + 1, ...values, createdAt: ctx.at, createdBy: actor(ctx), state: 'draft',
       };
       draft.versions.push(next);
       draft.currentVersion = next.version;
-      readStore(ctx)!.idempotency[key] = { operation: 'revise', actor: actor(ctx), target: draft.id, fingerprint, response: clone(draft) };
+      const store = readStore(ctx)!;
+      rememberDraft(ctx, (store.idempotency ??= {}), { op: 'pricing.commercial.revise', target: draft.id, input: bound }, draft);
       ctx.demo.save();
       return clone(draft);
     },
