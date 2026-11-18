@@ -213,13 +213,14 @@ test.describe('Gate E.8 — maker ≠ checker, scope, the bank boundary and no o
     await page.goto(`${BO}/backoffice/sup/suppliers-list`);
     await expect(page.getByTestId('access-outcome')).toBeVisible();
     await expect(page.getByTestId('pay-supplier-list')).toHaveCount(0);
-    // A record screen without a record of its kind answers like a record never issued.
+    // A record screen given an id of another kind answers like a record never issued; its bare address says to
+    // choose one from the list (as E.2's Project 360), never "not found".
     await page.goto(`${BO}/backoffice/exp/expense-workspace?record=bud_lsp_heights_fy27`);
     await expect(page.getByTestId('state-not-found')).toBeVisible();
     expect(await page.locator('main').innerText()).toBe(hidden);
     await page.goto(`${BO}/backoffice/exp/expense-workspace`);
-    await expect(page.getByTestId('state-not-found')).toBeVisible();
-    expect(await page.locator('main').innerText()).toBe(hidden);
+    await expect(page.getByTestId('pay-choose-record')).toBeVisible();
+    await expect(page.getByTestId('state-not-found')).toHaveCount(0);
     expect(consoleErrors).toEqual([]);
   });
 
@@ -463,7 +464,7 @@ test.describe('Gate E.8 integration — E.13 connections and context', () => {
     await page.goto(`${BO}/backoffice/home/recent-activity?group=payables&range=30d`);
     await expect(page.getByTestId('recent-activity')).toBeVisible();
     await expect(page.locator('[data-testid="activity-row"][data-group="payables"]').first()).toBeVisible();
-    await expect(page.locator('[data-testid="activity-row"][data-record="sbl_lsp_0001"]').first()).toContainText('RCT');
+    await expect(page.locator('[data-testid="activity-row"][data-record="sbl_lsp_0001"]').first()).toContainText('Ravi Cement Traders');
     await axe(page, testInfo, 'e8-int-activity');
     expect(await page.locator('main').innerText()).not.toMatch(/3307|Demo Bank|••••/);
     expect(consoleErrors).toEqual([]);
@@ -494,7 +495,7 @@ test.describe('Gate E.8 integration — E.13 connections and context', () => {
   for (const locale of ['en-PK', 'ur-PK'] as const) {
     test(`"In progress" in ${lang(locale)}: the supplier's count opens the same bills; no "Open bills" anywhere`, async ({ page, consoleErrors }) => {
       await start(page, 'lsp_accounts', locale);
-      const word = locale === 'ur-PK' ? 'زیرِ کارروائی' : 'In progress';
+      const word = locale === 'ur-PK' ? /زیرِ کارروائی/ : /in progress/i;
       await page.goto(`${BO}/backoffice/sup/suppliers-list`);
       await expect(page.getByTestId('pay-supplier-list')).toContainText(word);
       await page.goto(`${BO}/backoffice/sup/supplier-360-workspace?record=sup_lsp_ravi`);

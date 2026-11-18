@@ -93,6 +93,12 @@ export const TYPE_ICON: Record<WorkspaceRecordType, LucideIcon> = {
 
 /** A reference never breaks inside itself: it moves to the next line whole (320 px at 200 % text). */
 export const NOWRAP = 'inline-block whitespace-nowrap [overflow-wrap:normal]';
+/**
+ * Gate E.8 (integration candidate): a record line's reference moves to the next line whole, and breaks inside
+ * only when it is wider than the whole line. E.8's references ("LSP-SB-2026-00004", 17 characters) are wider
+ * than a related-records card at 320 px with 200 % text, where NOWRAP ran them off the screen.
+ */
+export const REF_LINE = 'inline-block max-w-full [overflow-wrap:anywhere]';
 
 export function useHubFormat() {
   const { locale } = useLocale();
@@ -177,7 +183,7 @@ export function RecordLine({ record }: { record: RecordRef }) {
   const dt = dynamicT(t);
   return (
     <span className="block text-xs text-muted [overflow-wrap:anywhere]">
-      {typeLabel(record.type)} · <bdi dir="ltr" className={NOWRAP}>{unbroken(record.ref)}</bdi>
+      {typeLabel(record.type)} · <bdi dir="ltr" className={REF_LINE}>{unbroken(record.ref)}</bdi>
       {record.subtitleKey ? ` · ${dt(record.subtitleKey)}` : record.subtitle ? (
         <>
           {' · '}

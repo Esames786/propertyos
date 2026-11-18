@@ -770,5 +770,11 @@
   "related": {
     "title": "Connected records",
     "favourite": "Keep as a favourite"
+  },
+  "choose": {
+    "supplier": "This page shows one supplier. Choose a supplier from the suppliers list.",
+    "bill": "This page shows one supplier bill. Choose a bill from the bills list.",
+    "expense": "This page shows one expense or claim. Choose one from the expenses list.",
+    "budget": "This page shows one budget. Choose a budget from the budgets list."
   }
 }

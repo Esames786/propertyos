@@ -1,8 +1,8 @@
 import type { AccessTarget } from '@repo/contracts';
-import { NotFoundState, useQueryParam, useT } from '@repo/ui';
+import { NotFoundState, PageHeader, useQueryParam, useT } from '@repo/ui';
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
 import { DevScreen, devRoute } from '../../../prototype/dev-screen';
-import { EXP_TARGET, LinkButton, PAY, SUP_TARGET } from './apkit';
+import { EXP_TARGET, LinkButton, PAY, PayNav, SUP_TARGET } from './apkit';
 
 /**
  * Gate E.8 (integration candidate): the 17 payables and expenses screens at the
@@ -14,23 +14,40 @@ import { EXP_TARGET, LinkButton, PAY, SUP_TARGET } from './apkit';
  * Wave 2 integration (canonical seam notes §4): a person of a served edition whom the target refuses gets the
  * Gate B access outcome in words (`refusal="outcome"`, as E.2, E.7 and E.13), never data; an organisation of
  * another edition gets the register's page. Record screens are `DevScreen`s whose page reads its own
- * `?record` (as E.2's Project 360): an address without a record of the screen's kind answers exactly like a
- * record never issued, and the server refuses an out-of-scope id the same way.
+ * `?record` (as E.2's Project 360): an id of another kind answers exactly like a record never issued (and the
+ * server refuses an out-of-scope id the same way); the bare address says to choose a record from its list.
  */
 const named = <K extends string>(loader: () => Promise<Record<K, ComponentType<never>>>, name: K) => lazy(() => loader().then((m) => ({ default: m[name] as ComponentType })));
 
-/** Where each record screen's "not found" answer leads back to (the same as the page's own 404). */
+/**
+ * Each record screen's list (the page's own 404 leads back to it), title, section and "choose" words.
+ */
 const BACK = {
-  supplier: { href: PAY.suppliers(), labelKey: 'payables:suppliers.back' },
-  bill: { href: PAY.bills(), labelKey: 'payables:bills.back' },
-  expense: { href: PAY.expenses(), labelKey: 'payables:expenses.back' },
-  budget: { href: PAY.budgets(), labelKey: 'payables:budgets.back' },
+  supplier: { href: PAY.suppliers(), labelKey: 'payables:suppliers.back', titleKey: 'payables:supplier.title', listKey: 'payables:suppliers.title', chooseKey: 'payables:choose.supplier', nav: 'suppliers' },
+  bill: { href: PAY.bills(), labelKey: 'payables:bills.back', titleKey: 'payables:bill.title', listKey: 'payables:bills.title', chooseKey: 'payables:choose.bill', nav: 'bills' },
+  expense: { href: PAY.expenses(), labelKey: 'payables:expenses.back', titleKey: 'payables:expense.title', listKey: 'payables:expenses.title', chooseKey: 'payables:choose.expense', nav: 'expenses' },
+  budget: { href: PAY.budgets(), labelKey: 'payables:budgets.back', titleKey: 'payables:budget.title', listKey: 'payables:budgets.title', chooseKey: 'payables:choose.budget', nav: 'budgets' },
 } as const;
 type Back = (typeof BACK)[keyof typeof BACK];
 
+/** An id of another kind: exactly the page's own answer for a record never issued. */
 function NoRecord({ back }: { back: Back }) {
   const { t } = useT();
   return <NotFoundState headingLevel={1} actions={<LinkButton href={back.href}>{t(back.labelKey)}</LinkButton>} />;
+}
+
+/** The bare address (no `?record`): the screen shows one record, so it says to choose one (as E.2's Project 360). */
+function ChooseRecord({ back }: { back: Back }) {
+  const { t } = useT();
+  return (
+    <div className="@container space-y-5" data-testid="pay-choose-record">
+      <PageHeader title={t(back.titleKey)} description={t(back.chooseKey)} breadcrumbs={[{ label: t(back.listKey), href: back.href }, { label: t(back.titleKey) }]} />
+      <PayNav current={back.nav} />
+      <LinkButton href={back.href} variant="primary">
+        {t(back.labelKey)}
+      </LinkButton>
+    </div>
+  );
 }
 
 const record = <K extends string>(loader: () => Promise<Record<K, ComponentType<{ id: string }>>>, name: K, prefix: string, back: Back) =>
@@ -39,7 +56,8 @@ const record = <K extends string>(loader: () => Promise<Record<K, ComponentType<
       const Page: ComponentType<{ id: string }> = m[name];
       function RecordScreen() {
         const [id] = useQueryParam('record');
-        return id && id.startsWith(prefix) ? <Page id={id} /> : <NoRecord back={back} />;
+        if (!id) return <ChooseRecord back={back} />;
+        return id.startsWith(prefix) ? <Page id={id} /> : <NoRecord back={back} />;
       }
       return { default: RecordScreen };
     }),
