@@ -4,7 +4,7 @@ import { ALL_PERSONAS, findPersona } from '../../people';
 import { compareProjection } from '../../projection.testkit';
 import { LARKSPUR_ERP_ROLES } from '../../role-templates';
 import { ACCOUNTS_TWO, SECOND_ENTITY } from '../multientity.fixture';
-import { BOTH_HATS, HEIGHTS_READER, payWorld, refusal, SECOND_CHECKER, type PayWorld } from './pay-test-kit';
+import { BOTH_HATS, HEIGHTS_BANK_MAKER, HEIGHTS_READER, payWorld, refusal, SECOND_CHECKER, type PayWorld } from './pay-test-kit';
 import { seedPayables } from './state';
 
 /**
@@ -434,14 +434,15 @@ describe('the bank boundary', () => {
     const b = await approvedBill(w, { supplierId: 'sup_lsp_ravi' });
     const pay = await w.as('lsp_accounts').post<PaymentView>(`/supplier-bills/${b.id}/payments`, { amount: '1000' });
     expect(pay.payee).toMatchObject({ last4: '3307' });
-    expect(pay.payFrom?.maskedNumber).toContain('4021');
+    // Wave 1 base: Larkspur's registered collection account ends 7890 (E.0 and E.7 agree).
+    expect(pay.payFrom?.maskedNumber).toBe('•••• 7890');
     w.as('lsp_project_manager');
     const answers = { s360: await w.get<Supplier360>('/suppliers/sup_lsp_ravi'), bill: await w.get(`/supplier-bills/${b.id}`), pay: await w.get<PaymentView>(`/supplier-payments/${pay.id}`), list: await w.get('/supplier-payments'), suppliers: await w.get('/suppliers'), ledger: await w.get('/suppliers/sup_lsp_ravi/ledger') };
     expect(answers.s360).toMatchObject({ bankHidden: true, bankOnFile: null });
     expect(answers.s360.bank).toBeUndefined();
     expect(answers.pay).toMatchObject({ bankHidden: true });
     const text = JSON.stringify(answers);
-    for (const term of ['3307', '4021', 'Demo Bank', '••••', 'iban', 'IBAN']) expect(text.includes(term), term).toBe(false);
+    for (const term of ['3307', '7890', 'Demo Bank', '••••', 'iban', 'IBAN']) expect(text.includes(term), term).toBe(false);
     // Searching by a bank detail finds nothing (no oracle through search either).
     expect((await w.get<SuppliersList>('/suppliers', { q: '3307' })).items).toEqual([]);
   });
@@ -451,6 +452,36 @@ describe('the bank boundary', () => {
     const b = await approvedBill(w);
     w.access((p, a) => (p.id === 'lsp_accounts' || p.id === 'lsp_finance_controller' ? { ...a, permissions: a.permissions.filter((x) => x !== 'bank.view') } : a));
     expect((await refusedUnchanged(w, () => w.as('lsp_accounts').post(`/supplier-bills/${b.id}/payments`, { amount: '1' }))).code).toBe('permission_missing');
+  });
+
+  // Wave 2 integration: E.7's canonical boundary (ledger/scope.ts seesBank) is per WHOLE legal entity.
+  it('bank.view over part of the entity is not enough: no bank detail, and no payment instruction (E.7 seesBank)', async () => {
+    const w = payWorld();
+    const b = await approvedBill(w, { supplierId: 'sup_lsp_ravi' });
+    const pay = await w.as('lsp_accounts').post<PaymentView>(`/supplier-bills/${b.id}/payments`, { amount: '1000' });
+    w.as(HEIGHTS_BANK_MAKER.id);
+    // The Heights bill and its instruction are his to read (every line is Heights) ...
+    const answers = { s360: await w.get<Supplier360>('/suppliers/sup_lsp_ravi'), pay: await w.get<PaymentView>(`/supplier-payments/${pay.id}`) };
+    expect(answers.pay).toMatchObject({ id: pay.id, bankHidden: true });
+    expect(answers.s360).toMatchObject({ bankHidden: true, bankOnFile: null });
+    // ... but no account, bank name or last digits, exactly as E.7 decides for him.
+    const text = JSON.stringify(answers);
+    for (const term of ['3307', '7890', 'Demo Bank', '••••']) expect(text.includes(term), term).toBe(false);
+    const r = await refusedUnchanged(w, () => w.post(`/supplier-bills/${b.id}/payments`, { amount: '1' }));
+    expect(r).toMatchObject({ status: 404, code: 'out_of_scope' });
+    expect(await refusedUnchanged(w, () => w.post(`/supplier-payments/${pay.id}/cancel`, { reason: 'Probe only' }))).toMatchObject({ status: 404, code: 'out_of_scope' });
+  });
+
+  it('revoking bank.view hides the payee and paying account at once', async () => {
+    const w = payWorld();
+    const b = await approvedBill(w, { supplierId: 'sup_lsp_ravi' });
+    const pay = await w.as('lsp_accounts').post<PaymentView>(`/supplier-bills/${b.id}/payments`, { amount: '1000' });
+    expect(pay).toMatchObject({ bankHidden: false, payee: { last4: '3307' } });
+    w.access((p, a) => (p.id === 'lsp_accounts' ? { ...a, permissions: a.permissions.filter((x) => x !== 'bank.view') } : a));
+    const now = await w.get<PaymentView>(`/supplier-payments/${pay.id}`);
+    expect(now).toMatchObject({ bankHidden: true });
+    expect(now.payee).toBeUndefined();
+    expect(now.payFrom).toBeUndefined();
   });
 });
 

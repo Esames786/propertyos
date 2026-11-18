@@ -23,6 +23,7 @@ import type {
 } from '@repo/contracts';
 import { can as holds, notFound, type HandlerContext } from '../../handler-types';
 import { projectHistory, wholeOnly } from '../../projection';
+import { seesBank as seesBankFor } from '../ledger/scope';
 import { costCentreVisible, entityVisible, entityWhole, type ScopeNeed } from '../scope';
 import { developerState } from '../state';
 import { approvedVersion, BILL_FROM, BUDGET_FROM, can, EXPENSE_FROM, instructable, instructedOn, lineTotal, LIVE_PAYMENTS, money, openVersion, PAYMENT_FROM, sum, paisa } from './rules';
@@ -39,8 +40,11 @@ import { payablesState, payablesStateForWrite, type PayablesState, type StoredBi
  * - **Projection** (`projection.ts`). Entity-wide totals are `wholeOnly` (withheld from a partial reader,
  *   never recomputed); a supplier's activity is projected with `projectHistory` (an event about a bill
  *   the reader cannot see is left out).
- * - **Bank boundary.** A supplier's payee account (masked, last four only) and the paying account appear
- *   only for holders of `bank.view`; nothing else in payables names a bank.
+ * - **Bank boundary** (Wave 2 integration: E.7's canonical one, `ledger/scope.ts` `seesBank`). A supplier's
+ *   payee account (masked, last four only) and the paying account appear only to a reader who holds
+ *   `bank.view` (or `bank.reconcile`) over the WHOLE legal entity, on the banking module, exactly as E.7's
+ *   ledger and statement screens decide it; nothing else in payables names a bank. The paying account is
+ *   E.0's registered collection account (masked at the source, the account E.7 imports as `dca_lsp_01`).
  * - The header project filter is a view of projects; payables are scoped by legal entity and cost centre
  *   (register scope), so it is not applied here.
  */
@@ -75,7 +79,8 @@ export function writePx(p: Px): Px {
 
 export const may = (p: Px, permission: Permission) => holds(p.ctx, permission);
 export const me = (p: Px) => ({ principalId: p.ctx.persona?.principalId ?? '', name: p.ctx.persona?.displayName ?? '' });
-export const seesBank = (p: Px) => may(p, 'bank.view');
+/** E.7's bank boundary for one legal entity (a narrowed or revoked grant applies at once). */
+export const seesBank = (p: Px, entityId: string) => seesBankFor(p.ctx, entityId);
 
 export const entityRef = (e: DevLegalEntity): PayEntityRef => ({ id: e.id, name: e.name, code: e.code });
 export const entityOf = (p: Px, id: string): PayEntityRef => entityRef(p.dev.legalEntities.find((e) => e.id === id)!);
@@ -234,7 +239,7 @@ export function billView(p: Px, b: StoredBill): BillView {
 export function paymentView(p: Px, x: StoredPayment): PaymentView {
   const b = p.st.bills.find((y) => y.id === x.billId)!;
   const s = p.st.suppliers.find((y) => y.id === x.supplierId);
-  const bank = seesBank(p);
+  const bank = seesBank(p, x.legalEntityId);
   const acct = p.dev.collectionAccounts.find((a) => a.legalEntityId === x.legalEntityId);
   const approver = may(p, 'supplier_payment.approve') && paymentVisible(p, x, PAY_APPROVE);
   const maker = may(p, 'supplier.manage') && paymentVisible(p, x, SUP_MANAGE);
@@ -286,7 +291,7 @@ export function supplier360(p: Px, s: StoredSupplier) {
   const visibleBills = new Set(bills.map((b) => b.id));
   const all = p.st.bills.filter((b) => b.supplierId === s.id);
   const pays = p.st.payments.filter((x) => x.supplierId === s.id && visibleBills.has(x.billId));
-  const bank = seesBank(p);
+  const bank = seesBank(p, s.legalEntityId);
   const totals = wholeOnly(whole, {
     approvedObligation: money(sum(all.filter((b) => b.state === 'approved').map((b) => lineTotal(b.lines)))),
     awaitingApproval: money(sum(all.filter((b) => b.state === 'submitted').map((b) => lineTotal(b.lines)))),

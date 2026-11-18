@@ -85,6 +85,7 @@ import {
   paymentVisible,
   readPx,
   scopeOf,
+  seesBank,
   SUP_MANAGE,
   SUP_VIEW,
   supplier360,
@@ -143,6 +144,16 @@ function alsoNeeds(ctx: HandlerContext, ...permissions: Permission[]): void {
 }
 
 const stateConflict = (ctx: HandlerContext): never => refuse(ctx, 409, 'state_conflict', 'stateConflict');
+
+/**
+ * Wave 2 integration: a payment instruction names the payee's account and the paying account, so its writer
+ * also needs E.7's bank boundary over the record's WHOLE legal entity (`ledger/scope.ts` `seesBank`), not only
+ * the `bank.view` permission. A reader whose scope covers part of the entity gets the canonical scope refusal (the record
+ * itself was already found in scope, so nothing about it is disclosed).
+ */
+function needsBankOver(p: Px, entityId: string): void {
+  if (!seesBank(p, entityId)) refused({ allowed: false, reason: 'out_of_scope' }, p.ctx.correlationId);
+}
 
 /** Every field problem of a request, reported together (inline validation shows each one at its field). */
 class Problems {
@@ -536,6 +547,7 @@ function createPayment(ctx: HandlerContext): PaymentView {
   alsoNeeds(ctx, 'supplier.view', 'bank.view');
   const p0 = readPx(ctx);
   const bill = findBill(p0, ctx.params.id, SUP_MANAGE);
+  needsBankOver(p0, bill.legalEntityId);
   if (bill.state !== 'approved') stateConflict(ctx);
   const b = body(ctx);
   const pr = new Problems();
@@ -586,6 +598,7 @@ function paymentAction(action: 'approve' | 'send' | 'cancel') {
     const p0 = readPx(ctx);
     const need = action === 'approve' ? PAY_APPROVE : action === 'send' ? SUP_MANAGE : may(p0, 'supplier.manage') ? SUP_MANAGE : PAY_APPROVE;
     const x0 = findPayment(p0, ctx.params.id, need);
+    needsBankOver(p0, x0.legalEntityId);
     if (!can(PAYMENT_FROM, action, x0.state)) stateConflict(ctx);
     if (action === 'approve' && x0.preparedBy === me(p0).principalId) refuse(ctx, 403, 'separation_of_duties', 'ownInstruction');
     const reason = reasonOf(ctx, action === 'cancel');

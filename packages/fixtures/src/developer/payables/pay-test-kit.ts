@@ -26,7 +26,13 @@ export const BOTH_HATS = principal('res_e8_both_hats', 'E8 Test Both Hats', ['pr
 /** A second checker (Larkspur entity only) so a claim the finance controller made for himself can be decided. */
 export const SECOND_CHECKER = principal('res_e8_checker_two', 'E8 Test Checker Two', ['project.context.use', 'expense.view', 'expense.approve', 'supplier.view', 'supplier_bill.approve'], 'all', 'common:roles.finance_controller');
 
-export const E8_PERSONAS: readonly Persona[] = [...MULTI_ENTITY_PERSONAS, HEIGHTS_READER, BOTH_HATS, SECOND_CHECKER];
+/**
+ * Wave 2 integration (E.7's bank boundary): holds `bank.view` and the payables maker permission, but for
+ * Larkspur Heights only, so part of the legal entity. E.7 shows no bank data to such a reader; nor does E.8.
+ */
+export const HEIGHTS_BANK_MAKER = principal('res_e8_heights_bank', 'E8 Test Heights Bank Maker', ['project.context.use', 'supplier.view', 'supplier.manage', 'bank.view'], ['prj_heights']);
+
+export const E8_PERSONAS: readonly Persona[] = [...MULTI_ENTITY_PERSONAS, HEIGHTS_READER, BOTH_HATS, SECOND_CHECKER, HEIGHTS_BANK_MAKER];
 
 export type AccessChange = (persona: Persona, access: EffectiveAccess) => EffectiveAccess;
 
