@@ -40,6 +40,8 @@ export type PersonaId =
   | 'lsp_finance_controller'
   | 'lsp_ledger_clerk'
   | 'lsp_records_clerk'
+  // Gate E.8 (integration candidate; owner decision E-06, provisional): the Larkspur Heights budget holder.
+  | 'lsp_budget_holder'
   | 'supreme_admin'
   | 'commercial_approver'
   | 'platform_support';

@@ -3,7 +3,9 @@ import { routes as crmPipelineRoutes } from '../pages/developer/crm/routes';
 import { routes as ledgerRoutes } from '../pages/developer/ledger/routes';
 import { INVENTORY_ROUTES, PROJECT_ROUTES } from './routes.projects';
 import { DOCUMENT_ROUTES, WORKSPACE_ROUTES } from './routes.workspace';
-import { routes as payablesRoutes } from '../pages/developer/payables/routes'; // Gate E.8 (provisional; reconcile at integration)
+// ---- Gate E.8 (integration candidate) ----
+import { routes as payablesRoutes } from '../pages/developer/payables/routes';
+// ---- end Gate E.8 ----
 
 /**
  * Gate E.0 deliverable 6: the one place Gate E areas register their screens (plan §7.4: "E.0 adds one
@@ -42,8 +44,9 @@ export const DEVELOPER_AREAS: readonly DeveloperArea[] = [
   { area: 'ledger', routes: ledgerRoutes }, // E.7: ACC-001…010, BANK-005
   { area: 'workspace', routes: WORKSPACE_ROUTES }, // E.13: GLOBAL-002/005/006, HOME-002/004/005
   { area: 'documents', routes: DOCUMENT_ROUTES }, // E.13: DOC-002…006
-  // Gate E.8 (provisional; reconcile at integration): suppliers, payables and expenses (SUP-001…008, EXP-001…009).
-  { area: 'payables', routes: payablesRoutes },
+  // ---- Gate E.8 (integration candidate) ----
+  { area: 'payables', routes: payablesRoutes }, // E.8: SUP-001…008, EXP-001…009 (DEV edition only)
+  // ---- end Gate E.8 ----
 ];
 
 /** Every registered Gate E route, spread into the backoffice shell by `routes.tsx`. */

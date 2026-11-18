@@ -205,7 +205,7 @@ const withDeveloperExtra = (tenantId: string, roles: readonly TenantRoleTemplate
 
 const larkspurRole = (id: string, labelKey: string, permissions: readonly Permission[], holder: string): TenantRoleTemplate => ({ id, tenantId: 'tnt_larkspur', starter: null, labelKey, permissions, holders: [holder] });
 
-// ---- Gate E.8 (provisional; reconcile at integration): payables and expenses (owner decisions E-06/E-07,
+// ---- Gate E.8 (integration candidate): payables and expenses (owner decisions E-06/E-07, provisional; D-INT-07;
 // conservative defaults; listed in docs/status/gate-e8/CHECKPOINT.md). No starter set changes and no original
 // demo person gains anything. The Wave 1 accounts officer (Faiza Noor) is the payables maker and the finance
 // controller (Zubair Ansari) the checker, so each pair stays split between two people. A new fictional
@@ -250,7 +250,7 @@ export const LARKSPUR_ERP_ROLES: readonly TenantRoleTemplate[] = withGateE8([
   // Wave 1 integration (from E.13): Larkspur Heights only (people.ts). Uploads documents and drafts templates
   // for the records he may open; never approves. Reads the records documents hang on.
   larkspurRole('records_clerk', 'common:roles.records_clerk', ['project.context.use', 'lead.view', 'unit.view', 'customer.view', 'document.view', 'document.upload', 'document_template.manage'], 'lsp_records_clerk'),
-  // Gate E.8 (provisional): the Larkspur Heights budget holder, cost-centre limited by project scope.
+  // Gate E.8 (integration candidate): the Larkspur Heights budget holder, cost-centre limited by project scope.
   larkspurRole('budget_holder', 'common:roles.budget_holder', ['project.context.use', 'expense.view', 'expense.create', 'budget.manage'], 'lsp_budget_holder'),
 ]);
 

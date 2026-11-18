@@ -13,7 +13,7 @@ export interface Persona {
     | 'lsp_project_manager'
     | 'lsp_accounts'
     | 'lsp_finance_controller'
-    /** Gate E.8 (provisional): the Larkspur Heights budget holder (cost-centre limited). */
+    /** Gate E.8 (integration candidate; owner decision E-06, provisional): the Larkspur Heights budget holder (cost-centre limited). */
     | 'lsp_budget_holder'
     | 'resident'
     | 'facility_manager'

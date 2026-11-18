@@ -39,7 +39,7 @@ export const TENANT_NAV: NavItem[] = [
   // decides who else holds gl.view (E-06/E-07; register.spec opens them as the Larkspur manager). ----
   { id: 'accounting', labelKey: 'nav:items.accounting', href: '/backoffice/acc/chart-of-accounts', icon: Scale, permission: 'gl.view', module: 'accounting', group: 'workspace', suspension: 'history_read' },
   // ---- end Gate E.0 ----
-  // ---- Gate E.8 (provisional; reconcile at integration): payables and expenses, offered only to holders of the
+  // ---- Gate E.8 (integration candidate): payables and expenses, offered only to holders of the
   // new payables permissions, so no existing person's menu changes (existing supplier.view holders reach the
   // supplier screens by address and from links). No `match`, as for E.0. ----
   { id: 'suppliers', labelKey: 'nav:items.suppliers', href: '/backoffice/sup/suppliers-list', icon: ReceiptText, anyOf: ['supplier.manage', 'supplier_bill.approve', 'supplier_payment.approve'], module: 'payables', group: 'workspace', suspension: 'history_read' },

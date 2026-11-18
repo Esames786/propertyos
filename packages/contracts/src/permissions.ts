@@ -163,10 +163,11 @@ export const PERMISSIONS = [
   'document_template.manage',
   'document_template.approve',
   // ---- end Gate E.0 ----
-  // ---- Gate E.8 (provisional; reconcile at integration): payables and expenses (owner decision E-07,
-  // conservative names). `supplier.view` and `expense.create` already exist; reading expenses needs the
-  // register's `expense.view` (a new permission), and every maker-checker pair is split in two. No starter
-  // set holds any of them (E-06); Larkspur's own roles do (role-templates.ts). ----
+  // ---- Gate E.8 (integration candidate) ----
+  // Payables and expenses (owner decision E-07, provisional; conservative names). `supplier.view` and
+  // `expense.create` already exist; reading expenses needs the register's `expense.view` (a new permission),
+  // and every maker-checker pair is split in two. No starter set holds any of them (E-06); Larkspur's own
+  // roles do (role-templates.ts, provisional owner decision D-INT-07).
   // Maker: suppliers, supplier bills (draft, submit, cancel), utility bills and payment instructions.
   'supplier.manage',
   // Checkers: approve or reject a supplier bill; approve a payment instruction (never a settlement).

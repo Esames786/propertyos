@@ -4,6 +4,7 @@ import { CRM_PIPELINE_HANDLERS } from './crm/handlers';
 import { DEVELOPER_AREA_HANDLERS, DEVELOPER_CORE_HANDLERS, DEVELOPER_HANDLERS } from './handlers';
 import { DEV_INVENTORY_HANDLERS } from './inventory/handlers';
 import { LEDGER_HANDLERS } from './ledger/handlers';
+import { PAYABLES_HANDLERS } from './payables/handlers';
 import { E13_HANDLERS } from './workspace/handlers';
 import { PROVIDERS } from './workspace/registry';
 
@@ -14,8 +15,9 @@ import { PROVIDERS } from './workspace/registry';
 const key = (h: { method: string; pattern: RegExp }) => `${h.method} ${h.pattern.source}`;
 
 describe('Wave 1 handler registry', () => {
-  it('registers E.1, E.2, E.7 and E.13 in DEVELOPER_AREA_HANDLERS, in that order, and nowhere else', () => {
-    expect(DEVELOPER_AREA_HANDLERS).toEqual([CRM_PIPELINE_HANDLERS, DEV_INVENTORY_HANDLERS, LEDGER_HANDLERS, E13_HANDLERS]);
+  it('registers E.1, E.2, E.7, E.13 (and the E.8 candidate) in DEVELOPER_AREA_HANDLERS, in that order, and nowhere else', () => {
+    // Gate E.8 (integration candidate): PAYABLES_HANDLERS is appended after E.13's, once.
+    expect(DEVELOPER_AREA_HANDLERS).toEqual([CRM_PIPELINE_HANDLERS, DEV_INVENTORY_HANDLERS, LEDGER_HANDLERS, E13_HANDLERS, PAYABLES_HANDLERS]);
     expect(DEVELOPER_HANDLERS).toEqual([...DEVELOPER_CORE_HANDLERS, ...DEVELOPER_AREA_HANDLERS.flat()]);
     for (const h of DEVELOPER_HANDLERS) expect(HANDLERS.filter((x) => x === h), key(h)).toHaveLength(1);
   });

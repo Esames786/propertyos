@@ -1,12 +1,14 @@
 import type { DevApprovalPolicyVersion, DevCollectionAccount, DevCostCentre, DevLegalEntity, DevNumberingSeries } from '@repo/contracts';
 import { notFound, requires, type Handler, type HandlerContext } from '../handler-types';
-import { PAYABLES_HANDLERS } from './payables/handlers'; // Gate E.8 (provisional; reconcile at integration)
 import { costCentreVisible, entityVisible, requireEntity, type ScopeNeed } from './scope';
 import { developerState } from './state';
 import { CRM_PIPELINE_HANDLERS } from './crm/handlers';
 import { DEV_INVENTORY_HANDLERS } from './inventory/handlers';
 import { LEDGER_HANDLERS } from './ledger/handlers';
 import { E13_HANDLERS } from './workspace/handlers';
+// ---- Gate E.8 (integration candidate) ----
+import { PAYABLES_HANDLERS } from './payables/handlers';
+// ---- end Gate E.8 ----
 
 /**
  * Gate E.0 deliverable 6 (mock API): the developer ERP's handler registration point.
@@ -107,8 +109,9 @@ export const DEVELOPER_AREA_HANDLERS: ReadonlyArray<readonly Handler[]> = [
   DEV_INVENTORY_HANDLERS, // E.2: projects, project setup, the unit matrix, holds, availability and storage
   LEDGER_HANDLERS, // E.7: the ledger and the statement import
   E13_HANDLERS, // E.13: search, favourites, recent records, tasks, activity, related records, documents, templates
-  // Gate E.8 (provisional; reconcile at integration): suppliers, payables and expenses.
-  PAYABLES_HANDLERS,
+  // ---- Gate E.8 (integration candidate) ----
+  PAYABLES_HANDLERS, // E.8: suppliers, supplier bills, payment instructions, expenses, claims, petty cash, budgets
+  // ---- end Gate E.8 ----
 ];
 
 export const DEVELOPER_HANDLERS: readonly Handler[] = [...DEVELOPER_CORE_HANDLERS, ...DEVELOPER_AREA_HANDLERS.flat()];

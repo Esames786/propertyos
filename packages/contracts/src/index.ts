@@ -32,5 +32,6 @@ export * from './ledger';
 // Gate E.13 (provisional; reconcile with E.0 at Wave 1 integration): connected workspace and documents.
 export * from './productivity';
 export * from './documents';
-// Gate E.8 (provisional; reconcile at integration): suppliers, payables and expenses.
-export * from './payables';
+// ---- Gate E.8 (integration candidate) ----
+export * from './payables'; // E.8: suppliers, payables and expenses
+// ---- end Gate E.8 ----
