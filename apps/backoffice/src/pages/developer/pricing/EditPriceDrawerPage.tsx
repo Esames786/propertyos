@@ -1,7 +1,8 @@
 import { ApiError, type UnitPriceChangeDraft, type UnitPriceChangeDraftList, type UnitPriceHistory, type UnitPricePickerResponse } from '@repo/contracts';
 import { useSavedFocus } from './saved-focus';
 import { wrappable } from './amount';
-import { Badge, Button, Drawer, EmptyState, ErrorState, Link, PageHeader, SkeletonBlock, useApiMutation, useApiQuery, useCreateKey, useQueryParam, useT } from '@repo/ui';
+import { Badge, Button, Drawer, EmptyState, ErrorState, Link, PageHeader, SkeletonBlock, dynamicT, useApiMutation, useApiQuery, useCreateKey, useQueryParam, useSession, useT } from '@repo/ui';
+import type { AccessTarget, DenyReason } from '@repo/contracts';
 import { FileClock, Pencil, Search } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { canHydrateDraft, expectedDraftVersion, pinDraftVersion, type CommittedDraftFloor } from './revision-sync';
@@ -11,9 +12,30 @@ import { useCrmFormat } from '../../crm/format';
  * INV-007 is a genuine accessible side drawer, not a direct price-edit widget.
  * It saves private, non-effective drafts only. Unit prices and price history stay immutable.
  */
+/** Proposing needs pricing.manage on top of the screen's unit.view (no role holds it today). */
+const PROPOSE: AccessTarget = { module: 'inventory', permission: 'pricing.manage' };
+
+/**
+ * Wave 2 integration: the drawer's refusal, in the access outcome's words for the actual reason (role, plan,
+ * site, suspension) and no draft data, decided like DevScreen does (the session's `decide`). A 403 from the
+ * server (a grant withdrawn since the session was read) is a missing permission.
+ */
+function ProposeRefused({ reason }: { reason: DenyReason }) {
+  const { t } = useT();
+  const tr = dynamicT(t);
+  return (
+    <div className="space-y-1 rounded-control border border-border p-3 text-sm" data-testid="price-change-no-pricing-permission" data-reason={reason}>
+      <p className="font-medium text-text">{tr(`errors:access.${reason}`)}</p>
+      <p className="text-muted">{t('pricing:priceChangeAccess')}</p>
+    </div>
+  );
+}
+
 export default function EditPriceDrawerPage() {
   const { t } = useT();
   const money = useCrmFormat();
+  const { decide } = useSession();
+  const propose = decide(PROPOSE);
   // The router seam (ADR-0001 §2.3): pages read and write the address through @repo/ui, never react-router.
   const [unitId, setRecord] = useQueryParam('record');
   const [search, setSearch] = useState('');
@@ -33,7 +55,7 @@ export default function EditPriceDrawerPage() {
     unitId ? { method: 'GET', path: `/units/${encodeURIComponent(unitId)}/prices` } : null,
   );
   const drafts = useApiQuery<UnitPriceChangeDraftList>(
-    unitId ? { method: 'GET', path: `/units/${encodeURIComponent(unitId)}/price-change-drafts` } : null,
+    unitId && propose.allowed ? { method: 'GET', path: `/units/${encodeURIComponent(unitId)}/price-change-drafts` } : null,
   );
   const selectedDraft = useApiQuery<UnitPriceChangeDraft>(
     draftId ? { method: 'GET', path: `/price-change-drafts/${encodeURIComponent(draftId)}` } : null,
@@ -150,7 +172,7 @@ export default function EditPriceDrawerPage() {
       <Drawer isOpen={isOpen} onOpenChange={(open) => { if (!open && !saveMutation.isPending) closeDrawer(); }}
         title={t('pricing:priceChangeTitle')} subtitle={history.data?.unit.ref}
         testId="edit-price-change-drawer" size="lg"
-        footer={history.data && !drafts.isError && !!drafts.data ? <>
+        footer={history.data && propose.allowed && !drafts.isError && !!drafts.data ? <>
           <Button className="max-w-full whitespace-normal" variant="secondary" isDisabled={saveMutation.isPending} onPress={closeDrawer}>{t('pricing:priceChangeClose')}</Button>
           <Button className="max-w-full whitespace-normal" variant="primary" isDisabled={!!draftId && (selectedDraft.isError || selectedDraft.isPending || selectedDraft.data?.id !== draftId)} isPending={saveMutation.isPending} onPress={() => void save()} data-testid="price-change-save">
             {draftId ? t('pricing:priceChangeRevise') : t('pricing:priceChangeSave')}
@@ -170,10 +192,10 @@ export default function EditPriceDrawerPage() {
                   <Link href={`/backoffice/inv/unit-price-history?record=${encodeURIComponent(history.data.unit.id)}`}
                     variant="plain" className="mt-2 block text-sm text-primary">{t('pricing:priceChangeViewHistory')}</Link>
                 </div>
-                {drafts.isError ? (
-                  drafts.error instanceof ApiError && drafts.error.problem.status === 403 ? (
-                    <p className="rounded-control border border-border p-3 text-sm text-muted" data-testid="price-change-no-pricing-permission">{t('pricing:priceChangeAccess')}</p>
-                  ) : <ErrorState error={drafts.error} onRetry={() => void drafts.refetch()} />
+                {!propose.allowed ? <ProposeRefused reason={propose.reason} />
+                  : drafts.isError ? (
+                  drafts.error instanceof ApiError && drafts.error.problem.status === 403 ? <ProposeRefused reason="permission_missing" />
+                    : <ErrorState error={drafts.error} onRetry={() => void drafts.refetch()} />
                 ) : !drafts.data ? <SkeletonBlock lines={2} /> : <>
                   <div className="space-y-2">
                     <h3 className="font-semibold text-text">{t('pricing:priceChangeYourDrafts')}</h3>

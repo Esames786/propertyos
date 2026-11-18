@@ -103,19 +103,22 @@ test.describe('E.3 test-only pricing principal: access, isolation, inertness', (
     expect(consoleErrors).toEqual([]);
   });
 
-  test('revoking pricing.manage hides every pricing draft at once: COM screens fall back to the register page, INV-007 offers no save, the API refuses, nothing is written', async ({ page, consoleErrors }) => {
+  test('revoking pricing.manage hides every pricing draft at once: COM screens give the access outcome, INV-007 offers no save, the API refuses, nothing is written', async ({ page, consoleErrors }) => {
     await seedPrincipal(page, 'res_e3qa_pricing');
     await createTemplate(page, 'QA revoked plan');
     await becomePrincipal(page, 'res_e3qa_pricing_revoked');
     for (const [id, path, testId] of COM_SCREENS) {
       await page.goto(`${BO}${path}`);
-      // E.0 DevScreen: a person the target does not allow gets the register's page at the same address.
-      await expect(page.getByTestId('planned-screen'), id).toHaveAttribute('data-screen-id', id);
+      // Wave 2 integration: DevScreen `refusal="outcome"` (as E.2/E.7/E.13): the access outcome says why, shows no data.
+      const outcome = page.getByTestId('access-outcome');
+      await expect(outcome, id).toHaveAttribute('data-reason', 'permission_missing');
+      await expect(outcome, id).toHaveAttribute('data-module', 'inventory');
+      await expect(page.getByTestId('planned-screen'), id).toHaveCount(0);
       await expect(page.getByTestId(testId)).toHaveCount(0);
     }
     await page.goto(DRAWER);
     await expect(page.getByTestId('edit-price-change-drawer')).toBeVisible();
-    await expect(page.getByTestId('price-change-no-pricing-permission')).toBeVisible();
+    await expect(page.getByTestId('price-change-no-pricing-permission')).toHaveAttribute('data-reason', 'permission_missing');
     await expect(page.getByTestId('price-change-save')).toHaveCount(0);
     const before = await businessState(page);
     for (const path of ['/pricing/plan-templates', '/pricing/plan-templates/pt_000001', '/pricing/template-projects', `/units/${HEIGHTS_UNIT}/price-change-drafts`]) {
