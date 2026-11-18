@@ -1,6 +1,7 @@
 import { ApiError, type PricingApprovalDraft, type PricingApprovalDraftList, type PricingApprovalRule, type PricingApprovalSubject } from '@repo/contracts';
 import { useSavedFocus } from './saved-focus';
-import { Badge, Button, EmptyState, ErrorState, PageHeader, SkeletonBlock, useApiMutation, useApiQuery, useCreateKey, useT } from '@repo/ui';
+import { isNotFound, useRecordAddress } from './record-address';
+import { Badge, Button, EmptyState, ErrorState, NotFoundState, PageHeader, SkeletonBlock, useApiMutation, useApiQuery, useCreateKey, useT } from '@repo/ui';
 import { FileClock, Plus, Save, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { canHydrateDraft, expectedDraftVersion, pinDraftVersion, type CommittedDraftFloor } from './revision-sync';
@@ -32,7 +33,8 @@ function parse(rules: readonly RuleDraft[]): PricingApprovalRule[] | null {
 export default function ApprovalRulesPage() {
   const { t } = useT();
   const [search, setSearch] = useState('');
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // The open draft lives in the address (`?record=`): a deep link opens it, Back and Forward move between drafts.
+  const [selectedId, openRecord] = useRecordAddress('record', (id) => reopen(id));
   const [projectId, setProjectId] = useState('');
   const [title, setTitle] = useState('');
   const [rows, setRows] = useState<RuleDraft[]>(initial);
@@ -70,9 +72,15 @@ export default function ApprovalRulesPage() {
     setSaved(false); setInvalid(false); setDirty(true);
     if (selectedId) renewRevision(); else renewCreate();
   };
-  const makeNew = () => {
-    setSelectedId(null); setCommittedFloor(null); setProjectId(''); setTitle(''); setRows(initial()); setSequence(2);
+  const blank = () => {
+    setCommittedFloor(null); setProjectId(''); setTitle(''); setRows(initial()); setSequence(2);
     setInvalid(false); setSaved(false); setDirty(false); renewCreate(); renewRevision();
+  };
+  const makeNew = () => { void openRecord(null); blank(); };
+  // Back, Forward or a link changed the draft in the address: show that draft as stored (or a blank form).
+  const reopen = (id: string | null) => {
+    if (!id) { blank(); return; }
+    setCommittedFloor(null); setSaved(false); setInvalid(false); setDirty(false); mutation.reset(); renewRevision();
   };
   const update = (id: number, patch: Partial<RuleDraft>) => {
     setRows((old) => old.map((r) => r.id === id ? { ...r, ...patch } : r));
@@ -95,7 +103,9 @@ export default function ApprovalRulesPage() {
       : { projectId, title: trimmed, rules, idempotencyKey: k };
     try {
       const response = await mutation.mutateAsync({ method: 'POST', path, body, idempotencyKey: k });
-      setCommittedFloor({ id: response.id, version: response.currentVersion }); setSelectedId(response.id);
+      setCommittedFloor({ id: response.id, version: response.currentVersion });
+      // A new draft takes its place in the address (replacing the blank form's entry).
+      if (response.id !== selectedId) void openRecord(response.id, { replace: true });
       renewCreate(); renewRevision();
       setSaved(true); setDirty(false);
       // The draft POST succeeded; cache refresh cannot turn that into a failed save.
@@ -142,7 +152,7 @@ export default function ApprovalRulesPage() {
                 <li key={item.id}>
                   <button type="button" disabled={mutation.isPending}
                     aria-current={selectedId === item.id ? 'true' : undefined}
-                    onClick={() => { setCommittedFloor(null); setSelectedId(item.id); setSaved(false); setDirty(false); renewRevision(); }}
+                    onClick={() => { setCommittedFloor(null); void openRecord(item.id); setSaved(false); setDirty(false); renewRevision(); }}
                     className="min-h-11 w-full min-w-0 rounded-control border border-border p-3 text-start text-text hover:bg-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
                     <span className="block break-words font-semibold">{item.title}</span>
                     <span className="text-sm text-muted">{t('pricing:approvalVersion', { version: item.currentVersion })}</span>
@@ -159,7 +169,7 @@ export default function ApprovalRulesPage() {
             {projects.isError && <ErrorState error={projects.error} onRetry={() => void projects.refetch()} />}
             {!projects.data && !projects.isError && <SkeletonBlock lines={2} />}
             {projects.data?.items.length === 0 && <EmptyState title={t('pricing:approvalNoProject')} />}
-            {selectedId && detail.isError ? <ErrorState error={detail.error} onRetry={() => void detail.refetch()} /> :
+            {selectedId && detail.isError ? (isNotFound(detail.error) ? <NotFoundState /> : <ErrorState error={detail.error} onRetry={() => void detail.refetch()} />) :
               <fieldset disabled={mutation.isPending || !projects.data || (!!selectedId && detail.data?.id !== selectedId)} className="min-w-0 space-y-4">
                 <label className="flex min-w-0 flex-col gap-1 text-sm text-text">
                   {t('pricing:approvalProject')}

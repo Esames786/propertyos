@@ -218,6 +218,7 @@
   "priceChangeHistory": "Immutable draft history",
   "priceChangeNone": "No private price change drafts recorded for this unit.",
   "priceChangeSelect": "Select a unit to view or propose a price change.",
+  "openUnit": "Open the unit",
   "priceChangeViewHistory": "View price baseline and approved history",
   "priceChangeAccess": "Price changes require a separately granted pricing permission. You can still view the listed price.",
   "priceChangeWarning": "Draft only. No price change is approved, scheduled, applied to inventory, quoted, invoiced or paid.",

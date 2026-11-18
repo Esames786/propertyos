@@ -1,7 +1,8 @@
 import { ApiError, type UnitPriceChangeDraft, type UnitPriceChangeDraftList, type UnitPriceHistory, type UnitPricePickerResponse } from '@repo/contracts';
 import { useSavedFocus } from './saved-focus';
+import { isNotFound, useRecordAddress } from './record-address';
 import { wrappable } from './amount';
-import { Badge, Button, Drawer, EmptyState, ErrorState, Link, PageHeader, SkeletonBlock, dynamicT, useApiMutation, useApiQuery, useCreateKey, useQueryParam, useSession, useT } from '@repo/ui';
+import { Badge, Button, Drawer, EmptyState, ErrorState, Link, NotFoundState, PageHeader, SkeletonBlock, dynamicT, useApiMutation, useApiQuery, useCreateKey, useQueryParam, useQueryParams, useSession, useT } from '@repo/ui';
 import type { AccessTarget, DenyReason } from '@repo/contracts';
 import { FileClock, Pencil, Search } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -37,9 +38,11 @@ export default function EditPriceDrawerPage() {
   const { decide } = useSession();
   const propose = decide(PROPOSE);
   // The router seam (ADR-0001 §2.3): pages read and write the address through @repo/ui, never react-router.
-  const [unitId, setRecord] = useQueryParam('record');
+  const [unitId] = useQueryParam('record');
+  const setParams = useQueryParams();
   const [search, setSearch] = useState('');
-  const [draftId, setDraftId] = useState<string | null>(null);
+  // The open draft lives in the address too (`&draft=`): a deep link opens it in its unit's drawer, Back returns.
+  const [draftId, openDraft] = useRecordAddress('draft', () => redraft());
   const [price, setPrice] = useState('');
   const [reason, setReason] = useState('');
   const [invalid, setInvalid] = useState(false);
@@ -79,8 +82,9 @@ export default function EditPriceDrawerPage() {
     return () => window.clearTimeout(timer);
   }, [unitId]);
   const openUnit = (id: string | null) => {
-    setRecord(id, { replace: false });
-    setDraftId(null); setCommittedFloor(null); setPrice(''); setReason(''); setInvalid(false); setSaved(false); setDirty(false);
+    // One navigation: the unit, and no draft of another unit.
+    setParams({ record: id, draft: null }, { replace: false });
+    setCommittedFloor(null); setPrice(''); setReason(''); setInvalid(false); setSaved(false); setDirty(false);
     renewCreate(); renewRevision();
   };
   const edit = () => {
@@ -88,24 +92,33 @@ export default function EditPriceDrawerPage() {
     if (draftId) renewRevision(); else renewCreate();
   };
   const chooseDraft = (id: string | null) => {
-    setCommittedFloor(null); setDraftId(id); setInvalid(false); setSaved(false);
+    setCommittedFloor(null); void openDraft(id); setInvalid(false); setSaved(false);
     setPrice(''); setReason(''); setDirty(false); renewCreate(); renewRevision();
   };
+  // Back, Forward or a link changed the draft in the address: show that draft as stored (or a new proposal).
+  const redraft = () => {
+    setCommittedFloor(null); setInvalid(false); setSaved(false); setPrice(''); setReason(''); setDirty(false);
+    saveMutation.reset(); renewCreate(); renewRevision();
+  };
+  // A draft named in the address that is not this person's, was never issued, or belongs to another unit:
+  // one not-found, whatever the reason (the server answers the first two alike; the third is not this drawer's).
+  const draftMismatch = !!draftId && selectedDraft.data?.id === draftId && selectedDraft.data.unitId !== unitId;
+  const draftMissing = !!draftId && (isNotFound(selectedDraft.error) || draftMismatch);
   useEffect(() => {
-    if (!canHydrateDraft(draftId, selectedDraft.data, dirty, committedFloor)) return;
+    if (!canHydrateDraft(draftId, selectedDraft.data, dirty, committedFloor) || selectedDraft.data.unitId !== unitId) return;
     setCommittedFloor((previous) => pinDraftVersion(previous, selectedDraft.data!));
     const current = selectedDraft.data.versions.at(-1);
     if (!current) return;
     setPrice(current.proposedPrice.amount);
     setReason(current.reason);
     setInvalid(false);
-  }, [selectedDraft.data, draftId, dirty, committedFloor]);
+  }, [selectedDraft.data, draftId, dirty, committedFloor, unitId]);
 
   const save = async () => {
     // Nothing changed since the acknowledged save: a repeat press sends nothing (it would only duplicate the
     // draft under a fresh key). Save stays enabled, so keyboard focus is never dropped from it.
     if (saveMutation.isPending || saved || (draftId && expectedDraftVersion(draftId, committedFloor) === undefined)) return;
-    if (!unitId || !history.data || (draftId && selectedDraft.data?.id !== draftId)) return;
+    if (!unitId || !history.data || draftMissing || (draftId && selectedDraft.data?.id !== draftId)) return;
     const normalizedReason = reason.trim().replace(/\s+/g, ' ');
     const proposed = price.trim();
     if (!/^(0|[1-9]\d{0,11})(?:\.\d{1,2})?$/.test(proposed) ||
@@ -125,7 +138,9 @@ export default function EditPriceDrawerPage() {
       : { proposedPrice: { amount: proposed, currency: 'PKR' }, reason: normalizedReason, idempotencyKey: key };
     try {
       const result = await saveMutation.mutateAsync({ method: 'POST', path, body, idempotencyKey: key });
-      setCommittedFloor({ id: result.id, version: result.currentVersion }); setDraftId(result.id);
+      setCommittedFloor({ id: result.id, version: result.currentVersion });
+      // A new draft takes its place in the address (replacing the new proposal's entry).
+      if (result.id !== draftId) void openDraft(result.id, { replace: true });
       renewCreate(); renewRevision();
       setSaved(true);
       setDirty(false);
@@ -174,7 +189,7 @@ export default function EditPriceDrawerPage() {
         testId="edit-price-change-drawer" size="lg"
         footer={history.data && propose.allowed && !drafts.isError && !!drafts.data ? <>
           <Button className="max-w-full whitespace-normal" variant="secondary" isDisabled={saveMutation.isPending} onPress={closeDrawer}>{t('pricing:priceChangeClose')}</Button>
-          <Button className="max-w-full whitespace-normal" variant="primary" isDisabled={!!draftId && (selectedDraft.isError || selectedDraft.isPending || selectedDraft.data?.id !== draftId)} isPending={saveMutation.isPending} onPress={() => void save()} data-testid="price-change-save">
+          <Button className="max-w-full whitespace-normal" variant="primary" isDisabled={!!draftId && (draftMissing || selectedDraft.isError || selectedDraft.isPending || selectedDraft.data?.id !== draftId)} isPending={saveMutation.isPending} onPress={() => void save()} data-testid="price-change-save">
             {draftId ? t('pricing:priceChangeRevise') : t('pricing:priceChangeSave')}
           </Button>
         </> : undefined}>
@@ -191,6 +206,8 @@ export default function EditPriceDrawerPage() {
                   <Badge tone="info">{t('pricing:priceChangeBaseline')}</Badge>
                   <Link href={`/backoffice/inv/unit-price-history?record=${encodeURIComponent(history.data.unit.id)}`}
                     variant="plain" className="mt-2 block text-sm text-primary">{t('pricing:priceChangeViewHistory')}</Link>
+                  <Link href={`/backoffice/inv/unit-quick-view?record=${encodeURIComponent(history.data.unit.id)}`}
+                    variant="plain" className="mt-2 block text-sm text-primary" data-testid="price-change-open-unit">{t('pricing:openUnit')}</Link>
                 </div>
                 {!propose.allowed ? <ProposeRefused reason={propose.reason} />
                   : drafts.isError ? (
@@ -214,7 +231,8 @@ export default function EditPriceDrawerPage() {
                         </li>)}
                       </ul>}
                   </div>
-                  {draftId && selectedDraft.isError ? <ErrorState error={selectedDraft.error} onRetry={() => void selectedDraft.refetch()} />
+                  {draftMissing ? <NotFoundState />
+                    : draftId && selectedDraft.isError ? <ErrorState error={selectedDraft.error} onRetry={() => void selectedDraft.refetch()} />
                     : draftId && selectedDraft.data?.id !== draftId ? <SkeletonBlock lines={3} /> :
                     <fieldset disabled={saveMutation.isPending} className="space-y-4">
                       <label className="flex flex-col gap-1 text-sm font-medium text-text">
@@ -233,7 +251,7 @@ export default function EditPriceDrawerPage() {
                       {saveMutation.isError && <ErrorState error={saveMutation.error} title={t('pricing:priceChangeError')} />}
                     </fieldset>}
                 </>}
-                {draftId && selectedDraft.data?.id === draftId && <section className="space-y-3">
+                {draftId && !draftMissing && selectedDraft.data?.id === draftId && <section className="space-y-3">
                   <h3 className="flex items-center gap-2 font-semibold text-text"><FileClock aria-hidden className="size-4" />{t('pricing:priceChangeHistory')}</h3>
                   <ol className="space-y-2" data-testid="price-change-versions">
                     {selectedDraft.data.versions.map((version) => <li key={version.version}

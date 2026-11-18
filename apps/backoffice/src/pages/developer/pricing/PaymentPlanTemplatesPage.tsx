@@ -1,7 +1,8 @@
 import { PricingRelatedLinks } from './PricingRelatedLinks';
 import { useSavedFocus } from './saved-focus';
+import { isNotFound, useRecordAddress } from './record-address';
 import { ApiError, type PaymentPlanTemplate, type PaymentPlanTemplateList, type PlanAllocationInput, type PlanAllocationKind } from '@repo/contracts';
-import { Badge, Button, EmptyState, ErrorState, PageHeader, SkeletonBlock, useApiMutation, useApiQuery, useCreateKey, useT } from '@repo/ui';
+import { Badge, Button, EmptyState, ErrorState, NotFoundState, PageHeader, SkeletonBlock, useApiMutation, useApiQuery, useCreateKey, useT } from '@repo/ui';
 import { FileClock, Plus, Save, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { canHydrateDraft, expectedDraftVersion, pinDraftVersion, type CommittedDraftFloor } from './revision-sync';
@@ -46,7 +47,8 @@ const asDraftRows = (v: PaymentPlanTemplate['versions'][number]['allocations']):
 export default function PaymentPlanTemplatesPage() {
   const { t } = useT();
   const [query, setQuery] = useState('');
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // The open draft lives in the address (`?record=`): a deep link opens it, Back and Forward move between drafts.
+  const [selectedId, openRecord] = useRecordAddress('record', (id) => reopen(id));
   const [projectId, setProjectId] = useState('');
   const [title, setTitle] = useState('');
   const [rows, setRows] = useState<DraftRow[]>(newRows);
@@ -65,9 +67,15 @@ export default function PaymentPlanTemplatesPage() {
     selectedId ? { method: 'GET', path: `/pricing/plan-templates/${encodeURIComponent(selectedId)}` } : null,
   );
   const projects = projectsQuery.data?.items ?? [];
-  const makeNew = () => {
-    setSelectedId(null); setCommittedFloor(null); setTitle(''); setProjectId(''); setRows(newRows()); setNextRowId(3); setDirty(false);
+  const blank = () => {
+    setCommittedFloor(null); setTitle(''); setProjectId(''); setRows(newRows()); setNextRowId(3); setDirty(false);
     renewCreate(); renewRevision(); setSaved(false); setError(false);
+  };
+  const makeNew = () => { void openRecord(null); blank(); };
+  // Back, Forward or a link changed the draft in the address: show that draft as stored (or a blank form).
+  const reopen = (id: string | null) => {
+    if (!id) { blank(); return; }
+    setCommittedFloor(null); setSaved(false); setError(false); setDirty(false); mutation.reset(); renewRevision();
   };
   useEffect(() => {
     if (!canHydrateDraft(selectedId, selected.data, dirty, committedFloor)) return;
@@ -103,7 +111,9 @@ export default function PaymentPlanTemplatesPage() {
     // A lost answer can retry with the same key. Any edit renews it; two new drafts never share it.
     try {
       const response = await mutation.mutateAsync({ method: 'POST', path, body, idempotencyKey: key });
-      setCommittedFloor({ id: response.id, version: response.currentVersion }); setSelectedId(response.id);
+      setCommittedFloor({ id: response.id, version: response.currentVersion });
+      // A new draft takes its place in the address (replacing the blank form's entry).
+      if (response.id !== selectedId) void openRecord(response.id, { replace: true });
       renewCreate(); renewRevision();
       setSaved(true); setDirty(false);
     } catch (e) {
@@ -149,7 +159,7 @@ export default function PaymentPlanTemplatesPage() {
                       <button type="button" disabled={mutation.isPending}
                         data-testid="template-list-item"
                         aria-current={selectedId === item.id ? 'true' : undefined}
-                        onClick={() => { setCommittedFloor(null); setSelectedId(item.id); setSaved(false); setError(false); setDirty(false); renewRevision(); }}
+                        onClick={() => { setCommittedFloor(null); void openRecord(item.id); setSaved(false); setError(false); setDirty(false); renewRevision(); }}
                         className="min-h-11 w-full min-w-0 rounded-control border border-border p-3 text-start text-text hover:bg-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
                         <span className="block break-words font-medium">{item.title}</span>
                         <span className="text-sm text-muted">{t('pricing:templateVersion', { version: item.currentVersion })}</span>
@@ -164,7 +174,7 @@ export default function PaymentPlanTemplatesPage() {
           {projectsQuery.isError && <ErrorState error={projectsQuery.error} onRetry={() => void projectsQuery.refetch()} />}
           {!projectsQuery.isError && !projectsQuery.data && <SkeletonBlock lines={2} />}
           {projectsQuery.data?.items.length === 0 && <EmptyState title={t('pricing:templateNoAccess')} />}
-          {selectedId && selected.isError ? <ErrorState error={selected.error} onRetry={() => void selected.refetch()} /> :
+          {selectedId && selected.isError ? (isNotFound(selected.error) ? <NotFoundState /> : <ErrorState error={selected.error} onRetry={() => void selected.refetch()} />) :
             <fieldset disabled={mutation.isPending || !projectsQuery.data || (!!selectedId && !selected.data)} className="min-w-0 space-y-4">
               <label className="flex min-w-0 flex-col gap-1 text-sm text-text">{t('pricing:templateProject')}
                 <select value={projectId} disabled={!!selectedId} onChange={(event) => { setProjectId(event.target.value); change(); }}

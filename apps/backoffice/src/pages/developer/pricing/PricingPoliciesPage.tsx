@@ -1,7 +1,8 @@
 import { PricingRelatedLinks } from './PricingRelatedLinks';
 import { useSavedFocus } from './saved-focus';
+import { isNotFound, useRecordAddress } from './record-address';
 import { ApiError, type PricingPolicyDraft, type PricingPolicyDraftList, type PricingPolicyRule } from '@repo/contracts';
-import { Badge, Button, EmptyState, ErrorState, PageHeader, SkeletonBlock, useApiMutation, useApiQuery, useCreateKey, useT } from '@repo/ui';
+import { Badge, Button, EmptyState, ErrorState, NotFoundState, PageHeader, SkeletonBlock, useApiMutation, useApiQuery, useCreateKey, useT } from '@repo/ui';
 import { FileClock, Plus, Save, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { canHydrateDraft, expectedDraftVersion, pinDraftVersion, type CommittedDraftFloor } from './revision-sync';
@@ -37,7 +38,8 @@ function validatedRules(draft: readonly DraftRule[]): PricingPolicyRule[] | null
 export default function PricingPoliciesPage() {
   const { t } = useT();
   const [q, setQ] = useState('');
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // The open draft lives in the address (`?record=`): a deep link opens it, Back and Forward move between drafts.
+  const [selectedId, openRecord] = useRecordAddress('record', (id) => reopen(id));
   const [projectId, setProjectId] = useState('');
   const [title, setTitle] = useState('');
   const [rules, setRules] = useState<DraftRule[]>(newRules);
@@ -75,9 +77,15 @@ export default function PricingPoliciesPage() {
     if (selectedId) renewRevision();
     else renewCreate();
   };
-  const clear = () => {
-    setSelectedId(null); setCommittedFloor(null); setProjectId(''); setTitle(''); setRules(newRules()); setNextRuleId(2); setDirty(false);
+  const blank = () => {
+    setCommittedFloor(null); setProjectId(''); setTitle(''); setRules(newRules()); setNextRuleId(2); setDirty(false);
     renewCreate(); renewRevision(); setValidation(false); setSuccess(false);
+  };
+  const clear = () => { void openRecord(null); blank(); };
+  // Back, Forward or a link changed the draft in the address: show that draft as stored (or a blank form).
+  const reopen = (id: string | null) => {
+    if (!id) { blank(); return; }
+    setCommittedFloor(null); setSuccess(false); setValidation(false); setDirty(false); mutation.reset(); renewRevision();
   };
   const updateRule = (id: number, patch: Partial<DraftRule>) => {
     setRules((current) => current.map((rule) => rule.id === id ? { ...rule, ...patch } : rule));
@@ -102,7 +110,9 @@ export default function PricingPoliciesPage() {
       : { projectId, title: normalizedTitle, rules: normalizedRules, idempotencyKey: key };
     try {
       const result = await mutation.mutateAsync({ method: 'POST', path, body, idempotencyKey: key });
-      setCommittedFloor({ id: result.id, version: result.currentVersion }); setSelectedId(result.id); setDirty(false);
+      setCommittedFloor({ id: result.id, version: result.currentVersion }); setDirty(false);
+      // A new draft takes its place in the address (replacing the blank form's entry).
+      if (result.id !== selectedId) void openRecord(result.id, { replace: true });
       renewCreate(); renewRevision(); setSuccess(true);
       // The POST already succeeded. Refetches are optional visibility updates and
       // must never flip the mutation result to "failed" or invite a duplicate POST.
@@ -154,7 +164,7 @@ export default function PricingPoliciesPage() {
                 : <ul className="space-y-2" data-testid="pricing-policy-list">
                   {list.data.items.map((policy) => <li key={policy.id}>
                     <button type="button" disabled={mutation.isPending}
-                      onClick={() => { setCommittedFloor(null); setSelectedId(policy.id); setSuccess(false); setDirty(false); renewRevision(); }}
+                      onClick={() => { setCommittedFloor(null); void openRecord(policy.id); setSuccess(false); setDirty(false); renewRevision(); }}
                       aria-current={selectedId === policy.id ? 'true' : undefined}
                       className="min-h-11 w-full min-w-0 rounded-control border border-border p-3 text-start text-text hover:bg-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
                       <span className="block break-words font-semibold">{policy.title}</span>
@@ -170,7 +180,7 @@ export default function PricingPoliciesPage() {
           {projects.isError && <ErrorState error={projects.error} onRetry={() => void projects.refetch()} />}
           {!projects.data && !projects.isError && <SkeletonBlock lines={2} />}
           {projects.data?.items.length === 0 && <EmptyState title={t('pricing:policyNoProjects')} />}
-          {selectedId && detail.isError ? <ErrorState error={detail.error} onRetry={() => void detail.refetch()} /> :
+          {selectedId && detail.isError ? (isNotFound(detail.error) ? <NotFoundState /> : <ErrorState error={detail.error} onRetry={() => void detail.refetch()} />) :
             <fieldset className="min-w-0 space-y-4" disabled={mutation.isPending || !projects.data || (!!selectedId && !detail.data)}>
               <label className="flex min-w-0 flex-col gap-1 text-sm text-text">{t('pricing:policyProject')}
                 <select value={projectId} disabled={!!selectedId} onChange={(event) => { setProjectId(event.target.value); edit(); }}

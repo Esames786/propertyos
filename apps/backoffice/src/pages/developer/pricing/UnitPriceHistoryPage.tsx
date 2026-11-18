@@ -134,6 +134,13 @@ export default function UnitPriceHistoryPage() {
                 >
                   {t('pricing:priceChangeOpen')}
                 </Link>
+                <Link href={`/backoffice/inv/unit-quick-view?record=${encodeURIComponent(selected.data.unit.id)}`}
+                  variant="plain"
+                  className="inline-flex min-h-11 items-center rounded-control border border-border px-3 text-sm text-primary data-hovered:bg-raised data-focus-visible:outline-2 data-focus-visible:outline-offset-2 data-focus-visible:outline-focus"
+                  data-testid="price-history-open-unit"
+                >
+                  {t('pricing:openUnit')}
+                </Link>
               </div>
               <section className="space-y-3" aria-label={t('pricing:approvedHistory')}>
                 <h3 className="flex items-center gap-2 font-semibold text-text">

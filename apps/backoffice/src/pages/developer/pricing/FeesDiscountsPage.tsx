@@ -1,7 +1,8 @@
 import { ApiError, type CommercialDiscountRule, type CommercialFeeRule, type CommercialRulesDraft, type CommercialRulesDraftList, type CommercialRulesPreview, type UnitPricePickerResponse } from '@repo/contracts';
 import { useSavedFocus } from './saved-focus';
+import { isNotFound, useRecordAddress } from './record-address';
 import { wrappable } from './amount';
-import { Badge, Button, EmptyState, ErrorState, PageHeader, SkeletonBlock, useApiMutation, useApiQuery, useCreateKey, useT } from '@repo/ui';
+import { Badge, Button, EmptyState, ErrorState, NotFoundState, PageHeader, SkeletonBlock, useApiMutation, useApiQuery, useCreateKey, useT } from '@repo/ui';
 import { Calculator, Plus, Save, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { canHydrateDraft, expectedDraftVersion, pinDraftVersion, type CommittedDraftFloor } from './revision-sync';
@@ -54,7 +55,8 @@ export default function FeesDiscountsPage() {
   const { t } = useT();
   const fmt = useCrmFormat();
   const [search, setSearch] = useState('');
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // The open draft lives in the address (`?record=`): a deep link opens it, Back and Forward move between drafts.
+  const [selectedId, openRecord] = useRecordAddress('record', (id) => reopen(id));
   const [projectId, setProjectId] = useState('');
   const [title, setTitle] = useState('');
   const [fees, setFees] = useState<FeeDraft[]>([feeDefault(1)]);
@@ -95,10 +97,16 @@ export default function FeesDiscountsPage() {
     setPreviewResult(null); setInvalid(false); setSaved(false); setDirty(true);
     if (selectedId) renewRevise(); else renewCreate();
   };
-  const reset = () => {
-    setSelectedId(null); setCommittedFloor(null); setProjectId(''); setTitle('');
+  const blank = () => {
+    setCommittedFloor(null); setProjectId(''); setTitle('');
     setFees([feeDefault(1)]); setDiscounts([discountDefault(101)]); setNextId(200); setUnitId('');
     renewCreate(); renewRevise(); setPreviewResult(null); setInvalid(false); setSaved(false); setDirty(false);
+  };
+  const reset = () => { void openRecord(null); blank(); };
+  // Back, Forward or a link changed the draft in the address: show that draft as stored (or a blank form).
+  const reopen = (id: string | null) => {
+    if (!id) { blank(); return; }
+    setCommittedFloor(null); setSaved(false); setInvalid(false); setPreviewResult(null); setDirty(false); mutation.reset(); renewRevise();
   };
   const save = async () => {
     // Nothing changed since the acknowledged save: a repeat press sends nothing (it would only duplicate the
@@ -115,7 +123,9 @@ export default function FeesDiscountsPage() {
     setInvalid(false);
     try {
       const response = await mutation.mutateAsync({ method: 'POST', path, body, idempotencyKey: key });
-      setCommittedFloor({ id: response.id, version: response.currentVersion }); setSelectedId(response.id);
+      setCommittedFloor({ id: response.id, version: response.currentVersion });
+      // A new draft takes its place in the address (replacing the blank form's entry).
+      if (response.id !== selectedId) void openRecord(response.id, { replace: true });
       renewCreate(); renewRevise(); setSaved(true); setPreviewResult(null); setDirty(false);
       // The draft POST succeeded; cache refresh cannot turn that into a failed save.
       // useApiMutation also invalidates all API queries after success.
@@ -162,7 +172,7 @@ export default function FeesDiscountsPage() {
             : list.data.items.length === 0 ? <EmptyState title={t('pricing:commercialEmpty')} /> :
               <ul className="space-y-2" data-testid="commercial-draft-list">
                 {list.data.items.map((item) => <li key={item.id}>
-                  <button type="button" disabled={mutation.isPending} onClick={() => { setCommittedFloor(null); setSelectedId(item.id); setSaved(false); setPreviewResult(null); setDirty(false); renewRevise(); }}
+                  <button type="button" disabled={mutation.isPending} onClick={() => { setCommittedFloor(null); void openRecord(item.id); setSaved(false); setPreviewResult(null); setDirty(false); renewRevise(); }}
                     aria-current={selectedId === item.id ? 'true' : undefined}
                     className="min-h-11 w-full min-w-0 rounded-control border border-border p-3 text-start text-text hover:bg-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
                     <span className="block break-words font-semibold">{item.title}</span>
@@ -175,9 +185,9 @@ export default function FeesDiscountsPage() {
           <section className="space-y-4 rounded-card border border-border bg-panel p-4" aria-label={selectedId ? t('pricing:commercialEdit') : t('pricing:commercialNew')}>
             <h2 className="font-semibold text-text">{selectedId ? t('pricing:commercialEdit') : t('pricing:commercialNew')}</h2>
             {projects.isError && <ErrorState error={projects.error} onRetry={() => void projects.refetch()} />}
-            {detail.isError && selectedId && <ErrorState error={detail.error} onRetry={() => void detail.refetch()} />}
+            {detail.isError && selectedId && (isNotFound(detail.error) ? <NotFoundState /> : <ErrorState error={detail.error} onRetry={() => void detail.refetch()} />)}
             {projects.data?.items.length === 0 && <EmptyState title={t('pricing:commercialNoProject')} />}
-            <fieldset disabled={mutation.isPending || !projects.data || (!!selectedId && detail.data?.id !== selectedId)} className="min-w-0 space-y-4">
+            {!(selectedId && isNotFound(detail.error)) && <fieldset disabled={mutation.isPending || !projects.data || (!!selectedId && detail.data?.id !== selectedId)} className="min-w-0 space-y-4">
               <label className="flex min-w-0 flex-col gap-1 text-sm text-text">{t('pricing:commercialProject')}
                 <select value={projectId} disabled={!!selectedId} onChange={(e) => { setProjectId(e.target.value); setUnitId(''); changed(); }}
                   className="min-h-11 w-full min-w-0 rounded-control border border-border-control bg-panel px-3 text-text">
@@ -227,7 +237,7 @@ export default function FeesDiscountsPage() {
               </div>
               {invalid && <p role="alert" className="text-sm text-error">{t('pricing:commercialValidation')}</p>}
               {mutation.isError && <ErrorState error={mutation.error} title={t('pricing:commercialError')} />}
-            </fieldset>
+            </fieldset>}
             <p className="text-sm text-muted">{t('pricing:commercialHelp')}</p>
           </section>
 
