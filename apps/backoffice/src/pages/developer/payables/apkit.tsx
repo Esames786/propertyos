@@ -1,9 +1,10 @@
-import type { AccessTarget, BillState, BudgetVersionState, CostCentreRef, CountState, ExpenseState, PayablesEvent, PayablesEvidence, PaymentState, PayScope, TopUpState } from '@repo/contracts';
+import type { AccessTarget, BillState, BudgetVersionState, CostCentreRef, CountState, ExpenseState, MoneyStates, PayablesEvent, PayablesEvidence, PaymentState, PayScope, TopUpState } from '@repo/contracts';
 import { ApiError } from '@repo/contracts';
 import { Badge, Button, cn, DateTime, dynamicT, InlineAlert, Link, useAnnounce, useApiMutation, useQueryParam, useSession, useT, useToast, type StatusTone } from '@repo/ui';
 import { Ban, BadgeCheck, CircleDashed, FileClock, FileText, FlaskConical, Hourglass, Landmark, Paperclip, PencilLine, ReceiptText, Send, ShieldCheck, Undo2, XCircle, type LucideIcon } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { FileTrigger } from 'react-aria-components';
+import { WrapMoney } from '../../society/finance/fkit';
 import { SearchSelect, unbroken, useProblemToast } from '../../society/hr/hkit';
 import { useSocietyFormat } from '../../society/kit';
 
@@ -40,15 +41,15 @@ export const PAY = {
   payments: (p: { record?: string; state?: string; bill?: string } = {}) => withQuery('/backoffice/sup/supplier-payment-drawer', p),
   ledger: (supplier?: string) => withQuery('/backoffice/sup/supplier-ledger', { supplier }),
   utilities: (p: { service?: string } = {}) => withQuery('/backoffice/sup/utilities-bills-register', p),
-  expenses: (p: { state?: string; costCentre?: string; kind?: string; q?: string } = {}) => withQuery('/backoffice/exp/expenses-list', p),
+  expenses: (p: { state?: string; costCentre?: string; kind?: string; q?: string; entity?: string } = {}) => withQuery('/backoffice/exp/expenses-list', p),
   newExpense: (p: { kind?: string } = {}) => withQuery('/backoffice/exp/new-expense', p),
   expense: (id: string) => withQuery('/backoffice/exp/expense-workspace', { record: id }),
   approvals: () => '/backoffice/exp/expense-approvals',
   pettyCash: () => '/backoffice/exp/petty-cash',
   employee: (p: { claimant?: string } = {}) => withQuery('/backoffice/exp/employee-expenses', p),
-  budgets: (p: { year?: string } = {}) => withQuery('/backoffice/exp/budget-list', p),
+  budgets: (p: { year?: string; entity?: string } = {}) => withQuery('/backoffice/exp/budget-list', p),
   budget: (id: string) => withQuery('/backoffice/exp/budget-workspace', { record: id }),
-  bva: (p: { year?: string; costCentre?: string } = {}) => withQuery('/backoffice/exp/budget-vs-actual', p),
+  bva: (p: { year?: string; costCentre?: string; entity?: string } = {}) => withQuery('/backoffice/exp/budget-vs-actual', p),
 };
 
 type Section = 'suppliers' | 'bills' | 'payments' | 'ledger' | 'utilities' | 'expenses' | 'approvals' | 'employee' | 'pettyCash' | 'budgets' | 'bva';
@@ -411,5 +412,28 @@ export function BankLine({ bank, hidden }: { bank?: { bankName: string; title: s
       <bdi>{bank.bankName}</bdi> · <span>{t('payables:bank.ending', { last4: bank.last4 })}</span>
       <span className="text-xs text-muted">({t('payables:bank.sample')})</span>
     </span>
+  );
+}
+
+/**
+ * Wave 2 integration (owner money rule): approved, posted, instructed and settled, each in its own line and
+ * in words. Posted and settled are 0.00 in this wave (posting planned, E-17; no settlement without bank
+ * evidence, E-18); nothing here ever reads "paid".
+ */
+export function MoneyStatesList({ states, testId = 'pay-money-states' }: { states: MoneyStates; testId?: string }) {
+  const { t } = useT();
+  const dt = dynamicT(t);
+  return (
+    <dl className="grid grid-cols-1 gap-3 text-sm @lg:grid-cols-2" data-testid={testId}>
+      {(['approved', 'posted', 'instructed', 'settled'] as const).map((k) => (
+        <div key={k} className="min-w-0" data-testid="pay-money-state" data-state={k} data-amount={states[k].amount}>
+          <dt className="text-xs text-muted">{dt(`payables:moneyStates.${k}`)}</dt>
+          <dd className="space-y-0.5">
+            <WrapMoney value={states[k]} className="font-semibold" />
+            <span className="block text-xs text-muted">{dt(`payables:moneyStates.${k}Note`)}</span>
+          </dd>
+        </div>
+      ))}
+    </dl>
   );
 }

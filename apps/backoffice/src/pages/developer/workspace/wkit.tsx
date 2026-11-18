@@ -5,6 +5,11 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
   Activity,
   Archive,
+  Banknote,
+  PiggyBank,
+  Receipt,
+  Truck,
+  Wallet,
   BookOpen,
   CalendarClock,
   NotebookPen,
@@ -78,6 +83,12 @@ export const TYPE_ICON: Record<WorkspaceRecordType, LucideIcon> = {
   storage: Archive,
   account: BookOpen,
   journal: NotebookPen,
+  // Gate E.8 (integration candidate): suppliers, supplier bills, payment instructions, expenses, budgets.
+  supplier: Truck,
+  supplier_bill: Receipt,
+  supplier_payment: Banknote,
+  expense: Wallet,
+  budget: PiggyBank,
 };
 
 /** A reference never breaks inside itself: it moves to the next line whole (320 px at 200 % text). */

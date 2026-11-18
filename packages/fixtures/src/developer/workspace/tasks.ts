@@ -10,6 +10,9 @@ import { inventoryState } from '../inventory/state';
 import { visibleSetup } from '../inventory/views';
 import { mayUse } from '../ledger/scope';
 import { ledgerState } from '../ledger/state';
+// ---- Gate E.8 (integration candidate) ----
+import { payablesTaskProviders } from '../payables/records';
+// ---- end Gate E.8 ----
 
 /**
  * Gate E.13 task providers (HOME-002 my tasks, HOME-004 work queue). Each provider declares what it
@@ -203,6 +206,9 @@ const AREA_PROVIDERS: readonly TaskProvider[] = [
         return [{ id: `project_activation:${r.id}`, kind: 'project_activation', module: 'projects', urgency: 'soon', actionHref: `/backoffice/prj/project-setup?record=${r.id}`, owner: { name: r.makerName, mine }, titleKey: 'workspace:hub.tasks.setupItem', params: { ref: r.ref, name: r.basics?.name ?? r.ref } }];
       }),
   },
+  // Gate E.8 (integration candidate): supplier bills, payment instructions, expenses and budget versions waiting
+  // for approval, for the checkers who may decide them; never the maker's own (developer/payables/records.ts).
+  ...payablesTaskProviders(urgencyOf),
 ];
 
 export function tasksFor(ctx: HandlerContext, scope: Scope): { items: TaskItem[]; kinds: TaskKind[] } {

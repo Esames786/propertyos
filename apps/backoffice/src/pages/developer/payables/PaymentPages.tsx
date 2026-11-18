@@ -1,6 +1,6 @@
-import { ApiError, PAYMENT_FILTERS, type BillView, type PaymentFilter, type PaymentsList, type PaymentView } from '@repo/contracts';
-import { Button, ConfirmDialog, Drawer, dynamicT, EmptyState, ErrorState, FilterPills, InlineAlert, Link, NotFoundState, PageHeader, PlainTextField, useApiQuery, useKeyedCreate, useNavigation, useQueryParam, useQueryParams, useT, useToast } from '@repo/ui';
-import { Ban, CheckCircle2, Send, Wallet } from 'lucide-react';
+import { ApiError, PAYMENT_FILTERS, type BillView, type PaymentBalance, type PaymentFilter, type PaymentsList, type PaymentView } from '@repo/contracts';
+import { Badge, Button, ConfirmDialog, Drawer, dynamicT, EmptyState, ErrorState, FilterPills, InlineAlert, Link, NotFoundState, PageHeader, PlainTextField, useApiQuery, useKeyedCreate, useNavigation, useQueryParam, useQueryParams, useT, useToast } from '@repo/ui';
+import { AlertTriangle, Ban, CheckCircle2, FlaskConical, Send, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import {
   Amount,
@@ -14,6 +14,7 @@ import {
   History,
   KEEP,
   Loading,
+  MoneyStatesList,
   PAY,
   PayNav,
   PaymentBadge,
@@ -27,6 +28,7 @@ import {
   useSocietyFormat,
   WRAP,
 } from './apkit';
+import { FavouriteStar, PayRelated } from './connect';
 
 /**
  * Gate E.8 SUP-006 supplier payment instructions (provisional, PARTIAL; owner decision E-18).
@@ -105,10 +107,13 @@ export function PaymentDrawer({ id, onClose }: { id: string; onClose: () => void
         <Loading lines={6} />
       ) : (
         <div className="space-y-4" data-testid="pay-payment-view" data-state={x.state}>
-          <p className="flex flex-wrap gap-1.5">
-            <PaymentBadge state={x.state} />
-            <SettlementBadge />
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="flex flex-wrap gap-1.5">
+              <PaymentBadge state={x.state} />
+              <SettlementBadge />
+            </p>
+            <FavouriteStar id={x.id} title={`${x.supplierName} · ${x.ref}`} />
+          </div>
           <InlineAlert tone="warning" title={t('payables:payment.notSettledTitle')} data-testid="pay-not-settled">
             {t('payables:payment.notSettledBody')}
           </InlineAlert>
@@ -166,6 +171,7 @@ export function PaymentDrawer({ id, onClose }: { id: string; onClose: () => void
               </Fact>
             )}
           </FactGrid>
+          <BalancePanel balance={x.balance} amount={x.amount} />
           {act.error ? <ProblemAlert error={act.error} /> : null}
           <div className="flex flex-wrap gap-2" data-testid="pay-payment-actions">
             {x.actions.approve && (
@@ -188,6 +194,7 @@ export function PaymentDrawer({ id, onClose }: { id: string; onClose: () => void
             <h3 className="text-sm font-semibold">{t('payables:history.title')}</h3>
             <History events={x.history} />
           </section>
+          <PayRelated id={x.id} headingLevel={3} />
           <ConfirmDialog
             isOpen={cancelling}
             onOpenChange={setCancelling}
@@ -201,6 +208,48 @@ export function PaymentDrawer({ id, onClose }: { id: string; onClose: () => void
         </div>
       )}
     </Drawer>
+  );
+}
+
+/**
+ * Wave 2 integration (owner money rule, GPT's E.8 review): the bill's ACTUAL balance and, apart and labelled,
+ * a SIMULATION of what would remain if this instruction were later settled. The server derives the actual
+ * balance twice (the bill's money states and the supplier-ledger rule) and says whether they agree; the
+ * simulation never changes it. Nothing here reads "paid" or "settled" as a fact.
+ */
+function BalancePanel({ balance, amount }: { balance: PaymentBalance; amount: { amount: string; currency: 'PKR' } }) {
+  const { t } = useT();
+  const fmt = useSocietyFormat();
+  const matches = balance.ledgerCheck === 'matches';
+  return (
+    <section aria-labelledby="pay-balance-title" className="space-y-3 rounded-tile border border-border bg-panel p-3" data-testid="pay-balance" data-check={balance.ledgerCheck}>
+      <h3 id="pay-balance-title" className="text-sm font-semibold">
+        {t('payables:balance.title')}
+      </h3>
+      <div data-testid="pay-balance-actual" data-amount={balance.actualOwed.amount}>
+        <p className="text-xs text-muted">{t('payables:balance.actual')}</p>
+        <Amount value={balance.actualOwed} className="text-base font-semibold" />
+        <p className="text-xs text-muted">{t('payables:balance.actualNote')}</p>
+      </div>
+      <MoneyStatesList states={balance.states} testId="pay-balance-states" />
+      {balance.simulatedAfterThis ? (
+        <div className="space-y-1 rounded-tile border border-dashed border-border-control p-3" data-testid="pay-balance-simulation" data-amount={balance.simulatedAfterThis.amount} data-instruction={amount.amount}>
+          <Badge tone="neutral" icon={FlaskConical}>
+            {t('payables:balance.simulation')}
+          </Badge>
+          <p className="text-sm">{t('payables:balance.simulationBody', { amount: fmt.money(balance.simulatedAfterThis) })}</p>
+          <p className="text-xs text-muted">{t('payables:balance.simulationNot', { actual: fmt.money(balance.actualOwed) })}</p>
+        </div>
+      ) : (
+        <p className="text-xs text-muted" data-testid="pay-balance-no-simulation">
+          {t('payables:balance.noSimulation')}
+        </p>
+      )}
+      <p className={matches ? 'flex items-start gap-1.5 text-xs text-muted' : 'flex items-start gap-1.5 text-sm font-semibold text-error'} data-testid="pay-balance-check">
+        {matches ? <CheckCircle2 aria-hidden className="mt-0.5 size-4 shrink-0" /> : <AlertTriangle aria-hidden className="mt-0.5 size-4 shrink-0" />}
+        {t(matches ? 'payables:balance.checkMatches' : 'payables:balance.checkDiffers')}
+      </p>
+    </section>
   );
 }
 

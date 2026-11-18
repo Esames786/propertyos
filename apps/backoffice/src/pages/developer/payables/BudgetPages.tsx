@@ -1,6 +1,6 @@
 import { ApiError, FISCAL_YEARS, SPEND_CATEGORIES, type BudgetsList, type BudgetVsActual, type BudgetView, type BvaBudget, type FiscalYear, type SpendCategory } from '@repo/contracts';
 import { Button, ConfirmDialog, Drawer, dynamicT, EmptyState, ErrorState, IconButton, InlineAlert, Link, NotFoundState, PageHeader, Panel, PlainTextField, SegmentedControl, SelectControl, useApiQuery, useKeyedCreate, useNavigation, useQueryParam, useQueryParams, useT, useToast, WorkspaceHeader } from '@repo/ui';
-import { BarChart3, CheckCircle2, CopyPlus, Plus, Send, Trash2, Undo2, XCircle } from 'lucide-react';
+import { BarChart3, CheckCircle2, CopyPlus, Plus, ReceiptText, Send, Trash2, Undo2, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import {
   Amount,
@@ -29,6 +29,7 @@ import {
   VersionBadge,
   WRAP,
 } from './apkit';
+import { FavouriteStar, PayRelated } from './connect';
 import { moneyText, paisaOf } from './money';
 
 /**
@@ -221,7 +222,7 @@ export function BudgetWorkspacePage({ id }: { id: string }) {
   return (
     <div className="@container space-y-5" data-testid="pay-budget-workspace" data-id={b.id}>
       <WorkspaceHeader
-        breadcrumbs={[{ label: t('payables:budgets.title'), href: PAY.budgets({ year: b.year }) }, { label: b.ref }]}
+        breadcrumbs={[{ label: t('payables:budgets.title'), href: PAY.budgets({ year: b.year, entity: b.legalEntityId }) }, { label: b.ref }]}
         entityLabel={t('payables:budget.entity', { year: b.year })}
         title={ccName(b.costCentre)}
         reference={b.ref}
@@ -236,7 +237,8 @@ export function BudgetWorkspacePage({ id }: { id: string }) {
           { label: t('payables:budget.versions'), value: String(b.versions.length) },
         ]}
         actions={
-          <div className="flex flex-wrap gap-2" data-testid="pay-budget-actions">
+          <div className="flex flex-wrap items-center gap-2" data-testid="pay-budget-actions">
+            <FavouriteStar id={b.id} title={`${ccName(b.costCentre)} · ${b.year}`} />
             {b.actions.submit && open && (
               <Button className={WRAP} variant="primary" icon={Send} isPending={act.pending} onPress={() => void run('submit', t('payables:budget.submittedToast', { n: open.n }))} data-testid="pay-budget-submit">
                 {t('payables:budget.submit')}
@@ -262,8 +264,11 @@ export function BudgetWorkspacePage({ id }: { id: string }) {
                 {t('payables:budget.newVersion')}
               </Button>
             )}
-            <LinkButton icon={BarChart3} href={PAY.bva({ year: b.year, costCentre: b.costCentre.id })} testId="pay-budget-to-bva">
+            <LinkButton icon={BarChart3} href={PAY.bva({ year: b.year, costCentre: b.costCentre.id, entity: b.legalEntityId })} testId="pay-budget-to-bva">
               {t('payables:budgets.toBva')}
+            </LinkButton>
+            <LinkButton icon={ReceiptText} href={PAY.expenses({ costCentre: b.costCentre.id, entity: b.legalEntityId })} testId="pay-budget-to-expenses">
+              {t('payables:budget.toExpenses')}
             </LinkButton>
           </div>
         }
@@ -302,9 +307,12 @@ export function BudgetWorkspacePage({ id }: { id: string }) {
             </li>
           ))}
         </ol>
-        <Panel title={t('payables:history.title')}>
-          <History events={b.history} />
-        </Panel>
+        <div className="min-w-0 space-y-4">
+          <Panel title={t('payables:history.title')}>
+            <History events={b.history} />
+          </Panel>
+          <PayRelated id={b.id} />
+        </div>
       </div>
       <ConfirmDialog
         isOpen={dialog === 'approve'}

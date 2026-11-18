@@ -1,6 +1,6 @@
 import { ApiError, EXPENSE_FILTERS, type ApprovalItem, type ExpenseApprovals, type ExpenseFilter, type ExpensesList, type ExpenseSummary, type ExpenseView, type PayablesEvidence } from '@repo/contracts';
 import { Badge, Button, ConfirmDialog, dynamicT, EmptyState, ErrorState, FilterPills, InlineAlert, Link, NotFoundState, PageHeader, Panel, PlainTextField, SegmentedControl, useApiQuery, useQueryParam, useQueryParams, useT, WorkspaceHeader } from '@repo/ui';
-import { CheckCircle2, FilePlus2, Paperclip, Send, Undo2, UserRound, XCircle } from 'lucide-react';
+import { BarChart3, CheckCircle2, FilePlus2, Paperclip, Send, Undo2, UserRound, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import {
   Amount,
@@ -32,6 +32,7 @@ import {
   useSocietyFormat,
   WRAP,
 } from './apkit';
+import { FavouriteStar, PayRelated } from './connect';
 
 /**
  * Gate E.8 EXP-001 expenses, EXP-003 the expense workspace, EXP-004 approvals and EXP-006 employee
@@ -162,7 +163,8 @@ export function ExpenseWorkspacePage({ id }: { id: string }) {
           { label: t('payables:expense.category'), value: dt(`payables:category.${e.category}`) },
         ]}
         actions={
-          <div className="flex flex-wrap gap-2" data-testid="pay-expense-actions">
+          <div className="flex flex-wrap items-center gap-2" data-testid="pay-expense-actions">
+            <FavouriteStar id={e.id} title={e.description} />
             {e.actions.submit && (
               <Button className={WRAP} variant="primary" icon={Send} isPending={act.pending} onPress={() => void run('submit', t('payables:expense.submittedToast', { ref: e.ref }))} data-testid="pay-expense-submit">
                 {t('payables:expense.submit')}
@@ -203,7 +205,26 @@ export function ExpenseWorkspacePage({ id }: { id: string }) {
                 <bdi>{e.legalEntity.name}</bdi>
               </Fact>
               <Fact label={t('payables:expense.costCentre')}>
-                <CostCentreName cc={e.costCentre} />
+                <Link href={PAY.expenses({ costCentre: e.costCentre.id, entity: e.legalEntity.id })} data-testid="pay-expense-cc-link" aria-label={`${t('payables:expense.ccExpenses')}: ${e.costCentre.name}`}>
+                  <CostCentreName cc={e.costCentre} />
+                </Link>
+              </Fact>
+              <Fact label={t('payables:expense.budget')}>
+                {e.budget ? (
+                  <Link href={PAY.budget(e.budget.id)} data-testid="pay-expense-budget">
+                    <Ref value={e.budget.ref} />
+                  </Link>
+                ) : (
+                  <span className="text-muted" data-testid="pay-expense-no-budget">
+                    {t('payables:expense.noBudget', { year: e.fiscalYear })}
+                  </span>
+                )}
+                <span className="block text-xs">
+                  <Link href={PAY.bva({ year: e.fiscalYear, costCentre: e.costCentre.id, entity: e.legalEntity.id })} data-testid="pay-expense-bva">
+                    <BarChart3 aria-hidden className="me-1 inline size-3.5" />
+                    {t('payables:expense.toBva')}
+                  </Link>
+                </span>
               </Fact>
               {e.kind === 'claim' ? (
                 <Fact label={t('payables:expense.claimant')}>
@@ -250,6 +271,7 @@ export function ExpenseWorkspacePage({ id }: { id: string }) {
           <Panel title={t('payables:history.title')}>
             <History events={e.history} />
           </Panel>
+          <PayRelated id={e.id} />
         </div>
       </div>
       <ConfirmDialog

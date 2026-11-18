@@ -57,6 +57,7 @@ import {
   useSocietyFormat,
   WRAP,
 } from './apkit';
+import { FavouriteStar, PayRelated } from './connect';
 
 /**
  * Gate E.8 SUP-001 suppliers, SUP-002 Supplier 360 and SUP-007 supplier ledger (provisional, PARTIAL).
@@ -137,10 +138,10 @@ export function SuppliersPage() {
               )}
               <dl className="mt-3 grid grid-cols-1 gap-2 text-sm @xs:grid-cols-2">
                 <div>
-                  <dt className="text-xs text-muted">{t('payables:suppliers.openBills')}</dt>
+                  <dt className="text-xs text-muted">{t('payables:suppliers.inProgress')}</dt>
                   <dd>
-                    <Link href={PAY.bills({ supplier: s.id })} data-testid="pay-supplier-bills">
-                      {t('payables:suppliers.openBillsValue', { count: s.openBills, waiting: fmt.count(s.awaitingApproval) })}
+                    <Link href={PAY.bills({ supplier: s.id, state: 'in_progress', entity: s.legalEntityId })} data-testid="pay-supplier-bills">
+                      {t('payables:suppliers.inProgressValue', { count: s.inProgressBills, waiting: fmt.count(s.awaitingApproval) })}
                     </Link>
                   </dd>
                 </div>
@@ -247,12 +248,13 @@ export function Supplier360Page({ id }: { id: string }) {
         }
         metrics={[
           { label: t('payables:supplier.obligation'), value: d.totals ? <MetricAmount value={d.totals.approvedObligation} /> : withheld },
-          { label: t('payables:supplier.awaiting'), value: d.totals ? <MetricAmount value={d.totals.awaitingApproval} /> : withheld },
+          { label: t('payables:supplier.posted'), value: d.totals ? <MetricAmount value={d.totals.posted} /> : withheld },
           { label: t('payables:supplier.instructed'), value: d.totals ? <MetricAmount value={d.totals.instructed} /> : withheld },
           { label: t('payables:supplier.settled'), value: d.totals ? <MetricAmount value={d.totals.settled} /> : withheld },
         ]}
         actions={
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <FavouriteStar id={s.id} title={s.name} />
             {d.canCreateBill && (
               <LinkButton variant="primary" icon={FilePlus2} href={PAY.newBill({ supplier: s.id })} testId="pay-360-new-bill">
                 {t('payables:supplier.newBill')}
@@ -279,6 +281,7 @@ export function Supplier360Page({ id }: { id: string }) {
         {(tab) => (
           <div data-testid={`pay-360-tab-${tab}`}>
             {tab === 'overview' && (
+              <div className="space-y-4">
               <div className="grid grid-cols-1 gap-4 @4xl:grid-cols-2">
                 <Panel title={t('payables:supplier.details')}>
                   <dl className="grid grid-cols-1 gap-3 text-sm">
@@ -326,14 +329,16 @@ export function Supplier360Page({ id }: { id: string }) {
                 <div className="space-y-4">
                   <Boundary />
                   <div className="grid grid-cols-1 gap-3 @md:grid-cols-2">
-                    <StatTile label={t('payables:supplier.awaitingCount')} value={fmt.count(s.awaitingApproval)} accessibleValue={String(s.awaitingApproval)} href={PAY.bills({ supplier: s.id, state: 'submitted' })} icon={Hourglass} hue="amber" testId="pay-360-kpi-awaiting" />
-                    <StatTile label={t('payables:supplier.openCount')} value={fmt.count(s.openBills)} accessibleValue={String(s.openBills)} href={PAY.bills({ supplier: s.id })} icon={ReceiptText} hue="sky" testId="pay-360-kpi-open" />
+                    <StatTile label={t('payables:supplier.awaitingCount')} value={fmt.count(s.awaitingApproval)} accessibleValue={String(s.awaitingApproval)} {...(d.totals ? { context: t('payables:supplier.awaitingAmount', { amount: fmt.money(d.totals.awaitingApproval) }) } : {})} href={PAY.bills({ supplier: s.id, state: 'submitted', entity: s.legalEntityId })} icon={Hourglass} hue="amber" testId="pay-360-kpi-awaiting" />
+                    <StatTile label={t('payables:supplier.inProgressCount')} value={fmt.count(s.inProgressBills)} accessibleValue={String(s.inProgressBills)} href={PAY.bills({ supplier: s.id, state: 'in_progress', entity: s.legalEntityId })} icon={ReceiptText} hue="sky" testId="pay-360-kpi-in-progress" />
                   </div>
                 </div>
               </div>
+              <PayRelated id={s.id} />
+              </div>
             )}
             {tab === 'bills' && (
-              <Panel title={t('payables:supplier.tab.bills')} actions={<Link href={PAY.bills({ supplier: s.id })}>{t('payables:supplier.allBills')}</Link>}>
+              <Panel title={t('payables:supplier.tab.bills')} actions={<Link href={PAY.bills({ supplier: s.id, entity: s.legalEntityId })}>{t('payables:supplier.allBills')}</Link>}>
                 {d.bills.length === 0 ? (
                   <p className="text-sm text-muted">{t('payables:supplier.noBills')}</p>
                 ) : (

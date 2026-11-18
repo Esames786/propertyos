@@ -32,7 +32,9 @@ import {
   useEntityParam,
   useSocietyFormat,
   WRAP,
+  MoneyStatesList,
 } from './apkit';
+import { FavouriteStar, PayRelated } from './connect';
 import { NewPaymentDrawer } from './PaymentPages';
 
 /**
@@ -152,7 +154,7 @@ export function BillWorkspacePage({ id }: { id: string }) {
   return (
     <div className="@container space-y-5" data-testid="pay-bill-workspace" data-id={b.id} data-state={b.state}>
       <WorkspaceHeader
-        breadcrumbs={[{ label: t('payables:bills.title'), href: PAY.bills() }, { label: b.supplierName, href: PAY.supplier(b.supplierId) }, { label: b.ref }]}
+        breadcrumbs={[{ label: t('payables:bills.title'), href: PAY.bills({ entity: b.legalEntity.id }) }, { label: b.supplierName, href: PAY.supplier(b.supplierId) }, { label: b.ref }]}
         entityLabel={t(b.kind === 'utility' ? 'payables:bill.utilityEntity' : 'payables:bill.entity')}
         title={b.supplierName}
         reference={b.ref}
@@ -164,7 +166,8 @@ export function BillWorkspacePage({ id }: { id: string }) {
           { label: t('payables:bill.instructed'), value: <MetricAmount value={b.instructed} /> },
         ]}
         actions={
-          <div className="flex flex-wrap gap-2" data-testid="pay-bill-actions">
+          <div className="flex flex-wrap items-center gap-2" data-testid="pay-bill-actions">
+            <FavouriteStar id={b.id} title={`${b.supplierName} · ${b.ref}`} />
             {b.actions.submit && (
               <Button className={WRAP} variant="primary" icon={Send} isPending={act.pending} onPress={() => void run('submit', t('payables:bill.submitted', { ref: b.ref }))} data-testid="pay-bill-submit">
                 {t('payables:bill.submit')}
@@ -307,9 +310,13 @@ export function BillWorkspacePage({ id }: { id: string }) {
         </div>
         <div className="min-w-0 space-y-4">
           <Boundary />
+          <Panel title={t('payables:moneyStates.title')}>
+            <MoneyStatesList states={b.money} />
+          </Panel>
           <Panel title={t('payables:history.title')}>
             <History events={b.history} />
           </Panel>
+          <PayRelated id={b.id} />
         </div>
       </div>
       <ConfirmDialog

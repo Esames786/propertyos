@@ -11,7 +11,7 @@ import { NOWRAP, HUB, RecordRow, useFavourites } from './wkit';
  * record page can show it (`<RelatedRecords recordId=… />`); E.1/E.2/E.7 record pages adopt it at
  * integration.
  */
-export function RelatedRecords({ recordId, exclude, headingLevel = 2 }: { recordId: string; exclude?: string; headingLevel?: 2 | 3 }) {
+export function RelatedRecords({ recordId, exclude, headingLevel = 2, withDocuments = true }: { recordId: string; exclude?: string; headingLevel?: 2 | 3; /** Gate E.8 (integration candidate): false where the record keeps its own evidence (payables), so no empty documents panel stands beside it. */ withDocuments?: boolean }) {
   const { t } = useT();
   const dt = dynamicT(t);
   const favourites = useFavourites();
@@ -20,7 +20,7 @@ export function RelatedRecords({ recordId, exclude, headingLevel = 2 }: { record
   if (!q.data) return <Loading lines={4} />;
   const d = q.data;
   // The document being viewed is not listed again among its record's documents.
-  const documents = d.documents?.filter((x) => x.id !== exclude) ?? null;
+  const documents = withDocuments ? (d.documents?.filter((x) => x.id !== exclude) ?? null) : null;
   const groups = d.groups.map((g) => ({ ...g, items: g.items.filter((i) => i.id !== exclude) })).filter((g) => g.items.length);
   return (
     <div className="space-y-5" data-testid="related-records">

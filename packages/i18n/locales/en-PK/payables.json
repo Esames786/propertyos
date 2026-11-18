@@ -276,8 +276,8 @@
     "noneFiltered": "No supplier matches",
     "noneHint": "Suppliers you may see appear here.",
     "projects": "Serves",
-    "openBills": "Open bills",
-    "openBillsValue": "{{count}} open · {{waiting}} awaiting approval",
+    "inProgress": "In progress",
+    "inProgressValue": "{{count}} in progress · {{waiting}} awaiting approval",
     "obligation": "Approved obligation (not paid)",
     "name": "Supplier name",
     "category": "Category",
@@ -314,7 +314,7 @@
     "payee": "Payee account",
     "addedBy": "Added by",
     "awaitingCount": "Bills awaiting approval",
-    "openCount": "Open bills",
+    "inProgressCount": "Bills in progress (draft or awaiting approval)",
     "allBills": "All bills of this supplier",
     "noBills": "No bills you may see.",
     "noPayments": "No payment instructions yet.",
@@ -325,7 +325,9 @@
     "noProjects": "No projects named.",
     "ledgerIntro": "The ledger lists approved bills; settled payments and credit notes would reduce it, and none exist yet.",
     "noDocuments": "No documents on bills you may see.",
-    "forBill": "for bill"
+    "forBill": "for bill",
+    "posted": "Posted to the ledger",
+    "awaitingAmount": "{{amount}} awaiting approval"
   },
   "bills": {
     "title": "Supplier bills",
@@ -335,6 +337,7 @@
     "filterLabel": "Filter bills by state",
     "filter": {
       "all": "All",
+      "in_progress": "In progress",
       "draft": "Drafts",
       "submitted": "Awaiting approval",
       "approved": "Approved",
@@ -558,7 +561,11 @@
     "attached": "Receipt attached",
     "obligationTitle": "Approved obligation — not paid",
     "obligationBody": "This expense is owed. It is not posted and not paid (decisions E-⁠17 and E-⁠18).",
-    "claimObligation": "This claim is owed to the employee. It is not reimbursed: reimbursement waits on decision E-⁠18."
+    "claimObligation": "This claim is owed to the employee. It is not reimbursed: reimbursement waits on decision E-⁠18.",
+    "budget": "Budget for this cost centre",
+    "noBudget": "No budget you may open for {{year}}",
+    "toBva": "Budget vs actual for this cost centre",
+    "ccExpenses": "Expenses on this cost centre"
   },
   "newExpense": {
     "title": "New expense",
@@ -711,7 +718,8 @@
     "newVersion": "New version",
     "newVersionTitle": "New budget version",
     "newVersionHint": "Starts from the latest version. It replaces nothing until someone else approves it.",
-    "versionCreated": "New version drafted"
+    "versionCreated": "New version drafted",
+    "toExpenses": "Expenses on this cost centre"
   },
   "bva": {
     "title": "Budget vs actual",
@@ -736,5 +744,31 @@
     "openState": "Open budget ({{state}})",
     "openBudget": "Open budget",
     "noBudget": "No budget"
+  },
+  "moneyStates": {
+    "title": "Money states, kept apart",
+    "approved": "Approved (owed, not paid)",
+    "approvedNote": "An approved bill is an obligation. Nothing is paid.",
+    "posted": "Posted to the ledger",
+    "postedNote": "Posting is planned (E.7 posting rules, decision E-⁠17).",
+    "instructed": "Instructed (not settled)",
+    "instructedNote": "A payment instruction moves no money.",
+    "settled": "Settled",
+    "settledNote": "Nothing is settled without matched bank evidence (decision E-⁠18)."
+  },
+  "balance": {
+    "title": "Balance on this bill",
+    "actual": "Owed now (actual)",
+    "actualNote": "The supplier ledger's balance for this bill. An instruction never lowers it.",
+    "simulation": "Simulation",
+    "simulationBody": "If this instruction is later settled with bank evidence, {{amount}} would remain owed on this bill.",
+    "simulationNot": "A simulation only: nothing is paid or settled, and the actual balance stays {{actual}}.",
+    "noSimulation": "This instruction is cancelled, so there is nothing to simulate.",
+    "checkMatches": "Checked against the supplier ledger: the actual balance matches.",
+    "checkDiffers": "The actual balance does not match the supplier ledger. Do not act on this instruction; report it."
+  },
+  "related": {
+    "title": "Connected records",
+    "favourite": "Keep as a favourite"
   }
 }

@@ -171,7 +171,12 @@
       "visit": "Site visit",
       "storage": "Storage",
       "account": "Ledger account",
-      "journal": "Journal"
+      "journal": "Journal",
+      "supplier": "Supplier",
+      "supplier_bill": "Supplier bill",
+      "supplier_payment": "Payment instruction",
+      "expense": "Expense",
+      "budget": "Budget"
     },
     "typesPlural": {
       "lead": "Leads",
@@ -192,7 +197,12 @@
       "visit": "Site visits",
       "storage": "Storage",
       "account": "Ledger accounts",
-      "journal": "Journals"
+      "journal": "Journals",
+      "supplier": "Suppliers",
+      "supplier_bill": "Supplier bills",
+      "supplier_payment": "Payment instructions",
+      "expense": "Expenses and claims",
+      "budget": "Budgets"
     },
     "today": "Today",
     "sessionNote": "Kept for this sign-in only: signing out or switching identity clears this list. A record you can no longer open disappears from it.",
@@ -289,7 +299,11 @@
         "society_task": "Society task",
         "society_approval": "Waiting for approval",
         "journal_approval": "Journal waiting for approval",
-        "project_activation": "Project setup waiting for approval"
+        "project_activation": "Project setup waiting for approval",
+        "bill_approval": "Supplier bill waiting for approval",
+        "payment_approval": "Payment instruction waiting for approval (not a payment)",
+        "expense_approval": "Expense waiting for approval",
+        "budget_approval": "Budget version {{version}} waiting for approval"
       },
       "kindName": {
         "follow_up": "Follow-ups",
@@ -301,7 +315,11 @@
         "society_task": "Society tasks",
         "society_approval": "Society approvals",
         "journal_approval": "Journal approvals",
-        "project_activation": "Project activations"
+        "project_activation": "Project activations",
+        "bill_approval": "Bill approvals",
+        "payment_approval": "Payment instruction approvals",
+        "expense_approval": "Expense approvals",
+        "budget_approval": "Budget approvals"
       },
       "action": {
         "follow_up": "Log follow-up",
@@ -313,7 +331,11 @@
         "society_task": "Open",
         "society_approval": "Review",
         "journal_approval": "Review journal",
-        "project_activation": "Review setup"
+        "project_activation": "Review setup",
+        "bill_approval": "Review bill",
+        "payment_approval": "Review instruction",
+        "expense_approval": "Review expense",
+        "budget_approval": "Review budget"
       },
       "approvalItem": "{{label}}",
       "due": "Due {{when}}",
@@ -363,7 +385,8 @@
         "all": "All areas",
         "crm": "Sales",
         "documents": "Documents",
-        "templates": "Templates and policies"
+        "templates": "Templates and policies",
+        "payables": "Payables and expenses"
       },
       "you": "You",
       "more": "Show older activity",
@@ -377,7 +400,14 @@
         "otherLeads": "Other leads of this customer",
         "leads": "Leads",
         "invoices": "Invoices",
-        "linkedTo": "Linked record"
+        "linkedTo": "Linked record",
+        "supplier": "Supplier",
+        "bills": "Supplier bills",
+        "bill": "Supplier bill",
+        "paymentInstructions": "Payment instructions (not settled)",
+        "budgets": "Budgets this bill counts against",
+        "budget": "Budget this expense counts against",
+        "expenses": "Expenses on this cost centre"
       },
       "documents_one": "Documents ({{count}})",
       "documents_other": "Documents ({{count}})",

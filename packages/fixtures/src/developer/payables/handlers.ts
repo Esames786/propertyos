@@ -1,5 +1,6 @@
 import {
   BILL_FILTERS,
+  BILL_IN_PROGRESS,
   BILL_KINDS,
   BUDGET_VERSION_STATES,
   CASH_NOTES,
@@ -375,8 +376,9 @@ function billsList(ctx: HandlerContext, kindOnly?: 'utility'): BillsList {
       (!kind || kind === 'all' || b.kind === kind) &&
       (!term || matches(term, b.ref, b.supplierInvoiceNo, p.st.suppliers.find((s) => s.id === b.supplierId)?.name, b.utility?.consumerNo)),
   );
-  const counts = Object.fromEntries(BILL_FILTERS.map((f) => [f, f === 'all' ? base.length : base.filter((b) => b.state === f).length])) as BillsList['counts'];
-  const items = base.filter((b) => state === 'all' || b.state === state).sort((a, b) => (a.invoiceDate === b.invoiceDate ? b.ref.localeCompare(a.ref) : a.invoiceDate < b.invoiceDate ? 1 : -1));
+  const inFilter = (b: StoredBill, f: BillFilter) => f === 'all' || (f === 'in_progress' ? BILL_IN_PROGRESS.includes(b.state) : b.state === f);
+  const counts = Object.fromEntries(BILL_FILTERS.map((f) => [f, base.filter((b) => inFilter(b, f)).length])) as BillsList['counts'];
+  const items = base.filter((b) => inFilter(b, state)).sort((a, b) => (a.invoiceDate === b.invoiceDate ? b.ref.localeCompare(a.ref) : a.invoiceDate < b.invoiceDate ? 1 : -1));
   return { scope, items: items.map((b) => billSummary(p, b)), counts, canCreate: may(p, 'supplier.manage') && entityVisible(ctx, scope.entity.id, SUP_MANAGE) };
 }
 

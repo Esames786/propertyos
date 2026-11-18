@@ -1,3 +1,4 @@
+import { BILL_IN_PROGRESS } from '@repo/contracts';
 import type {
   BillSummary,
   BillView,
@@ -10,7 +11,9 @@ import type {
   DevLegalEntity,
   ExpenseSummary,
   ExpenseView,
+  MoneyStates,
   PayablesEvent,
+  PaymentBalance,
   PayEntityRef,
   PaymentSummary,
   PaymentView,
@@ -26,7 +29,7 @@ import { projectHistory, wholeOnly } from '../../projection';
 import { seesBank as seesBankFor } from '../ledger/scope';
 import { costCentreVisible, entityVisible, entityWhole, type ScopeNeed } from '../scope';
 import { developerState } from '../state';
-import { approvedVersion, BILL_FROM, BUDGET_FROM, can, EXPENSE_FROM, instructable, instructedOn, lineTotal, LIVE_PAYMENTS, money, openVersion, PAYMENT_FROM, sum, paisa } from './rules';
+import { approvedVersion, BILL_FROM, BUDGET_FROM, can, EXPENSE_FROM, fiscalYearOf, instructable, instructedOn, lineTotal, LIVE_PAYMENTS, money, openVersion, PAYMENT_FROM, sum, paisa, supplierLedger } from './rules';
 import { payablesState, payablesStateForWrite, type PayablesState, type StoredBill, type StoredBudget, type StoredEvent, type StoredExpense, type StoredFloat, type StoredPayment, type StoredSupplier } from './state';
 
 /**
@@ -159,6 +162,34 @@ const event = (e: StoredEvent): PayablesEvent => ({ at: e.at, ...(e.by ? { by: e
 
 export const billTotal = (b: StoredBill) => money(lineTotal(b.lines));
 
+/**
+ * Wave 2 integration: a bill's money states, apart. Approved only once approved; posted and settled are 0.00
+ * (posting planned, E-17; no settlement without bank evidence, E-18); instructed = live instructions.
+ */
+export function billMoney(p: Px, b: StoredBill): MoneyStates {
+  return { approved: money(b.state === 'approved' ? lineTotal(b.lines) : 0n), posted: money(0n), instructed: money(instructedOn(p.st.payments, b.id)), settled: money(0n) };
+}
+
+/**
+ * The payment drawer's balance: the bill's ACTUAL balance (approved − settled; nothing is settled in this wave)
+ * and, apart, a SIMULATION of what would remain if this instruction were settled. The actual balance is derived
+ * a second time through the supplier-ledger rule (`supplierLedger`, settlements = none: a "sent (simulated)"
+ * instruction is not a settled payment) and the two must agree.
+ */
+export function paymentBalance(p: Px, b: StoredBill, x: StoredPayment): PaymentBalance {
+  const states = billMoney(p, b);
+  const settled = paisa(states.settled);
+  const actual = paisa(states.approved) - settled;
+  const ledger = supplierLedger([{ id: b.id, ref: b.ref, date: b.invoiceDate, state: b.state, total: billTotal(b).amount }], [], []).balance;
+  const live = LIVE_PAYMENTS.includes(x.state);
+  return {
+    actualOwed: money(actual),
+    states,
+    ...(live ? { simulatedAfterThis: money(actual - paisa({ amount: x.amount, currency: 'PKR' })) } : {}),
+    ledgerCheck: ledger === actual ? 'matches' : 'differs',
+  };
+}
+
 export function billSummary(p: Px, b: StoredBill): BillSummary {
   const s = p.st.suppliers.find((x) => x.id === b.supplierId);
   return {
@@ -223,6 +254,7 @@ export function billView(p: Px, b: StoredBill): BillView {
     ...(b.decisionNote ? { decisionNote: b.decisionNote } : {}),
     payments: p.st.payments.filter((x) => x.billId === b.id).map((x) => paymentSummary(p, x)),
     instructable: money(left),
+    money: billMoney(p, b),
     history: b.history.map(event),
     actions: {
       submit: maker && can(BILL_FROM, 'submit', b.state),
@@ -253,6 +285,7 @@ export function paymentView(p: Px, x: StoredPayment): PaymentView {
     ...(payee ? { payee } : {}),
     ...(bank && acct ? { payFrom: { title: acct.title, maskedNumber: acct.maskedNumber, sample: true as const } } : {}),
     bankHidden: !bank,
+    balance: paymentBalance(p, b, x),
     ...(x.approvedByName ? { approvedByName: x.approvedByName, approvedAt: x.approvedAt! } : {}),
     ...(x.sentByName ? { sentByName: x.sentByName, sentAt: x.sentAt! } : {}),
     ...(x.cancelledByName ? { cancelledByName: x.cancelledByName, cancelledAt: x.cancelledAt!, ...(x.cancelReason ? { cancelReason: x.cancelReason } : {}) } : {}),
@@ -277,7 +310,7 @@ export function supplierSummary(p: Px, s: StoredSupplier): SupplierSummary {
     category: s.category,
     legalEntityId: s.legalEntityId,
     projectNames: s.projectIds.map((id) => projectName(p, id)).filter((x): x is string => !!x),
-    openBills: bills.filter((b) => b.state === 'draft' || b.state === 'submitted').length,
+    inProgressBills: bills.filter((b) => BILL_IN_PROGRESS.includes(b.state)).length,
     awaitingApproval: bills.filter((b) => b.state === 'submitted').length,
     ...(approved ? { approvedObligation: approved } : {}),
     demo: s.demo,
@@ -297,6 +330,7 @@ export function supplier360(p: Px, s: StoredSupplier) {
     awaitingApproval: money(sum(all.filter((b) => b.state === 'submitted').map((b) => lineTotal(b.lines)))),
     instructed: money(sum(p.st.payments.filter((x) => x.supplierId === s.id && LIVE_PAYMENTS.includes(x.state)).map((x) => paisa({ amount: x.amount, currency: 'PKR' })))),
     settled: money(0n),
+    posted: money(0n),
   });
   const activity = projectHistory<StoredEvent>(s.history, { whole, about: (e) => e.billId, sees: (id) => visibleBills.has(id), internal: ['billId'] });
   return {
@@ -356,6 +390,13 @@ export function expenseBlock(p: Px, e: StoredExpense): 'own_expense' | 'own_clai
   return undefined;
 }
 
+/** Wave 2 integration: the budget an expense counts against (its cost centre, its fiscal year), if the reader may open it. */
+function expenseBudget(p: Px, e: StoredExpense): Pick<ExpenseView, 'fiscalYear' | 'budget'> {
+  const fiscalYear = fiscalYearOf(e.incurredOn)!;
+  const b = p.st.budgets.find((x) => x.costCentreId === e.costCentreId && x.year === fiscalYear && budgetVisible(p, x));
+  return { fiscalYear, ...(b ? { budget: { id: b.id, ref: b.ref } } : {}) };
+}
+
 export function expenseView(p: Px, e: StoredExpense): ExpenseView {
   const decider = may(p, 'expense.approve') && expenseVisible(p, e, EXP_APPROVE);
   const maker = may(p, 'expense.create') && expenseVisible(p, e, EXP_CREATE);
@@ -371,6 +412,7 @@ export function expenseView(p: Px, e: StoredExpense): ExpenseView {
     ...(e.decidedByName ? { decidedByName: e.decidedByName, decidedAt: e.decidedAt! } : {}),
     ...(e.decisionNote ? { decisionNote: e.decisionNote } : {}),
     history: e.history.map(event),
+    ...expenseBudget(p, e),
     actions: {
       submit: maker && own && can(EXPENSE_FROM, 'submit', e.state),
       withdraw: maker && own && can(EXPENSE_FROM, 'withdraw', e.state),

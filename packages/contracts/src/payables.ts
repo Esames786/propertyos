@@ -36,7 +36,9 @@ export type BillKind = (typeof BILL_KINDS)[number];
 /** Approval state of a supplier bill. Posting and settlement are separate fields. */
 export const BILL_STATES = ['draft', 'submitted', 'approved', 'rejected', 'cancelled'] as const;
 export type BillState = (typeof BILL_STATES)[number];
-export const BILL_FILTERS = ['all', ...BILL_STATES] as const;
+/** `in_progress` (Wave 2 integration): drafts and bills awaiting approval, the ones still being worked on. */
+export const BILL_IN_PROGRESS: readonly BillState[] = ['draft', 'submitted'];
+export const BILL_FILTERS = ['all', 'in_progress', ...BILL_STATES] as const;
 export type BillFilter = (typeof BILL_FILTERS)[number];
 
 /** A supplier payment is an instruction: prepared → approved → sent (simulated); settlement is never set here (E-18). */
@@ -129,8 +131,13 @@ export interface SupplierSummary {
   category: SupplierCategory;
   legalEntityId: string;
   projectNames: string[];
-  /** Bills of this supplier the reader may see, by state. */
-  openBills: number;
+  /**
+   * Bills of this supplier the reader may see that are still in progress: drafts and bills awaiting approval
+   * (`BILL_IN_PROGRESS`). Wave 2 integration: was `openBills`, a misleading name (an approved bill is still
+   * owed, yet it was not counted).
+   */
+  inProgressBills: number;
+  /** Of those, the ones awaiting approval. */
   awaitingApproval: number;
   /** Approved obligation (approved bills; nothing is settled): only for whole-entity readers. */
   approvedObligation?: Money;
@@ -208,6 +215,35 @@ export interface PaymentSummary {
   preparedAt: string;
 }
 
+/**
+ * Wave 2 integration (owner money rule, GPT's E.8 review): the four money states of a payable, never merged
+ * into one figure. Approved is an obligation (not paid). Posted needs E.7's posting rules (planned, E-17), so it
+ * is 0.00 today. Instructed is what live payment instructions ask for (not a transfer). Settled needs matched
+ * bank evidence (E-18), so it is 0.00 today.
+ */
+export interface MoneyStates {
+  approved: Money;
+  posted: Money;
+  instructed: Money;
+  settled: Money;
+}
+
+/**
+ * The bill's ACTUAL balance beside a clearly labelled SIMULATION, in the payment instruction drawer. The
+ * simulation is arithmetic only: no instruction lowers what is owed, and nothing simulated is a balance, a
+ * payment or a settlement.
+ */
+export interface PaymentBalance {
+  /** ACTUAL: owed on the bill now (supplier-ledger rule: approved − credit notes − settled). */
+  actualOwed: Money;
+  /** The bill's money states, side by side. */
+  states: MoneyStates;
+  /** SIMULATION only: what would remain owed if this instruction were later settled in full. Absent once cancelled. */
+  simulatedAfterThis?: Money;
+  /** The actual balance, derived again through the supplier-ledger rule, agrees with `actualOwed` (and the simulation left it unchanged). */
+  ledgerCheck: 'matches' | 'differs';
+}
+
 export interface BillView extends BillSummary {
   legalEntity: PayEntityRef;
   lines: BillLineView[];
@@ -222,6 +258,8 @@ export interface BillView extends BillSummary {
   payments: PaymentSummary[];
   /** What may still be instructed: approved total − live instructions (never reduced by a settlement here). */
   instructable: Money;
+  /** Wave 2 integration: approved, posted, instructed and settled, apart. */
+  money: MoneyStates;
   history: PayablesEvent[];
   actions: { submit: boolean; approve: boolean; reject: boolean; cancel: boolean; instruct: boolean; attach: boolean };
   /** Why the reader cannot decide (shown in words, never a silent missing button). */
@@ -277,6 +315,8 @@ export interface PaymentView extends PaymentSummary {
   payee?: SupplierBankView;
   payFrom?: { title: string; maskedNumber: string; sample: true };
   bankHidden: boolean;
+  /** Wave 2 integration: the bill's actual balance and the instruction's simulation, kept apart. */
+  balance: PaymentBalance;
   approvedByName?: string;
   approvedAt?: string;
   sentByName?: string;
@@ -303,7 +343,7 @@ export interface Supplier360 {
   bankHidden: boolean;
   bankOnFile: boolean | null;
   /** Entity-wide totals: only for whole-entity readers (withheld, never recalculated, for others). */
-  totals?: { approvedObligation: Money; awaitingApproval: Money; instructed: Money; settled: Money };
+  totals?: { approvedObligation: Money; awaitingApproval: Money; instructed: Money; settled: Money; /** Wave 2 integration: 0.00 until E.7's posting rules (E-17). */ posted: Money };
   bills: BillSummary[];
   payments: PaymentSummary[];
   projects: Array<{ id: string; name: string }>;
@@ -381,6 +421,9 @@ export interface ExpenseView extends ExpenseSummary {
   history: PayablesEvent[];
   actions: { submit: boolean; withdraw: boolean; approve: boolean; reject: boolean; attach: boolean };
   blocked?: 'own_expense' | 'own_claim' | 'not_submitted' | 'no_permission';
+  /** Wave 2 integration: the fiscal year the expense counts in, and that year's budget of its cost centre when the reader may open it. */
+  fiscalYear: FiscalYear;
+  budget?: { id: string; ref: string };
 }
 
 export interface ExpensesList {

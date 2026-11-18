@@ -1,7 +1,7 @@
 import { ACTIVITY_RANGES, type ActivityItem, type ActivityResponse } from '@repo/contracts';
 import { Button, dynamicT, EmptyState, ErrorState, FilterPills, Link, PageHeader, SegmentedControl, useApiQuery, useQueryParam, useQueryParams, useT } from '@repo/ui';
 import { ChevronDown } from 'lucide-react';
-import { Loading } from '../../society/kit';
+import { Loading, useSocietyFormat } from '../../society/kit';
 import { unbroken } from '../../society/hr/hkit';
 import { byDay, DayHeading, DEMO_TODAY, HubNav, RecordLine, TYPE_ICON, useHubFormat } from './wkit';
 
@@ -13,8 +13,11 @@ import { byDay, DayHeading, DEMO_TODAY, HubNav, RecordLine, TYPE_ICON, useHubFor
 function useParams() {
   const { t } = useT();
   const f = useHubFormat();
+  const money = useSocietyFormat().money;
   return (item: ActivityItem) => {
     const p: Record<string, string> = { ...item.params };
+    // Gate E.8 (integration candidate): payables amounts arrive as plain PKR figures ("150000.00").
+    if (p.amount && /^-?\d+\.\d{2}$/.test(p.amount)) p.amount = money({ amount: p.amount, currency: 'PKR' });
     if (p.source) p.source = t(`crm:source.${p.source}` as 'crm:source.website');
     if (p.status) p.status = t(`status:lead.${p.status}` as 'status:lead.new');
     if (p.at) p.at = f.when(p.at);
