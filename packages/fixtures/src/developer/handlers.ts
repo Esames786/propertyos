@@ -1,5 +1,6 @@
 import type { DevApprovalPolicyVersion, DevCollectionAccount, DevCostCentre, DevLegalEntity, DevNumberingSeries } from '@repo/contracts';
 import { notFound, requires, type Handler, type HandlerContext } from '../handler-types';
+import { PAYABLES_HANDLERS } from './payables/handlers'; // Gate E.8 (provisional; reconcile at integration)
 import { costCentreVisible, entityVisible, requireEntity, type ScopeNeed } from './scope';
 import { developerState } from './state';
 import { CRM_PIPELINE_HANDLERS } from './crm/handlers';
@@ -106,6 +107,8 @@ export const DEVELOPER_AREA_HANDLERS: ReadonlyArray<readonly Handler[]> = [
   DEV_INVENTORY_HANDLERS, // E.2: projects, project setup, the unit matrix, holds, availability and storage
   LEDGER_HANDLERS, // E.7: the ledger and the statement import
   E13_HANDLERS, // E.13: search, favourites, recent records, tasks, activity, related records, documents, templates
+  // Gate E.8 (provisional; reconcile at integration): suppliers, payables and expenses.
+  PAYABLES_HANDLERS,
 ];
 
 export const DEVELOPER_HANDLERS: readonly Handler[] = [...DEVELOPER_CORE_HANDLERS, ...DEVELOPER_AREA_HANDLERS.flat()];

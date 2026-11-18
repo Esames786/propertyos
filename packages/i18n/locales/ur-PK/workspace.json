@@ -129,7 +129,14 @@
     "document.view": "دستاویزات دیکھیں",
     "document.upload": "دستاویزات شامل کریں",
     "document_template.manage": "دستاویزی سانچے تیار کریں",
-    "document_template.approve": "دستاویزی سانچے منظور کریں"
+    "document_template.approve": "دستاویزی سانچے منظور کریں",
+    "supplier.manage": "سپلائرز، بل اور ادائیگی کی ہدایات درج کریں",
+    "supplier_bill.approve": "سپلائر بل منظور کریں",
+    "supplier_payment.approve": "سپلائر ادائیگی کی ہدایات منظور کریں",
+    "expense.view": "اخراجات اور بجٹ دیکھیں",
+    "expense.approve": "اخراجات اور دعوے منظور کریں، نقدی کی گنتی کی گواہی دیں",
+    "budget.manage": "بجٹ کے ورژن تیار کریں",
+    "budget.approve": "بجٹ کے ورژن منظور کریں"
   },
   "hub": {
     "nav": {

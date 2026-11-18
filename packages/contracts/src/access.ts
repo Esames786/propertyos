@@ -388,6 +388,15 @@ export const PERMISSION_MODULE: Partial<Record<Permission, ModuleKey>> = {
   'document_template.manage': 'core',
   'document_template.approve': 'core',
   // ---- end Gate E.0 ----
+  // ---- Gate E.8 (provisional; reconcile at integration): payables and expenses ----
+  'supplier.manage': 'payables',
+  'supplier_bill.approve': 'payables',
+  'supplier_payment.approve': 'payables',
+  'expense.view': 'payables',
+  'expense.approve': 'payables',
+  'budget.manage': 'payables',
+  'budget.approve': 'payables',
+  // ---- end Gate E.8 ----
 };
 
 /** Something the UI offers (a menu item, action, tour step, link): its module and permission. */
