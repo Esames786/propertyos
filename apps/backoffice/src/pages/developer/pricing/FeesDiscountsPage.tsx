@@ -1,7 +1,7 @@
 import { ApiError, type CommercialDiscountRule, type CommercialFeeRule, type CommercialRulesDraft, type CommercialRulesDraftList, type CommercialRulesPreview, type UnitPricePickerResponse } from '@repo/contracts';
 import { useSavedFocus } from './saved-focus';
 import { isNotFound, useRecordAddress } from './record-address';
-import { wrappable } from './amount';
+import { deductionSign, wrappable } from './amount';
 import { Badge, Button, EmptyState, ErrorState, NotFoundState, PageHeader, SkeletonBlock, useApiMutation, useApiQuery, useCreateKey, useT } from '@repo/ui';
 import { Calculator, Plus, Save, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -274,18 +274,19 @@ export default function FeesDiscountsPage() {
                 {([
                   [t('pricing:commercialListed'), previewResult.listedPrice],
                   [t('pricing:commercialTotalFee'), previewResult.totalFees],
-                  [t('pricing:commercialTotalDiscount'), previewResult.totalDiscounts],
+                  [t('pricing:commercialTotalDiscount'), previewResult.totalDiscounts, true],
                   [t('pricing:commercialPayable'), previewResult.illustrativePayable],
-                ] as const).map(([label, amount]) => <div key={label} className="rounded-control bg-sunken p-3">
+                ] as const).map(([label, amount, deduction]) => <div key={label} className="rounded-control bg-sunken p-3" {...(deduction ? { 'data-testid': 'commercial-total-deduction' } : {})}>
                   <dt className="text-sm text-muted">{label}</dt>
-                  <dd className="font-semibold text-text"><bdi dir="ltr" className="[overflow-wrap:anywhere]">{wrappable(fmt.moneyExact(amount))}</bdi></dd>
+                  <dd className="font-semibold text-text"><bdi dir="ltr" className="[overflow-wrap:anywhere]">{deduction ? deductionSign(amount) : ''}{wrappable(fmt.moneyExact(amount))}</bdi></dd>
                 </div>)}
               </dl>
               <h4 className="font-semibold text-text">{t('pricing:commercialLines')}</h4>
               <ul className="divide-y divide-border">{previewResult.lines.map((line) =>
-                <li key={line.code} className="flex min-w-0 flex-wrap justify-between gap-3 py-3 text-sm">
-                  <span className="break-words text-text">{line.label} ({line.code})</span>
-                  <strong className="text-text"><bdi dir="ltr" className="[overflow-wrap:anywhere]">{wrappable(fmt.moneyExact(line.amount))}</bdi></strong>
+                <li key={line.code} className="flex min-w-0 flex-wrap justify-between gap-3 py-3 text-sm" data-testid="commercial-preview-line" data-kind={line.kind}>
+                  {/* A discount says so in words (visible, so also read by screen readers) and carries a minus sign. */}
+                  <span className="min-w-0 break-words text-text">{line.label} ({line.code}){line.kind === 'discount' && <> <Badge tone="info">{t('pricing:commercialDeduction')}</Badge></>}</span>
+                  <strong className="text-text"><bdi dir="ltr" className="[overflow-wrap:anywhere]">{line.kind === 'discount' ? deductionSign(line.amount) : ''}{wrappable(fmt.moneyExact(line.amount))}</bdi></strong>
                 </li>)}</ul>
             </div>}
           </section>}
