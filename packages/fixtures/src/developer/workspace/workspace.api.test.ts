@@ -181,6 +181,10 @@ describe('HOME-002 my tasks and HOME-004 work queue', () => {
     expect(nadia.items.every((i) => i.owner?.mine)).toBe(true);
     const team = await s.as('lsp_sales_manager').get<WorkQueueResponse>('/workspace/queue', { kind: 'follow_up' });
     expect(team.items.some((i) => i.owner?.name === 'Bilal Ahmed' && !i.owner.mine)).toBe(true);
+    // He sees the whole team, yet his own tasks hold only the follow-ups that are his. (A reader who sees only their own
+    // leads could never tell the two apart, so F-GPT-W1-01 moved this check to the sales manager.)
+    const hamzaMine = await s.get<TasksResponse>('/workspace/tasks', { kind: 'follow_up' });
+    expect(hamzaMine.items.every((i) => i.owner?.mine)).toBe(true);
     expect(team.counts.overdue + team.counts.today + team.counts.soon + team.counts.later).toBe(team.items.length);
     const heights = await s.get<WorkQueueResponse>('/workspace/queue', { project: 'prj_heights' });
     expect(heights.items.every((i) => i.record?.project?.id === 'prj_heights')).toBe(true);
