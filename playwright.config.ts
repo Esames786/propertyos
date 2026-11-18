@@ -9,9 +9,13 @@ const OFFSET = Number(process.env.E2E_PORT_OFFSET ?? 0);
 const PORTS = { backoffice: 5173 + OFFSET, customer: 5174 + OFFSET, hq: 5175 + OFFSET };
 const serve = (app: keyof typeof PORTS, pkg: string) =>
   OFFSET ? `npm run build -w ${pkg} && npm exec -w ${pkg} -- vite preview --port ${PORTS[app]} --strictPort` : `npm run build -w ${pkg} && npm run preview -w ${pkg}`;
+// Gate E.3 local validation (provisional; reconcile at integration): Playwright's own builds compile in the unlisted
+// test-only principals (`@repo/fixtures/testing`, behind apps/backoffice/vite.config.ts `__E2E_TEST_PRINCIPALS__`).
+// A build made any other way (`npm run build`, the shipped demo) does not contain them.
+const TEST_BUILD = { PROPERTYOS_E2E_PRINCIPALS: '1' };
 const isolatedEnv = OFFSET
-  ? { env: { ...process.env, VITE_OFFICE_ORIGIN: `http://localhost:${PORTS.backoffice}`, VITE_CUSTOMER_ORIGIN: `http://localhost:${PORTS.customer}` } as Record<string, string> }
-  : {};
+  ? { env: { ...process.env, ...TEST_BUILD, VITE_OFFICE_ORIGIN: `http://localhost:${PORTS.backoffice}`, VITE_CUSTOMER_ORIGIN: `http://localhost:${PORTS.customer}` } as Record<string, string> }
+  : { env: { ...process.env, ...TEST_BUILD } as Record<string, string> };
 
 /**
  * E2E, accessibility and evidence runs against production builds (vite preview).

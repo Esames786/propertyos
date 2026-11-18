@@ -145,6 +145,8 @@ export const PERMISSIONS = [
   'project.manage',
   'project.approve',
   'inventory.manage',
+  // Gate E.3: developer commercial pricing preview/drafts. No role gets this automatically.
+  'pricing.manage',
   // E.7 accounting and banking: reading the ledger; the chart of accounts and posting rules (draft →
   // approval); journals (create → approve → post, the poster never the maker); statement imports
   // (import → approval). Period close stays `period.close` (one lock per entity, shared with the cashbook).

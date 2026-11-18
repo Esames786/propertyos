@@ -3,6 +3,8 @@ import { routes as crmPipelineRoutes } from '../pages/developer/crm/routes';
 import { routes as ledgerRoutes } from '../pages/developer/ledger/routes';
 import { INVENTORY_ROUTES, PROJECT_ROUTES } from './routes.projects';
 import { DOCUMENT_ROUTES, WORKSPACE_ROUTES } from './routes.workspace';
+// Gate E.3 (integration candidate): pricing drafts and price history (INV-006, INV-007, COM-001…005).
+import { routes as pricingRoutes } from '../pages/developer/pricing/routes';
 
 /**
  * Gate E.0 deliverable 6: the one place Gate E areas register their screens (plan §7.4: "E.0 adds one
@@ -41,6 +43,8 @@ export const DEVELOPER_AREAS: readonly DeveloperArea[] = [
   { area: 'ledger', routes: ledgerRoutes }, // E.7: ACC-001…010, BANK-005
   { area: 'workspace', routes: WORKSPACE_ROUTES }, // E.13: GLOBAL-002/005/006, HOME-002/004/005
   { area: 'documents', routes: DOCUMENT_ROUTES }, // E.13: DOC-002…006
+  // Gate E.3 (integration candidate)
+  { area: 'pricing', routes: pricingRoutes }, // E.3: INV-006/007, COM-001…005
 ];
 
 /** Every registered Gate E route, spread into the backoffice shell by `routes.tsx`. */

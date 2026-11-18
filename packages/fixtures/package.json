@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./platform": "./src/platform/index.ts"
+    "./platform": "./src/platform/index.ts",
+    "./testing": "./src/testing.ts"
   },
   "dependencies": {
     "@repo/contracts": "0.1.0",

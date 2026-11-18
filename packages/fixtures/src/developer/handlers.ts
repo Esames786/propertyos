@@ -6,6 +6,13 @@ import { CRM_PIPELINE_HANDLERS } from './crm/handlers';
 import { DEV_INVENTORY_HANDLERS } from './inventory/handlers';
 import { LEDGER_HANDLERS } from './ledger/handlers';
 import { E13_HANDLERS } from './workspace/handlers';
+// Gate E.3 (integration candidate)
+import { PRICE_HISTORY_HANDLERS } from './pricing/handlers';
+import { PLAN_TEMPLATE_HANDLERS } from './pricing/template-handlers';
+import { PRICING_POLICY_HANDLERS } from './pricing/policy-handlers';
+import { COMMERCIAL_HANDLERS } from './pricing/commercial-handlers';
+import { APPROVAL_DRAFT_HANDLERS } from './pricing/approval-draft-handlers';
+import { UNIT_PRICE_CHANGE_HANDLERS } from './pricing/price-change-handlers';
 
 /**
  * Gate E.0 deliverable 6 (mock API): the developer ERP's handler registration point.
@@ -106,6 +113,13 @@ export const DEVELOPER_AREA_HANDLERS: ReadonlyArray<readonly Handler[]> = [
   DEV_INVENTORY_HANDLERS, // E.2: projects, project setup, the unit matrix, holds, availability and storage
   LEDGER_HANDLERS, // E.7: the ledger and the statement import
   E13_HANDLERS, // E.13: search, favourites, recent records, tasks, activity, related records, documents, templates
+  // Gate E.3 (integration candidate): price history and the five draft families (all creator-private, draft-only)
+  PRICE_HISTORY_HANDLERS,
+  PLAN_TEMPLATE_HANDLERS,
+  PRICING_POLICY_HANDLERS,
+  COMMERCIAL_HANDLERS,
+  APPROVAL_DRAFT_HANDLERS,
+  UNIT_PRICE_CHANGE_HANDLERS,
 ];
 
 export const DEVELOPER_HANDLERS: readonly Handler[] = [...DEVELOPER_CORE_HANDLERS, ...DEVELOPER_AREA_HANDLERS.flat()];

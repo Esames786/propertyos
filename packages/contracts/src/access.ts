@@ -374,6 +374,7 @@ export const PERMISSION_MODULE: Partial<Record<Permission, ModuleKey>> = {
   'project.manage': 'projects',
   'project.approve': 'projects',
   'inventory.manage': 'inventory',
+  'pricing.manage': 'inventory',
   'gl.view': 'accounting',
   'gl.manage': 'accounting',
   'gl.approve': 'accounting',
