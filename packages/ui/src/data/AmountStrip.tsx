@@ -32,20 +32,22 @@ export function AmountStrip({
   end?: ReactNode;
   className?: string;
   /**
-   * Wave 1 integration (Issue #25, INV-002): the amount may wrap (at the space after its currency, then only if
-   * nothing else fits) instead of widening a narrow drawer at 320 px with 200 % text. Off by default.
+   * Wave 1 integration (Issue #25, INV-002): instead of widening a narrow drawer at 320 px with 200 % text, the
+   * amount wraps at the space after its currency, and when its figure cannot fit beside the icon the text moves
+   * under the icon and takes the strip's whole width (the figure breaks only if even that is too narrow). Off by
+   * default.
    */
   wrap?: boolean;
 }) {
   const [bg, ink, square] = TONE[tone];
   return (
-    <div className={cn('flex items-center gap-3 rounded-tile px-3.5 py-3', bg, className)}>
+    <div className={cn('flex items-center gap-3 rounded-tile px-3.5 py-3', wrap && 'flex-wrap', bg, className)}>
       <span aria-hidden className={cn('grid size-10 shrink-0 place-items-center rounded-control', square)}>
         <Icon className="size-5" />
       </span>
-      <div className="min-w-0 flex-1">
+      <div className={cn('min-w-0', wrap ? 'max-w-full flex-auto' : 'flex-1')}>
         <p className={cn('text-mini font-semibold tracking-[0.06em] uppercase', ink)}>{label}</p>
-        <p className={cn('text-xl leading-tight font-bold tracking-tight tabular', wrap ? 'whitespace-normal [overflow-wrap:anywhere]' : 'whitespace-nowrap', ink)}>{amount}</p>
+        <p className={cn('text-xl leading-tight font-bold tracking-tight tabular', wrap ? 'whitespace-normal [overflow-wrap:break-word]' : 'whitespace-nowrap', ink)}>{amount}</p>
       </div>
       {end && <div className={cn('shrink-0 border-s ps-3 text-end', tone === 'neutral' ? 'border-border' : 'border-current/20', ink)}>{end}</div>}
     </div>
