@@ -131,6 +131,17 @@ test.describe('Gate E.8 — R3: supplier bill → approval by someone else → p
     await expect(page.getByTestId('pay-payment-view')).toHaveAttribute('data-state', 'sent_simulated');
     await expect(page.getByTestId('pay-payment-view').getByTestId('payment-state')).toContainText('Sent (simulated) — not settled');
     await expect(page.getByTestId('pay-payment-view').getByTestId('settlement-state')).toContainText('Not settled — no evidence');
+    // Wave 2 integration: the actual balance stays the whole bill; the simulation is apart, labelled, and checked.
+    const balance = page.getByTestId('pay-balance');
+    await expect(balance.getByTestId('pay-balance-actual')).toHaveAttribute('data-amount', '245000.00');
+    await expect(balance.locator('[data-testid="pay-money-state"][data-state="settled"]')).toHaveAttribute('data-amount', '0.00');
+    await expect(balance.locator('[data-testid="pay-money-state"][data-state="posted"]')).toHaveAttribute('data-amount', '0.00');
+    await expect(balance.locator('[data-testid="pay-money-state"][data-state="instructed"]')).toHaveAttribute('data-amount', '245000.00');
+    await expect(balance.getByTestId('pay-balance-simulation')).toContainText('Simulation');
+    await expect(balance.getByTestId('pay-balance-simulation')).toHaveAttribute('data-amount', '0.00');
+    await expect(balance.getByTestId('pay-balance-simulation')).toContainText('actual balance stays Rs');
+    await expect(balance).toHaveAttribute('data-check', 'matches');
+    await axe(page, testInfo, 'e8-payment-sent-balance');
 
     // The ledger still owes the whole bill: an instruction is not a settlement.
     await page.goto(`${BO}/backoffice/sup/supplier-ledger?supplier=sup_lsp_margalla`);
@@ -391,4 +402,130 @@ test('320 × 700, 200 %: the keyboard reaches every control of the bill workspac
     expect(stops.filter((s) => s.issue), path).toEqual([]);
   }
   expect(consoleErrors).toEqual([]);
+});
+
+// ---------------------------------------------------------------------------------------------
+// Wave 2 integration: E.13 connections, contextual links, "In progress", the drawer's simulation
+// ---------------------------------------------------------------------------------------------
+
+/** A request through the app's own mock transport, as the person signed in on the current page. */
+async function api(page: Page, persona: string, method: 'GET' | 'POST', path: string, body: Record<string, unknown> = {}) {
+  await become(page, persona);
+  await page.goto(`${BO}/backoffice/global/my-access`);
+  await page.locator('main h1').first().waitFor();
+  return page.evaluate(async ({ method, path, body }) => window.__prototype!.transport.request({ method, path, ...(method === 'POST' ? { body } : {}) }), { method, path, body });
+}
+
+test.describe('Gate E.8 integration — E.13 connections and context', () => {
+  test('Zubair’s tasks hold the payables approvals waiting for him; one opens the bill, which he keeps as a favourite; search finds it; it is a recent record', async ({ page, consoleErrors }, testInfo) => {
+    test.setTimeout(180_000);
+    await start(page, 'lsp_finance_controller');
+    await page.goto(`${BO}/backoffice/home/my-tasks?kind=bill_approval`);
+    const task = page.locator('[data-testid="task-row"][data-kind="bill_approval"][data-record="sbl_lsp_0001"]');
+    await expect(task).toBeVisible();
+    await expect(task).toHaveAttribute('data-mine', 'true');
+    await axe(page, testInfo, 'e8-int-tasks');
+    await task.getByTestId('task-action').click();
+    await expect(page).toHaveURL(/\/backoffice\/sup\/supplier-bill-workspace\?record=sbl_lsp_0001/);
+    await expect(page.getByTestId('pay-bill-workspace')).toBeVisible();
+    // Related records from E.13's registry: the supplier and the budget the bill counts against.
+    const related = page.getByTestId('pay-related');
+    await expect(related.locator('[data-testid="related-row"][data-record="sup_lsp_ravi"]')).toBeVisible();
+    await expect(related.locator('[data-testid="related-row"][data-record="bud_lsp_heights_fy27"]')).toBeVisible();
+    await page.getByTestId('pay-favourite').click();
+    await expect(page.getByTestId('pay-favourite')).toHaveAttribute('data-on', 'true');
+    await axe(page, testInfo, 'e8-int-bill-related');
+    await page.goto(`${BO}/backoffice/global/favorites`);
+    await expect(page.locator('[data-testid="favourite-row"][data-record="sbl_lsp_0001"]')).toBeVisible();
+    await page.goto(`${BO}/backoffice/global/recent-records`);
+    await expect(page.locator('[data-testid="recent-row"][data-record="sbl_lsp_0001"]')).toBeVisible();
+    await page.goto(`${BO}/backoffice/global/unified-search-results?q=RCT-INV-4471`);
+    const hit = page.locator('[data-testid="hub-search-group"][data-type="supplier_bill"] a').first();
+    await expect(hit).toBeVisible();
+    await axe(page, testInfo, 'e8-int-search');
+    await hit.click();
+    await expect(page).toHaveURL(/supplier-bill-workspace\?record=sbl_lsp_0001/);
+    // The back button returns to the search.
+    await page.goBack();
+    await expect(page.getByTestId('unified-search')).toBeVisible();
+    // Nothing is found by a bank detail.
+    await page.goto(`${BO}/backoffice/global/unified-search-results?q=3307`);
+    await expect(page.getByTestId('unified-search')).toBeVisible();
+    await expect(page.locator('[data-testid="hub-search-group"]')).toHaveCount(0);
+    expect(consoleErrors).toEqual([]);
+  });
+
+  test('the maker never gets her own bill as a task; payables activity shows each event once, on its own record', async ({ page, consoleErrors }, testInfo) => {
+    await start(page, 'lsp_accounts');
+    await page.goto(`${BO}/backoffice/home/my-tasks`);
+    await expect(page.getByTestId('my-tasks')).toBeVisible();
+    await expect(page.locator('[data-testid="task-row"][data-kind="bill_approval"]')).toHaveCount(0);
+    await page.goto(`${BO}/backoffice/home/recent-activity?group=payables&range=30d`);
+    await expect(page.getByTestId('recent-activity')).toBeVisible();
+    await expect(page.locator('[data-testid="activity-row"][data-group="payables"]').first()).toBeVisible();
+    await expect(page.locator('[data-testid="activity-row"][data-record="sbl_lsp_0001"]').first()).toContainText('RCT');
+    await axe(page, testInfo, 'e8-int-activity');
+    expect(await page.locator('main').innerText()).not.toMatch(/3307|Demo Bank|••••/);
+    expect(consoleErrors).toEqual([]);
+  });
+
+  test('Rehan’s expense leads to its budget and budget vs actual; the budget leads to its cost centre’s expenses; back returns each time', async ({ page, consoleErrors }, testInfo) => {
+    await start(page, 'lsp_budget_holder');
+    await page.goto(`${BO}/backoffice/exp/expense-workspace?record=exp_lsp_0001`);
+    await expect(page.getByTestId('pay-expense-workspace')).toBeVisible();
+    await page.getByTestId('pay-expense-budget').click();
+    await expect(page).toHaveURL(/budget-workspace\?record=bud_lsp_heights_fy27/);
+    await expect(page.getByTestId('pay-budget-workspace')).toBeVisible();
+    await axe(page, testInfo, 'e8-int-budget-related');
+    await page.getByTestId('pay-budget-to-expenses').click();
+    await expect(page).toHaveURL(/expenses-list\?.*costCentre=cc_heights/);
+    await expect(page.locator('[data-testid="pay-expense"][data-id="exp_lsp_0001"]')).toBeVisible();
+    await page.goBack();
+    await expect(page.getByTestId('pay-budget-workspace')).toBeVisible();
+    await page.goBack();
+    await expect(page.getByTestId('pay-expense-workspace')).toBeVisible();
+    await page.getByTestId('pay-expense-bva').click();
+    await expect(page).toHaveURL(/budget-vs-actual\?.*costCentre=cc_heights/);
+    await expect(page.getByTestId('pay-bva')).toBeVisible();
+    await expect(page.getByTestId('state-not-found')).toHaveCount(0);
+    expect(consoleErrors).toEqual([]);
+  });
+
+  for (const locale of ['en-PK', 'ur-PK'] as const) {
+    test(`"In progress" in ${lang(locale)}: the supplier's count opens the same bills; no "Open bills" anywhere`, async ({ page, consoleErrors }) => {
+      await start(page, 'lsp_accounts', locale);
+      const word = locale === 'ur-PK' ? 'زیرِ کارروائی' : 'In progress';
+      await page.goto(`${BO}/backoffice/sup/suppliers-list`);
+      await expect(page.getByTestId('pay-supplier-list')).toContainText(word);
+      await page.goto(`${BO}/backoffice/sup/supplier-360-workspace?record=sup_lsp_ravi`);
+      const tile = page.getByTestId('pay-360-kpi-in-progress');
+      await expect(tile).toContainText(word);
+      const label = (await tile.getAttribute('aria-label')) ?? '';
+      await tile.click();
+      await expect(page).toHaveURL(/supplier-bills-list\?.*state=in_progress/);
+      await expect(page.getByTestId('pay-bill-list')).toBeVisible();
+      const states = await page.getByTestId('pay-bill').evaluateAll((els) => els.map((e) => e.getAttribute('data-state')));
+      expect(label).toContain(String(states.length));
+      for (const state of states) expect(['draft', 'submitted']).toContain(state);
+      expect(await page.locator('main').innerText()).not.toMatch(locale === 'ur-PK' ? /کھلے بل/ : /Open bills/);
+      expect(consoleErrors).toEqual([]);
+    });
+
+    test(`the payment drawer at 320 px with 200 % text (${lang(locale)}): balance and simulation apart, nothing clipped`, async ({ page, consoleErrors }, testInfo) => {
+      test.setTimeout(180_000);
+      await page.setViewportSize(PHONE);
+      await start(page, 'lsp_accounts', locale);
+      for (const principal of Object.values(STAFF)) await page.addInitScript(({ key }) => localStorage.setItem(key, JSON.stringify({ version: 2, textScale: 2, chosenAt: '2026-10-26T00:00:00Z', updatedAt: '2026-10-26T00:00:00Z' })), { key: OFFICE_DISPLAY(principal) });
+      await api(page, 'lsp_finance_controller', 'POST', '/supplier-bills/sbl_lsp_0002/approve');
+      const pay = (await api(page, 'lsp_accounts', 'POST', '/supplier-bills/sbl_lsp_0002/payments', { amount: '1000000' })) as { id: string };
+      await office(page, 'lsp_accounts', `/backoffice/sup/supplier-payment-drawer?record=${pay.id}`, 'pay-payment-view');
+      const drawer = page.getByTestId('pay-payment-drawer');
+      await expect(drawer.getByTestId('pay-balance-actual')).toHaveAttribute('data-amount', '2850000.00');
+      await expect(drawer.getByTestId('pay-balance-simulation')).toHaveAttribute('data-amount', '1850000.00');
+      await drawer.getByTestId('pay-balance').scrollIntoViewIfNeeded();
+      expect(await layoutProblems(drawer), `drawer ${lang(locale)}`).toEqual([]);
+      await axe(page, testInfo, `e8-int-drawer-320-${lang(locale)}`);
+      expect(consoleErrors).toEqual([]);
+    });
+  }
 });

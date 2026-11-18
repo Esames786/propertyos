@@ -423,17 +423,20 @@ export function BankLine({ bank, hidden }: { bank?: { bankName: string; title: s
 export function MoneyStatesList({ states, testId = 'pay-money-states' }: { states: MoneyStates; testId?: string }) {
   const { t } = useT();
   const dt = dynamicT(t);
+  // Two columns only where the list itself has room (its own container: a sidebar panel stays one column).
   return (
-    <dl className="grid grid-cols-1 gap-3 text-sm @lg:grid-cols-2" data-testid={testId}>
-      {(['approved', 'posted', 'instructed', 'settled'] as const).map((k) => (
-        <div key={k} className="min-w-0" data-testid="pay-money-state" data-state={k} data-amount={states[k].amount}>
-          <dt className="text-xs text-muted">{dt(`payables:moneyStates.${k}`)}</dt>
-          <dd className="space-y-0.5">
-            <WrapMoney value={states[k]} className="font-semibold" />
-            <span className="block text-xs text-muted">{dt(`payables:moneyStates.${k}Note`)}</span>
-          </dd>
-        </div>
-      ))}
-    </dl>
+    <div className="@container">
+      <dl className="grid grid-cols-1 gap-3 text-sm @md:grid-cols-2" data-testid={testId}>
+        {(['approved', 'posted', 'instructed', 'settled'] as const).map((k) => (
+          <div key={k} className="min-w-0" data-testid="pay-money-state" data-state={k} data-amount={states[k].amount}>
+            <dt className="text-xs text-muted">{dt(`payables:moneyStates.${k}`)}</dt>
+            <dd className="space-y-0.5">
+              <WrapMoney value={states[k]} className="font-semibold" />
+              <span className="block text-xs text-muted">{dt(`payables:moneyStates.${k}Note`)}</span>
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </div>
   );
 }

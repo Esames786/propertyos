@@ -4,14 +4,15 @@ import { layoutProblems } from '../support/layout';
 import { BO, expect, seed, test, type Locale, type PersonaId } from '../support/fixtures';
 
 /**
- * Gate E.8 evidence → docs/status/gate-e8/screenshots: the seventeen payables and expenses screens in
+ * Gate E.8 evidence → docs/status/integration-e8/screenshots (Wave 2 integration onto the accepted Wave 1
+ * base; the reviewed E.8 screenshots in docs/status/gate-e8 stay as they were): the seventeen payables and expenses screens in
  * English and Urdu at 1440 px, the busiest ones at 320 px with 200 % text (`…-200pct-320-xx`), dark
  * mode, and the boundaries (no bank details without bank.view; the Heights budget holder's own cost
  * centre only; a claimant who cannot decide his own claim). Approved states are produced in the session
  * by the checker through the mock API, never seeded.
  * Run against production builds: `E2E_PORT_OFFSET=3400 npx playwright test --project=evidence tests/evidence/gatee8.evidence.spec.ts`.
  */
-const DIR = 'docs/status/gate-e8/screenshots';
+const DIR = 'docs/status/integration-e8/screenshots';
 const LK = 'tnt_larkspur';
 const PRINCIPAL: Record<string, string> = { lsp_accounts: 'usr_lsp_0006', lsp_finance_controller: 'usr_lsp_0007', lsp_budget_holder: 'usr_lsp_0021', lsp_project_manager: 'usr_lsp_0005' };
 const lang = (l: Locale) => (l === 'ur-PK' ? 'ur' : 'en');
@@ -141,5 +142,68 @@ test('the boundaries, 1440 px (en): no bank details without bank.view; the budge
   await shot(page, 'e8-42-own-claim-1440-en');
   await open(page, 'lsp_budget_holder', '/backoffice/exp/budget-vs-actual', 'pay-bva');
   await shot(page, 'e8-43-bva-no-approved-1440-en');
+  await close();
+});
+
+/** Wave 2 integration: one element of a page (a panel or the drawer's balance). */
+async function part(page: Page, testId: string, name: string) {
+  mkdirSync(DIR, { recursive: true });
+  const el = page.getByTestId(testId).first();
+  await el.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(300);
+  await el.screenshot({ path: `${DIR}/${name}.png` });
+}
+
+for (const locale of ['en-PK', 'ur-PK'] as Locale[]) {
+  test(`Wave 2 integration (${lang(locale)}): E.13 connections, "In progress", the drawer's actual balance and simulation`, async ({ browser }) => {
+    test.setTimeout(300_000);
+    const l = lang(locale);
+    const { page, close } = await session(browser, { locale, width: 1440, decided: true });
+    await open(page, 'lsp_finance_controller', '/backoffice/home/my-tasks', 'my-tasks');
+    await shot(page, `e8-50-tasks-1440-${l}`);
+    await open(page, 'lsp_finance_controller', '/backoffice/global/unified-search-results?q=Ravi', 'unified-search');
+    await shot(page, `e8-51-search-1440-${l}`);
+    await open(page, 'lsp_finance_controller', '/backoffice/home/recent-activity?group=payables&range=30d', 'recent-activity');
+    await shot(page, `e8-52-activity-1440-${l}`);
+    await open(page, 'lsp_accounts', '/backoffice/sup/supplier-360-workspace?record=sup_lsp_margalla', 'pay-supplier-360');
+    await part(page, 'pay-related', `e8-53-supplier-related-1440-${l}`);
+    await open(page, 'lsp_accounts', '/backoffice/sup/supplier-bills-list?supplier=sup_lsp_ravi&state=in_progress', 'pay-bill-list');
+    await shot(page, `e8-54-in-progress-1440-${l}`);
+    await open(page, 'lsp_accounts', '/backoffice/sup/supplier-bill-workspace?record=sbl_lsp_0002', 'pay-bill-workspace');
+    await part(page, 'pay-money-states', `e8-55-bill-money-states-1440-${l}`);
+    await open(page, 'lsp_budget_holder', '/backoffice/exp/expense-workspace?record=exp_lsp_0001', 'pay-expense-workspace');
+    await part(page, 'pay-expense-facts', `e8-56-expense-to-budget-1440-${l}`);
+    const list = (await api(page, 'lsp_finance_controller', 'GET', '/supplier-payments')) as { items: Array<{ id: string }> };
+    await open(page, 'lsp_accounts', `/backoffice/sup/supplier-payment-drawer?record=${list.items[0]!.id}`, 'pay-payment-view');
+    await part(page, 'pay-balance', `e8-57-drawer-balance-1440-${l}`);
+    await close();
+  });
+
+  test(`Wave 2 integration at 320 px with 200 % text (${lang(locale)}): the drawer's balance, Supplier 360 and the tasks reflow`, async ({ browser }) => {
+    test.setTimeout(300_000);
+    const l = lang(locale);
+    const { page, close } = await session(browser, { locale, width: 320, textScale2: true, decided: true });
+    const list = (await api(page, 'lsp_finance_controller', 'GET', '/supplier-payments')) as { items: Array<{ id: string }> };
+    for (const [name, persona, path, ready] of [
+      ['60-drawer', 'lsp_accounts', `/backoffice/sup/supplier-payment-drawer?record=${list.items[0]!.id}`, 'pay-payment-view'],
+      ['61-supplier-360', 'lsp_accounts', '/backoffice/sup/supplier-360-workspace?record=sup_lsp_margalla', 'pay-supplier-360'],
+      ['62-tasks', 'lsp_finance_controller', '/backoffice/home/my-tasks', 'my-tasks'],
+      ['63-expense', 'lsp_budget_holder', '/backoffice/exp/expense-workspace?record=exp_lsp_0001', 'pay-expense-workspace'],
+    ] as const) {
+      await open(page, persona, path, ready);
+      expect(await layoutProblems(page), `${name} ${l}`).toEqual([]);
+      if (name === '60-drawer') await part(page, 'pay-balance', `e8-${name}-balance-200pct-320-${l}`);
+      else await shot(page, `e8-${name}-200pct-320-${l}`);
+    }
+    await close();
+  });
+}
+
+test('Wave 2 integration, dark mode (en): the drawer’s balance and simulation', async ({ browser }) => {
+  test.setTimeout(180_000);
+  const { page, close } = await session(browser, { locale: 'en-PK', width: 1440, dark: true, decided: true });
+  const list = (await api(page, 'lsp_finance_controller', 'GET', '/supplier-payments')) as { items: Array<{ id: string }> };
+  await open(page, 'lsp_accounts', `/backoffice/sup/supplier-payment-drawer?record=${list.items[0]!.id}`, 'pay-payment-view');
+  await part(page, 'pay-balance', 'e8-58-drawer-balance-dark-1440-en');
   await close();
 });

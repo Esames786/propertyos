@@ -31,8 +31,10 @@ export const SECOND_CHECKER = principal('res_e8_checker_two', 'E8 Test Checker T
  * Larkspur Heights only, so part of the legal entity. E.7 shows no bank data to such a reader; nor does E.8.
  */
 export const HEIGHTS_BANK_MAKER = principal('res_e8_heights_bank', 'E8 Test Heights Bank Maker', ['project.context.use', 'supplier.view', 'supplier.manage', 'bank.view'], ['prj_heights']);
+/** The checker's side of the same boundary: may approve instructions and holds bank.view, for Heights only. */
+export const HEIGHTS_PAY_CHECKER = principal('res_e8_heights_pay_checker', 'E8 Test Heights Instruction Checker', ['project.context.use', 'supplier.view', 'supplier_payment.approve', 'bank.view'], ['prj_heights'], 'common:roles.finance_controller');
 
-export const E8_PERSONAS: readonly Persona[] = [...MULTI_ENTITY_PERSONAS, HEIGHTS_READER, BOTH_HATS, SECOND_CHECKER, HEIGHTS_BANK_MAKER];
+export const E8_PERSONAS: readonly Persona[] = [...MULTI_ENTITY_PERSONAS, HEIGHTS_READER, BOTH_HATS, SECOND_CHECKER, HEIGHTS_BANK_MAKER, HEIGHTS_PAY_CHECKER];
 
 export type AccessChange = (persona: Persona, access: EffectiveAccess) => EffectiveAccess;
 

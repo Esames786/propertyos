@@ -1,7 +1,7 @@
 import type { ActivityResponse, BillsList, BillView, ExpenseView, PaymentView, RecordRef, RelatedResponse, SavedListResponse, FavouriteItem, RecentItem, Supplier360, SupplierLedgerView, SuppliersList, TasksResponse, UnifiedSearchResponse, WorkQueueResponse } from '@repo/contracts';
 import { describe, expect, it } from 'vitest';
 import { ACCOUNTS_TWO, SECOND_ENTITY } from '../multientity.fixture';
-import { BOTH_HATS, HEIGHTS_READER, payWorld, refusal, type PayWorld } from './pay-test-kit';
+import { BOTH_HATS, HEIGHTS_PAY_CHECKER, HEIGHTS_READER, payWorld, refusal, type PayWorld } from './pay-test-kit';
 
 /**
  * Gate E.8 Wave 2 integration (onto the accepted Wave 1 base): the "In progress" count, the four money states
@@ -289,12 +289,29 @@ describe('E.13 tasks: approvals for someone other than their maker', () => {
     expect(kindsOf(await w.as('lsp_finance_controller').get<TasksResponse>('/workspace/tasks'))).toContain(`bill_approval:${b.id}`);
   });
 
+  it('the same for a budget version: its preparer never gets it as a task; someone else does', async () => {
+    const w = payWorld();
+    const v = await w.as(BOTH_HATS.id).post<{ id: string }>('/budgets', { legalEntityId: 'le_larkspur', costCentreId: 'cc_lsp_sales', year: 'FY2026-27', reason: 'Sales budget for the launch year', lines: [{ category: 'marketing', amount: '900000' }] });
+    await w.post(`/budgets/${v.id}/versions/1/submit`);
+    expect(kindsOf(await w.get<TasksResponse>('/workspace/tasks'))).not.toContain(`budget_approval:${v.id}:v1`);
+    expect((await w.get<WorkQueueResponse>('/workspace/queue')).items.find((i) => i.id === `budget_approval:${v.id}:v1`)?.owner).toEqual({ name: BOTH_HATS.displayName, mine: false });
+    expect(kindsOf(await w.as('lsp_finance_controller').get<TasksResponse>('/workspace/tasks'))).toContain(`budget_approval:${v.id}:v1`);
+  });
+
   it('a payment-instruction approval needs E.7’s bank boundary over the entity, like the endpoint', async () => {
     const w = payWorld();
     const b = await approvedBill(w);
     const pay = await w.as('lsp_accounts').post<PaymentView>(`/supplier-bills/${b.id}/payments`, { amount: '1000' });
     w.access((p, a) => (p.id === 'lsp_finance_controller' ? { ...a, permissions: a.permissions.filter((x) => x !== 'bank.view') } : a));
     expect(kindsOf(await w.as('lsp_finance_controller').get<TasksResponse>('/workspace/tasks'))).not.toContain(`payment_approval:${pay.id}`);
+    // A checker with bank.view over part of the entity (Heights only): the Heights bill is his to read, but
+    // the instruction is not his to approve (E.7's boundary is entity-wide), so it is not his task either.
+    w.access(null);
+    expect((await w.as(HEIGHTS_PAY_CHECKER.id).get<PaymentView>(`/supplier-payments/${pay.id}`)).bankHidden).toBe(true);
+    expect(kindsOf(await w.get<TasksResponse>('/workspace/tasks'))).not.toContain(`payment_approval:${pay.id}`);
+    expect((await refusal(w.post(`/supplier-payments/${pay.id}/approve`))).code).toBe('out_of_scope');
+    // Zubair (whole entity) has it.
+    expect(kindsOf(await w.as('lsp_finance_controller').get<TasksResponse>('/workspace/tasks'))).toContain(`payment_approval:${pay.id}`);
   });
 
   it('a narrower decider gets only what is wholly in their scope; revoking the checker permission removes the tasks', async () => {
