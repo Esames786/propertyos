@@ -32,6 +32,16 @@ sign in from the demo sign-in page. Automated runs cover most of this (test-resu
 - [ ] Project 360 → Documents: Mehwish sees the project's documents (from the document centre); Nadia is told the tab
       is not part of her role.
 
+## 3a. A colleague's lead stays private (F-GPT-W1-01)
+
+- [ ] Bilal holds a Heights unit for his lead from the unit drawer. Nadia opens the same unit: "Held until …" and
+      "Held by Bilal Ahmed", no lead reference or link; Hamza (sales manager) sees the lead.
+- [ ] Nadia's hold picker offers only her own leads; Project 360 → Leads lists only hers and its count matches.
+- [ ] Nadia searches Bilal's lead reference in the universal search: no lead is found; Bilal and Hamza find it.
+- [ ] Hamza reassigns one of Nadia's leads to Bilal: Bilal sees it at once (picker, Project 360, search); Nadia
+      no longer does, though she may still release a hold she placed.
+- [ ] Haroon (records clerk) sees 6 Heights documents (the two lead documents are not his: D-INT-06).
+
 ## 4. Ledger and bank import (E.7)
 
 - [ ] Saad drafts and submits a journal; Zubair approves and posts it; Saad never sees Approve or Post.

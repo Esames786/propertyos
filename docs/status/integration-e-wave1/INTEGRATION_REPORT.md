@@ -3,17 +3,19 @@
 Agent 1, worktree `D:\laragon2\www\propertyos-int-e-wave1`, branch `integration/e-wave1` from the accepted
 `integration/s3-b1-b2@373d0cf`. Bounded integration and regression only (Issue #25): no E.3/E.4/E.5 source work,
 no `main`, VPS, Bingoo, Laravel, payments, SOS, Issue #13, private Nizam material or `PROJECT_HANDOFF.md`.
-**Status: pushed for GPT and owner review. Nothing is promoted to BUILT.** Test outcomes are in
-[test-results.md](test-results.md), findings in §11 below, the manual checklist in
+**Status:** GPT reviewed `0205b73` and gave a conditional HOLD on F-GPT-W1-01, an assigned-lead privacy seam (§12).
+It is fixed in `9cd0ca9`, and the regression was rerun on the final head. The branch is pushed for GPT and owner
+review. **Nothing is promoted to BUILT.** Test outcomes are in [test-results.md](test-results.md) (§0 is the final
+head), findings are in §11 and §12 below, and the manual checklist is
 [MANUAL_VERIFICATION.md](MANUAL_VERIFICATION.md).
 
-Results at a glance (code `97474f8`, all on AC power):
-- Vitest **1,951 / 1,951**.
-- Complete Chromium run (every historical e2e spec plus the evidence specs) **725 / 728**. The 3 failures had one
-  cause, fixed in `97474f8`; their specs then passed **70 / 70**.
-- Firefox and WebKit smoke **98 / 98**. axe **0 violations** in 2,092 scans.
-- Mutations: E0 51/51, E1 18/19, E2 20/20, E7 19/20, E13 18/18, B10 2/2, seams 15/15. The two survivors are
-  equivalent, as on their branches.
+Results at a glance (final code head `69d684b`, all on AC power):
+- Vitest **1,961 / 1,961**.
+- Complete Chromium run (every historical e2e spec plus the evidence specs, retries off) **729 / 729**.
+- Firefox and WebKit smoke **98 / 98**.
+- axe: **0 violations** in 1,837 scans.
+- Mutations: F-GPT-W1-01 **10 / 10**, E0 51/51, E1 18/19, E2 20/20, E7 19/20, E13 18/18, B10 2/2, seams 15/15.
+  The two survivors are equivalent, as on their branches.
 - B10's own 712 / 717 is **not** reported as green here. This is a separate complete run on the integrated code.
 
 ## 1. Merge ancestry
@@ -23,7 +25,10 @@ squash, no force push). Then four reconciliation commits, one separate test-only
 fixes from the integration's own browser and mutation runs, and the docs.
 
 ```
-* <docs>     Wave 1 integration: report, test results, manual QA, evidence (this folder)
+* <docs>     Wave 1 integration (Issue #25): F-GPT-W1-01 report section, final-head results, checklist, evidence
+* 69d684b    Test-only: the sales manager's own tasks hold only his follow-ups (E13-M15, F-GPT-W1-01)
+* 9cd0ca9    F-GPT-W1-01: a colleague's lead stays private on every new developer surface (§12)
+* 0205b73    Wave 1 integration (Issue #25): report, test results, manual QA, evidence  (reviewed by GPT: conditional HOLD)
 * 97474f8    Wave 1 integration: INV-002 amount strips keep each figure whole at 320 px / 200 % (F-INT-W1-20)
 * d8de2df    Test-only: E.7 cross-entity write check uses the roster's journal maker (F-INT-W1-19)
 * 6c2a4b6    Wave 1 integration: year-form ledger series and Lead 360 e-mail wrap (F-INT-W1-18, F-INT-W1-11)
@@ -244,9 +249,10 @@ and GPT/owner review of this integration is outstanding. The 34 rows' notes now 
 |---|---|
 | D-INT-01 (E-06) | The one roster (§3.1); Zubair's role gains `period.close` from E.7's controller. |
 | D-INT-02 (E-07) | Canonical names; `storage.manage` retired; pipeline writes need `lead.manage` + `lead.assign`; lead documents need `lead.manage`. |
-| D-INT-03 (E-05) | Salespeople see only their own records on the new CRM screens (unchanged from E.1). |
+| D-INT-03 (E-05) | Salespeople see only their own leads on every new developer surface (E.1, and since F-GPT-W1-01 the hold views, E.2 and E.13, §12); `lead.assign` managers see their projects' leads. **Open:** the legacy CRM routes (lead list, Lead 360, Sales home, `/search`, `/units/:id/hold`) keep the whole-project rule, and parties keep the customer directory's rule (`customer.view` or `lead.view`), until the owner decides. GPT recommends conservative own-leads for narrow sales and project-scoped `lead.assign` managers. |
 | D-INT-04 | Template approval sits with the finance controller (E.0); E.13 had proposed a document controller. |
-| D-INT-05 | Holder names shown to every reader of a held unit (E.2's design), now in the CRM view too (staff names only). |
+| D-INT-05 | Holder names shown to every reader of a held unit (E.2's design), now in the CRM view too (staff names only); unchanged by F-GPT-W1-01. **GPT recommends** (not decided): the holder's name only to the initiator and authorised management or staff with a legitimate need; other readers see held and expiry, never lead identifiers (the latter is now so). |
+| D-INT-06 (new, F-GPT-W1-01) | Records or document staff and documents linked to a lead. The conservative default now applies: such a document follows the lead, so the records clerk (assigned no lead, no `lead.assign`) no longer sees the two Heights lead documents, including one he uploaded. Owner to decide whether a document role may read lead documents it is not assigned. |
 | E-15…E-18, U1–U15; E-10, E-11, E-24, E-27, E-28, E-29, E-33, E-35, E-37 | As in each branch's report; every E.7 screen stays PARTIAL. |
 
 ### 11.4 Open: later gates
@@ -256,8 +262,78 @@ and GPT/owner review of this integration is outstanding. The 34 rows' notes now 
 - F-INT-W1-17: Project 360's `documents` response field is an empty placeholder (the tab reads E.13).
 - B10's open items (F-INT-2, F-INT-4, N-B2-7, MetricCard clamp, sidebar ellipsis, pay-form hint) are unchanged.
 - Manual screen-reader, real-device and native Urdu review remain open (no WCAG claim).
+- The finance policies stay open: E-15…E-18, E-27, E-29, E-33 and U1–U15. Every E.7 screen stays PARTIAL, nothing
+  is posted automatically, no settled money is inferred, and the bank boundary and maker–checker separation are
+  unchanged.
+- These were all re-confirmed as open after F-GPT-W1-01, which changed none of them.
 
-## 12. Not done here (out of Issue #25's scope)
+## 12. F-GPT-W1-01: a colleague's lead stays private on every new developer surface
+
+GPT's review of `0205b73` (Issue #25, conditional HOLD) found an assigned-lead privacy seam, and the owner directed
+the fix:
+
+> "A salesperson must not discover another salesperson's confidential lead details through related screens.
+> Managers remain project-scoped. Preserve hold availability and expiry visibility without exposing unauthorized
+> customer details. Use canonical record-level scope checks and add positive, negative and mutation regression
+> tests. Keep existing financial safeguards and maker-checker separation."
+
+**The one rule** (`developer/crm/scope.ts`, extended, no local copies): a lead is visible when its project is in the
+reader's CRM scope (`lead.view`) AND it is assigned to them, or they hold `lead.assign` **in that project** (the
+access rule on the project's record, so a manager stays scoped to their projects). `crmScope.leadVisible` applies it
+with the header project. The new `leadOpen` applies it to a lead reached by id or through another record, where the
+header project is a view, not a filter (E.0's visible vs governed split). `crmScopeOf` / `leadOpenTo` build it once
+per request and are what every surface below calls. Fixed in `9cd0ca9`.
+
+| # | Surface | Before | Now | Tests | Mutants |
+|---|---|---|---|---|---|
+| 1 | Hold view (`crm-holds.ts holdViewFor`): legacy CRM quick view, E.2 unit drawer, matrix, live availability | lead id and reference to anyone with `lead.view` in the project | held state, expiry, holder and `releasable` to every reader of the unit; the lead id and reference only to a reader who may see that lead | lead-privacy positives, negatives, reassignment, revocation; E.0 validation "only the initiator…"; e0-foundation and int-ew1 browser tests | G01, M18, E2-M14 |
+| 2 | E.2 hold picker (`holdLeads`) | every open lead of the project | open leads the person may see | lead-privacy positives and negatives, reassignment, revocation | G02, E2-M06 |
+| 3 | E.2 direct hold write | the picker's project-level list | the same per-lead list: a colleague's lead gets exactly the 422 `leadNotEligible` of an invented id, nothing written (byte-identical) | lead-privacy "direct hold write", reassignment; int-ew1 browser | G03 |
+| 4 | Project 360 leads tab | names, references, budgets, owners and counts of every lead of the project | items, total and per-status counts from the reader's visible leads only | lead-privacy positives, negatives, manager outside the project, reassignment; int-ew1 browser | G04 |
+| 5 | Portfolio and project summary (PRJ-001 list, Project 360 overview) | lead figures over the whole project (found while fixing #4) | figures over visible leads only | lead-privacy positives and negatives; E.2 PRJ-001 test | G05 |
+| 6 | E.2 inventory activity (`projectEvent`) | the lead reference to anyone with `lead.view` in the project | only to a reader who may see that lead | lead-privacy positives and negatives | G06, E2-M13 |
+| 7 | E.13 registry, lead provider (`records.ts`): search, resolve, related records, favourites, recents, tasks (follow-ups, visits, hold expiry, document expiry), activity, documents linked to a lead | the project-level address rule | the address rule AND the CRM record rule | lead-privacy E.13 block; workspace and documents API tests; e13-workspaces and e13 smoke | G07 |
+| 8 | The canonical helper | `lead.assign` counted globally | per project; owner OR `lead.assign` there; `leadOpen` needs the project's CRM scope | all of the above; E.1's own suites | G08, G09, G10, E1-M1 |
+
+**Kept as they were.**
+- **Parties.** E.13's party provider and the legacy `/parties` directory keep the customer directory's own rule
+  (`customer.view` or `lead.view`, as before). That is a distinct, non-CRM policy, now listed under D-INT-03. A
+  party's *related leads* follow the CRM rule.
+- **Documents.** Documents on units, projects and parties keep their policies. Documents linked to a lead follow the
+  lead.
+- **Legacy CRM routes are not rewritten.** These are the lead list, Lead 360, Sales home, `/search`,
+  `/units/:id/hold` and `GET /access/record`. Their policy stays the whole project until E-05 / D-INT-03 is decided.
+  The hold view they show goes through `holdViewFor`, so a colleague's lead id and reference are not shown there
+  either.
+- **Holder's name.** The holder's staff name is shown as before (D-INT-05, not decided here).
+- **Holds, money and maker–checker.** Release is still initiator-only. Every financial safeguard, the bank boundary,
+  maker–checker separation and E.0's no-oracle 404s are unchanged.
+
+**What people now see.**
+- **Bilal** sees his own leads on these surfaces.
+- **Hamza** (sales manager, `lead.assign`) sees every lead of his projects. Limited to Gardens, he reaches no
+  Heights lead.
+- **Nadia** (administration, no `lead.assign`) now sees only her own leads on the new surfaces: Project 360 lists and
+  counts, the work queue's follow-ups and E.13 search. Legacy screens are unchanged.
+- **Haroon** (records clerk) is assigned no lead, so the two Heights documents linked to leads are no longer his.
+  This is a new open decision, D-INT-06.
+
+**Tests.**
+- New: `packages/fixtures/src/developer/lead-privacy.test.ts` (10). Positives: the owner, and a `lead.assign`
+  manager in the project. Negatives: a same-project colleague on the hold view (state and expiry kept, no
+  identifiers), the picker, the direct write (same answer as an invented id, byte-identical), Project 360 items and
+  counts, the portfolio and the activity. Also: a manager outside the project, reassignment (visibility follows the
+  new owner at once), revocation, no cross-tenant leak, and the E.13 registry.
+- Updated: the branch tests that encoded the project-level rule now use the person's own leads, and gain the
+  negatives. These are E.0 validation, the E.2 API, E.13 workspace and documents, and the seams. In the browser:
+  e0-foundation, e13-workspaces and the e13 smoke. `int-ew1` gains a browser test.
+- Mutants: G01–G10 (the new set) and the re-anchored E1-M1, E2-M06, E2-M13, E2-M14 and M18 (results in
+  test-results.md §3).
+- Not mutated separately: the per-project `lead.assign` check versus a global one. Permissions and data scopes are
+  per person in the current access model, so no fixture can hold `lead.assign` in one project and `lead.view`
+  in another. A mutant there would be equivalent by construction.
+
+## 13. Not done here (out of Issue #25's scope)
 
 E.3/E.4/E.5 source work; E.0 roadmap items E.0 deferred (finance core adapter E-03, fixture truthfulness E-04, S.1
 idempotency migration E-29, APR for all editions, live quick-create); E.1/E.2/E.7 activity sources in HOME-005; a

@@ -3,9 +3,59 @@
 Machine: shared Windows 11 laptop, 12 logical CPUs. Two other agents (E.3 validation and E.8) worked at the same
 time, so the CPU was often near 100 %. Node 20.20.1. Ports 8173–8175 (`E2E_PORT_OFFSET=3000`). The previews of the
 production build served on both 127.0.0.1 and ::1. Raw logs and JSON reports are in the git-ignored
-`test-results-ew1/`. Final code head: **`97474f8`**. It is `d8de2df` plus one opt-in change to `AmountStrip`, used
-only by the CRM unit quick view, found and fixed by the complete run (§4.2). Commits after it are docs and evidence
-only.
+`test-results-ew1/`. **Final code head: `69d684b`.** That is `9cd0ca9` (F-GPT-W1-01) plus a test-only commit, and
+the commits after it are docs and evidence only. §0 holds the results that count; §1–§5 are the history on earlier
+heads.
+
+## 0. Final head `69d684b` (after F-GPT-W1-01): the results that count
+
+GPT reviewed `0205b73` and gave a conditional HOLD (F-GPT-W1-01, INTEGRATION_REPORT §12).
+- **Stopped, not counted:** a confirming complete run on the build of `0205b73` started at 10:19Z. It was stopped at
+  11:10Z as superseded, because source changes were coming. No partial result of it is counted.
+- **The fix:** `9cd0ca9`, plus one test-only commit, `69d684b`.
+- **Every result below is on the final head**, built with both origins and served on both loopbacks, all on AC
+  power.
+
+| Check | Result |
+|---|---|
+| typecheck, ESLint, logical CSS, i18n parity | 0 errors; 0 problems; clean; 2 × 31 × 12,700 keys, parity OK |
+| `register:sync` | 449 rows, 362 distinct: **139 BUILT, 76 PARTIAL, 147 PLANNED**; unchanged |
+| Route audit | 34 / 34 Wave 1 addresses served exactly once |
+| **Vitest** (full) | **1,961 / 1,961**, 81 files (70.0 s) |
+| **Chromium complete run**: every e2e spec plus the evidence specs gatee0, gatee1, gatee2, gatee7, gatee13, uxb10, intew1, gates3, uxb1, uxb2, cnidem, ints3b, gatebfinal and gated1; 3 workers, retries off | **729 / 729 passed** (606 e2e, 123 evidence), 12:10:57–13:10:38Z (59.6 min). Power at start and end: PowerOnline True, 100 % |
+| axe in that run | **1,837 scans, 50,614 rule passes, 0 violations** (EN/UR RTL, dark mode, 320 px at 200 %, as the specs cover) |
+| Gate C.2 video specs (test-only `36896f1`) | **2 / 2**, 13:10:40–13:11:51Z |
+| **Firefox and WebKit smoke** (every smoke spec) | **98 / 98** (49 + 49), 13:11:55–13:18:57Z. Power at start and end: True, 100 % |
+| Known intermittents, alone, not edited or suppressed | Chromium `identity.spec.ts:327` ×10: **10 / 10**. WebKit `s2a.smoke.spec.ts:52` ×20: **16 / 20**; all 4 failures are the known `listbox` still open after a choice. Rate 4 / 20 here; 6 / 40 across both measurements today |
+| Evidence of other gates | 547 accepted PNGs rewritten by the evidence specs. **All restored from HEAD, none committed** |
+| Screenshots of this integration | 18. Widths all match. Three were re-captured (byte-level differences only) |
+
+**Mutations after the fix.** One mutant per new check, each caught, plus the requested E1, E2 and seam sets and
+the touched E0 and E13 mutants:
+
+| Set | Caught | Note |
+|---|---|---|
+| **F-GPT-W1-01 (new, G01–G10)** | **10 / 10** | G01 hold view; G02 picker; G03 hold write; G04 Project 360 items and counts; G05 portfolio figures; G06 inventory activity; G07 E.13 registry; G08 owner dropped; G09 `lead.assign` dropped; G10 project scope skipped on id lookups |
+| E0 M18 (re-anchored to the new hold-view check) | 1 / 1 | |
+| E1 | 18 / 19 | M4 equivalent, as on E.1's branch. E1-M1 re-anchored to the canonical rule and caught |
+| E2 | 20 / 20 | E2-M06, -M13, -M14 re-anchored and caught |
+| Seams | 15 / 15 | |
+| E13 | 18 / 18 | E13-M15 survived the first re-run: a narrow reader now sees only their own leads, so "mine" and "the team's" could not differ for Bilal. It is caught after the test-only `69d684b`, which runs the same check for the sales manager |
+| E0 (full set, re-run on the final head) | **51 / 51** | |
+| E7, B10 | 19 / 20 (M18 equivalent), 2 / 2 | Code unchanged by the fix; earlier runs (§3) |
+
+Equivalent by construction, and not in the G set: the per-project `lead.assign` check against a global one.
+Permissions and data scopes are per person, so no fixture can tell them apart.
+
+**Targeted runs while fixing**, on the build of the fix:
+- Chromium, 163 tests across the Wave 1 specs and their evidence: 157 passed. Six failed because they encoded the
+  project-level rule (e0-foundation 1, e13-workspaces 5). Those specs were updated to the owner's rule, keeping
+  their intent and adding the negatives, and then passed 29 / 29.
+- `int-ew1` with its new F-GPT-W1-01 browser test: 8 / 8.
+- Firefox and WebKit, the e1, e2 and e13 smoke specs: 18 / 18.
+
+The sections below are the history on earlier heads (`d8de2df` to `0205b73`). They are kept for the record. The
+final head's results are the ones above.
 
 ## 1. Static checks (code head `d8de2df`; `97474f8`: typecheck 0, ESLint 0, `packages/ui` Vitest 94/94)
 
@@ -136,11 +186,12 @@ committed.** `git status` afterwards shows only this folder.
 
 | Required | Result |
 |---|---|
-| typecheck, ESLint, logical CSS, i18n parity, register sync | green (§1) |
-| All Vitest, no unexplained timeout | 1,951 / 1,951; the load timeouts are explained and pass alone and in the quiet full run (§2) |
-| All historical Chromium E2E + the six branches' evidence, retries off | 725 / 728, then the 3 failures fixed and their specs 70 / 70 (§4.1, §4.2) |
-| Firefox and WebKit smoke | 98 / 98 (§4.4) |
-| axe; EN/UR RTL; dark mode; 320 px at 200 %; focus metrics | 0 violations in 2,092 scans; covered in the specs above |
-| Screenshot review and repair | §4.7; one repair (F-INT-W1-20) |
-| Mutation re-runs | E0 51/51, E1 18/19, E2 20/20, E7 19/20, E13 18/18, B10 2/2, seams 15/15 (§3) |
+| typecheck, ESLint, logical CSS, i18n parity, register sync | green on the final head (§0) |
+| All Vitest, no unexplained timeout | **1,961 / 1,961** on the final head (§0). Earlier load timeouts are explained in §2 |
+| All historical Chromium E2E + the six branches' evidence, retries off | **729 / 729** on the final head (§0) |
+| Firefox and WebKit smoke | **98 / 98** on the final head (§0) |
+| axe; EN/UR RTL; dark mode; 320 px at 200 %; focus metrics | **0 violations in 1,837 scans** on the final head; covered by the specs |
+| Screenshot review and repair | §4.7, §0; one repair (F-INT-W1-20) |
+| Mutation re-runs | F-GPT-W1-01 10/10; E0 51/51; E1 18/19 (M4 equivalent); E2 20/20; E7 19/20 (M18 equivalent); E13 18/18; B10 2/2; seams 15/15 (§0, §3) |
+| F-GPT-W1-01 | fixed with one canonical rule; positive, negative and mutation tests (§0; INTEGRATION_REPORT §12) |
 | B10 | its 2 mutants caught; its specs green. The two obsolete C.2 video specs were repaired in a separate test-only commit and pass (§4.3). B10's own 712 / 717 is **not** reported as green: this run is a separate, complete run on the integrated code |

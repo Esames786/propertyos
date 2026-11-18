@@ -39,12 +39,26 @@ Ports 8173–8175 (`E2E_PORT_OFFSET=3000`), test output `test-results-ew1/` (git
     539 PNGs of other gates restored.
 14. `97474f8` fixes the 3 Chromium failures (AmountStrip `wrap` broke the figure, F-INT-W1-20); the quick-view
     specs on the new build 70/70; `packages/ui` Vitest 94/94, typecheck and ESLint clean.
-15. Lock released 09:17:22Z; previews stopped. Docs final.
+15. Lock released 09:17:22Z; previews stopped. `0205b73` pushed and handed off.
+16. A confirming complete run on the build of `0205b73` (10:19Z, coordinator follow-up) was STOPPED at 11:10Z as
+    superseded by GPT's review (conditional HOLD, F-GPT-W1-01). No partial result is counted. Lock kept: "HELD:
+    F-GPT-W1-01 fixes + targeted runs; then final complete run".
+17. `9cd0ca9` F-GPT-W1-01: one canonical record-level lead rule (`crmScope` `leadVisible` / `leadOpen`, `leadOpenTo`)
+    on the hold view, E.2 picker and hold write, Project 360 leads and counts, portfolio figures, inventory activity
+    and the E.13 lead provider. New `lead-privacy.test.ts` (10); branch tests moved to own leads; Vitest 1,961/1,961;
+    targeted Chromium 157 + 29 + 8 green after spec updates; FF/WK smoke (e1, e2, e13) 18/18.
+18. Report §12 (F-GPT-W1-01), D-INT-03/05 updated, D-INT-06 new; manual checklist §3a.
+
+19. Mutations: G01–G10 10/10; E0 51/51 (full set, final head); E1 18/19 (M4 equivalent); E2 20/20; seams 15/15; E13 17/18, then
+    18/18 after the test-only `69d684b` (E13-M15).
+20. Final head `69d684b` on AC: static checks green; Vitest 1,961/1,961; complete Chromium 729/729 (12:10:57–13:10:38Z;
+    axe 1,837 scans, 0 violations); C.2 videos 2/2; FF/WK smoke 98/98; identity:327 ×10 10/10; WebKit s2a:52 ×20
+    16/20 (the known listbox intermittent). 547 PNGs of other gates restored. Lock released 13:21:58Z; previews
+    stopped.
 
 ## Done: STOPPED for GPT and owner review
 
-- Push `integration/e-wave1` without force; `git ls-remote origin integration/e-wave1`; hand off.
-- The coordinator's `backup/integration-e-wave1-pre-regression` (`d8de2df`) is theirs: not pushed to, not deleted.
+- Docs committed, `integration/e-wave1` pushed without force (`git ls-remote` in the hand-off).
 
 ## How to resume
 
