@@ -11,9 +11,10 @@ import type { Permission, Persona } from '@repo/contracts';
  * - **unlisted**, so even where they are loaded the demo sign-in page never offers them;
  * - holders of **no role** (`roleId` absent): no role template, starter role or ERP role gains anything;
  * - in the browser, compiled **only** into a build made with `PROPERTYOS_E2E_PRINCIPALS=1` (Playwright's own
- *   build, see `playwright.config.ts`): `apps/backoffice/vite.config.ts` replaces `__E2E_TEST_PRINCIPALS__`
- *   with `false` in every other build, and the bundler drops this module from it. The shipped demo cannot
- *   sign in as them, by any page or by a stored session naming them (no such persona exists there).
+ *   build, see `playwright.config.ts`): only there does `apps/backoffice/vite.config.ts` resolve the backoffice's
+ *   empty `prototype/build-personas` to a module that imports them (Wave 2 integration). No other build imports
+ *   this module at all, so neither its files nor its sourcemaps name them (`scripts/check-test-principals.mjs`).
+ *   The shipped demo cannot sign in as them, by any page or by a stored session naming them.
  *
  * Their ids use the `res_${string}` branch of `Persona['id']` (the pattern E.0's `multientity.fixture.ts` and
  * GPT's E.3 API suites use for test principals); they are backoffice staff (`app: 'backoffice'`, no party).

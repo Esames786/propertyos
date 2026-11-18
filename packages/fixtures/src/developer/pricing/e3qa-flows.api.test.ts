@@ -149,14 +149,22 @@ describe('E.3 test-only pricing principals are not demo identities', () => {
     expect(exported.filter(([, value]) => (E3QA_TEST_PRINCIPALS as readonly unknown[]).includes(value))).toEqual([]);
   });
 
-  it('the backoffice compiles them in only behind the build-time switch, which only the test build turns on', async () => {
+  it('the backoffice imports them only through the module the test build swaps in; the shipped sources never name them', async () => {
     const { readFileSync } = await import('node:fs');
-    const main = readFileSync(new URL('../../../../../apps/backoffice/src/main.tsx', import.meta.url), 'utf8');
-    const vite = readFileSync(new URL('../../../../../apps/backoffice/vite.config.ts', import.meta.url), 'utf8');
-    expect(main).toContain("const personas = __E2E_TEST_PRINCIPALS__ ? [...ALL_PERSONAS, ...E3QA_TEST_PRINCIPALS] : ALL_PERSONAS;");
-    expect(main.match(/E3QA_TEST_PRINCIPALS/g)).toHaveLength(2); // the import and the switch, nothing else
-    expect(vite).toContain("__E2E_TEST_PRINCIPALS__: JSON.stringify(process.env.PROPERTYOS_E2E_PRINCIPALS === '1')");
-    // Pure factory calls: an unused result is dropped from a build where the switch is false.
+    const app = (path: string) => readFileSync(new URL(`../../../../../apps/backoffice/${path}`, import.meta.url), 'utf8');
+    const main = app('src/main.tsx');
+    const vite = app('vite.config.ts');
+    // Wave 2 integration: main.tsx and the module it imports name neither the principals nor `@repo/fixtures/testing`.
+    for (const shipped of [main, app('src/prototype/build-personas.ts')]) expect(shipped).not.toMatch(/E3QA|e3qa|fixtures\/testing/);
+    expect(main).toContain("import { BUILD_PERSONAS } from './prototype/build-personas';");
+    expect(app('src/prototype/build-personas.ts')).toContain('export const BUILD_PERSONAS: readonly Persona[] = [];');
+    expect(app('src/prototype/build-personas.e2e.ts')).toContain("export { E3QA_TEST_PRINCIPALS as BUILD_PERSONAS } from '@repo/fixtures/testing';");
+    // The swap happens only when the test build's variable is exactly '1'.
+    expect(vite).toContain("const TEST_PRINCIPALS = process.env.PROPERTYOS_E2E_PRINCIPALS === '1';");
+    expect(vite).toMatch(/alias: TEST_PRINCIPALS\s*\?/);
+    expect(vite).toContain("replacement: fileURLToPath(new URL('./src/prototype/build-personas.e2e.ts', import.meta.url))");
+    expect(vite).not.toContain('__E2E_TEST_PRINCIPALS__');
+    // Pure factory calls (kept from Gate E.3 local validation): an unused principal is dropped from any bundle.
     const source = readFileSync(new URL('./test-principals.ts', import.meta.url), 'utf8');
     expect(source.match(/^export const E3QA_[A-Z_]+ = \/\* @__PURE__ \*\/ principal\(/gm)).toHaveLength(5);
   });
