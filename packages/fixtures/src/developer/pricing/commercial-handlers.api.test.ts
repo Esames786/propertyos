@@ -15,9 +15,9 @@ const L = datasetFor('tnt_larkspur')!;
 const heights = L.units.find((u) => u.projectId === 'prj_heights')!;
 const gardens = L.units.find((u) => u.projectId === 'prj_gardens')!;
 const manager = findPersona('manager')!;
-const author: Persona = { ...manager, id: 'e3_com_author', principalId: 'usr_com_author', permissions: [...manager.permissions, 'pricing.manage'] };
-const other: Persona = { ...author, id: 'e3_com_other', principalId: 'usr_com_other' };
-const scoped: Persona = { ...author, id: 'e3_com_scoped', principalId: 'usr_com_scoped', projectScope: ['prj_heights'] };
+const author: Persona = { ...manager, id: 'res_e3_com_author', principalId: 'usr_com_author', permissions: [...manager.permissions, 'pricing.manage'] };
+const other: Persona = { ...author, id: 'res_e3_com_other', principalId: 'usr_com_other' };
+const scoped: Persona = { ...author, id: 'res_e3_com_scoped', principalId: 'usr_com_scoped', projectScope: ['prj_heights'] };
 const keyA = 'commercial-draft-key-00000001', keyB = 'commercial-draft-key-00000002', keyC = 'commercial-draft-key-00000003';
 const project = 'prj_heights';
 function context() {
@@ -31,7 +31,16 @@ function context() {
   return {
     api,
     as(id: string, projectId = 'all') { selected.personaId = id; selected.projectId = projectId; return api; },
-    snapshot() { demo.save(); return JSON.stringify([...mem.entries()].sort()); },
+    snapshot() {
+      // Ignore legitimate sign-in/session telemetry. Assert the rest of the tenant
+      // overlay (including every pricing section and sequence/key map) is unchanged.
+      demo.save();
+      const raw = mem.get('demo:store:v2');
+      if (!raw) return '';
+      const value = JSON.parse(raw) as { partitions: Record<string, { sections: Record<string, unknown> }> };
+      for (const partition of Object.values(value.partitions)) delete partition.sections.identity;
+      return JSON.stringify(value);
+    },
   };
 }
 const create = (api: MockTransport, key = keyA, projectId = project, title = 'Illustrative commercial draft', fees: unknown = [FIXED], discounts: unknown = [DISCOUNT]) =>
@@ -152,6 +161,7 @@ describe('COM-004 scoped draft API and non-posting preview', () => {
   });
   it('invalid payload refuses whole create, never consumes an ID or key', async () => {
     const w = context();
+    await list(w.api);
     const before = w.snapshot();
     for (const [fees, discounts] of [[null, []], [[FIXED, FIXED], []], [[{ ...FIXED, amount: money('1.001') }], []]] as Array<[unknown, unknown]>) {
       expect(await denied(create(w.api, keyA, project, 'Valid title', fees, discounts))).toMatchObject({ status: 422, changed: false });

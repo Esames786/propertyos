@@ -1,3 +1,4 @@
+import { requireDraftRequestKey } from './request-key';
 import { ApiError, type PricingApprovalDraft, type PricingApprovalDraftList, type PricingApprovalDraftVersion, type PricingApprovalRule, type PricingApprovalSubject } from '@repo/contracts';
 import { invalid, notFound, requires, type Handler, type HandlerContext } from '../../handler-types';
 import { projectVisible } from '../scope';
@@ -60,11 +61,7 @@ function normalize(ctx: HandlerContext, v: Record<string, unknown>, allowed: rea
   rules.sort((a, b) => a.subject.localeCompare(b.subject));
   return { title, rules };
 }
-function key(ctx: HandlerContext, v: Record<string, unknown>): string {
-  const value = ctx.req.idempotencyKey ?? v.idempotencyKey;
-  if (typeof value !== 'string' || !/^[A-Za-z0-9._:-]{12,100}$/.test(value)) invalid(ctx, 'idempotencyKey');
-  return value;
-}
+const key = (ctx: HandlerContext, v: Record<string, unknown>): string => requireDraftRequestKey(ctx, v);
 function collision(ctx: HandlerContext): never {
   throw new ApiError({ status: 409, code: 'idempotency_key_reused', messageKey: 'pricing:approvalConflict', correlationId: ctx.correlationId, changed: false });
 }

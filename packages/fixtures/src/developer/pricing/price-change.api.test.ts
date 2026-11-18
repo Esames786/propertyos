@@ -9,10 +9,10 @@ const L = datasetFor('tnt_larkspur')!;
 const heights = L.units.find((u) => u.projectId === 'prj_heights')!;
 const gardens = L.units.find((u) => u.projectId === 'prj_gardens')!;
 const manager = findPersona('manager')!;
-const author: Persona = { ...manager, id: 'e3_price_change_author', principalId: 'usr_e3_price_change_author', permissions: [...manager.permissions, 'pricing.manage'] };
-const another: Persona = { ...author, id: 'e3_price_change_other', principalId: 'usr_e3_price_change_other' };
-const scoped: Persona = { ...author, id: 'e3_price_change_scoped', principalId: 'usr_e3_price_change_scoped', projectScope: ['prj_heights'] };
-const missingView: Persona = { ...author, id: 'e3_price_change_no_view', principalId: 'usr_e3_price_change_no_view', permissions: ['pricing.manage'] };
+const author: Persona = { ...manager, id: 'res_e3_price_change_author', principalId: 'usr_e3_price_change_author', permissions: [...manager.permissions, 'pricing.manage'] };
+const another: Persona = { ...author, id: 'res_e3_price_change_other', principalId: 'usr_e3_price_change_other' };
+const scoped: Persona = { ...author, id: 'res_e3_price_change_scoped', principalId: 'usr_e3_price_change_scoped', projectScope: ['prj_heights'] };
+const missingView: Persona = { ...author, id: 'res_e3_price_change_no_view', principalId: 'usr_e3_price_change_no_view', permissions: ['pricing.manage'] };
 const K1 = 'price-change-create-000001', K2 = 'price-change-revise-000002', K3 = 'price-change-revise-000003';
 const proposed = { amount: '17400000.25', currency: 'PKR' as const };
 const reason = 'Illustrative price adjustment for internal draft review only';
@@ -23,7 +23,16 @@ function setup() {
   const api = new MockTransport({ getContext: () => ({ ...chosen }), getMode: () => 'fast', demo, personas: [...ALL_PERSONAS, author, another, scoped, missingView] });
   return {
     api, as(personaId: string, projectId = 'all') { chosen.personaId = personaId; chosen.projectId = projectId; return api; },
-    snapshot() { demo.save(); return JSON.stringify([...memory.entries()].sort()); },
+    snapshot() {
+      // Ignore legitimate sign-in/session telemetry. Assert the rest of the tenant
+      // overlay (including every pricing section and sequence/key map) is unchanged.
+      demo.save();
+      const raw = memory.get('demo:store:v2');
+      if (!raw) return '';
+      const value = JSON.parse(raw) as { partitions: Record<string, { sections: Record<string, unknown> }> };
+      for (const partition of Object.values(value.partitions)) delete partition.sections.identity;
+      return JSON.stringify(value);
+    },
   };
 }
 const create = (api: MockTransport, unitId = heights.id, key = K1, price: unknown = proposed, why = reason) =>
@@ -47,6 +56,28 @@ async function denied(promise: Promise<unknown>) {
   throw new Error('Expected refusal');
 }
 describe('INV-007 proposed unit prices are private, non-effective drafts', () => {
+
+  it('rejects a mismatched transport/header and JSON-body request key without consuming an ID', async () => {
+    const w = setup();
+    await history(w.api); // Prime legitimate sign-in telemetry before measuring business state.
+    const before = w.snapshot();
+    const refusedWrite = w.api.request<UnitPriceChangeDraft>({
+      method: 'POST',
+      path: `/units/${heights.id}/price-change-drafts`,
+      idempotencyKey: K1,
+      body: {
+        proposedPrice: proposed,
+        reason,
+        idempotencyKey: K2,
+      },
+    });
+    expect(await denied(refusedWrite)).toMatchObject({ status: 422, changed: false });
+    expect(w.snapshot()).toBe(before);
+    const real = await create(w.api, heights.id, K1);
+    expect(real.id).toBe('pcd_000001');
+    expect((await list(w.api)).total).toBe(1);
+  });
+
   it('draft creation preserves unit listing, approved history, and fictional price baseline', async () => {
     const w = setup();
     const priceBefore = await history(w.api);
@@ -109,6 +140,7 @@ describe('INV-007 proposed unit prices are private, non-effective drafts', () =>
   });
   it('invalid price, unchanged baseline, malformed reason and unknown fields refuse before sequence/key consumption', async () => {
     const w = setup();
+    await history(w.api);
     const before = w.snapshot();
     const bad: unknown[] = [
       null, { amount: '-1.00', currency: 'PKR' }, { amount: '1.001', currency: 'PKR' },

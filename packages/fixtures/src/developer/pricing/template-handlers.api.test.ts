@@ -5,9 +5,9 @@ import { MockTransport } from '../../mock-transport';
 import { ALL_PERSONAS, findPersona } from '../../people';
 
 const manager = findPersona('manager')!;
-const alice: Persona = { ...manager, id: 'e3_template_alice', principalId: 'usr_e3_template_01', permissions: [...manager.permissions, 'pricing.manage'] };
-const bob: Persona = { ...manager, id: 'e3_template_bob', principalId: 'usr_e3_template_02', permissions: [...manager.permissions, 'pricing.manage'] };
-const scopes: Persona = { ...alice, id: 'e3_template_scoped', principalId: 'usr_e3_template_03', projectScope: ['prj_heights'] };
+const alice: Persona = { ...manager, id: 'res_e3_template_alice', principalId: 'usr_e3_template_01', permissions: [...manager.permissions, 'pricing.manage'] };
+const bob: Persona = { ...manager, id: 'res_e3_template_bob', principalId: 'usr_e3_template_02', permissions: [...manager.permissions, 'pricing.manage'] };
+const scopes: Persona = { ...alice, id: 'res_e3_template_scoped', principalId: 'usr_e3_template_03', projectScope: ['prj_heights'] };
 const VIEWER = 'sales';
 const ROWS: PlanAllocationInput[] = [
   { kind: 'down_payment', shareBps: 2000 },
@@ -33,7 +33,16 @@ function env() {
   return {
     api,
     as(id: string, projectId = 'all') { session.personaId = id; session.projectId = projectId; return api; },
-    snapshot() { demo.save(); return JSON.stringify([...mem.entries()].sort()); },
+    snapshot() {
+      // Ignore legitimate sign-in/session telemetry. Assert the rest of the tenant
+      // overlay (including every pricing section and sequence/key map) is unchanged.
+      demo.save();
+      const raw = mem.get('demo:store:v2');
+      if (!raw) return '';
+      const value = JSON.parse(raw) as { partitions: Record<string, { sections: Record<string, unknown> }> };
+      for (const partition of Object.values(value.partitions)) delete partition.sections.identity;
+      return JSON.stringify(value);
+    },
   };
 }
 const create = (api: MockTransport, key = KEY1, projectId = PROJECT, title = 'Standard fictional payment plan', allocations: unknown = ROWS) =>
@@ -151,6 +160,7 @@ describe('E.3 COM-001 — private, immutable, request-bound draft templates', ()
 
   it('all invalid data is refused before any ID, version or key is consumed', async () => {
     const w = env();
+    await list(w.api);
     const before = w.snapshot();
     const bad: unknown[] = [
       null, [null],

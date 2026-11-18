@@ -2,6 +2,7 @@ import { ApiError, type UnitPriceChangeDraft, type UnitPriceChangeDraftList, typ
 import { Badge, Button, Drawer, EmptyState, ErrorState, Link, PageHeader, SkeletonBlock, useApiMutation, useApiQuery, useCreateKey, useT } from '@repo/ui';
 import { FileClock, Pencil, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { canHydrateDraft, expectedDraftVersion, pinDraftVersion, type CommittedDraftFloor } from './revision-sync';
 import { useSearchParams } from 'react-router';
 import { useCrmFormat } from '../../crm/format';
 
@@ -19,6 +20,9 @@ export default function EditPriceDrawerPage() {
   const [reason, setReason] = useState('');
   const [invalid, setInvalid] = useState(false);
   const [saved, setSaved] = useState(false);
+  // Protect an in-progress edit from stale React Query refreshes and invalidations.
+  const [dirty, setDirty] = useState(false);
+  const [committedFloor, setCommittedFloor] = useState<CommittedDraftFloor | null>(null);
   const [createKey, renewCreate] = useCreateKey('unit-price-change');
   const [revisionKey, renewRevision] = useCreateKey('unit-price-revise');
   const unitId = params.get('record');
@@ -41,27 +45,29 @@ export default function EditPriceDrawerPage() {
       else next.delete('record');
       return next;
     });
-    setDraftId(null); setPrice(''); setReason(''); setInvalid(false); setSaved(false);
+    setDraftId(null); setCommittedFloor(null); setPrice(''); setReason(''); setInvalid(false); setSaved(false); setDirty(false);
     renewCreate(); renewRevision();
   };
   const edit = () => {
-    setInvalid(false); setSaved(false);
+    setInvalid(false); setSaved(false); setDirty(true);
     if (draftId) renewRevision(); else renewCreate();
   };
   const chooseDraft = (id: string | null) => {
-    setDraftId(id); setInvalid(false); setSaved(false);
-    setPrice(''); setReason(''); renewCreate(); renewRevision();
+    setCommittedFloor(null); setDraftId(id); setInvalid(false); setSaved(false);
+    setPrice(''); setReason(''); setDirty(false); renewCreate(); renewRevision();
   };
   useEffect(() => {
-    if (!draftId || selectedDraft.data?.id !== draftId) return;
+    if (!canHydrateDraft(draftId, selectedDraft.data, dirty, committedFloor)) return;
+    setCommittedFloor((previous) => pinDraftVersion(previous, selectedDraft.data!));
     const current = selectedDraft.data.versions.at(-1);
     if (!current) return;
     setPrice(current.proposedPrice.amount);
     setReason(current.reason);
     setInvalid(false);
-  }, [selectedDraft.data, draftId]);
+  }, [selectedDraft.data, draftId, dirty, committedFloor]);
 
   const save = async () => {
+    if (saveMutation.isPending || (draftId && expectedDraftVersion(draftId, committedFloor) === undefined)) return;
     if (!unitId || !history.data || (draftId && selectedDraft.data?.id !== draftId)) return;
     const normalizedReason = reason.trim().replace(/\s+/g, ' ');
     const proposed = price.trim();
@@ -78,16 +84,19 @@ export default function EditPriceDrawerPage() {
     const path = draftId ? `/price-change-drafts/${encodeURIComponent(draftId)}/versions`
       : `/units/${encodeURIComponent(unitId)}/price-change-drafts`;
     const body = draftId
-      ? { expectedVersion: selectedDraft.data!.currentVersion, proposedPrice: { amount: proposed, currency: 'PKR' }, reason: normalizedReason, idempotencyKey: key }
+      ? { expectedVersion: expectedDraftVersion(draftId, committedFloor), proposedPrice: { amount: proposed, currency: 'PKR' }, reason: normalizedReason, idempotencyKey: key }
       : { proposedPrice: { amount: proposed, currency: 'PKR' }, reason: normalizedReason, idempotencyKey: key };
     try {
       const result = await saveMutation.mutateAsync({ method: 'POST', path, body, idempotencyKey: key });
-      setDraftId(result.id);
+      setCommittedFloor({ id: result.id, version: result.currentVersion }); setDraftId(result.id);
       renewCreate(); renewRevision();
       setSaved(true);
-      await drafts.refetch();
-      if (draftId) await selectedDraft.refetch();
-      await history.refetch(); // Prove the listed baseline remains current and unchanged.
+      setDirty(false);
+      // Success is determined only by the draft POST, not by a subsequent GET.
+      // A GET failure must not encourage the user to send a new-key duplicate.
+      void drafts.refetch();
+      if (draftId) void selectedDraft.refetch();
+      void history.refetch(); // Still read-only: never applies the proposed price.
     } catch {
       setSaved(false);
     }
@@ -123,9 +132,9 @@ export default function EditPriceDrawerPage() {
       <Drawer isOpen={isOpen} onOpenChange={(open) => { if (!open && !saveMutation.isPending) openUnit(null); }}
         title={t('pricing:priceChangeTitle')} subtitle={history.data?.unit.ref}
         testId="edit-price-change-drawer" size="lg"
-        footer={history.data && !drafts.isError && !drafts.isPending ? <>
+        footer={history.data && !drafts.isError && !!drafts.data ? <>
           <Button variant="secondary" isDisabled={saveMutation.isPending} onPress={() => openUnit(null)}>{t('pricing:priceChangeClose')}</Button>
-          <Button variant="primary" isPending={saveMutation.isPending} onPress={() => void save()} data-testid="price-change-save">
+          <Button variant="primary" isDisabled={!!draftId && (selectedDraft.isError || selectedDraft.isPending || selectedDraft.data?.id !== draftId)} isPending={saveMutation.isPending} onPress={() => void save()} data-testid="price-change-save">
             {draftId ? t('pricing:priceChangeRevise') : t('pricing:priceChangeSave')}
           </Button>
         </> : undefined}>

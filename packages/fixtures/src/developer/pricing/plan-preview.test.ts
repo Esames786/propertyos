@@ -68,21 +68,30 @@ const GARDENS = L.units.find((u) => u.projectId === 'prj_gardens')!;
 const NEVER = 'unt_never_issued_e3_preview';
 const manager = findPersona('manager')!;
 const pricer: Persona = {
-  ...manager, id: 'e3_pricer', principalId: 'usr_e3_pricer', permissions: [...manager.permissions, 'pricing.manage'],
+  ...manager, id: 'res_e3_pricer', principalId: 'usr_e3_pricer', permissions: [...manager.permissions, 'pricing.manage'],
 };
-const scoped: Persona = { ...pricer, id: 'e3_scoped', principalId: 'usr_e3_scoped', projectScope: ['prj_heights'] };
-const readonlyPricer: Persona = { ...pricer, id: 'e3_price_only', principalId: 'usr_e3_price_only', permissions: ['pricing.manage'] };
-const onlyView: Persona = { ...manager, id: 'e3_view_only', principalId: 'usr_e3_view_only', permissions: ['unit.view'] };
+const scoped: Persona = { ...pricer, id: 'res_e3_scoped', principalId: 'usr_e3_scoped', projectScope: ['prj_heights'] };
+const readonlyPricer: Persona = { ...pricer, id: 'res_e3_price_only', principalId: 'usr_e3_price_only', permissions: ['pricing.manage'] };
+const onlyView: Persona = { ...manager, id: 'res_e3_view_only', principalId: 'usr_e3_view_only', permissions: ['unit.view'] };
 
 function world() {
   const mem = new Map<string, string>();
   const demo = new DemoStore({ getItem: (k) => mem.get(k) ?? null, setItem: (k, v) => void mem.set(k, v), removeItem: (k) => void mem.delete(k) });
-  const ctx = { personaId: 'e3_pricer', projectId: 'all' };
+  const ctx = { personaId: 'res_e3_pricer', projectId: 'all' };
   const api = new MockTransport({ getContext: () => ({ ...ctx }), getMode: () => 'fast', demo, personas: [...ALL_PERSONAS, pricer, scoped, readonlyPricer, onlyView] });
   return {
     api,
     as(id: string, projectId = 'all') { ctx.personaId = id; ctx.projectId = projectId; return api; },
-    snapshot() { demo.save(); return JSON.stringify([...mem.entries()].sort()); },
+    snapshot() {
+      // Ignore legitimate sign-in/session telemetry. Assert the rest of the tenant
+      // overlay (including every pricing section and sequence/key map) is unchanged.
+      demo.save();
+      const raw = mem.get('demo:store:v2');
+      if (!raw) return '';
+      const value = JSON.parse(raw) as { partitions: Record<string, { sections: Record<string, unknown> }> };
+      for (const partition of Object.values(value.partitions)) delete partition.sections.identity;
+      return JSON.stringify(value);
+    },
   };
 }
 const preview = (api: MockTransport, id: string, allocations: unknown = common) =>
@@ -113,7 +122,7 @@ describe('E.3 COM-002: secured pure preview endpoint', () => {
   it('hides existence of out-of-scope, unknown and filtered unit ids, no state mutation', async () => {
     const w = world();
     await w.api.request({ method: 'GET', path: '/pricing/units' });
-    w.as('e3_scoped');
+    w.as('res_e3_scoped');
     await w.api.request({ method: 'GET', path: '/pricing/units' });
     const before = w.snapshot();
     const hidden = await refusal(preview(w.api, GARDENS.id));
@@ -121,15 +130,15 @@ describe('E.3 COM-002: secured pure preview endpoint', () => {
     expect(hidden).toEqual(absent);
     expect(hidden).toMatchObject({ status: 404, code: 'not_found', changed: false });
     expect(w.snapshot()).toBe(before);
-    w.as('e3_pricer', 'prj_heights');
+    w.as('res_e3_pricer', 'prj_heights');
     expect(await refusal(preview(w.api, GARDENS.id))).toEqual(await refusal(preview(w.api, NEVER)));
   });
 
   it('does not leak price to a pricing-only principal lacking unit.view, or a view-only principal', async () => {
     const w = world();
-    w.as('e3_price_only');
+    w.as('res_e3_price_only');
     expect(await refusal(preview(w.api, HEIGHTS.id))).toMatchObject({ status: 404, code: 'not_found' });
-    w.as('e3_view_only');
+    w.as('res_e3_view_only');
     expect(await refusal(preview(w.api, HEIGHTS.id))).toMatchObject({ status: 403, changed: false });
   });
 

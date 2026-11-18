@@ -2,6 +2,7 @@ import type { CommercialDiscountRule, CommercialFeeRule, CommercialRulesDraft, C
 import { Badge, Button, EmptyState, ErrorState, PageHeader, SkeletonBlock, useApiMutation, useApiQuery, useCreateKey, useT } from '@repo/ui';
 import { Calculator, Plus, Save, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { canHydrateDraft, expectedDraftVersion, pinDraftVersion, type CommittedDraftFloor } from './revision-sync';
 import { useCrmFormat } from '../../crm/format';
 import { PricingRelatedLinks } from './PricingRelatedLinks';
 
@@ -62,6 +63,7 @@ export default function FeesDiscountsPage() {
   const [invalid, setInvalid] = useState(false);
   const [saved, setSaved] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [committedFloor, setCommittedFloor] = useState<CommittedDraftFloor | null>(null);
   const [createKey, renewCreate] = useCreateKey('commercial-create');
   const [reviseKey, renewRevise] = useCreateKey('commercial-revise');
   const projects = useApiQuery<{ items: Array<{ id: string; name: string }>; total: number }>({ method: 'GET', path: '/pricing/template-projects' });
@@ -72,7 +74,8 @@ export default function FeesDiscountsPage() {
   const preview = useApiMutation<CommercialRulesPreview>();
 
   useEffect(() => {
-    if (!selectedId || detail.data?.id !== selectedId) return;
+    if (!canHydrateDraft(selectedId, detail.data, dirty, committedFloor)) return;
+    setCommittedFloor((previous) => pinDraftVersion(previous, detail.data!));
     const latest = detail.data.versions.at(-1);
     if (!latest) return;
     setTitle(latest.title);
@@ -83,39 +86,43 @@ export default function FeesDiscountsPage() {
     setPreviewResult(null);
     setInvalid(false);
     setDirty(false);
-  }, [detail.data, selectedId]);
+  }, [detail.data, selectedId, dirty, committedFloor]);
 
   const changed = () => {
     setPreviewResult(null); setInvalid(false); setSaved(false); setDirty(true);
     if (selectedId) renewRevise(); else renewCreate();
   };
   const reset = () => {
-    setSelectedId(null); setProjectId(''); setTitle('');
+    setSelectedId(null); setCommittedFloor(null); setProjectId(''); setTitle('');
     setFees([feeDefault(1)]); setDiscounts([discountDefault(101)]); setNextId(200); setUnitId('');
     renewCreate(); renewRevise(); setPreviewResult(null); setInvalid(false); setSaved(false); setDirty(false);
   };
   const save = async () => {
+    if (mutation.isPending || (selectedId && expectedDraftVersion(selectedId, committedFloor) === undefined)) return;
     const rules = canonicalDraft(fees, discounts), cleanTitle = title.trim().replace(/\s+/g, ' ');
     if (!rules || !projectId || !projects.data?.items.some((p) => p.id === projectId) ||
         cleanTitle.length < 3 || cleanTitle.length > 100) { setInvalid(true); return; }
     const key = selectedId ? reviseKey : createKey;
     const path = selectedId ? `/pricing/commercial-rules/${encodeURIComponent(selectedId)}/versions` : '/pricing/commercial-rules';
     const body = selectedId
-      ? { expectedVersion: detail.data?.currentVersion, title: cleanTitle, ...rules, idempotencyKey: key }
+      ? { expectedVersion: expectedDraftVersion(selectedId, committedFloor), title: cleanTitle, ...rules, idempotencyKey: key }
       : { projectId, title: cleanTitle, ...rules, idempotencyKey: key };
     setInvalid(false);
     try {
       const response = await mutation.mutateAsync({ method: 'POST', path, body, idempotencyKey: key });
-      setSelectedId(response.id);
+      setCommittedFloor({ id: response.id, version: response.currentVersion }); setSelectedId(response.id);
       renewCreate(); renewRevise(); setSaved(true); setPreviewResult(null); setDirty(false);
-      await list.refetch();
-      if (selectedId) await detail.refetch();
+      // The draft POST succeeded; cache refresh cannot turn that into a failed save.
+      // useApiMutation also invalidates all API queries after success.
+      void list.refetch();
+      if (selectedId) void detail.refetch();
     } catch {
       setSaved(false);
     }
   };
   const doPreview = async () => {
-    if (dirty || !selectedId || !unitId || !detail.data || detail.data.id !== selectedId) return;
+    if (dirty || !selectedId || !unitId || !detail.data || detail.data.id !== selectedId ||
+      (committedFloor?.id === selectedId && detail.data.currentVersion < committedFloor.version)) return;
     try {
       const result = await preview.mutateAsync({ method: 'POST', path: '/pricing/commercial-preview', body: { draftId: selectedId, unitId } });
       setPreviewResult(result);
@@ -147,7 +154,7 @@ export default function FeesDiscountsPage() {
             : list.data.items.length === 0 ? <EmptyState title={t('pricing:commercialEmpty')} /> :
               <ul className="space-y-2" data-testid="commercial-draft-list">
                 {list.data.items.map((item) => <li key={item.id}>
-                  <button type="button" disabled={mutation.isPending} onClick={() => { setSelectedId(item.id); setSaved(false); setPreviewResult(null); setDirty(false); renewRevise(); }}
+                  <button type="button" disabled={mutation.isPending} onClick={() => { setCommittedFloor(null); setSelectedId(item.id); setSaved(false); setPreviewResult(null); setDirty(false); renewRevise(); }}
                     aria-current={selectedId === item.id ? 'true' : undefined}
                     className="min-h-11 w-full rounded-control border border-border p-3 text-start text-text hover:bg-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
                     <span className="block break-words font-semibold">{item.title}</span>
@@ -241,7 +248,7 @@ export default function FeesDiscountsPage() {
             </label>
             {units.isError && <ErrorState error={units.error} onRetry={() => void units.refetch()} />}
             {units.data?.items.filter((u) => u.projectId === projectId).length === 0 && <p className="text-sm text-muted">{t('pricing:commercialNoUnit')}</p>}
-            <Button variant="primary" icon={Calculator} isDisabled={!unitId || dirty || preview.isPending} isPending={preview.isPending} onPress={() => void doPreview()}
+            <Button variant="primary" icon={Calculator} isDisabled={!unitId || dirty || (committedFloor?.id === selectedId && (detail.data?.currentVersion ?? 0) < committedFloor.version) || preview.isPending} isPending={preview.isPending} onPress={() => void doPreview()}
               data-testid="commercial-compute">{t('pricing:commercialCompute')}</Button>
             {preview.isError && <ErrorState error={preview.error} title={t('pricing:commercialPreviewError')} />}
             {previewResult && <div className="space-y-3" data-testid="commercial-preview-result">

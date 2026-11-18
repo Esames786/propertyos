@@ -6,14 +6,14 @@ import { ALL_PERSONAS, findPersona } from '../../people';
 
 const manager = findPersona('manager')!;
 const editor: Persona = {
-  ...manager, id: 'e3_policy_editor', principalId: 'usr_e3_policy_editor',
+  ...manager, id: 'res_e3_policy_editor', principalId: 'usr_e3_policy_editor',
   permissions: [...manager.permissions, 'pricing.manage'],
 };
 const another: Persona = {
-  ...editor, id: 'e3_policy_other', principalId: 'usr_e3_policy_other',
+  ...editor, id: 'res_e3_policy_other', principalId: 'usr_e3_policy_other',
 };
 const limited: Persona = {
-  ...editor, id: 'e3_policy_limited', principalId: 'usr_e3_policy_limited',
+  ...editor, id: 'res_e3_policy_limited', principalId: 'usr_e3_policy_limited',
   projectScope: ['prj_heights'],
 };
 const project = 'prj_heights';
@@ -42,7 +42,16 @@ function env() {
   return {
     api,
     as(id: string, projectId = 'all') { ctx.personaId = id; ctx.projectId = projectId; return api; },
-    snapshot() { demo.save(); return JSON.stringify([...memory.entries()].sort()); },
+    snapshot() {
+      // Ignore legitimate sign-in/session telemetry. Assert the rest of the tenant
+      // overlay (including every pricing section and sequence/key map) is unchanged.
+      demo.save();
+      const raw = memory.get('demo:store:v2');
+      if (!raw) return '';
+      const value = JSON.parse(raw) as { partitions: Record<string, { sections: Record<string, unknown> }> };
+      for (const partition of Object.values(value.partitions)) delete partition.sections.identity;
+      return JSON.stringify(value);
+    },
   };
 }
 const create = (api: MockTransport, key = firstKey, projectId = project, title = 'Illustrative residential policy', input: unknown = rules) =>
@@ -138,6 +147,7 @@ describe('E.3 COM-003 draft pricing rules remain private and non-effective', () 
 
   it('validates whole money and rate payload before consuming a record number or request key', async () => {
     const w = env();
+    await list(w.api);
     const before = w.snapshot();
     const invalidRules: unknown[] = [
       null, [null], [],

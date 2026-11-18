@@ -1,3 +1,4 @@
+import { requireDraftRequestKey } from './request-key';
 import { ApiError, type UnitPriceChangeDraft, type UnitPriceChangeDraftList, type UnitPriceChangeDraftVersion, type Money } from '@repo/contracts';
 import { invalid, notFound, requires, type Handler, type HandlerContext } from '../../handler-types';
 import { projectVisible } from '../scope';
@@ -50,11 +51,7 @@ function proposed(ctx: HandlerContext, body: Record<string, unknown>, allowedKey
   if (reason.length < 10 || reason.length > 500) invalid(ctx, 'reason');
   return { proposedPrice: fromPaisa(cents), reason };
 }
-function key(ctx: HandlerContext, body: Record<string, unknown>) {
-  const id = ctx.req.idempotencyKey ?? body.idempotencyKey;
-  if (typeof id !== 'string' || !/^[A-Za-z0-9._:-]{12,100}$/.test(id)) invalid(ctx, 'idempotencyKey');
-  return id;
-}
+const key = (ctx: HandlerContext, body: Record<string, unknown>) => requireDraftRequestKey(ctx, body);
 function conflict(ctx: HandlerContext): never {
   throw new ApiError({ status: 409, code: 'idempotency_key_reused',
     messageKey: 'pricing:priceChangeConflict', correlationId: ctx.correlationId, changed: false });

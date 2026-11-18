@@ -1,3 +1,4 @@
+import { requireDraftRequestKey } from './request-key';
 import { ApiError, type CommercialRulesDraft, type CommercialRulesDraftList, type CommercialRulesDraftVersion, type CommercialRulesPreview } from '@repo/contracts';
 import { invalid, notFound, requires, type Handler, type HandlerContext } from '../../handler-types';
 import { projectVisible } from '../scope';
@@ -58,11 +59,7 @@ function rulesOf(ctx: HandlerContext, raw: Record<string, unknown>, allowed: rea
     throw err;
   }
 }
-function keyOf(ctx: HandlerContext, raw: Record<string, unknown>) {
-  const key = ctx.req.idempotencyKey ?? raw.idempotencyKey;
-  if (typeof key !== 'string' || !/^[A-Za-z0-9._:-]{12,100}$/.test(key)) invalid(ctx, 'idempotencyKey');
-  return key;
-}
+const keyOf = (ctx: HandlerContext, raw: Record<string, unknown>) => requireDraftRequestKey(ctx, raw);
 function conflict(ctx: HandlerContext): never {
   throw new ApiError({ status: 409, code: 'idempotency_key_reused', messageKey: 'pricing:commercialConflict', correlationId: ctx.correlationId, changed: false });
 }

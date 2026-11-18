@@ -5,9 +5,9 @@ import { MockTransport } from '../../mock-transport';
 import { ALL_PERSONAS, findPersona } from '../../people';
 
 const manager = findPersona('manager')!;
-const author: Persona = { ...manager, id: 'e3_approval_author', principalId: 'usr_e3_approval_author', permissions: [...manager.permissions, 'pricing.manage'] };
-const outsider: Persona = { ...author, id: 'e3_approval_outsider', principalId: 'usr_e3_approval_outsider' };
-const scoped: Persona = { ...author, id: 'e3_approval_scoped', principalId: 'usr_e3_approval_scoped', projectScope: ['prj_heights'] };
+const author: Persona = { ...manager, id: 'res_e3_approval_author', principalId: 'usr_e3_approval_author', permissions: [...manager.permissions, 'pricing.manage'] };
+const outsider: Persona = { ...author, id: 'res_e3_approval_outsider', principalId: 'usr_e3_approval_outsider' };
+const scoped: Persona = { ...author, id: 'res_e3_approval_scoped', principalId: 'usr_e3_approval_scoped', projectScope: ['prj_heights'] };
 const RULES: PricingApprovalRule[] = [
   { subject: 'unit_price_change', threshold: { amount: '0.00', currency: 'PKR' }, requiredReviewers: 2, makerCheckerRequired: true, allowSelfApproval: false },
   { subject: 'discount_exception', threshold: { amount: '3000.25', currency: 'PKR' }, requiredReviewers: 3, makerCheckerRequired: true, allowSelfApproval: false },
@@ -28,7 +28,16 @@ function world() {
   return {
     api,
     as(personaId: string, projectId = 'all') { current.personaId = personaId; current.projectId = projectId; return api; },
-    snapshot() { demo.save(); return JSON.stringify([...memory.entries()].sort()); },
+    snapshot() {
+      // Ignore legitimate sign-in/session telemetry. Assert the rest of the tenant
+      // overlay (including every pricing section and sequence/key map) is unchanged.
+      demo.save();
+      const raw = memory.get('demo:store:v2');
+      if (!raw) return '';
+      const value = JSON.parse(raw) as { partitions: Record<string, { sections: Record<string, unknown> }> };
+      for (const partition of Object.values(value.partitions)) delete partition.sections.identity;
+      return JSON.stringify(value);
+    },
   };
 }
 const create = (api: MockTransport, key = KA, projectId = 'prj_heights', rules: unknown = RULES, title = 'Illustrative maker checker rules') =>
@@ -73,6 +82,7 @@ describe('E.3 COM-005 non-effective maker-checker configuration drafts', () => {
 
   it('refuses self-approval, missing maker-checker, duplicate subjects and invalid threshold without consuming an ID or key', async () => {
     const w = world();
+    await list(w.api);
     const before = w.snapshot();
     const bad: unknown[] = [
       [{ ...RULES[0]!, allowSelfApproval: true }],
