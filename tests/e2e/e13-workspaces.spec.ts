@@ -59,7 +59,9 @@ const textFile = (name: string, text: string) => ({ name, mimeType: 'text/plain'
 
 test.describe('E.13 positive journeys', () => {
   test('search → open → favourite → it is in favourites and recent records', async ({ page, consoleErrors }) => {
-    await start(page);
+    // Wave 1 integration, F-GPT-W1-01 (Issue #25 review): Amna Abbasi's lead (led_0004) is Bilal's, so Bilal finds it;
+    // Nadia (no lead.assign) would not.
+    await start(page, 'sales' as PersonaId);
     await open(page, '/backoffice/global/unified-search-results', 'unified-search');
     await page.getByTestId('hub-search-input').fill('Amna');
     const lead = page.locator('[data-testid="hub-hit"][data-record="led_0004"]');
@@ -147,7 +149,8 @@ test.describe('E.13 positive journeys', () => {
   });
 
   test('work queue: filter, then act where the work is done', async ({ page, consoleErrors }) => {
-    await start(page);
+    // F-GPT-W1-01: other people's follow-ups reach a holder of lead.assign (the sales manager), not Nadia.
+    await start(page, CONTROLLER);
     await open(page, '/backoffice/home/work-queue', 'work-queue');
     await page.getByTestId('queue-owner').getByRole('button').click();
     await page.getByRole('option', { name: 'Other people’s' }).click();
@@ -212,7 +215,8 @@ test.describe('E.13 access, scope and partitioning', () => {
   test('the Heights clerk never sees a Gardens document, name, version or count; a hidden id reads like an unknown one', async ({ page, consoleErrors }) => {
     await start(page, CLERK);
     await open(page, '/backoffice/doc/document-preview', 'documents-finder');
-    await expect(page.getByTestId('document-row')).toHaveCount(8);
+    // F-GPT-W1-01: 8 Heights documents, less the 2 linked to Bilal's leads (not the clerk's; owner decision D-INT-06).
+    await expect(page.getByTestId('document-row')).toHaveCount(6);
     const text = (await page.locator('main').innerText()).replace(/\u2060/g, '');
     for (const hidden of ['Larkspur Gardens', 'master plan', 'Hina Chaudhry', 'Fatima Siddiqui', 'LG-P1-002']) expect(text).not.toContain(hidden);
     await open(page, '/backoffice/doc/document-preview?record=doc_lsp_0004', 'document-unavailable');
@@ -278,7 +282,8 @@ test.describe('E.13 input, duplicates and refusals', () => {
     await drawer.getByTestId('upload-submit').click();
     await expect(drawer.getByTestId('upload-expiry-error')).toBeVisible();
     const before = await api<{ items: unknown[] }>(page, '/documents');
-    expect(before.ok && before.res.items.length).toBe(8);
+    // F-GPT-W1-01: the clerk's 6 documents (the 2 Heights lead documents are not his).
+    expect(before.ok && before.res.items.length).toBe(6);
     expect(consoleErrors).toEqual([]);
   });
 
@@ -306,7 +311,8 @@ test.describe('E.13 input, duplicates and refusals', () => {
     expect(refused).toEqual(unknown);
     expect(refused).toMatchObject({ ok: false, status: 404 });
     const list = await api<{ items: unknown[] }>(page, '/documents');
-    expect(list.ok && list.res.items.length).toBe(8);
+    // F-GPT-W1-01: the clerk's 6 documents (the 2 Heights lead documents are not his).
+    expect(list.ok && list.res.items.length).toBe(6);
     expect(consoleErrors).toEqual([]);
   });
 });

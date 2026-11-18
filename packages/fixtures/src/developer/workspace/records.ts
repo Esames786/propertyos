@@ -3,6 +3,7 @@ import { can, decideRecord, invoiceRecord, isScopeOnly, matches, unitPermitted, 
 import { operationsSearch } from '../../operations';
 import { HANDLERS } from '../../handlers';
 import { decideEndpoint } from '../../mock-transport';
+import { leadOpenTo } from '../crm/scope';
 import { projectGoverned } from '../scope';
 import { society, societyRecordAccess, societySearch } from '../../society/handlers';
 import { directoryTenant } from '../../tenant-directory';
@@ -68,9 +69,14 @@ function partyById(ctx: HandlerContext, id: string): Party | undefined {
 const leadsOf = (ctx: HandlerContext): Lead[] => ctx.demo.leads(ctx.data.leads);
 
 // ---------------------------------------------------------------------------------------------
-// Leads (CRM): `lead.view` in the lead's project (crm module), as GET /access/record decides
+// Leads (CRM): `lead.view` in the lead's project (crm module), AND the canonical CRM record rule
 // ---------------------------------------------------------------------------------------------
-const leadVisible = (ctx: HandlerContext, lead: Lead) => projectAllows(ctx, lead.projectId, 'crm', 'lead.view');
+// F-GPT-W1-01 (Issue #25 review): E.13 answered with the project-level rule of GET /access/record, so a
+// salesperson found colleagues' leads (name, reference, status) in unified search, related records, favourites,
+// recent records, tasks, activity and the documents linked to those leads. Every one of them goes through this
+// check, which now adds E.1's record-level rule (`developer/crm/scope.ts` `leadOpenTo`: assigned to the reader,
+// or `lead.assign` in that project). Parties keep the customer directory's own rule (below), unchanged.
+const leadVisible = (ctx: HandlerContext, lead: Lead) => projectAllows(ctx, lead.projectId, 'crm', 'lead.view') && leadOpenTo(ctx, lead);
 
 function leadRef(ctx: HandlerContext, lead: Lead): RecordRef {
   const party = partyById(ctx, lead.partyId);

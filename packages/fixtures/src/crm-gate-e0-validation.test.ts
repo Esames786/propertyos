@@ -290,8 +290,11 @@ describe('Issue #23: only the initiating principal releases', () => {
   it('repair: only the initiator is told the hold is releasable (the drawer offers Release to nobody else)', async () => {
     const w = world();
     await w.as('sales').request({ method: 'POST', path: `/units/${heightsUnit.id}/hold`, body: { leadId: heightsLead.id } });
-    expect((await w.as('sales').request<UnitDetail>({ method: 'GET', path: `/units/${heightsUnit.id}` })).hold).toEqual({ source: 'live', leadRef: heightsLead.ref, leadId: heightsLead.id, until: expect.any(String), holderName: 'Bilal Ahmed', releasable: true });
-    expect((await w.as('res_e0_test_peer').request<UnitDetail>({ method: 'GET', path: `/units/${heightsUnit.id}` })).hold).toEqual({ source: 'live', leadRef: heightsLead.ref, leadId: heightsLead.id, until: expect.any(String), holderName: 'Bilal Ahmed' });
+    // Wave 1 integration, F-GPT-W1-01 (Issue #25 review): the lead's id and reference reach only readers who may see
+    // that lead (assigned to them, or lead.assign in its project). heightsLead is Nadia's: Bilal placed the hold
+    // (legacy route) and may release it, but he and his peer see the hold and its expiry without the lead.
+    expect((await w.as('sales').request<UnitDetail>({ method: 'GET', path: `/units/${heightsUnit.id}` })).hold).toEqual({ source: 'live', until: expect.any(String), holderName: 'Bilal Ahmed', releasable: true });
+    expect((await w.as('res_e0_test_peer').request<UnitDetail>({ method: 'GET', path: `/units/${heightsUnit.id}` })).hold).toEqual({ source: 'live', until: expect.any(String), holderName: 'Bilal Ahmed' });
     expect((await w.as('manager').request<UnitDetail>({ method: 'GET', path: `/units/${heightsUnit.id}` })).hold).toEqual({ source: 'live', leadRef: heightsLead.ref, leadId: heightsLead.id, until: expect.any(String), holderName: 'Bilal Ahmed' });
   });
 

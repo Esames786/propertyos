@@ -166,7 +166,8 @@ describe('one hold ledger, clock and projection for the CRM and INV-002', () => 
   it('a hold placed in the CRM is the same hold in INV-002 (same expiry, same releasable flag), released there by its initiator only', async () => {
     const api = invSession();
     const unit = UNITS.find((u) => u.projectId === 'prj_heights' && u.status === 'available')!;
-    const lead = LEADS.find((l) => l.projectId === 'prj_heights' && ['new', 'assigned', 'contacted', 'qualified'].includes(l.status))!;
+    // Bilal's own open lead (F-GPT-W1-01: E.2's hold write takes only leads the person may see).
+    const lead = LEADS.find((l) => l.projectId === 'prj_heights' && l.ownerPersonaId === 'sales' && ['new', 'assigned', 'contacted', 'qualified'].includes(l.status))!;
     api.as('sales');
     await api.post(`/units/${unit.id}/hold`, { leadId: lead.id });
     const crm = (await api.get<UnitDetail>(`/units/${unit.id}`)).hold;
@@ -187,7 +188,8 @@ describe('one hold ledger, clock and projection for the CRM and INV-002', () => 
   it('one clock: at the expiry instant both the CRM and INV-002 stop showing the hold, and either path may place a new one', async () => {
     const api = invSession();
     const unit = UNITS.find((u) => u.projectId === 'prj_heights' && u.status === 'available')!;
-    const lead = LEADS.find((l) => l.projectId === 'prj_heights' && ['new', 'assigned', 'contacted', 'qualified'].includes(l.status))!;
+    // Bilal's own open lead (F-GPT-W1-01: E.2's hold write takes only leads the person may see).
+    const lead = LEADS.find((l) => l.projectId === 'prj_heights' && l.ownerPersonaId === 'sales' && ['new', 'assigned', 'contacted', 'qualified'].includes(l.status))!;
     api.as('sales');
     await api.post(`/inventory/units/${unit.id}/hold`, { leadId: lead.id });
     vi.setSystemTime(new Date('2026-11-10T09:59:59.999Z'));

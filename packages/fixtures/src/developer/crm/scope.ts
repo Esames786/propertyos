@@ -1,8 +1,8 @@
 import { decide, type Lead, type Persona, type SalesPerson } from '@repo/contracts';
-import { can, projectRecord, type HandlerContext } from '../../handler-types';
+import { can, decideRecord, projectRecord, type HandlerContext } from '../../handler-types';
 import { ALL_PERSONAS } from '../../people';
 import { effectiveAccessFor } from '../../tenant-directory';
-import { projectVisible as visibleProject, type ScopeNeed } from '../scope';
+import { projectGoverned, projectVisible as visibleProject, type ScopeNeed } from '../scope';
 
 const CRM_LEADS: ScopeNeed = { module: 'crm', permission: 'lead.view' };
 
@@ -31,7 +31,13 @@ export interface CrmScope {
   manage: boolean;
   projectVisible: (projectId: string) => boolean;
   ownerOf: (lead: Lead) => string;
+  /** THE record-level lead rule (E-05, conservative): project in CRM scope (with the header project) AND assigned to the reader or `lead.assign` there. */
   leadVisible: (lead: Lead) => boolean;
+  /**
+   * The same rule for a lead reached by id or through another record (a hold, an event, a related card): the header
+   * project is a view, not a filter, so it is not consulted (E.0's visible vs governed split). F-GPT-W1-01.
+   */
+  leadOpen: (lead: Lead) => boolean;
 }
 
 /** Staff of the caller's own organisation (backoffice identities offered on the sign-in page). */
@@ -53,15 +59,44 @@ export function crmScope(ctx: HandlerContext): CrmScope {
     return projects.get(projectId)!;
   };
   const ownerOf = (lead: Lead) => staff.find((p) => p.id === lead.ownerPersonaId)?.principalId ?? '';
+  // F-GPT-W1-01 (Issue #25 review): `lead.assign` counts within the lead's own project only (the access rule on that
+  // project's record), so a manager stays scoped to their projects on every surface.
+  const assigners = new Map<string, boolean>();
+  const assignsIn = (projectId: string) => {
+    if (!assigners.has(projectId)) assigners.set(projectId, decideRecord(ctx, 'crm', projectRecord(ctx, projectId), 'lead.assign').allowed);
+    return assigners.get(projectId)!;
+  };
+  const governed = new Map<string, boolean>();
+  const projectOpen = (projectId: string) => {
+    if (!governed.has(projectId)) governed.set(projectId, projectGoverned(ctx, projectId, CRM_LEADS));
+    return governed.get(projectId)!;
+  };
+  const assignedOrAssigner = (lead: Lead) => ownerOf(lead) === me || assignsIn(lead.projectId);
   return {
     me,
     whole,
     manage,
     projectVisible,
     ownerOf,
-    leadVisible: (lead) => !!me && projectVisible(lead.projectId) && (whole || ownerOf(lead) === me),
+    leadVisible: (lead) => !!me && projectVisible(lead.projectId) && assignedOrAssigner(lead),
+    leadOpen: (lead) => !!me && projectOpen(lead.projectId) && assignedOrAssigner(lead),
   };
 }
+
+/**
+ * F-GPT-W1-01: the one CRM scope of a request context, built once and reused by every developer surface that shows
+ * something of a lead (hold views, the hold picker and hold write, Project 360's leads and counts, the inventory
+ * activity, the E.13 record registry). A changed grant or a reassignment applies on the next request (a new context).
+ */
+const SCOPES = new WeakMap<HandlerContext, CrmScope>();
+export function crmScopeOf(ctx: HandlerContext): CrmScope {
+  let s = SCOPES.get(ctx);
+  if (!s) SCOPES.set(ctx, (s = crmScope(ctx)));
+  return s;
+}
+
+/** May this reader see this lead, reached by id or through another record (`leadOpen`)? */
+export const leadOpenTo = (ctx: HandlerContext, lead: Lead): boolean => crmScopeOf(ctx).leadOpen(lead);
 
 /**
  * Whether a person may be given a lead: staff of the same organisation who hold `lead.view` and

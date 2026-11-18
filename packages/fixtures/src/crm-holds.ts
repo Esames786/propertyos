@@ -1,6 +1,7 @@
 import type { UnitHoldView } from '@repo/contracts';
 import type { DemoOverlay } from './demo-store';
-import { decideRecord, projectRecord, type HandlerContext } from './handler-types';
+import { leadOpenTo } from './developer/crm/scope';
+import type { HandlerContext } from './handler-types';
 import { ALL_PERSONAS } from './people';
 
 /**
@@ -87,15 +88,18 @@ export const SEED_HOLD: UnitHoldView = { source: 'seed' };
 
 /**
  * THE projection of a hold in force for one reader (§4.4), used by the CRM handlers and the inventory views:
- * - its expiry on the one hold clock;
- * - the lead it is for, only to a reader the access rule lets see a lead of that lead's project
- *   (`decideRecord`: the CRM grant for the project's site, `lead.view` and the data scope);
- * - the colleague who placed it (a person of this organisation only; a legacy hold names nobody);
+ * - that it is held, and its expiry on the one hold clock, to every reader of the unit;
+ * - the lead it is for (id and reference), only to a reader who may see THAT lead: the canonical record-level
+ *   CRM rule (`developer/crm/scope.ts` `leadOpenTo`: the lead's project in the reader's CRM scope AND the lead
+ *   assigned to them, or `lead.assign` in that project). F-GPT-W1-01 (Issue #25 review): a project-level check
+ *   let a salesperson read a colleague's lead id and reference here;
+ * - the colleague who placed it (a person of this organisation only; a legacy hold names nobody). Who may see
+ *   the holder's name is owner decision D-INT-05, unchanged here;
  * - `releasable` only for its initiator, while it is in force (Issue #23).
  */
 export function holdViewFor(ctx: HandlerContext, hold: StoredHold, now: number): UnitHoldView {
   const lead = ctx.demo.leads(ctx.data.leads).find((l) => l.id === hold.leadId);
-  const named = !!lead && decideRecord(ctx, 'crm', projectRecord(ctx, lead.projectId), 'lead.view').allowed;
+  const named = !!lead && leadOpenTo(ctx, lead);
   const holder = hold.principalId ? ALL_PERSONAS.find((p) => p.principalId === hold.principalId && p.tenantId === ctx.tenantId)?.displayName : undefined;
   return {
     source: 'live',

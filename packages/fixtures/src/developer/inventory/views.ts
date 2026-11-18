@@ -26,6 +26,7 @@ import { can, type HandlerContext } from '../../handler-types';
 import { directoryTenant } from '../../tenant-directory';
 import { developerState } from '../state';
 import { activeHolds, holdViewFor, lapsedHolds, requestNow, SEED_HOLD, type StoredHold } from '../../crm-holds';
+import { leadOpenTo } from '../crm/scope';
 import { bucketOf, countBuckets, dimensionsOf, emptyBuckets, legacyOf } from './rules';
 import { inventoryVisible, leadVisible, setupVisible, tenantProject, withheld } from './scope';
 import type { EventRecord, InventoryState, SetupRecordState, StorageRecord } from './state';
@@ -191,9 +192,14 @@ export function buildMatrix(ctx: HandlerContext, s: InventoryState, project: Pro
 // Audit projection
 // ---------------------------------------------------------------------------------------------------
 
-/** One stored entry as the reader may see it: the lead reference only for readers who may see leads. */
+/**
+ * One stored entry as the reader may see it: the lead reference only for a reader who may see THAT lead (the
+ * project's CRM grant, and the canonical CRM record rule `leadOpenTo`). F-GPT-W1-01: the project-level check
+ * alone showed a colleague's lead reference in the inventory activity.
+ */
 export function projectEvent(ctx: HandlerContext, e: EventRecord): InventoryEvent {
-  const showLead = !!e.leadRef && leadVisible(ctx, e.projectId);
+  const lead = e.leadId ? ctx.demo.leads(ctx.data.leads).find((l) => l.id === e.leadId) : undefined;
+  const showLead = !!e.leadRef && !!lead && leadVisible(ctx, e.projectId) && leadOpenTo(ctx, lead);
   return {
     id: e.id,
     at: e.at,
@@ -335,7 +341,9 @@ const siteName = (ctx: HandlerContext, siteId: string) => (ctx.tenantId ? direct
 export function projectSummary(ctx: HandlerContext, s: InventoryState, p: Project): ProjectSummary {
   const invWithheld = withheld(ctx, 'inventory', p.id, 'unit.view');
   const leadsWithheld = withheld(ctx, 'crm', p.id, 'lead.view');
-  const leads = leadsWithheld ? null : ctx.demo.leads(ctx.data.leads).filter((l) => l.projectId === p.id);
+  // F-GPT-W1-01: the lead figures count only the leads this reader may see (the canonical CRM record rule), so a
+  // count never reveals a colleague's leads.
+  const leads = leadsWithheld ? null : ctx.demo.leads(ctx.data.leads).filter((l) => l.projectId === p.id && leadOpenTo(ctx, l));
   const storage = s.storage.filter((x) => x.projectId === p.id);
   return {
     id: p.id,

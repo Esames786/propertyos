@@ -178,3 +178,44 @@ test.describe('PRJ-002 documents and the Accounting menu', () => {
     expect(consoleErrors).toEqual([]);
   });
 });
+
+test.describe('F-GPT-W1-01: a colleague’s lead stays private on the new developer screens', () => {
+  test('Bilal holds a unit for his lead: Nadia sees the hold and its expiry but no lead, and Project 360 lists and counts only her own leads', async ({ page, consoleErrors }, testInfo) => {
+    await seed(page, office('sales'));
+    await page.goto(`${BO}/backoffice/crm/leads-list`);
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    const units = await api<Array<{ id: string; status: string }>>(page, '/units', 'GET', {}, { projectId: 'prj_heights' });
+    const unit = (units.ok ? units.res : []).filter((u) => u.status === 'available')[3]!;
+    // The picker offers Bilal his own leads; he holds the unit for the first.
+    const picker = await api<Array<{ id: string; ref: string }>>(page, `/inventory/units/${unit.id}/hold-leads`);
+    const lead = picker.ok ? picker.res[0]! : null;
+    expect(lead).not.toBeNull();
+    expect((await api(page, `/inventory/units/${unit.id}/hold`, 'POST', { leadId: lead!.id })).ok).toBe(true);
+    await page.goto(`${BO}/backoffice/inv/unit-quick-view?record=${unit.id}`);
+    await expect(page.getByTestId('inv-hold-lead')).toBeVisible();
+    expect((await page.getByTestId('inv-hold-lead').innerText()).replace(/\u2060/g, '')).toContain(lead!.ref);
+
+    // Nadia: held, until when and by whom; no lead reference or link.
+    await become(page, 'manager');
+    await page.goto(`${BO}/backoffice/inv/unit-quick-view?record=${unit.id}`);
+    await expect(page.getByTestId('inv-hold-until')).toBeVisible();
+    await expect(page.getByTestId('inv-hold-lead')).toHaveCount(0);
+    expect((await page.locator('body').innerText()).replace(/\u2060/g, '')).not.toContain(lead!.ref);
+    await axe(page, testInfo, 'int-ew1-colleague-hold-no-lead');
+    // Her picker offers only her own leads; a direct request for Bilal's lead answers like an invented id.
+    const other = (units.ok ? units.res : []).filter((u) => u.status === 'available')[4]!;
+    const mine = await api<Array<{ id: string }>>(page, `/inventory/units/${other.id}/hold-leads`);
+    expect(mine.ok && mine.res.some((o) => o.id === lead!.id)).toBe(false);
+    expect(await api(page, `/inventory/units/${other.id}/hold`, 'POST', { leadId: lead!.id })).toEqual(await api(page, `/inventory/units/${other.id}/hold`, 'POST', { leadId: 'led_9999' }));
+    // Project 360 → Leads: every row is Nadia's, and the count is hers.
+    const p360 = await api<{ leads: { total: number; items: Array<{ ownerName: string }> } }>(page, '/projects/prj_heights');
+    await page.goto(`${BO}/backoffice/prj/project-360-workspace?record=prj_heights&tab=leads`);
+    const rows = page.getByTestId('p360-lead');
+    await expect(rows.first()).toBeVisible();
+    for (const text of await rows.allInnerTexts()) expect(text).toContain('Nadia Rahman');
+    expect(p360.ok && p360.res.leads.items.every((l) => l.ownerName === 'Nadia Rahman')).toBe(true);
+    await expect(page.getByTestId('p360-leads')).toContainText(String(p360.ok ? p360.res.leads.total : -1));
+    expect((await page.locator('main').innerText()).replace(/\u2060/g, '')).not.toContain(lead!.ref);
+    expect(consoleErrors).toEqual([]);
+  });
+});

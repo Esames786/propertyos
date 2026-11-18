@@ -1,5 +1,6 @@
 import type { ActivityResponse, FavouriteItem, RecentItem, RecordAccess, RecordRef, RelatedResponse, SavedListResponse, TasksResponse, UnifiedSearchResponse, WorkQueueResponse } from '@repo/contracts';
 import { describe, expect, it } from 'vitest';
+import { LEADS } from '../../records';
 import { e13Session, GARDENS_ONLY, plus, refusal, sitesOnly, withoutModules } from './e13-test-kit';
 
 /**
@@ -14,7 +15,7 @@ const recents = (s: ReturnType<typeof e13Session>) => s.get<SavedListResponse<Re
 const allItems = (r: UnifiedSearchResponse) => r.groups.flatMap((g) => g.items);
 
 describe('the registry answers like GET /access/record (one rule for every record kind)', () => {
-  it('for leads, units, projects, invoices and parties, a record resolves exactly when the address check allows it', async () => {
+  it('for leads, units, projects, invoices and parties, a record resolves exactly when the address check allows it (a lead also needs the CRM record rule)', async () => {
     const s = e13Session();
     const sample = ['led_0004', 'led_0006', 'led_9999', 'unt_lh_a_0101', 'unt_lg_p1_002', 'prj_heights', 'prj_gardens', 'inv_0001', 'inv_0040', 'pty_0004', 'pty_0032'];
     for (const persona of ['manager', 'sales', 'finance', 'lsp_records_clerk', 'lsp_sales_manager', 'lsp_project_manager', 'lsp_accounts', 'lsp_finance_controller', 'lsp_ledger_clerk']) {
@@ -23,7 +24,12 @@ describe('the registry answers like GET /access/record (one rule for every recor
         const access = await s.get<RecordAccess>('/access/record', { id });
         const allowed = access.record && access.decision.allowed;
         const resolved = await s.get<RecordRef>('/workspace/resolve', { id }).then(() => true, () => false);
-        expect(resolved, `${persona} ${id}`).toBe(allowed);
+        // Wave 1 integration, F-GPT-W1-01 (Issue #25 review): a lead resolves only for its assigned owner or a holder of
+        // lead.assign in its project (the sales manager), on top of the address check; the legacy address check keeps
+        // the whole-project rule until E-05 is decided.
+        const lead = LEADS.find((l) => l.id === id);
+        const crmRule = !lead || lead.ownerPersonaId === persona || persona === 'lsp_sales_manager';
+        expect(resolved, `${persona} ${id}`).toBe(!!allowed && crmRule);
       }
     }
   });
@@ -84,16 +90,16 @@ describe('GLOBAL-002 universal search', () => {
 describe('GLOBAL-005/006 favourites and recent records (decision E-35)', () => {
   it('are kept per person: Bilal never sees Nadia’s; another organisation never sees either', async () => {
     const s = e13Session('manager');
-    await s.post('/workspace/favourites', { recordId: 'led_0004' });
+    await s.post('/workspace/favourites', { recordId: 'led_0001' });
     await s.post('/workspace/recents', { recordId: 'unt_lh_a_0101' });
-    expect((await favs(s)).items.map((f) => f.id)).toEqual(['led_0004']);
+    expect((await favs(s)).items.map((f) => f.id)).toEqual(['led_0001']);
     s.as('sales');
     expect((await favs(s)).items).toEqual([]);
     expect((await recents(s)).items).toEqual([]);
     s.as('cb_manager');
     expect((await favs(s)).items).toEqual([]);
     // Nadia's list is still hers.
-    expect((await favs(s.as('manager'))).items.map((f) => f.id)).toEqual(['led_0004']);
+    expect((await favs(s.as('manager'))).items.map((f) => f.id)).toEqual(['led_0001']);
   });
 
   it('a hidden or unknown record cannot be saved, and nothing changes', async () => {
@@ -110,15 +116,15 @@ describe('GLOBAL-005/006 favourites and recent records (decision E-35)', () => {
   it('revoking access hides saved records at once — no count, no stale title — and they return with access', async () => {
     const s = e13Session('manager');
     await s.post('/workspace/favourites', { recordId: 'led_0006' });
-    await s.post('/workspace/favourites', { recordId: 'led_0004' });
+    await s.post('/workspace/favourites', { recordId: 'led_0001' });
     await s.post('/workspace/recents', { recordId: 'unt_lg_p1_002' });
     s.change('manager', sitesOnly('site_lk_heights'));
     const f = await favs(s);
-    expect(f.items.map((x) => x.id)).toEqual(['led_0004']);
+    expect(f.items.map((x) => x.id)).toEqual(['led_0001']);
     expect(JSON.stringify(f)).not.toMatch(/led_0006|Hina Chaudhry|LG-P1/);
     expect((await recents(s)).items).toEqual([]);
     s.change('manager', null);
-    expect((await favs(s)).items.map((x) => x.id)).toEqual(['led_0004', 'led_0006']);
+    expect((await favs(s)).items.map((x) => x.id)).toEqual(['led_0001', 'led_0006']);
   });
 
   it('a withdrawn add-on hides its records from the lists (rentals leases)', async () => {
@@ -132,7 +138,7 @@ describe('GLOBAL-005/006 favourites and recent records (decision E-35)', () => {
 
   it('are bound to the sign-in session: a new session starts empty and clears the older lists on its first save', async () => {
     const s = e13Session().as('manager', 'ses_one');
-    await s.post('/workspace/favourites', { recordId: 'led_0004' });
+    await s.post('/workspace/favourites', { recordId: 'led_0001' });
     s.as('manager', 'ses_two');
     expect((await favs(s)).items).toEqual([]);
     await s.post('/workspace/favourites', { recordId: 'prj_heights' });
@@ -141,16 +147,16 @@ describe('GLOBAL-005/006 favourites and recent records (decision E-35)', () => {
 
   it('recent records keep the newest first with a view count; removing and clearing are real', async () => {
     const s = e13Session('manager');
-    await s.post('/workspace/recents', { recordId: 'led_0004' });
+    await s.post('/workspace/recents', { recordId: 'led_0001' });
     await s.post('/workspace/recents', { recordId: 'prj_heights' });
-    await s.post('/workspace/recents', { recordId: 'led_0004' });
+    await s.post('/workspace/recents', { recordId: 'led_0001' });
     const r = await recents(s);
-    expect(r.items.map((x) => [x.id, x.views])).toEqual([['led_0004', 2], ['prj_heights', 1]]);
+    expect(r.items.map((x) => [x.id, x.views])).toEqual([['led_0001', 2], ['prj_heights', 1]]);
     await s.del('/workspace/recents/prj_heights');
-    expect((await recents(s)).items.map((x) => x.id)).toEqual(['led_0004']);
+    expect((await recents(s)).items.map((x) => x.id)).toEqual(['led_0001']);
     await s.del('/workspace/recents');
     expect((await recents(s)).items).toEqual([]);
-    await s.del('/workspace/favourites/led_0004');
+    await s.del('/workspace/favourites/led_0001');
   });
 
   it('the office app only: the resident app cannot use the workspace', async () => {
@@ -160,7 +166,7 @@ describe('GLOBAL-005/006 favourites and recent records (decision E-35)', () => {
 });
 
 describe('HOME-002 my tasks and HOME-004 work queue', () => {
-  it('Bilal’s tasks are his own follow-ups and visits; Nadia’s queue shows the team’s, with owners', async () => {
+  it('Bilal’s tasks are his own follow-ups and visits; the sales manager’s queue shows the team’s, with owners; Nadia’s shows hers', async () => {
     const s = e13Session('sales');
     const mine = await s.get<TasksResponse>('/workspace/tasks');
     expect(mine.items.length).toBeGreaterThan(0);
@@ -168,7 +174,12 @@ describe('HOME-002 my tasks and HOME-004 work queue', () => {
     expect(mine.items.every((i) => i.record?.project?.id === 'prj_heights')).toBe(true);
     expect(mine.kinds).toContain('follow_up');
     expect(mine.kinds).not.toContain('document_expiry');
-    const team = await s.as('manager').get<WorkQueueResponse>('/workspace/queue', { kind: 'follow_up' });
+    // Wave 1 integration, F-GPT-W1-01: the team's follow-ups reach a holder of lead.assign (the sales manager), not
+    // Nadia, who holds no lead.assign: her queue shows only the leads assigned to her.
+    const nadia = await s.as('manager').get<WorkQueueResponse>('/workspace/queue', { kind: 'follow_up' });
+    expect(nadia.items.length).toBeGreaterThan(0);
+    expect(nadia.items.every((i) => i.owner?.mine)).toBe(true);
+    const team = await s.as('lsp_sales_manager').get<WorkQueueResponse>('/workspace/queue', { kind: 'follow_up' });
     expect(team.items.some((i) => i.owner?.name === 'Bilal Ahmed' && !i.owner.mine)).toBe(true);
     expect(team.counts.overdue + team.counts.today + team.counts.soon + team.counts.later).toBe(team.items.length);
     const heights = await s.get<WorkQueueResponse>('/workspace/queue', { project: 'prj_heights' });
@@ -187,7 +198,8 @@ describe('HOME-002 my tasks and HOME-004 work queue', () => {
   it('documents: expiry work for visible documents only; template approvals never include your own draft', async () => {
     const s = e13Session('lsp_records_clerk');
     const clerk = await s.get<WorkQueueResponse>('/workspace/queue', { kind: 'document_expiry' });
-    expect(clerk.items.map((i) => i.record!.id).sort()).toEqual(['doc_lsp_0001', 'doc_lsp_0003', 'doc_lsp_0009']);
+    // F-GPT-W1-01: doc_lsp_0009 is linked to Bilal's lead led_0004, which is not the clerk's (no lead.assign).
+    expect(clerk.items.map((i) => i.record!.id).sort()).toEqual(['doc_lsp_0001', 'doc_lsp_0003']);
     // Wave 1 integration: Mehwish drafted the allotment letter's v2. Given the approval permission for this test,
     // her approval tasks still leave out her own draft, and the queue says it is not hers to decide.
     s.change('lsp_project_manager', plus('document_template.approve'));
@@ -240,14 +252,18 @@ describe('HOME-005 recent activity (scope-projected)', () => {
 
 describe('related records', () => {
   it('a lead shows its customer, project and documents to a reader with document.view', async () => {
-    const s = e13Session('lsp_records_clerk');
+    const s = e13Session('lsp_sales_manager');
     const r = await s.get<RelatedResponse>('/workspace/related', { record: 'led_0004' });
     expect(r.groups.map((g) => g.type)).toEqual(expect.arrayContaining(['party', 'project']));
     expect(r.documents!.map((d) => d.id)).toEqual(['doc_lsp_0009']);
-    // Wave 1 integration (F-3): the clerk reads the lead but may not write to it, so he may not attach to it;
-    // the sales manager (lead.manage) may.
-    expect(r.canAttach).toBe(false);
-    expect((await s.as('lsp_sales_manager').get<RelatedResponse>('/workspace/related', { record: 'led_0004' })).canAttach).toBe(true);
+    expect(r.canAttach).toBe(true);
+    // Wave 1 integration, F-GPT-W1-01: the clerk is assigned no lead, so Bilal's lead answers him like an id never
+    // issued; given lead.assign in Heights (test override) he reads it, and F-3 still keeps him from attaching to it.
+    expect(await refusal(s.as('lsp_records_clerk').get('/workspace/related', { record: 'led_0004' }))).toEqual(await refusal(s.get('/workspace/related', { record: 'led_9999' })));
+    s.change('lsp_records_clerk', plus('lead.assign'));
+    const clerk = await s.get<RelatedResponse>('/workspace/related', { record: 'led_0004' });
+    expect(clerk.documents!.map((d) => d.id)).toEqual(['doc_lsp_0009']);
+    expect(clerk.canAttach).toBe(false);
     const bilal = await s.as('sales').get<RelatedResponse>('/workspace/related', { record: 'led_0004' });
     expect(bilal.documents).toBeNull();
     expect(bilal.canAttach).toBe(false);

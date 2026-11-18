@@ -25,7 +25,8 @@ const appErrors = (errors: string[]) => errors.filter((e) => !(e.includes('downl
 test('search → favourite → favourites and recent records', async ({ page, consoleErrors }) => {
   // Firefox and WebKit start slower on Windows (other smoke specs allow the same).
   test.setTimeout(150_000);
-  await start(page, 'manager');
+  // Wave 1 integration, F-GPT-W1-01 (Issue #25 review): Amna Abbasi's lead (led_0004) is Bilal's, so Bilal finds it.
+  await start(page, 'sales' as PersonaId);
   await page.goto(`${BO}/backoffice/global/unified-search-results?q=Amna`);
   const hit = page.locator('[data-testid="hub-hit"][data-record="led_0004"]');
   await expect(hit).toBeVisible();
@@ -69,7 +70,8 @@ test('the Heights clerk never sees a Gardens document; a hidden one reads like a
   test.setTimeout(150_000);
   await start(page, CLERK);
   await page.goto(`${BO}/backoffice/doc/document-preview`);
-  await expect(page.getByTestId('document-row')).toHaveCount(8);
+  // F-GPT-W1-01: 8 Heights documents, less the 2 linked to Bilal's leads (not the clerk's; owner decision D-INT-06).
+  await expect(page.getByTestId('document-row')).toHaveCount(6);
   expect((await page.locator('main').innerText()).replace(/\u2060/g, '')).not.toContain('Larkspur Gardens');
   const hidden = await societyApi(page, '/documents/doc_lsp_0004');
   const unknown = await societyApi(page, '/documents/doc_lsp_9999');

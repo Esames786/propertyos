@@ -46,6 +46,7 @@ import { remember, replayOf } from './idempotency';
  */
 const RESOLVED_IN_SCOPE = () => true;
 import { holdUntil, mayRelease, requestNow, type StoredHold } from '../../crm-holds';
+import { leadOpenTo } from '../crm/scope';
 import { addBuckets, dimensionsOf, emptyBuckets, isSold } from './rules';
 import { fieldProblem, inventoryVisible, leadVisible, licensedOnSite, organisationWide, problem, PROJECT_READERS, projectVisible, scopedUnit, setupVisible, tenantProject } from './scope';
 import { addEvent, inventoryState, nextSeq, nowIso, saveState, type InventoryState, type SetupRecordState, type StorageRecord } from './state';
@@ -81,10 +82,15 @@ function partyName(ctx: HandlerContext, partyId: string): string {
   return (session.find((p) => p.id === partyId) ?? ctx.data.parties.find((p) => p.id === partyId))?.displayName ?? '—';
 }
 
-/** Leads a unit may be held for: open leads of the unit's project the person may see. */
+/**
+ * Leads a unit may be held for: open leads of the unit's project that the person may see, lead by lead (the
+ * canonical CRM record rule `leadOpenTo`: assigned to them, or `lead.assign` in that project). F-GPT-W1-01: the
+ * picker offered every open lead of the project, so a salesperson could read colleagues' leads (name, reference)
+ * here. The hold write uses this same list, so a lead outside it is refused exactly like an invented id.
+ */
 function holdLeads(ctx: HandlerContext, unit: Unit) {
   if (!leadVisible(ctx, unit.projectId)) return [];
-  return ctx.demo.leads(ctx.data.leads).filter((l) => l.projectId === unit.projectId && OPEN_LEAD.includes(l.status));
+  return ctx.demo.leads(ctx.data.leads).filter((l) => l.projectId === unit.projectId && OPEN_LEAD.includes(l.status) && leadOpenTo(ctx, l));
 }
 
 /** A storage unit named in a path: of a project whose inventory the person may see, else like an unknown id. */
@@ -231,7 +237,9 @@ function project360(ctx: HandlerContext, s: InventoryState, projectId: string): 
     const live = liveHolds(ctx);
     const invOk = tabs.find((t) => t.id === 'units')!.state === 'live';
     const leadsOk = tabs.find((t) => t.id === 'leads')!.state === 'live';
-    const leads = leadsOk ? ctx.demo.leads(ctx.data.leads).filter((l) => l.projectId === project.id) : [];
+    // F-GPT-W1-01: the list, its total and the per-status counts come from the leads this reader may see (the
+    // canonical CRM record rule), so neither an item nor a count reveals a colleague's lead.
+    const leads = leadsOk ? ctx.demo.leads(ctx.data.leads).filter((l) => l.projectId === project.id && leadOpenTo(ctx, l)) : [];
     const byStatus: Record<string, number> = {};
     for (const l of leads) byStatus[l.status] = (byStatus[l.status] ?? 0) + 1;
     return {

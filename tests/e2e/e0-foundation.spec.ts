@@ -30,21 +30,23 @@ async function api<T = unknown>(page: Page, path: string, method: 'GET' | 'POST'
 }
 
 test.describe('Gate E.0: unit holds belong to the person who placed them (Issue #23)', () => {
-  test('Nadia holds a Heights flat; Bilal sees it held for the lead, cannot release it, and cannot tell a Gardens unit from an invented one', async ({ page, consoleErrors }, testInfo) => {
+  test('Nadia holds a Heights flat for her lead; Bilal sees that it is held and until when (not for which lead), cannot release it, and cannot tell a Gardens unit from an invented one', async ({ page, consoleErrors }, testInfo) => {
     await seed(page, { persona: 'manager' });
     await page.goto(`${BO}/backoffice/crm/leads-list`);
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    // Wave 1 integration, F-GPT-W1-01 (Issue #25 review): one of Nadia's own Heights leads.
     const lead = await page.evaluate(async () => {
-      const res = (await window.__prototype!.transport.request({ method: 'GET', path: '/leads', query: { project: 'prj_heights' } })) as { items: Array<{ id: string; ref: string }> };
-      return res.items[0]!;
+      const res = (await window.__prototype!.transport.request({ method: 'GET', path: '/leads', query: { project: 'prj_heights' } })) as { items: Array<{ id: string; ref: string; ownerName: string }> };
+      return res.items.find((l) => l.ownerName === 'Nadia Rahman')!;
     });
     expect((await api(page, `/units/${UNIT}/hold`, 'POST', { leadId: lead.id })).ok).toBe(true);
 
-    // The initiator is offered Release.
+    // The initiator (the lead's owner) is offered Release and sees the lead the unit is held for.
     await page.goto(`${BO}/backoffice/crm/lead-360-workspace?record=${lead.id}&unit=${UNIT}`);
     const quick = page.getByTestId('unit-quick-view');
     await expect(quick).toBeVisible();
     await expect(quick.getByTestId('unit-release')).toBeVisible();
+    await expect.poll(async () => (await quick.getByTestId('unit-hold-badge').innerText()).replace(/[⁠⁨⁩]/g, '')).toContain(`Held for ${lead.ref} until`);
 
     // Switch to Bilal in the same browser (the demo session keeps Nadia's hold).
     await page.goto(`${BO}/backoffice/more`);
@@ -55,8 +57,9 @@ test.describe('Gate E.0: unit holds belong to the person who placed them (Issue 
 
     await page.goto(`${BO}/backoffice/crm/lead-360-workspace?record=${lead.id}&unit=${UNIT}`);
     await expect(quick).toBeVisible();
-    // The reference is kept whole and bidi-isolated with invisible joiners; compare the visible words.
-    await expect.poll(async () => (await quick.getByTestId('unit-hold-badge').innerText()).replace(/[⁠⁨⁩]/g, '')).toContain(`Held for ${lead.ref} until`);
+    // F-GPT-W1-01: the lead is Nadia's, so Bilal sees the hold and its expiry without the lead's reference.
+    await expect.poll(async () => (await quick.getByTestId('unit-hold-badge').innerText()).replace(/[⁠⁨⁩]/g, '')).toContain('Held until');
+    await expect(quick.getByTestId('unit-hold-badge')).not.toContainText(lead.ref);
     await expect(quick.getByTestId('unit-release')).toHaveCount(0);
     await expect(quick.getByTestId('unit-hold')).toBeDisabled();
     const { violations } = await scanA11y(page, testInfo, 'e0-quick-view-colleague-hold');

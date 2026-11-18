@@ -14,6 +14,11 @@ const avail = (projectId: string, skip = 0) => UNITS.filter((u) => u.projectId =
 const sold = (projectId: string, skip = 0) => UNITS.filter((u) => u.projectId === projectId && (u.status === 'booked' || u.status === 'allocated'))[skip]!;
 const withStatus = (projectId: string, status: string) => UNITS.find((u) => u.projectId === projectId && u.status === status)!;
 const openLead = (projectId: string, skip = 0) => LEADS.filter((l) => l.projectId === projectId && ['new', 'assigned', 'contacted', 'qualified'].includes(l.status))[skip]!;
+/**
+ * An open lead of a project assigned to one person. Wave 1 integration, F-GPT-W1-01 (Issue #25 review): E.2's hold
+ * picker and hold write take only leads the person may see (their own, or the whole project with lead.assign).
+ */
+const ownLead = (projectId: string, owner: string, skip = 0) => LEADS.filter((l) => l.projectId === projectId && l.ownerPersonaId === owner && ['new', 'assigned', 'contacted', 'qualified'].includes(l.status))[skip]!;
 /** A refusal's answer without its correlation id (unknown and hidden ids must answer identically). */
 const same = (r: Awaited<ReturnType<typeof refusal>>) => JSON.stringify(r);
 
@@ -42,7 +47,9 @@ describe('PRJ-001 / PRJ-002: projects in scope, figures per licence and permissi
     const sum = Object.values(heights.units!.buckets).reduce((a, b) => a + b, 0);
     expect(sum).toBe(heights.units!.total);
     expect(p.totals.units).toBe(UNITS.filter((u) => u.projectId.startsWith('prj_') && ['prj_heights', 'prj_gardens'].includes(u.projectId)).length);
-    expect(heights.leads!.total).toBe(LEADS.filter((l) => l.projectId === 'prj_heights').length);
+    // F-GPT-W1-01: lead figures count only the leads this reader may see (Nadia's own; the sales manager's are all).
+    expect(heights.leads!.total).toBe(LEADS.filter((l) => l.projectId === 'prj_heights' && l.ownerPersonaId === 'manager').length);
+    expect((await api.as('lsp_sales_manager').get<ProjectsPortfolio>('/projects/portfolio')).items.find((x) => x.id === 'prj_heights')!.leads!.total).toBe(LEADS.filter((l) => l.projectId === 'prj_heights').length);
     expect(p.canSetUp).toBe(false);
   });
 
@@ -163,7 +170,7 @@ describe('INV-001 / INV-002: unit matrix and quick view', () => {
 describe('Holds: one in force per unit, owner-only release, expiry against the demo clock (Issue #23 rule)', () => {
   it('a hold shows everywhere at once; another person can neither hold it again nor release it', async () => {
     const unit = avail('prj_heights');
-    const lead = openLead('prj_heights');
+    const lead = ownLead('prj_heights', 'sales');
     api.as('sales');
     await api.get('/inventory/matrix');
     const res = await api.post<{ until: string }>(`/inventory/units/${unit.id}/hold`, { leadId: lead.id });
@@ -177,7 +184,7 @@ describe('Holds: one in force per unit, owner-only release, expiry against the d
     expect(api.holds()[unit.id]).toMatchObject({ leadId: lead.id, principalId: 'usr_lsp_0002' });
 
     api.as('manager');
-    const again = await refusedUnchanged(() => api.post(`/inventory/units/${unit.id}/hold`, { leadId: openLead('prj_heights', 1).id }));
+    const again = await refusedUnchanged(() => api.post(`/inventory/units/${unit.id}/hold`, { leadId: ownLead('prj_heights', 'manager').id }));
     expect(again).toMatchObject({ status: 409, code: 'unit_unavailable' });
     const notMine = await refusedUnchanged(() => api.post(`/inventory/units/${unit.id}/release`));
     const notHeld = await refusedUnchanged(() => api.post(`/inventory/units/${avail('prj_heights', 3).id}/release`));
@@ -200,7 +207,7 @@ describe('Holds: one in force per unit, owner-only release, expiry against the d
     vi.setSystemTime(new Date('2026-11-08T08:00:00Z'));
     const unit = avail('prj_heights', 1);
     api.as('sales');
-    await api.post(`/inventory/units/${unit.id}/hold`, { leadId: openLead('prj_heights').id });
+    await api.post(`/inventory/units/${unit.id}/hold`, { leadId: ownLead('prj_heights', 'sales').id });
     vi.setSystemTime(new Date('2026-11-10T07:59:59Z'));
     expect((await api.get<UnitInventoryDetail>(`/inventory/units/${unit.id}`)).bucket).toBe('held');
     vi.setSystemTime(new Date('2026-11-10T08:00:00Z'));
@@ -215,7 +222,7 @@ describe('Holds: one in force per unit, owner-only release, expiry against the d
     const r = await refusedUnchanged(() => api.post(`/inventory/units/${unit.id}/release`));
     expect(r.status).toBe(404);
     api.as('manager');
-    await api.post(`/inventory/units/${unit.id}/hold`, { leadId: openLead('prj_heights', 2).id });
+    await api.post(`/inventory/units/${unit.id}/hold`, { leadId: ownLead('prj_heights', 'manager', 1).id });
     const after = await api.get<UnitInventoryDetail>(`/inventory/units/${unit.id}`);
     expect(after.hold).toMatchObject({ releasable: true, holderName: 'Nadia Rahman' });
     expect(after.history.filter((e) => e.kind === 'unit_held')).toHaveLength(2);
@@ -264,13 +271,13 @@ describe('Holds: one in force per unit, owner-only release, expiry against the d
 
   it('bound idempotency: the identical request replays; any other reuse of the key is refused and changes nothing', async () => {
     const unit = avail('prj_heights', 5);
-    const lead = openLead('prj_heights');
+    const lead = ownLead('prj_heights', 'sales');
     api.as('sales');
     const first = await api.post(`/inventory/units/${unit.id}/hold`, { leadId: lead.id }, { key: 'k-hold-1' });
     const replay = await api.post(`/inventory/units/${unit.id}/hold`, { leadId: lead.id }, { key: 'k-hold-1' });
     expect(replay).toEqual(first);
     expect(api.inv().events.filter((e) => e.kind === 'unit_held')).toHaveLength(1);
-    const otherInput = await refusedUnchanged(() => api.post(`/inventory/units/${unit.id}/hold`, { leadId: openLead('prj_heights', 1).id }, { key: 'k-hold-1' }));
+    const otherInput = await refusedUnchanged(() => api.post(`/inventory/units/${unit.id}/hold`, { leadId: ownLead('prj_heights', 'sales', 1).id }, { key: 'k-hold-1' }));
     const otherTarget = await refusedUnchanged(() => api.post(`/inventory/units/${avail('prj_heights', 6).id}/hold`, { leadId: lead.id }, { key: 'k-hold-1' }));
     const otherPerson = await refusedUnchanged(() => api.as('manager').post(`/inventory/units/${unit.id}/hold`, { leadId: lead.id }, { key: 'k-hold-1' }));
     for (const r of [otherInput, otherTarget, otherPerson]) expect(r).toMatchObject({ status: 409, code: 'idempotency_key_reused' });
@@ -283,7 +290,7 @@ describe('Holds: one in force per unit, owner-only release, expiry against the d
     expect(await refusedUnchanged(() => api.as('lsp_project_manager').post(`/inventory/units/${unit.id}/hold`, { leadId: openLead('prj_heights').id }))).toMatchObject({ status: 403, code: 'permission_missing' });
     expect(await refusedUnchanged(() => api.as('finance').get('/inventory/matrix'))).toMatchObject({ status: 403 });
     api.as('sales');
-    await api.post(`/inventory/units/${unit.id}/hold`, { leadId: openLead('prj_heights').id });
+    await api.post(`/inventory/units/${unit.id}/hold`, { leadId: ownLead('prj_heights', 'sales').id });
     // Revoked mid-session: the hold permission, then the view permission, then the project.
     api.change('sales', minus('unit.hold'));
     expect(await refusedUnchanged(() => api.post(`/inventory/units/${unit.id}/release`))).toMatchObject({ status: 403, code: 'permission_missing' });
@@ -482,9 +489,9 @@ describe('PRJ-003 project setup: draft → submitted → activated by someone el
 });
 
 describe('Nested-history projection (§4.4): a narrow reader never receives lead references', () => {
-  it('the projects officer reads 360, unit and availability without any lead reference; the manager keeps them', async () => {
+  it('the projects officer reads 360, unit and availability without any lead reference; the lead’s owner and the sales manager keep them', async () => {
     const unit = avail('prj_heights', 8);
-    const lead = openLead('prj_heights');
+    const lead = ownLead('prj_heights', 'sales');
     await api.as('sales').post(`/inventory/units/${unit.id}/hold`, { leadId: lead.id });
     await api.as('lsp_project_manager').post(`/inventory/storage/stg_lh_c01/allocate`, { unitId: sold('prj_heights', 3).id });
     const narrow = [
@@ -497,7 +504,8 @@ describe('Nested-history projection (§4.4): a narrow reader never receives lead
     expect(text).not.toContain(lead.ref);
     expect(text).not.toContain(lead.id);
     expect(text).toContain(unit.ref);
-    const full = JSON.stringify(await api.as('manager').get(`/inventory/units/${unit.id}`));
-    expect(full).toContain(lead.ref);
+    // F-GPT-W1-01: Bilal's lead reaches Bilal and the sales manager (lead.assign in Heights), not Nadia.
+    for (const who of ['sales', 'lsp_sales_manager']) expect(JSON.stringify(await api.as(who).get(`/inventory/units/${unit.id}`)), who).toContain(lead.ref);
+    expect(JSON.stringify(await api.as('manager').get(`/inventory/units/${unit.id}`))).not.toContain(lead.ref);
   });
 });

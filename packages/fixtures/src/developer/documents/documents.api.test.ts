@@ -17,6 +17,12 @@ const MAKER = 'lsp_project_manager';
 const CLERK = 'lsp_records_clerk';
 const HEIGHTS_DOCS = ['doc_lsp_0001', 'doc_lsp_0002', 'doc_lsp_0003', 'doc_lsp_0006', 'doc_lsp_0007', 'doc_lsp_0009', 'doc_lsp_0010', 'doc_lsp_0013'];
 const GARDENS_DOCS = ['doc_lsp_0004', 'doc_lsp_0005', 'doc_lsp_0008', 'doc_lsp_0011', 'doc_lsp_0012', 'doc_lsp_0014'];
+/**
+ * Wave 1 integration, F-GPT-W1-01 (Issue #25 review): documents linked to a lead follow the CRM record rule. These
+ * two are linked to Bilal's Heights leads (led_0004, led_0007); the records clerk is assigned no lead and holds no
+ * lead.assign, so they are not his (conservative default; owner decision D-INT-06).
+ */
+const HEIGHTS_LEAD_DOCS = ['doc_lsp_0009', 'doc_lsp_0010'];
 
 const ids = (l: { items: Array<{ id: string }> }) => l.items.map((i) => i.id).sort();
 
@@ -26,9 +32,9 @@ describe('documents inherit their linked record’s access', () => {
     const all = await s.get<DocumentsList>('/documents');
     expect(ids(all)).toEqual([...HEIGHTS_DOCS, ...GARDENS_DOCS].sort());
     const heights = await s.as(CLERK).get<DocumentsList>('/documents');
-    expect(ids(heights)).toEqual([...HEIGHTS_DOCS].sort());
+    expect(ids(heights)).toEqual(HEIGHTS_DOCS.filter((d) => !HEIGHTS_LEAD_DOCS.includes(d)).sort());
     // Counts are of the reader's own visible documents.
-    expect(heights.counts.all).toBe(HEIGHTS_DOCS.length);
+    expect(heights.counts.all).toBe(HEIGHTS_DOCS.length - HEIGHTS_LEAD_DOCS.length);
   });
 
   it('an unknown id and a hidden one answer exactly the same, for every document route', async () => {
@@ -59,7 +65,11 @@ describe('documents inherit their linked record’s access', () => {
       for (const t of templates.items) out.push(JSON.stringify(await s.get<TemplateDetail>(`/document-templates/${t.id}`)));
       for (const q of ['LG', 'Gardens', 'plan', 'CNIC', 'cda', 'Plot']) out.push(JSON.stringify(await s.get('/workspace/search', { q })));
       out.push(JSON.stringify(await s.get('/workspace/tasks')), JSON.stringify(await s.get('/workspace/queue')), JSON.stringify(await s.get('/workspace/activity', { range: '30d', limit: '400' })));
-      for (const id of ['led_0004', 'led_0007', 'prj_heights', 'unt_lh_a_0101', 'pty_0012']) out.push(JSON.stringify(await s.get('/workspace/related', { record: id })));
+      for (const id of ['led_0004', 'led_0007', 'prj_heights', 'unt_lh_a_0101', 'pty_0012']) {
+        // F-GPT-W1-01: Bilal's leads answer the clerk like ids never issued (asserted: refused, not skipped).
+        const clerkLead = persona === CLERK && id.startsWith('led_');
+        out.push(JSON.stringify(clerkLead ? await refusal(s.get('/workspace/related', { record: id })) : await s.get('/workspace/related', { record: id })));
+      }
       out.push(JSON.stringify(await s.get('/documents/targets', { q: 'LG' })));
     };
     await read(CLERK, narrow);
@@ -152,7 +162,13 @@ describe('uploads and versions (demo files, bound idempotency)', () => {
     const s = e13Session(CLERK);
     await s.get('/documents');
     const before = s.snapshot();
-    // The clerk sees the Heights lead (lead.view) but may not write to it (no lead.manage): refused, nothing stored.
+    // F-GPT-W1-01: Bilal's lead is not the clerk's (assigned to Bilal; the clerk holds no lead.assign): the same answer
+    // as an id never issued, nothing stored.
+    expect(await refusal(s.post('/documents', upload('led_0004'), 'f3-0'))).toEqual(await refusal(s.post('/documents', upload('led_9999'), 'f3-00')));
+    expect(s.snapshot()).toBe(before);
+    // Given lead.assign in Heights (test override) the clerk sees the lead (lead.view) but may not write to it (no
+    // lead.manage): refused, nothing stored.
+    s.change(CLERK, plus('lead.assign'));
     expect(await refusal(s.post('/documents', upload('led_0004'), 'f3-1'))).toMatchObject({ status: 403, code: 'forbidden' });
     expect(await refusal(s.post('/documents/doc_lsp_0009/versions', { ...demoFile(), note: 'Renewed CNIC', expiresOn: '2031-01-01' }, 'f3-2'))).toMatchObject({ status: 403, code: 'forbidden' });
     expect(s.snapshot()).toBe(before);
