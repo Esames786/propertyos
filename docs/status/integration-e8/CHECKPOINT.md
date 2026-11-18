@@ -31,8 +31,8 @@ Agent 3, worktree `D:\laragon2\www\propertyos-int-e8`, branch `integration/e8-wa
 
 ## Status at the last update
 
-Waiting for AC power (battery 34 %, discharging) before the second targeted Chromium run and the Firefox + WebKit
-smoke on the `850a5e2` build (already built; previews to start).
+Handed back before run 2: on battery below 50 % (32 % at 22:04Z), so the second targeted Chromium run and the Firefox + WebKit
+smoke on the `850a5e2` build have not been run (see test-results.md "Run 2").
 
 ## Next / how to resume
 
