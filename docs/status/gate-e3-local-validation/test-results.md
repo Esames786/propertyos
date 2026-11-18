@@ -65,19 +65,20 @@ classes are defensive there.
 
 ## 5. Complete regression (under the shared lock)
 
-**Pre-regression checkpoint: the complete Chromium regression and the Firefox/WebKit smoke have NOT yet been
-run (blocked on AC).** The PC has been on battery since about 20:30 UTC; Agent 1 holds the shared lock with
-priority until AC returns. `test-results-e3qa/scratch/wait-and-run.sh` waits, yields to Agent 1, needs AC, then
-runs `final.sh`; the results will be added here in a separate docs/test-results commit.
+Run on 18 Nov 2026 by `test-results-e3qa/scratch/final.sh` at `67be408` (product source identical to `8a341a0`;
+later commits are docs only), on AC (100 %, no sleep or resume during the run), production builds made with
+`PROPERTYOS_E2E_PRINCIPALS=1` served on 8373–8375 over 127.0.0.1 and ::1 (byte-identical to `dist`, checked).
+The lock was taken at 09:21:12Z after Agent 1 released it (the waiter yields 150 s; Agent 1 has priority) and
+released at 10:18:45Z. (A pre-regression checkpoint was pushed at `67be408` first, at the coordinator's request,
+while the PC was on battery.)
 
-What was run on this code (product source identical to `8a341a0`; later commits are docs only):
-
-| Check | Result |
+| Run | Result |
 |---|---|
-| typecheck | exit 0 |
-| lint (ESLint, logical CSS, i18n parity) | exit 0 |
-| Vitest | 79 files, 1,872 tests: 1,870 passed + 2 timed out at 5 s under full CPU (`community.test.ts`, `finance.api.test.ts`, untouched by this branch), which pass alone (78/78) |
-| E.3 browser specs, Chromium (64) | last result per spec on this branch: GPT `e3-*` 16/16, `e3qa-authorized` 9/9, `e3qa-editors` 19/19, `e3qa-conflict` 5/5 (run q4, build of `ab223d2`'s source + the uncommitted reflow work, before `cefed5e`…`df0bd28`); `e3qa-quality` 10/10 and `e3qa-keyboard` 5/5 (run q9, final product source) |
-| Evidence (`e3qa.evidence.spec.ts`) | 9/9 on the final product source; 60 PNGs, widths 60/60, reviewed |
-| Mutations | Vitest 22/25 caught (V03, V12, V16 equivalent); browser 12/14 caught (B09, B13: defensive classes) |
-| Shipped-build proof | 0 files with the test principals; Playwright build: 1 |
+| Complete Chromium: every gate's `tests/e2e` + `tests/evidence/e3qa.evidence.spec.ts`, 3 workers, retries off | **575 / 575 passed**, 0 failed, 0 flaky (50.2 min, exit 0) |
+| — of which E.3: GPT `e3-*` (7 files) | 16 / 16 |
+| — `e3qa-authorized` / `e3qa-editors` / `e3qa-conflict` / `e3qa-quality` / `e3qa-keyboard` | 9 / 9, 19 / 19, 5 / 5, 10 / 10, 5 / 5 |
+| — `register.spec.ts` (seven rows now PARTIAL) | 16 / 16 |
+| — evidence `e3qa` | 9 / 9 |
+| axe (all attachments of the run) | **1,681 scans, 0 violations** (E.3: 74 scans, 0 violations) |
+| Firefox + WebKit smoke (`--project=firefox-smoke --project=webkit-smoke`), 3 workers, retries off | **70 / 70 passed** (6.5 min, exit 0); the known WebKit intermittent `s2a.smoke.spec.ts:52` passed |
+| Other gates' accepted PNGs | untouched (only this branch's evidence folder was rewritten; restored to the reviewed committed set) |

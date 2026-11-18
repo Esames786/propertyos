@@ -31,13 +31,13 @@
       spec (+ scroll to top) and its 60 PNGs, reviewed (`faf60e0`).
 - [x] Browser mutations (12/14 caught; B09/B13 defensive classes, see test-results.md §3): `node test-results-e3qa/scratch/mutate.cjs test-results-e3qa/mutations-browser.json browser`
       (then `build.sh` + `preview.sh` again for a clean build).
-- [ ] **Complete Chromium regression and Firefox/WebKit smoke NOT yet run (blocked on AC).** Under the lock:
-      `sh test-results-e3qa/scratch/final.sh final` (started by the waiter below).
+- [x] Complete regression under the lock, on AC, 18 Nov 09:21–10:18 UTC at `67be408`: Chromium **575/575** (50.2 min,
+      axe 1,681 scans / 0 violations), Firefox + WebKit smoke **70/70** (6.5 min). See test-results.md §5.
 - [x] Pushed as a labelled **pre-regression checkpoint** at the coordinator's request (battery 22 %). What ran on
       this product source (`8a341a0`): typecheck and lint clean; Vitest 1,872 (2 load timeouts in
       community/finance suites, 78/78 alone); E.3 browser 64/64 (latest per spec, see test-results.md §5);
       evidence 9/9 (60 PNGs reviewed); mutations Vitest 22/25 and browser 12/14, survivors explained.
-- [ ] After the complete run: results into test-results.md §5 as a docs commit, push, hand-off.
+- [x] Results committed and pushed as a docs commit; hand-off sent. **STOPPED for GPT/owner review.**
 
 ## Waiting
 
