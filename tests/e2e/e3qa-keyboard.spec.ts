@@ -13,7 +13,9 @@ import { drawerSaved, EDITORS, HEIGHTS_UNIT, main, SCREENS } from '../support/e3
 /** Keyboard focus is really drawn on the control: solid, at least 2 px. */
 async function expectRing(page: Page, loc: Locator, label: string) {
   const ring = await loc.evaluate((el) => {
-    const cs = getComputedStyle(el);
+    // Wave 2 integration: a FitSelect's select is transparent over its box, so the ring it shows for keyboard
+    // focus is drawn on that box; the select itself must still hold focus and match :focus-visible.
+    const cs = getComputedStyle(el.closest('[data-fit-select]') ?? el);
     return { focused: document.activeElement === el, visible: el.matches(':focus-visible') || el.hasAttribute('data-focus-visible'), style: cs.outlineStyle, width: parseFloat(cs.outlineWidth) };
   });
   expect(ring, label).toMatchObject({ focused: true, visible: true, style: 'solid' });
