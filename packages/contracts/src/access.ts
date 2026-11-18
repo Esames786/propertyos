@@ -374,7 +374,6 @@ export const PERMISSION_MODULE: Partial<Record<Permission, ModuleKey>> = {
   'project.manage': 'projects',
   'project.approve': 'projects',
   'inventory.manage': 'inventory',
-  'pricing.manage': 'inventory',
   'gl.view': 'accounting',
   'gl.manage': 'accounting',
   'gl.approve': 'accounting',
@@ -389,6 +388,9 @@ export const PERMISSION_MODULE: Partial<Record<Permission, ModuleKey>> = {
   'document_template.manage': 'core',
   'document_template.approve': 'core',
   // ---- end Gate E.0 ----
+  // ---- Gate E.3 (integration candidate) ----
+  'pricing.manage': 'inventory',
+  // ---- end Gate E.3 ----
 };
 
 /** Something the UI offers (a menu item, action, tour step, link): its module and permission. */

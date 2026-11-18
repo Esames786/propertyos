@@ -2,6 +2,11 @@ import type { PlanPreview, UnitPriceHistory, UnitPricePickerItem, UnitPricePicke
 import { invalid, matches, notFound, requires, type Handler, type HandlerContext } from '../../handler-types';
 import { calculatePlanPreview, InvalidPlanError } from './calculator';
 import { projectVisible } from '../scope';
+import { PLAN_TEMPLATE_HANDLERS } from './template-handlers';
+import { PRICING_POLICY_HANDLERS } from './policy-handlers';
+import { COMMERCIAL_HANDLERS } from './commercial-handlers';
+import { APPROVAL_DRAFT_HANDLERS } from './approval-draft-handlers';
+import { UNIT_PRICE_CHANGE_HANDLERS } from './price-change-handlers';
 
 /**
  * INV-006: read the fictional seed's *current listed price*, not an invented
@@ -101,4 +106,17 @@ export const PRICE_HISTORY_HANDLERS: readonly Handler[] = [
       };
     },
   },
+];
+
+/**
+ * Gate E.3's single registration in `developer/handlers.ts` DEVELOPER_AREA_HANDLERS (Wave 2 seam notes §3):
+ * price history and the plan preview here, then the five creator-private draft families.
+ */
+export const PRICING_HANDLERS: readonly Handler[] = [
+  ...PRICE_HISTORY_HANDLERS,
+  ...PLAN_TEMPLATE_HANDLERS,
+  ...PRICING_POLICY_HANDLERS,
+  ...COMMERCIAL_HANDLERS,
+  ...APPROVAL_DRAFT_HANDLERS,
+  ...UNIT_PRICE_CHANGE_HANDLERS,
 ];
