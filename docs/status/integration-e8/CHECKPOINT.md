@@ -29,15 +29,21 @@ Agent 3, worktree `D:\laragon2\www\propertyos-int-e8`, branch `integration/e8-wa
 9. First targeted Chromium run (`1abbd3d` build): 213/224; the 11 failures were all this branch's (E.13 reference
    wrapping at 320 px, a record screen's bare address in register.spec, two spec assertions) and are fixed in 6/n.
 
-## Status at the last update
+## Status at the last update (19 Nov, 05:56Z)
 
-Handed back before run 2: on battery below 50 % (32 % at 22:04Z), so the second targeted Chromium run and the Firefox + WebKit
-smoke on the `850a5e2` build have not been run (see test-results.md "Run 2").
+- Full `npm run lint`: clean (05:11Z, on AC).
+- Chromium run 2 (`850a5e2` build, on AC): 216/224, axe 415/0. The 8 failures were one defect of this branch:
+  references split mid-segment at 320 px / 200 %. Fixed in 7/n `7e448c8` (RefSegments). Full Vitest on
+  `7e448c8`: 2,028/2,028.
+- Chromium run 3 (`7e448c8` build) was STOPPED at 05:54Z when AC dropped, and is not counted. It had passed
+  every test that failed in run 2 before the stop.
+- **Outstanding:** a counted Chromium run on `7e448c8` and the full Firefox + WebKit smoke, both on AC. The build
+  in `apps/*/dist` is from `7e448c8` (the same code as HEAD).
 
 ## Next / how to resume
 
 - Targeted regression: `sh test-results-ie8/scripts/build.sh`, then `sh test-results-ie8/scripts/preview.sh &`,
-  then `sh test-results-ie8/scripts/chromium.sh` and `sh test-results-ie8/scripts/smoke.sh` (each takes
+  then `sh test-results-ie8/scripts/chromium.sh targeted4` and `sh test-results-ie8/scripts/smoke.sh` (each takes
   `D:\laragon2\www\.e2e-busy` atomically; exit 2 = held).
 - Mutations: `node test-results-ie8/scripts/mutations-int.cjs` (50 mutants: E.8's 30 + 20 new guards).
 - Then test-results.md, push (no force), release the lock, stop previews (`stop-previews.ps1`), clean tree, hand-off.

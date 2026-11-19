@@ -95,18 +95,55 @@ evidence spec. Power at the start: **battery, 55 %** (a targeted run under 30 mi
 Everything else passed, including identity (`identity.spec.ts:327` passed), int-ew1, e13-workspaces, register's
 other chunks, e0-foundation, e7-ledger, e1-crm and e2-projects. No PNG of another gate was rewritten.
 
-### Run 2 — NOT RUN YET
+Between run 1 and run 2 the laptop was on battery below 50 % (21:52Z to 05:10Z), so nothing ran.
 
-The rerun of the same targeted Chromium set on the fixed build (`850a5e2`, built at 21:55Z) and the full Firefox
-+ WebKit smoke have **not** been run: from 21:52Z the laptop was on battery below 50 % (39 % → 32 % at 22:04Z,
-discharging), and wave3-common allows browser runs on battery only from 50 %. The fixes are covered by Vitest and
-typecheck/lint, but their browser confirmation is outstanding. To finish: on AC, `sh test-results-ie8/scripts/preview.sh &`,
-`sh test-results-ie8/scripts/chromium.sh targeted2`, `sh test-results-ie8/scripts/smoke.sh`.
+### Full lint (19 Nov, 05:11Z, on AC)
+
+`npm run lint` (eslint . + logical CSS + i18n parity): **exit 0**, 41 s.
+
+### Run 2 — targeted Chromium on the `850a5e2` build (05:12–05:35Z, 22.2 min; lock held 05:12:34–05:34:56Z)
+
+Same 17 files, 3 workers, retries off. Power: **AC at the start (charging, 6 %) and at the end (charging, 24 %)**.
+Previews checked to serve the build on both loopbacks.
+
+**216 / 224 passed, 8 failed; axe 415 scans, 0 violations.** All 8 failures had one cause, again this branch's:
+
+| Failures | Cause | Fixed in |
+|---|---|---|
+| e8-payables 320 px / 200 % (EN, UR); e8 drawer at 320 px (EN, UR); gatee8 evidence 320 px (EN, UR); the integration 320 px evidence (EN, UR) | run 1's fix (`REF_LINE`, wrap anywhere) stopped references running off the screen but let them split mid-segment ("LSP-PV-2026-0001" over two lines) in a related-records card and in the drawer: the layout check's "broken-word" | `7e448c8`: `RecordLine` renders the reference as its segments; it wraps only after a separator ("LSP-PV-2026-" / "0001"). No test changed. |
+
+Everything else passed: register (all chunks, SUP-002's bare address now the choose page), identity
+(`identity.spec.ts:327` passed), int-ew1, e13-workspaces, e0-foundation, e7-ledger, e1-crm, e2-projects, access,
+permissions, security, shell, locale, command-palette, onboarding, and the rest of e8-payables.
+
+### Run 3 — the same set on the `7e448c8` build: STOPPED when AC dropped, not counted
+
+Started 05:40:05Z on AC (charging, 28 %); full Vitest on `7e448c8` beforehand: 84 files, **2,028 / 2,028**.
+At 05:54:18Z the power monitor saw `PowerOnline` False (37 %). As instructed, I stopped the run and the lock was
+released by the script's trap. **This partial run is not counted.** For information only: when stopped it showed
+215 passed, including all eight tests that failed in run 2 (e8 320 px EN and UR, the drawer at 320 px EN and UR);
+2 evidence tests were killed by the stop (worker exit 3221225794) and 7 did not run.
+
+### Firefox + WebKit smoke — NOT RUN
+
+Not started: AC dropped during run 3. Still outstanding, with a counted Chromium run on `7e448c8`. To finish on AC:
+`sh test-results-ie8/scripts/preview.sh &`, `sh test-results-ie8/scripts/chromium.sh targeted4`,
+`sh test-results-ie8/scripts/smoke.sh`.
 
 ## Screenshots
 
-`screenshots/` holds the evidence spec's output from run 1 (the `1abbd3d` build): every 1440 px shot (EN, UR, dark)
-and the 320 px shots that ran before the reference overflow stopped those tests. The 320 px shots of Supplier 360,
-the budget, the tasks and the expense from the integration set are missing until run 2. Looked at: the drawer's
-balance and simulation (EN, UR), Supplier 360 header (four money states), related records, my tasks and payables
-activity (UR): no clipping or overlap at 1440 px.
+`screenshots/` holds:
+- every 1440 px shot (EN, UR, dark) from runs 1–2;
+- the 320 px / 200 % shots written so far. Each 320 px shot is taken only after its layout check passed. The EN set
+  for Supplier 360, bill, new bill, ledger, expenses, approvals, petty cash and budget vs actual comes from the
+  stopped run 3 (`7e448c8` build). The UR set and the integration set at 320 px (Supplier 360 with related records,
+  tasks, expense) are still missing until a counted run.
+
+Looked at:
+- At 1440 px (no clipping or overlap): the drawer's balance and simulation (EN, UR), Supplier 360's header with
+  the four money states, related records, my tasks, payables activity (UR).
+- At 320 px / 200 % EN: Supplier 360 from run 3. Its related records wrap the reference after a separator
+  ("LSP-PV-2026-" / "0001") with nothing clipped. The bottom bar sits mid-page in the full-page shot, as in every
+  full-page phone shot (it is fixed to the viewport).
+- **Not yet looked at:** the tasks and expense pages at 320 px / 200 % in EN and UR, and Supplier 360 in UR. Those
+  shots do not exist yet.
