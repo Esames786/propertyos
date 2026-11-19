@@ -73,9 +73,9 @@ for (const locale of ['en-PK', 'ur-PK'] as const) {
     await seedPrincipal(page, 'res_e3qa_pricing', { locale });
     await SCREENS.find((s) => s.id === 'COM-004')!.prepare(page);
     const result = page.getByTestId('commercial-preview-result');
-    await result.scrollIntoViewIfNeeded();
-    await page.waitForTimeout(300);
-    await result.screenshot({ path: `${DIR}/discount-com-004-preview-390-${lang(locale)}.png`, animations: 'disabled' });
+    // The viewport at the preview's lines (the name keeps the viewport width).
+    await result.getByTestId('commercial-preview-line').last().evaluate((el) => el.scrollIntoView({ block: 'end' }));
+    await shot(page, `discount-com-004-preview-390-${lang(locale)}`, false);
     await ctx.close();
     ctx = await browser.newContext({ viewport: VIEWPORTS.reflow, reducedMotion: 'reduce' });
     page = await ctx.newPage();
