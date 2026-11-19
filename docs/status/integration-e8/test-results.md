@@ -124,26 +124,39 @@ released by the script's trap. **This partial run is not counted.** For informat
 215 passed, including all eight tests that failed in run 2 (e8 320 px EN and UR, the drawer at 320 px EN and UR);
 2 evidence tests were killed by the stop (worker exit 3221225794) and 7 did not run.
 
-### Firefox + WebKit smoke — NOT RUN
+### Run 4 — the same targeted Chromium set on the `7e448c8` build: the counted final run
 
-Not started: AC dropped during run 3. Still outstanding, with a counted Chromium run on `7e448c8`. To finish on AC:
-`sh test-results-ie8/scripts/preview.sh &`, `sh test-results-ie8/scripts/chromium.sh targeted4`,
-`sh test-results-ie8/scripts/smoke.sh`.
+07:00:36–07:19:51Z, 19.1 min; lock held 07:00:31–07:19:53Z (taken after Agent 2 released it). 17 files, 3 workers,
+retries off; previews checked to serve the build on both loopbacks. Power: **AC at the start (charging, 37 %) and at
+the end (charging, 53 %)**.
+
+**224 / 224 passed, 0 failed. axe: 417 scans, 0 violations.** Every test that failed in runs 1–2 passes. That
+includes e8 at 320 px / 200 % (EN, UR), the drawer at 320 px (EN, UR), and the gatee8 and integration 320 px evidence
+(EN, UR). The known intermittent `identity.spec.ts:327` also passed. No PNG of another gate was rewritten.
+
+### Firefox + WebKit smoke (full) on the `7e448c8` build
+
+07:19:58–07:26:45Z, 6.8 min; lock held 07:19:54–07:26:47Z; 3 workers, retries off. Power: **AC at the start
+(charging, 53 %) and at the end (charging, 58 %)**.
+
+**104 / 104 passed**, including the e8 and e13 smoke in both browsers. The known intermittent
+`s2a.smoke.spec.ts:52` passed in Firefox and WebKit.
 
 ## Screenshots
 
-`screenshots/` holds:
-- every 1440 px shot (EN, UR, dark) from runs 1–2;
-- the 320 px / 200 % shots written so far. Each 320 px shot is taken only after its layout check passed. The EN set
-  for Supplier 360, bill, new bill, ledger, expenses, approvals, petty cash and budget vs actual comes from the
-  stopped run 3 (`7e448c8` build). The UR set and the integration set at 320 px (Supplier 360 with related records,
-  tasks, expense) are still missing until a counted run.
+`screenshots/` holds the gatee8 evidence spec's output from run 4 (the `7e448c8` build): every 1440 px shot in EN,
+UR and dark, and every 320 px / 200 % shot in EN and UR. Each 320 px shot is taken only after its layout check
+passed.
 
 Looked at:
-- At 1440 px (no clipping or overlap): the drawer's balance and simulation (EN, UR), Supplier 360's header with
-  the four money states, related records, my tasks, payables activity (UR).
-- At 320 px / 200 % EN: Supplier 360 from run 3. Its related records wrap the reference after a separator
-  ("LSP-PV-2026-" / "0001") with nothing clipped. The bottom bar sits mid-page in the full-page shot, as in every
-  full-page phone shot (it is fixed to the viewport).
-- **Not yet looked at:** the tasks and expense pages at 320 px / 200 % in EN and UR, and Supplier 360 in UR. Those
-  shots do not exist yet.
+- At 1440 px (no clipping or overlap): the drawer's balance and simulation (EN, UR); Supplier 360's header with
+  the four money states; related records; my tasks; payables activity (UR).
+- At 320 px / 200 %, EN and UR:
+  - Supplier 360 (`e8-02-…`, `e8-61-…`): related records wrap the reference only after a separator
+    ("LSP-SB-2026-" / "00002", "LSP-PV-2026-" / "0001"), with nothing clipped. In UR the reference keeps its
+    left-to-right order.
+  - My tasks (`e8-62-…`): the payables approvals beside the journal, with title, reference, state, due date and
+    action; nothing clipped.
+  - Expense (`e8-63-…`): the cost centre, the "Budget for this cost centre" link (LSP-BUD-001) and the budget vs
+    actual link, whole.
+  - In every full-page phone shot the bottom bar sits mid-page, because it is fixed to the viewport.

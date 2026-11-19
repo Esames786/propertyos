@@ -29,16 +29,14 @@ Agent 3, worktree `D:\laragon2\www\propertyos-int-e8`, branch `integration/e8-wa
 9. First targeted Chromium run (`1abbd3d` build): 213/224; the 11 failures were all this branch's (E.13 reference
    wrapping at 320 px, a record screen's bare address in register.spec, two spec assertions) and are fixed in 6/n.
 
-## Status at the last update (19 Nov, 05:56Z)
+## Status at the last update (19 Nov, 07:27Z): complete, STOPPED for review
 
-- Full `npm run lint`: clean (05:11Z, on AC).
-- Chromium run 2 (`850a5e2` build, on AC): 216/224, axe 415/0. The 8 failures were one defect of this branch:
-  references split mid-segment at 320 px / 200 %. Fixed in 7/n `7e448c8` (RefSegments). Full Vitest on
-  `7e448c8`: 2,028/2,028.
-- Chromium run 3 (`7e448c8` build) was STOPPED at 05:54Z when AC dropped, and is not counted. It had passed
-  every test that failed in run 2 before the stop.
-- **Outstanding:** a counted Chromium run on `7e448c8` and the full Firefox + WebKit smoke, both on AC. The build
-  in `apps/*/dist` is from `7e448c8` (the same code as HEAD).
+- Full `npm run lint`: clean. Full Vitest on `7e448c8`: 2,028 / 2,028.
+- Chromium run 2 (`850a5e2` build): 216/224. Its 8 failures (references split mid-segment at 320 px) are fixed in
+  `7e448c8`. Run 3 was stopped when AC dropped and is not counted.
+- **Run 4 (`7e448c8` build, on AC): Chromium 224 / 224, axe 417 scans with 0 violations. Full Firefox + WebKit
+  smoke: 104 / 104.**
+- The 320 px / 200 % evidence was looked at in EN and UR.
 
 ## Next / how to resume
 
