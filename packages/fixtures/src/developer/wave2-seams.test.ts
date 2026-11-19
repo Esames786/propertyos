@@ -5,6 +5,7 @@ import { PERMISSION_MODULE, PERMISSIONS, PRICING_DRAFT_ID_PREFIXES } from '@repo
 import { NAMESPACES } from '@repo/i18n';
 import { describe, expect, it } from 'vitest';
 import { UNITS } from '../inventory';
+import { datasetFor } from '../datasets';
 import { ALL_PERSONAS } from '../people';
 import { rolesOf } from '../role-templates';
 import { effectiveAccessFor } from '../tenant-directory';
@@ -148,6 +149,18 @@ describe('E.3 pricing over E.2 inventory', () => {
     api.change('sales', invMinus('unit.view'));
     expect((await invRefusal(api.get('/pricing/units'))).status).toBe(403);
     expect((await invRefusal(api.get(`/inventory/units/${heights[0]!.id}`))).status).toBe(403);
+  });
+
+  it('a unit on a site whose inventory is not licensed is nobody’s in E.2, and so nobody’s in E.3 (the licence, not only the person’s scope)', async () => {
+    // Crescent Bay's Plaza: the person's scope covers it, but inventory is not licensed for its site (E.13's documents
+    // test uses the same shop). E.3 reads units through E.2's inventoryVisible, so the person's scope alone is not enough.
+    const api = invSession().as('cb_manager');
+    const plaza = datasetFor('tnt_crescent')!.units.find((u) => u.id === 'unt_cb_p_0101')!;
+    expect(await invRefusal(api.get(`/inventory/units/${plaza.id}`))).toEqual(await invRefusal(api.get('/inventory/units/unt_cb_never_issued')));
+    expect(await invRefusal(api.get(`/units/${plaza.id}/prices`))).toEqual(await invRefusal(api.get('/units/unt_cb_never_issued/prices')));
+    expect((await api.get<{ total: number }>('/pricing/units', { project: plaza.projectId })).total).toBe(0);
+    // Its licensed sibling project still lists its units.
+    expect((await api.get<{ total: number }>('/pricing/units')).total).toBeGreaterThan(0);
   });
 });
 
