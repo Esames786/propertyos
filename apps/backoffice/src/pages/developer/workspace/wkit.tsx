@@ -99,10 +99,10 @@ export const NOWRAP = 'inline-block whitespace-nowrap [overflow-wrap:normal]';
  * segment. E.8's references (up to 17 characters) are wider than a record card in a related-records panel or a
  * drawer at 320 px with 200 % text: NOWRAP ran them off the screen, and breaking anywhere split them mid-segment.
  */
-export function RefSegments({ value }: { value: string }) {
+export function RefSegments({ value, className }: { value: string; className?: string }) {
   const segments = value.match(/[^-/]+[-/]?|[-/]/g) ?? [value];
   return (
-    <bdi dir="ltr" className="inline-block max-w-full" data-ref={value}>
+    <bdi dir="ltr" className={cn('inline-block max-w-full', className)} data-ref={value}>
       {segments.map((s, i) => (
         <span key={i} className="inline-block whitespace-nowrap">
           {s}

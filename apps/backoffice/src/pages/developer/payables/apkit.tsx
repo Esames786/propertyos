@@ -7,6 +7,7 @@ import { FileTrigger } from 'react-aria-components';
 import { WrapMoney } from '../../society/finance/fkit';
 import { SearchSelect, unbroken, useProblemToast } from '../../society/hr/hkit';
 import { useSocietyFormat } from '../../society/kit';
+import { RefSegments } from '../workspace/wkit';
 
 /** An amount that may wrap after its currency on a narrow phone with large text (S.1's WrapMoney). */
 export { WrapMoney as Amount, Fact, FactGrid } from '../../society/finance/fkit';
@@ -233,13 +234,16 @@ export function DemoTag() {
   );
 }
 
+/**
+ * A reference: whole when it fits; when it is wider than its line (320 px with 200 % text) it wraps only between its
+ * segments, after a separator ("LSP-PV-2026-" / "0001"), never inside one. That is E.13's `RefSegments` (the
+ * related-records line).
+ *
+ * Wave 2 integration (defect W2-D1): the earlier `[overflow-wrap:anywhere]` split a reference mid-segment, e.g.
+ * "LSP-PV-2026-000" / "1" in the payment drawer's header.
+ */
 export function Ref({ value, className }: { value: string; className?: string }) {
-  return (
-    // Whole when it fits; wraps only when a long reference is wider than its card (320 px with 200 % text).
-    <bdi dir="ltr" className={cn('ltr-ref [overflow-wrap:anywhere]', className)}>
-      {unbroken(value)}
-    </bdi>
-  );
+  return <RefSegments value={value} className={cn('ltr-ref', className)} />;
 }
 
 /** A cost centre: its code and name (head office and sales are named in the reader's language). */
