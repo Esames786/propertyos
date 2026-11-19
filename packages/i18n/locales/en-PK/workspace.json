@@ -129,7 +129,8 @@
     "document.view": "See documents",
     "document.upload": "Add documents",
     "document_template.manage": "Prepare document templates",
-    "document_template.approve": "Approve document templates"
+    "document_template.approve": "Approve document templates",
+    "pricing.manage": "Prepare pricing drafts"
   },
   "hub": {
     "nav": {

@@ -6,6 +6,9 @@ import { DEV_INVENTORY_HANDLERS } from './inventory/handlers';
 import { LEDGER_HANDLERS } from './ledger/handlers';
 import { E13_HANDLERS } from './workspace/handlers';
 import { PROVIDERS } from './workspace/registry';
+// ---- Gate E.3 (integration candidate) ----
+import { PRICING_HANDLERS } from './pricing/handlers';
+// ---- end Gate E.3 ----
 
 /**
  * Wave 1 integration (Issue #25): the mock API of the four Wave 1 slices goes through E.0's one registration
@@ -14,8 +17,16 @@ import { PROVIDERS } from './workspace/registry';
 const key = (h: { method: string; pattern: RegExp }) => `${h.method} ${h.pattern.source}`;
 
 describe('Wave 1 handler registry', () => {
-  it('registers E.1, E.2, E.7 and E.13 in DEVELOPER_AREA_HANDLERS, in that order, and nowhere else', () => {
-    expect(DEVELOPER_AREA_HANDLERS).toEqual([CRM_PIPELINE_HANDLERS, DEV_INVENTORY_HANDLERS, LEDGER_HANDLERS, E13_HANDLERS]);
+  it('registers E.1, E.2, E.7 and E.13 (then the Wave 2 candidates) in DEVELOPER_AREA_HANDLERS, in that order, and nowhere else', () => {
+    expect(DEVELOPER_AREA_HANDLERS).toEqual([
+      CRM_PIPELINE_HANDLERS,
+      DEV_INVENTORY_HANDLERS,
+      LEDGER_HANDLERS,
+      E13_HANDLERS,
+      // ---- Gate E.3 (integration candidate) ----
+      PRICING_HANDLERS,
+      // ---- end Gate E.3 ----
+    ]);
     expect(DEVELOPER_HANDLERS).toEqual([...DEVELOPER_CORE_HANDLERS, ...DEVELOPER_AREA_HANDLERS.flat()]);
     for (const h of DEVELOPER_HANDLERS) expect(HANDLERS.filter((x) => x === h), key(h)).toHaveLength(1);
   });

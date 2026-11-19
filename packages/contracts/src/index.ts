@@ -32,3 +32,7 @@ export * from './ledger';
 // Gate E.13 (provisional; reconcile with E.0 at Wave 1 integration): connected workspace and documents.
 export * from './productivity';
 export * from './documents';
+// ---- Gate E.3 (integration candidate) ----
+// Unit price history, payment-plan, policy, fee/discount, approval-rule and price-change drafts.
+export * from './pricing';
+// ---- end Gate E.3 ----

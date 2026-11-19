@@ -163,6 +163,11 @@ export const PERMISSIONS = [
   'document_template.manage',
   'document_template.approve',
   // ---- end Gate E.0 ----
+  // ---- Gate E.3 (integration candidate) ----
+  // Developer commercial pricing: payment-plan preview and the creator-private draft families
+  // (COM-001…005). No role or persona holds it (draft-only; no policy is active).
+  'pricing.manage',
+  // ---- end Gate E.3 ----
   // Platform HQ (central plane, V3.1). Operators are a separate principal type from tenant staff.
   'platform.dashboard.view',
   'platform.tenants.view',

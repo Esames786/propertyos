@@ -98,7 +98,9 @@ export function replayOf(ctx: HandlerContext, store: IdempotencyStore, req: Boun
   const key = requestKey(ctx);
   const principal = principalOf(ctx);
   if (!key || !principal) return undefined;
-  const e = store[key];
+  // Own entries only: a valid key that names an Object.prototype member ("hasOwnProperty", "constructor")
+  // was never used, so it is not a reuse (Wave 2 seam notes §5; found by E.3).
+  const e = Object.hasOwn(store, key) ? store[key] : undefined;
   if (e === undefined) return undefined;
   if (!isBound(e) || e.op !== req.op || e.tenant !== (ctx.tenantId ?? '') || e.principal !== principal || e.target !== req.target || e.fingerprint !== inputFingerprint(req.input)) keyReused(ctx);
   if (!req.stillAuthorized()) notFound(ctx);
@@ -110,5 +112,7 @@ export function remember(ctx: HandlerContext, store: IdempotencyStore, req: Boun
   const key = requestKey(ctx);
   const principal = principalOf(ctx);
   if (!key || !principal) return;
-  store[key] = { op: req.op, tenant: ctx.tenantId ?? '', principal, target: req.target, fingerprint: inputFingerprint(req.input), recordId } satisfies BoundEntry;
+  const entry = { op: req.op, tenant: ctx.tenantId ?? '', principal, target: req.target, fingerprint: inputFingerprint(req.input), recordId } satisfies BoundEntry;
+  // An own property even for "__proto__" (plain assignment would replace the store's prototype and drop the entry).
+  Object.defineProperty(store, key, { value: entry, enumerable: true, writable: true, configurable: true });
 }
