@@ -176,7 +176,7 @@ export default function PricingPoliciesPage() {
         </section>
         <section className="min-w-0 space-y-4 rounded-card border border-border bg-panel p-4" aria-labelledby="pricing-policy-editor-heading">
           <h2 id="pricing-policy-editor-heading" className="font-semibold text-text">
-            {selectedId ? t('pricing:policyEdit') : t('pricing:policyNew')}
+            {/* Wave 2 integration (W2-D3a): a draft link that is not found never reads "Revise draft". */ selectedId ? (detail.isError && isNotFound(detail.error) ? t('pricing:draftUnavailable') : t('pricing:policyEdit')) : t('pricing:policyNew')}
           </h2>
           {projects.isError && <ErrorState error={projects.error} onRetry={() => void projects.refetch()} />}
           {!projects.data && !projects.isError && <SkeletonBlock lines={2} />}

@@ -170,7 +170,7 @@ export default function PaymentPlanTemplatesPage() {
                 </ul>}
         </section>
         <section className="min-w-0 space-y-4 rounded-card border border-border bg-panel p-4" aria-labelledby="template-editor-heading">
-          <h2 id="template-editor-heading" className="font-semibold text-text">{selectedId ? t('pricing:templateEdit') : t('pricing:templateNew')}</h2>
+          <h2 id="template-editor-heading" className="font-semibold text-text">{/* Wave 2 integration (W2-D3a): a draft link that is not found never reads "Revise draft". */ selectedId ? (selected.isError && isNotFound(selected.error) ? t('pricing:draftUnavailable') : t('pricing:templateEdit')) : t('pricing:templateNew')}</h2>
           <p className="text-sm text-muted">{t('pricing:templatePrivate')}</p>
           {projectsQuery.isError && <ErrorState error={projectsQuery.error} onRetry={() => void projectsQuery.refetch()} />}
           {!projectsQuery.isError && !projectsQuery.data && <SkeletonBlock lines={2} />}

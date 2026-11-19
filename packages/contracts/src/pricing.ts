@@ -275,3 +275,11 @@ export interface UnitPriceChangeDraftList {
   items: Array<{ id: string; unitId: string; currentVersion: number; proposedPrice: Money; state: 'draft' }>;
   total: number;
 }
+
+/**
+ * Wave 2 integration (W2-D3b): the id prefixes of E.3's creator-private drafts (approval rules `pad_`, fees and
+ * discounts `cdr_`, pricing policies `prp_`, unit price changes `pcd_`, payment-plan templates `pt_`). They are not
+ * E.13 records (no registry provider owns them, so they have no favourites, recents or search hits), and the shell
+ * does not record a visit to them (`visit.ts` `recordFromAddress`). A test keeps this list and the registry apart.
+ */
+export const PRICING_DRAFT_ID_PREFIXES = ['pad_', 'cdr_', 'prp_', 'pcd_', 'pt_'] as const;

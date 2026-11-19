@@ -165,7 +165,7 @@ export default function ApprovalRulesPage() {
         <div className="min-w-0 space-y-5">
           <section className="space-y-4 rounded-card border border-border bg-panel p-4" aria-labelledby="approval-editor-title">
             <h2 id="approval-editor-title" className="font-semibold text-text">
-              {selectedId ? t('pricing:approvalEdit') : t('pricing:approvalNew')}
+              {/* Wave 2 integration (W2-D3a): a draft link that is not found never reads "Revise draft". */ selectedId ? (detail.isError && isNotFound(detail.error) ? t('pricing:draftUnavailable') : t('pricing:approvalEdit')) : t('pricing:approvalNew')}
             </h2>
             {projects.isError && <ErrorState error={projects.error} onRetry={() => void projects.refetch()} />}
             {!projects.data && !projects.isError && <SkeletonBlock lines={2} />}

@@ -233,5 +233,6 @@
   "priceChangeNeverApproved": "No approval or scheduling is available for this draft.",
   "priceChangeSelectDraft": "Open draft revision",
   "priceChangeBack": "Clear selected unit",
-  "priceChangeLoading": "Loading current price and drafts"
+  "priceChangeLoading": "Loading current price and drafts",
+  "draftUnavailable": "Draft not available"
 }

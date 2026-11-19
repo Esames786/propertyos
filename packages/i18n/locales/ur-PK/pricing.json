@@ -233,5 +233,6 @@
   "priceChangeNeverApproved": "اس مسودے کی منظوری یا شیڈول دستیاب نہیں۔",
   "priceChangeSelectDraft": "مسودے کی ترمیم کھولیں",
   "priceChangeBack": "منتخب یونٹ ہٹائیں",
-  "priceChangeLoading": "قیمت اور مسودے لوڈ ہو رہے ہیں"
+  "priceChangeLoading": "قیمت اور مسودے لوڈ ہو رہے ہیں",
+  "draftUnavailable": "مسودہ دستیاب نہیں"
 }
