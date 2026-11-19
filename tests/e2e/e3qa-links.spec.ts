@@ -197,7 +197,9 @@ test.describe('INV-007 and INV-006 links', () => {
     await page.goto(DRAWER);
     await expect(page.getByTestId('price-change-open-unit')).toHaveAttribute('href', `/backoffice/inv/unit-quick-view?record=${HEIGHTS_UNIT}`);
     await page.getByTestId('price-change-open-unit').click();
-    await expect(page).toHaveURL(new RegExp(`/inv/unit-quick-view\\?record=${HEIGHTS_UNIT}$`));
+    // E.2's INV-002 address opens the unit's quick view over the unit matrix of its project.
+    await expect(page).toHaveURL(new RegExp(`/inv/unit-matrix\\?project=prj_heights&unit=${HEIGHTS_UNIT}$`));
+    await expect(page.getByTestId('inv-quick-view').getByTestId('inv-unit')).toHaveAttribute('data-unit', HEIGHTS_UNIT);
     await expect(page.getByTestId('access-outcome')).toHaveCount(0);
     expect(consoleErrors).toEqual([]);
   });
