@@ -156,6 +156,19 @@ export default function FeesDiscountsPage() {
         className="min-h-11 w-full min-w-0 rounded-control border border-border-control bg-panel px-3 text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" />
     </label>
   );
+  /*
+   * Wave 2 integration (W2-D4): a fee or discount description wraps (it grows with its text where the browser can size
+   * a field to its content, else it shows two lines) instead of scrolling sideways in a one-line field. The default
+   * "Illustrative discount" did not fit at 320 px with 200 % text. A description is one line of text, so a line break
+   * typed or pasted becomes a space.
+   */
+  const description = (label: string, value: string, onChange: (s: string) => void) => (
+    <label className="flex min-w-0 flex-col gap-1 text-sm font-medium text-text">
+      {label}
+      <textarea rows={2} value={value} onChange={(e) => onChange(e.target.value.replace(/\s*\n\s*/g, ' '))}
+        className="min-h-11 w-full min-w-0 resize-none rounded-control border border-border-control bg-panel px-3 py-2 text-text [field-sizing:content] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" />
+    </label>
+  );
 
   return (
     <div className="space-y-6 @container" data-testid="fees-discounts-page">
@@ -183,8 +196,8 @@ export default function FeesDiscountsPage() {
               </ul>}
         </section>
         <div className="min-w-0 space-y-5">
-          <section className="space-y-4 rounded-card border border-border bg-panel p-4" aria-label={selectedId ? t('pricing:commercialEdit') : t('pricing:commercialNew')}>
-            <h2 className="font-semibold text-text">{selectedId ? t('pricing:commercialEdit') : t('pricing:commercialNew')}</h2>
+          <section className="space-y-4 rounded-card border border-border bg-panel p-4" aria-label={selectedId ? (isNotFound(detail.error) ? t('pricing:draftUnavailable') : t('pricing:commercialEdit')) : t('pricing:commercialNew')}>
+            <h2 className="font-semibold text-text">{/* Wave 2 integration (W2-D3a): a draft link that is not found never reads "Revise draft". */ selectedId ? (isNotFound(detail.error) ? t('pricing:draftUnavailable') : t('pricing:commercialEdit')) : t('pricing:commercialNew')}</h2>
             {projects.isError && <ErrorState error={projects.error} onRetry={() => void projects.refetch()} />}
             {detail.isError && selectedId && (isNotFound(detail.error) ? <NotFoundState /> : <ErrorState error={detail.error} onRetry={() => void detail.refetch()} />)}
             {projects.data?.items.length === 0 && <EmptyState title={t('pricing:commercialNoProject')} />}
@@ -200,7 +213,7 @@ export default function FeesDiscountsPage() {
               {fees.map((fee) => <div key={fee.id} className="space-y-3 rounded-control border border-border bg-sunken p-3" data-testid="commercial-fee-row">
                 <div className="grid gap-3 @lg:grid-cols-2">
                   {input(t('pricing:commercialCode'), fee.code, (s) => { setFees((old) => old.map((f) => f.id === fee.id ? { ...f, code: s } : f)); changed(); })}
-                  {input(t('pricing:commercialLabel'), fee.label, (s) => { setFees((old) => old.map((f) => f.id === fee.id ? { ...f, label: s } : f)); changed(); })}
+                  {description(t('pricing:commercialLabel'), fee.label, (s) => { setFees((old) => old.map((f) => f.id === fee.id ? { ...f, label: s } : f)); changed(); })}
                   <label className="flex min-w-0 flex-col gap-1 text-sm text-text">{t('pricing:commercialMode')}
                     <FitSelect value={fee.mode} onChange={(e) => { setFees((old) => old.map((f) => f.id === fee.id ? { ...f, mode: e.target.value as FeeDraft['mode'] } : f)); changed(); }}>
                       <option value="fixed">{t('pricing:commercialFixed')}</option>
@@ -219,7 +232,7 @@ export default function FeesDiscountsPage() {
               {discounts.map((discount) => <div key={discount.id} className="space-y-3 rounded-control border border-border bg-sunken p-3" data-testid="commercial-discount-row">
                 <div className="grid gap-3 @lg:grid-cols-2">
                   {input(t('pricing:commercialCode'), discount.code, (s) => { setDiscounts((old) => old.map((d) => d.id === discount.id ? { ...d, code: s } : d)); changed(); })}
-                  {input(t('pricing:commercialLabel'), discount.label, (s) => { setDiscounts((old) => old.map((d) => d.id === discount.id ? { ...d, label: s } : d)); changed(); })}
+                  {description(t('pricing:commercialLabel'), discount.label, (s) => { setDiscounts((old) => old.map((d) => d.id === discount.id ? { ...d, label: s } : d)); changed(); })}
                   {input(t('pricing:commercialPercent'), discount.bps, (s) => { setDiscounts((old) => old.map((d) => d.id === discount.id ? { ...d, bps: s } : d)); changed(); }, 'numeric')}
                   {input(t('pricing:commercialCap'), discount.cap, (s) => { setDiscounts((old) => old.map((d) => d.id === discount.id ? { ...d, cap: s } : d)); changed(); }, 'decimal')}
                 </div>
