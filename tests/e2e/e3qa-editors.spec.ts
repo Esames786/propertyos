@@ -1,6 +1,13 @@
+import type { Page } from '@playwright/test';
 import { BO, expect, test } from '../support/fixtures';
 import { failGets, installFaults, loseNextPost, seedPrincipal, sentRequests } from '../support/e3-pricing';
 import { drawerSaved, drawerVersions, EDITORS, fillNew, HEIGHTS_UNIT, openDrawer, openEditor, priceDrafts, propose, retryEveryRead, rows, unitPrice } from '../support/e3-editors';
+
+/**
+ * The writes the editors send. Wave 2 integration: an opened draft is in the address (`?record=`), so the shell also
+ * posts it as a recent record (E.13 `/workspace/recents`, refused for a pricing draft and never a draft write).
+ */
+const draftPosts = async (page: Page) => (await sentRequests(page)).filter((r) => r.method === 'POST' && r.path !== '/workspace/recents');
 
 /**
  * Gate E.3 local validation (Issue #33): the four COM draft editors and the INV-007 drawer, driven through
@@ -48,7 +55,7 @@ for (const e of EDITORS) {
       await expect(e.saved(page)).toHaveCount(0);
       await page.getByTestId(e.save).click();
       await expect(e.saved(page)).toBeVisible();
-      const posts = (await sentRequests(page)).filter((r) => r.method === 'POST');
+      const posts = (await draftPosts(page));
       expect(posts.map((r) => r.outcome)).toEqual(['applied-but-lost', 'ok']);
       expect(posts[1]!.header).toBe(posts[0]!.header);
       expect(posts.every((r) => r.body === r.header)).toBe(true);
@@ -68,7 +75,7 @@ for (const e of EDITORS) {
       await expect(page.getByTestId('state-offline').first()).toBeVisible();
       await page.getByTestId(e.save).click();
       await expect(e.saved(page)).toBeVisible();
-      const posts = (await sentRequests(page)).filter((r) => r.method === 'POST');
+      const posts = (await draftPosts(page));
       expect(posts.map((r) => r.outcome)).toEqual(['applied-but-lost', 'ok']);
       expect(posts[1]!.header).toBe(posts[0]!.header);
       const [row] = await rows(page, e);
@@ -99,7 +106,7 @@ for (const e of EDITORS) {
       await expect(e.saved(page)).toBeVisible();
       expect(await rows(page, e)).toHaveLength(1);
       expect((await rows(page, e))[0]?.currentVersion).toBe(1);
-      const posts = (await sentRequests(page)).filter((r) => r.method === 'POST');
+      const posts = (await draftPosts(page));
       expect(posts).toHaveLength(1);
       expect(consoleErrors).toEqual([]);
     });
@@ -147,7 +154,7 @@ test.describe('INV-007 with the test-only pricing principal', () => {
     await expect(drawerSaved(page)).toHaveCount(0);
     await page.getByTestId('price-change-save').click();
     await expect(drawerSaved(page)).toBeVisible();
-    const posts = (await sentRequests(page)).filter((r) => r.method === 'POST');
+    const posts = (await draftPosts(page));
     expect(posts.map((r) => r.outcome)).toEqual(['applied-but-lost', 'ok']);
     expect(posts[1]!.header).toBe(posts[0]!.header);
     expect(await priceDrafts(page)).toHaveLength(1);
@@ -175,7 +182,7 @@ test.describe('INV-007 with the test-only pricing principal', () => {
     await expect(drawerSaved(page)).toBeVisible();
     expect(await priceDrafts(page)).toHaveLength(1);
     expect((await priceDrafts(page))[0]?.currentVersion).toBe(1);
-    expect((await sentRequests(page)).filter((r) => r.method === 'POST')).toHaveLength(1);
+    expect((await draftPosts(page))).toHaveLength(1);
     expect(consoleErrors).toEqual([]);
   });
 });
