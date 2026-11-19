@@ -164,3 +164,38 @@ export async function focusWalk(page: Page, options: { header: string; bar: stri
   }
   return stops;
 }
+
+/**
+ * Wave 2 integration (W2-D1): a reference or figure set left to right (inside an element with `dir="ltr"`, as every
+ * reference and amount is) never breaks INSIDE a run of letters or digits ("LSP-PV-2026-000" / "1"). It may still
+ * wrap between segments, after a separator. `layoutProblems`' broken-word check only looks at words narrower than
+ * three quarters of the column, so a long reference splitting near the column's width went unnoticed.
+ * Returns one entry per broken run: the run, and the whole left-to-right text it belongs to.
+ */
+export async function brokenReferences(scope: Page | Locator): Promise<Array<{ run: string; text: string }>> {
+  const root = 'goto' in scope ? scope.locator('body') : scope;
+  return root.first().evaluate((rootEl: Element) => {
+    const out: Array<{ run: string; text: string }> = [];
+    const shown = (el: Element) => {
+      const s = getComputedStyle(el);
+      return s.display !== 'none' && s.visibility !== 'hidden' && (el as HTMLElement).offsetParent !== null;
+    };
+    for (const ltr of rootEl.querySelectorAll('[dir="ltr"]')) {
+      if (!shown(ltr) || ltr.closest('[dir="ltr"]') !== ltr) continue;
+      const walker = document.createTreeWalker(ltr, NodeFilter.SHOW_TEXT);
+      for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        const text = node.textContent ?? '';
+        for (const m of text.matchAll(/[A-Za-z0-9]{2,}/g)) {
+          const range = document.createRange();
+          range.setStart(node, m.index!);
+          range.setEnd(node, m.index! + m[0].length);
+          const rects = [...range.getClientRects()].filter((x) => x.width > 0.5 && x.height > 0.5);
+          const tops: number[] = [];
+          for (const x of rects) if (!tops.some((t) => Math.abs(t - x.top) < x.height / 2)) tops.push(x.top);
+          if (tops.length > 1) out.push({ run: m[0], text: (ltr.textContent ?? '').replace(/\u2060/g, '').trim().slice(0, 60) });
+        }
+      }
+    }
+    return out;
+  });
+}

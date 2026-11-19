@@ -1,6 +1,6 @@
 import { mkdirSync } from 'node:fs';
 import type { Browser, Page } from '@playwright/test';
-import { layoutProblems } from '../support/layout';
+import { layoutProblems, brokenReferences } from '../support/layout';
 import { BO, expect, seed, test, type Locale, type PersonaId } from '../support/fixtures';
 
 /**
@@ -145,6 +145,27 @@ test('the boundaries, 1440 px (en): no bank details without bank.view; the budge
   await close();
 });
 
+/**
+ * Wave 2 combination (W2-D2): the open payment drawer at 320 px with 200 % text, as the viewport shows it: first its
+ * header, then scrolled to the balance, and the balance's end too when it is taller than the visible drawer. An element
+ * screenshot of the balance box was taller than the drawer's visible area and pulled in the drawer header and the page
+ * behind it, cut at the column edges.
+ */
+async function drawerShots(page: Page, l: string) {
+  mkdirSync(DIR, { recursive: true });
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: `${DIR}/e8-60-drawer-200pct-320-${l}.png` });
+  const box = page.getByTestId('pay-balance').first();
+  await box.evaluate((el) => el.scrollIntoView({ block: 'start' }));
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: `${DIR}/e8-60-drawer-balance-200pct-320-${l}.png` });
+  if (await box.evaluate((el) => el.getBoundingClientRect().height > window.innerHeight * 0.8)) {
+    await box.evaluate((el) => el.scrollIntoView({ block: 'end' }));
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: `${DIR}/e8-60-drawer-balance-end-200pct-320-${l}.png` });
+  }
+}
+
 /** Wave 2 integration: one element of a page (a panel or the drawer's balance). */
 async function part(page: Page, testId: string, name: string) {
   mkdirSync(DIR, { recursive: true });
@@ -192,7 +213,9 @@ for (const locale of ['en-PK', 'ur-PK'] as Locale[]) {
     ] as const) {
       await open(page, persona, path, ready);
       expect(await layoutProblems(page), `${name} ${l}`).toEqual([]);
-      if (name === '60-drawer') await part(page, 'pay-balance', `e8-${name}-balance-200pct-320-${l}`);
+      // Wave 2 combination (W2-D1): no reference breaks inside a segment, the drawer's header included.
+      expect(await brokenReferences(page), `${name} ${l}`).toEqual([]);
+      if (name === '60-drawer') await drawerShots(page, l);
       else await shot(page, `e8-${name}-200pct-320-${l}`);
     }
     await close();
