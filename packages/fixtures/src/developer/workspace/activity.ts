@@ -5,6 +5,9 @@ import { canViewDocuments, docsOf, templateVisible, visibleDocs } from '../docum
 import { addDays } from './common';
 import { inContext } from './records';
 import { resolveRecord } from './registry';
+// ---- Gate E.8 (integration candidate) ----
+import { PAYABLES_ACTIVITY_SOURCE } from '../payables/records';
+// ---- end Gate E.8 ----
 
 /**
  * Gate E.13 recent activity (HOME-005), projected by the reader's scope before it is serialised
@@ -62,6 +65,8 @@ const SOURCES: readonly Source[] = [
         ]);
       }),
   },
+  // Gate E.8 (integration candidate): each payables record's own history, projected by the reader's scope.
+  PAYABLES_ACTIVITY_SOURCE,
 ];
 
 export function activityFor(ctx: HandlerContext, range: ActivityRange, group: ActivityGroup | 'all', who: 'all' | 'mine'): { items: ActivityItem[]; groups: ActivityGroup[] } {

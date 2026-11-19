@@ -1,0 +1,66 @@
+{
+  "description": "Gate E.8 payables vectors (plan §8): bill and payment states, instructable amounts, and the supplier ledger arithmetic (approved bills − credit notes − settled payments). Settlement and credit notes do not exist in this wave (owner decision E-18); their arithmetic is still pinned so the E-18 slice inherits a checked rule. Checked by payables.test.ts.",
+  "transitions": {
+    "bill": [
+      { "action": "submit", "from": "draft", "allowed": true },
+      { "action": "submit", "from": "submitted", "allowed": false },
+      { "action": "approve", "from": "submitted", "allowed": true },
+      { "action": "approve", "from": "draft", "allowed": false },
+      { "action": "approve", "from": "approved", "allowed": false },
+      { "action": "approve", "from": "rejected", "allowed": false },
+      { "action": "reject", "from": "submitted", "allowed": true },
+      { "action": "reject", "from": "approved", "allowed": false },
+      { "action": "cancel", "from": "draft", "allowed": true },
+      { "action": "cancel", "from": "submitted", "allowed": true },
+      { "action": "cancel", "from": "rejected", "allowed": true },
+      { "action": "cancel", "from": "approved", "allowed": false, "why": "an approved bill is an obligation: corrected only by a credit note (planned)" },
+      { "action": "cancel", "from": "cancelled", "allowed": false }
+    ],
+    "payment": [
+      { "action": "approve", "from": "prepared", "allowed": true },
+      { "action": "approve", "from": "approved", "allowed": false },
+      { "action": "send", "from": "approved", "allowed": true },
+      { "action": "send", "from": "prepared", "allowed": false },
+      { "action": "send", "from": "sent_simulated", "allowed": false },
+      { "action": "cancel", "from": "prepared", "allowed": true },
+      { "action": "cancel", "from": "approved", "allowed": true },
+      { "action": "cancel", "from": "sent_simulated", "allowed": false, "why": "a sent instruction is withdrawn only by a reversal of its settlement (E-18)" },
+      { "action": "cancel", "from": "cancelled", "allowed": false }
+    ],
+    "expense": [
+      { "action": "submit", "from": "draft", "allowed": true },
+      { "action": "approve", "from": "submitted", "allowed": true },
+      { "action": "approve", "from": "draft", "allowed": false },
+      { "action": "reject", "from": "submitted", "allowed": true },
+      { "action": "withdraw", "from": "draft", "allowed": true },
+      { "action": "withdraw", "from": "submitted", "allowed": true },
+      { "action": "withdraw", "from": "approved", "allowed": false }
+    ]
+  },
+  "instructable": [
+    { "name": "a draft bill instructs nothing", "bill": { "state": "draft", "lines": ["1000.00"] }, "payments": [], "expected": "0.00" },
+    { "name": "a submitted bill instructs nothing", "bill": { "state": "submitted", "lines": ["1000.00"] }, "payments": [], "expected": "0.00" },
+    { "name": "an approved bill: its whole total", "bill": { "state": "approved", "lines": ["1240000.00", "0.50"] }, "payments": [], "expected": "1240000.50" },
+    { "name": "live instructions (prepared, approved, sent) reduce what may still be instructed", "bill": { "state": "approved", "lines": ["150000.00"] }, "payments": [{ "state": "prepared", "amount": "50000.00" }, { "state": "approved", "amount": "25000.00" }, { "state": "sent_simulated", "amount": "10000.00" }], "expected": "65000.00" },
+    { "name": "a cancelled instruction frees its amount", "bill": { "state": "approved", "lines": ["150000.00"] }, "payments": [{ "state": "cancelled", "amount": "150000.00" }], "expected": "150000.00" },
+    { "name": "never below zero", "bill": { "state": "approved", "lines": ["100.00"] }, "payments": [{ "state": "prepared", "amount": "150.00" }], "expected": "0.00" }
+  ],
+  "ledger": [
+    { "name": "only approved bills are obligations", "bills": [{ "id": "b1", "ref": "B-1", "date": "2026-10-01", "state": "approved", "total": "1000.00" }, { "id": "b2", "ref": "B-2", "date": "2026-10-02", "state": "submitted", "total": "500.00" }, { "id": "b3", "ref": "B-3", "date": "2026-10-03", "state": "rejected", "total": "700.00" }, { "id": "b4", "ref": "B-4", "date": "2026-10-03", "state": "cancelled", "total": "900.00" }, { "id": "b5", "ref": "B-5", "date": "2026-10-04", "state": "draft", "total": "100.00" }], "creditNotes": [], "settled": [], "balance": "1000.00", "kinds": ["bill"], "running": ["1000.00"] },
+    { "name": "an instruction is not a settlement: no instruction input exists, the balance is the approved bills", "bills": [{ "id": "b1", "ref": "B-1", "date": "2026-10-01", "state": "approved", "total": "150000.00" }], "creditNotes": [], "settled": [], "balance": "150000.00", "kinds": ["bill"], "running": ["150000.00"] },
+    { "name": "bills − credit notes − settled payments, in date order (bills first on a day)", "bills": [{ "id": "b1", "ref": "B-1", "date": "2026-10-01", "state": "approved", "total": "1000.00" }, { "id": "b2", "ref": "B-2", "date": "2026-10-05", "state": "approved", "total": "400.00" }], "creditNotes": [{ "id": "c1", "ref": "CN-1", "date": "2026-10-05", "amount": "100.00" }], "settled": [{ "id": "s1", "ref": "PV-1", "date": "2026-10-03", "amount": "600.00" }], "balance": "700.00", "kinds": ["bill", "settled_payment", "bill", "credit_note"], "running": ["1000.00", "400.00", "800.00", "700.00"] },
+    { "name": "a reversed settlement restores the liability", "bills": [{ "id": "b1", "ref": "B-1", "date": "2026-10-01", "state": "approved", "total": "1000.00" }], "creditNotes": [], "settled": [{ "id": "s1", "ref": "PV-1", "date": "2026-10-03", "amount": "1000.00", "reversed": true }], "balance": "1000.00", "kinds": ["bill"], "running": ["1000.00"] },
+    { "name": "a reversed credit note restores the liability", "bills": [{ "id": "b1", "ref": "B-1", "date": "2026-10-01", "state": "approved", "total": "1000.00" }], "creditNotes": [{ "id": "c1", "ref": "CN-1", "date": "2026-10-02", "amount": "200.00", "reversed": true }], "settled": [], "balance": "1000.00", "kinds": ["bill"], "running": ["1000.00"] },
+    { "name": "paisa are exact (no float)", "bills": [{ "id": "b1", "ref": "B-1", "date": "2026-10-01", "state": "approved", "total": "0.10" }, { "id": "b2", "ref": "B-2", "date": "2026-10-01", "state": "approved", "total": "0.20" }], "creditNotes": [], "settled": [], "balance": "0.30", "kinds": ["bill", "bill"], "running": ["0.10", "0.30"] }
+  ],
+  "counts": [
+    { "name": "the seeded Heights count", "notes": { "5000": 4, "1000": 9, "500": 4, "100": 2, "50": 1 }, "total": "31250.00" },
+    { "name": "every note", "notes": { "5000": 1, "1000": 1, "500": 1, "100": 1, "50": 1, "20": 1, "10": 1 }, "total": "6680.00" },
+    { "name": "nothing counted", "notes": {}, "total": "0.00" }
+  ],
+  "invalidNotes": [{ "5000": -1 }, { "5000": 1.5 }, { "25": 1 }, { "1000": "3" }],
+  "deferred": [
+    { "rule": "one statement line settles one subject", "why": "Outgoing settlement (supplier payments, reimbursements) waits on owner decision E-18 (reuse S.3's payout settlement). No settlement route exists in this wave; the API test asserts it." },
+    { "rule": "a partial match settles only through a second person's exception", "why": "Same: E-18." }
+  ]
+}

@@ -6,6 +6,9 @@ import { DOCUMENT_ROUTES, WORKSPACE_ROUTES } from './routes.workspace';
 // ---- Gate E.3 (integration candidate) ----
 import { routes as pricingRoutes } from '../pages/developer/pricing/routes';
 // ---- end Gate E.3 ----
+// ---- Gate E.8 (integration candidate) ----
+import { routes as payablesRoutes } from '../pages/developer/payables/routes';
+// ---- end Gate E.8 ----
 
 /**
  * Gate E.0 deliverable 6: the one place Gate E areas register their screens (plan §7.4: "E.0 adds one
@@ -47,6 +50,9 @@ export const DEVELOPER_AREAS: readonly DeveloperArea[] = [
   // ---- Gate E.3 (integration candidate) ----
   { area: 'pricing', routes: pricingRoutes }, // E.3: INV-006/007, COM-001…005
   // ---- end Gate E.3 ----
+  // ---- Gate E.8 (integration candidate) ----
+  { area: 'payables', routes: payablesRoutes }, // E.8: SUP-001…008, EXP-001…009 (DEV edition only)
+  // ---- end Gate E.8 ----
 ];
 
 /** Every registered Gate E route, spread into the backoffice shell by `routes.tsx`. */

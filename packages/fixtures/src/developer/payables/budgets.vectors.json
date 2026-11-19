@@ -1,0 +1,49 @@
+{
+  "description": "Gate E.8 budget vectors (plan §8, EXP-007…009): which version counts, budget vs actual where actual = posted only, approved-but-unposted obligations apart, remaining = budget − posted actual, and fiscal years (July–June). Checked by payables.test.ts.",
+  "versions": [
+    { "name": "no approved version: nothing to compare", "versions": [{ "n": 1, "state": "submitted" }], "approved": null, "open": 1 },
+    { "name": "a draft never governs", "versions": [{ "n": 1, "state": "approved" }, { "n": 2, "state": "draft" }], "approved": 1, "open": 2 },
+    { "name": "the newer approval supersedes; superseded and rejected never count", "versions": [{ "n": 1, "state": "superseded" }, { "n": 2, "state": "rejected" }, { "n": 3, "state": "approved" }], "approved": 3, "open": null },
+    { "name": "withdrawn is closed", "versions": [{ "n": 1, "state": "withdrawn" }], "approved": null, "open": null }
+  ],
+  "bva": [
+    {
+      "name": "nothing posted yet (E-17): actual is zero and remaining is the budget; approved obligations shown apart",
+      "budget": [{ "category": "materials", "amount": "45000000.00" }, { "category": "site_running", "amount": "1200000.00" }],
+      "posted": [],
+      "approvedNotPosted": [{ "category": "materials", "amount": "1240000.00" }, { "category": "site_running", "amount": "18500.00" }],
+      "rows": [
+        { "category": "materials", "budget": "45000000.00", "actualPosted": "0.00", "approvedNotPosted": "1240000.00", "remaining": "45000000.00" },
+        { "category": "site_running", "budget": "1200000.00", "actualPosted": "0.00", "approvedNotPosted": "18500.00", "remaining": "1200000.00" }
+      ],
+      "totals": { "budget": "46200000.00", "actualPosted": "0.00", "approvedNotPosted": "1258500.00", "remaining": "46200000.00" }
+    },
+    {
+      "name": "posted actuals (once E.7 posts) reduce remaining; an unbudgeted category appears with budget 0",
+      "budget": [{ "category": "utilities", "amount": "900000.00" }],
+      "posted": [{ "category": "utilities", "amount": "86450.00" }, { "category": "travel", "amount": "14200.00" }],
+      "approvedNotPosted": [],
+      "rows": [
+        { "category": "utilities", "budget": "900000.00", "actualPosted": "86450.00", "approvedNotPosted": "0.00", "remaining": "813550.00" },
+        { "category": "travel", "budget": "0.00", "actualPosted": "14200.00", "approvedNotPosted": "0.00", "remaining": "-14200.00" }
+      ],
+      "totals": { "budget": "900000.00", "actualPosted": "100650.00", "approvedNotPosted": "0.00", "remaining": "799350.00" }
+    },
+    {
+      "name": "lines of one category add up exactly",
+      "budget": [{ "category": "office", "amount": "0.10" }, { "category": "office", "amount": "0.20" }],
+      "posted": [],
+      "approvedNotPosted": [{ "category": "office", "amount": "0.05" }, { "category": "office", "amount": "0.05" }],
+      "rows": [{ "category": "office", "budget": "0.30", "actualPosted": "0.00", "approvedNotPosted": "0.10", "remaining": "0.30" }],
+      "totals": { "budget": "0.30", "actualPosted": "0.00", "approvedNotPosted": "0.10", "remaining": "0.30" }
+    }
+  ],
+  "fiscalYears": [
+    { "date": "2026-07-01", "year": "FY2026-27" },
+    { "date": "2026-10-26", "year": "FY2026-27" },
+    { "date": "2027-06-30", "year": "FY2026-27" },
+    { "date": "2027-07-01", "year": "FY2027-28" },
+    { "date": "2026-06-30", "year": "FY2025-26" }
+  ],
+  "bounds": [{ "year": "FY2026-27", "from": "2026-07-01", "to": "2027-06-30" }]
+}

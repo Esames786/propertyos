@@ -391,6 +391,16 @@ export const PERMISSION_MODULE: Partial<Record<Permission, ModuleKey>> = {
   // ---- Gate E.3 (integration candidate) ----
   'pricing.manage': 'inventory',
   // ---- end Gate E.3 ----
+  // ---- Gate E.8 (integration candidate) ----
+  // Payables and expenses (owner decision E-07, provisional): every E.8 permission is the payables module's.
+  'supplier.manage': 'payables',
+  'supplier_bill.approve': 'payables',
+  'supplier_payment.approve': 'payables',
+  'expense.view': 'payables',
+  'expense.approve': 'payables',
+  'budget.manage': 'payables',
+  'budget.approve': 'payables',
+  // ---- end Gate E.8 ----
 };
 
 /** Something the UI offers (a menu item, action, tour step, link): its module and permission. */

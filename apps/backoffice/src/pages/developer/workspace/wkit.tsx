@@ -5,6 +5,11 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
   Activity,
   Archive,
+  Banknote,
+  PiggyBank,
+  Receipt,
+  Truck,
+  Wallet,
   BookOpen,
   CalendarClock,
   NotebookPen,
@@ -78,10 +83,34 @@ export const TYPE_ICON: Record<WorkspaceRecordType, LucideIcon> = {
   storage: Archive,
   account: BookOpen,
   journal: NotebookPen,
+  // Gate E.8 (integration candidate): suppliers, supplier bills, payment instructions, expenses, budgets.
+  supplier: Truck,
+  supplier_bill: Receipt,
+  supplier_payment: Banknote,
+  expense: Wallet,
+  budget: PiggyBank,
 };
 
 /** A reference never breaks inside itself: it moves to the next line whole (320 px at 200 % text). */
 export const NOWRAP = 'inline-block whitespace-nowrap [overflow-wrap:normal]';
+/**
+ * Gate E.8 (integration candidate): a record line's reference. It stays whole when the line can hold it; when it
+ * cannot, it wraps only between its segments, after a separator ("LSP-SB-2026-" / "00004"), never inside a
+ * segment. E.8's references (up to 17 characters) are wider than a record card in a related-records panel or a
+ * drawer at 320 px with 200 % text: NOWRAP ran them off the screen, and breaking anywhere split them mid-segment.
+ */
+export function RefSegments({ value }: { value: string }) {
+  const segments = value.match(/[^-/]+[-/]?|[-/]/g) ?? [value];
+  return (
+    <bdi dir="ltr" className="inline-block max-w-full" data-ref={value}>
+      {segments.map((s, i) => (
+        <span key={i} className="inline-block whitespace-nowrap">
+          {s}
+        </span>
+      ))}
+    </bdi>
+  );
+}
 
 export function useHubFormat() {
   const { locale } = useLocale();
@@ -166,7 +195,7 @@ export function RecordLine({ record }: { record: RecordRef }) {
   const dt = dynamicT(t);
   return (
     <span className="block text-xs text-muted [overflow-wrap:anywhere]">
-      {typeLabel(record.type)} · <bdi dir="ltr" className={NOWRAP}>{unbroken(record.ref)}</bdi>
+      {typeLabel(record.type)} · <RefSegments value={record.ref} />
       {record.subtitleKey ? ` · ${dt(record.subtitleKey)}` : record.subtitle ? (
         <>
           {' · '}

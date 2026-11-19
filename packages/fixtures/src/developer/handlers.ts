@@ -9,6 +9,9 @@ import { E13_HANDLERS } from './workspace/handlers';
 // ---- Gate E.3 (integration candidate) ----
 import { PRICING_HANDLERS } from './pricing/handlers';
 // ---- end Gate E.3 ----
+// ---- Gate E.8 (integration candidate) ----
+import { PAYABLES_HANDLERS } from './payables/handlers';
+// ---- end Gate E.8 ----
 
 /**
  * Gate E.0 deliverable 6 (mock API): the developer ERP's handler registration point.
@@ -112,6 +115,9 @@ export const DEVELOPER_AREA_HANDLERS: ReadonlyArray<readonly Handler[]> = [
   // ---- Gate E.3 (integration candidate) ----
   PRICING_HANDLERS, // E.3: price history, plan preview and the five creator-private draft families (draft-only)
   // ---- end Gate E.3 ----
+  // ---- Gate E.8 (integration candidate) ----
+  PAYABLES_HANDLERS, // E.8: suppliers, supplier bills, payment instructions, expenses, claims, petty cash, budgets
+  // ---- end Gate E.8 ----
 ];
 
 export const DEVELOPER_HANDLERS: readonly Handler[] = [...DEVELOPER_CORE_HANDLERS, ...DEVELOPER_AREA_HANDLERS.flat()];

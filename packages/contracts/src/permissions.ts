@@ -168,6 +168,23 @@ export const PERMISSIONS = [
   // (COM-001…005). No role or persona holds it (draft-only; no policy is active).
   'pricing.manage',
   // ---- end Gate E.3 ----
+  // ---- Gate E.8 (integration candidate) ----
+  // Payables and expenses (owner decision E-07, provisional; conservative names). `supplier.view` and
+  // `expense.create` already exist; reading expenses needs the register's `expense.view` (a new permission),
+  // and every maker-checker pair is split in two. No starter set holds any of them (E-06); Larkspur's own
+  // roles do (role-templates.ts, provisional owner decision D-INT-07).
+  // Maker: suppliers, supplier bills (draft, submit, cancel), utility bills and payment instructions.
+  'supplier.manage',
+  // Checkers: approve or reject a supplier bill; approve a payment instruction (never a settlement).
+  'supplier_bill.approve',
+  'supplier_payment.approve',
+  // Expenses, claims, petty cash and budgets: reading needs expense.view; expense.create (existing) is the
+  // maker; expense.approve the checker (and the petty-cash witness); budgets are drafted and approved apart.
+  'expense.view',
+  'expense.approve',
+  'budget.manage',
+  'budget.approve',
+  // ---- end Gate E.8 ----
   // Platform HQ (central plane, V3.1). Operators are a separate principal type from tenant staff.
   'platform.dashboard.view',
   'platform.tenants.view',

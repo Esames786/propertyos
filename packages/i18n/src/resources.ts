@@ -69,6 +69,10 @@ import urDocuments from '../locales/ur-PK/documents.json';
 import enPricing from '../locales/en-PK/pricing.json';
 import urPricing from '../locales/ur-PK/pricing.json';
 // ---- end Gate E.3 ----
+// ---- Gate E.8 (integration candidate) ----
+import enPayables from '../locales/en-PK/payables.json';
+import urPayables from '../locales/ur-PK/payables.json';
+// ---- end Gate E.8 ----
 
 export const NAMESPACES = [
   'common',
@@ -116,6 +120,7 @@ export const NAMESPACES = [
   // Unit price history and pricing drafts (INV-006, INV-007, COM-001…005).
   'pricing',
   // ---- end Gate E.3 ----
+  'payables', // Gate E.8 (integration candidate): suppliers, payables and expenses (developer ERP)
 ] as const;
 
 export type Namespace = (typeof NAMESPACES)[number];
@@ -155,6 +160,7 @@ const en = {
   // ---- Gate E.3 (integration candidate) ----
   pricing: enPricing,
   // ---- end Gate E.3 ----
+  payables: enPayables, // Gate E.8 (integration candidate)
 };
 
 const ur: typeof en = {
@@ -192,6 +198,7 @@ const ur: typeof en = {
   // ---- Gate E.3 (integration candidate) ----
   pricing: urPricing,
   // ---- end Gate E.3 ----
+  payables: urPayables, // Gate E.8 (integration candidate)
 };
 
 export const resources = { 'en-PK': en, 'ur-PK': ur };

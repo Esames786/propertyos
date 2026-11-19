@@ -42,7 +42,9 @@
     "ownerStatements": "Owner statements",
     "ownerPayouts": "Owner payouts",
     "rentalSettings": "Rental settings",
-    "accounting": "Accounting"
+    "accounting": "Accounting",
+    "suppliers": "Suppliers and bills",
+    "expenses": "Expenses and budgets"
   },
   "header": {
     "search": "Search",

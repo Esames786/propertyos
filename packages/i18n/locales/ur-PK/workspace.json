@@ -130,7 +130,14 @@
     "document.upload": "دستاویزات شامل کریں",
     "document_template.manage": "دستاویزی سانچے تیار کریں",
     "document_template.approve": "دستاویزی سانچے منظور کریں",
-    "pricing.manage": "قیمتوں کے مسودے تیار کریں"
+    "pricing.manage": "قیمتوں کے مسودے تیار کریں",
+    "supplier.manage": "سپلائرز، بل اور ادائیگی کی ہدایات درج کریں",
+    "supplier_bill.approve": "سپلائر بل منظور کریں",
+    "supplier_payment.approve": "سپلائر ادائیگی کی ہدایات منظور کریں",
+    "expense.view": "اخراجات اور بجٹ دیکھیں",
+    "expense.approve": "اخراجات اور دعوے منظور کریں، نقدی کی گنتی کی گواہی دیں",
+    "budget.manage": "بجٹ کے ورژن تیار کریں",
+    "budget.approve": "بجٹ کے ورژن منظور کریں"
   },
   "hub": {
     "nav": {
@@ -165,7 +172,12 @@
       "visit": "سائٹ وزٹ",
       "storage": "اسٹوریج",
       "account": "لیجر اکاؤنٹ",
-      "journal": "جرنل"
+      "journal": "جرنل",
+      "supplier": "سپلائر",
+      "supplier_bill": "سپلائر بل",
+      "supplier_payment": "ادائیگی کی ہدایت",
+      "expense": "خرچ",
+      "budget": "بجٹ"
     },
     "typesPlural": {
       "lead": "لیڈز",
@@ -186,7 +198,12 @@
       "visit": "سائٹ وزٹس",
       "storage": "اسٹوریج",
       "account": "لیجر اکاؤنٹس",
-      "journal": "جرنلز"
+      "journal": "جرنلز",
+      "supplier": "سپلائرز",
+      "supplier_bill": "سپلائر بل",
+      "supplier_payment": "ادائیگی کی ہدایات",
+      "expense": "اخراجات اور دعوے",
+      "budget": "بجٹ"
     },
     "today": "آج",
     "sessionNote": "صرف اس سائن اِن کے لیے محفوظ: سائن آؤٹ کرنے یا شناخت بدلنے سے یہ فہرست صاف ہو جاتی ہے۔ جو ریکارڈ آپ اب نہیں کھول سکتے وہ اس سے غائب ہو جاتا ہے۔",
@@ -283,7 +300,11 @@
         "society_task": "سوسائٹی کا کام",
         "society_approval": "منظوری کا منتظر",
         "journal_approval": "منظوری کا منتظر جرنل",
-        "project_activation": "منظوری کا منتظر پروجیکٹ سیٹ اپ"
+        "project_activation": "منظوری کا منتظر پروجیکٹ سیٹ اپ",
+        "bill_approval": "منظوری کا منتظر سپلائر بل",
+        "payment_approval": "منظوری کی منتظر ادائیگی کی ہدایت (ادائیگی نہیں)",
+        "expense_approval": "منظوری کا منتظر خرچ",
+        "budget_approval": "منظوری کا منتظر بجٹ ورژن {{version}}"
       },
       "kindName": {
         "follow_up": "فالو اپس",
@@ -295,7 +316,11 @@
         "society_task": "سوسائٹی کے کام",
         "society_approval": "سوسائٹی کی منظوریاں",
         "journal_approval": "جرنل کی منظوریاں",
-        "project_activation": "پروجیکٹ کی فعالیاں"
+        "project_activation": "پروجیکٹ کی فعالیاں",
+        "bill_approval": "بلوں کی منظوریاں",
+        "payment_approval": "ادائیگی کی ہدایات کی منظوریاں",
+        "expense_approval": "اخراجات کی منظوریاں",
+        "budget_approval": "بجٹ کی منظوریاں"
       },
       "action": {
         "follow_up": "فالو اپ درج کریں",
@@ -307,7 +332,11 @@
         "society_task": "کھولیں",
         "society_approval": "دیکھیں",
         "journal_approval": "جرنل دیکھیں",
-        "project_activation": "سیٹ اپ دیکھیں"
+        "project_activation": "سیٹ اپ دیکھیں",
+        "bill_approval": "بل دیکھیں",
+        "payment_approval": "ہدایت دیکھیں",
+        "expense_approval": "خرچ دیکھیں",
+        "budget_approval": "بجٹ دیکھیں"
       },
       "approvalItem": "{{label}}",
       "due": "مقررہ وقت {{when}}",
@@ -357,7 +386,8 @@
         "all": "تمام شعبے",
         "crm": "سیلز",
         "documents": "دستاویزات",
-        "templates": "ٹیمپلیٹس اور پالیسیاں"
+        "templates": "ٹیمپلیٹس اور پالیسیاں",
+        "payables": "واجب الادا رقوم اور اخراجات"
       },
       "you": "آپ",
       "more": "پرانی سرگرمی دکھائیں",
@@ -371,7 +401,14 @@
         "otherLeads": "اس کسٹمر کی دوسری لیڈز",
         "leads": "لیڈز",
         "invoices": "انوائسز",
-        "linkedTo": "منسلک ریکارڈ"
+        "linkedTo": "منسلک ریکارڈ",
+        "supplier": "سپلائر",
+        "bills": "سپلائر بل",
+        "bill": "سپلائر بل",
+        "paymentInstructions": "ادائیگی کی ہدایات (تصفیہ نہیں ہوا)",
+        "budgets": "وہ بجٹ جن میں یہ بل شمار ہوگا",
+        "budget": "وہ بجٹ جس میں یہ خرچ شمار ہوگا",
+        "expenses": "اس لاگت مرکز کے اخراجات"
       },
       "documents_one": "دستاویزات ({{count}})",
       "documents_other": "دستاویزات ({{count}})",

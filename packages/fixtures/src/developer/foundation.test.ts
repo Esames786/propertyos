@@ -19,9 +19,18 @@ import { DEVELOPER_SECTION, developerState, developerStateForWrite, ENTITY_PROFI
  */
 const GATE_E = Object.keys(table.permissions);
 // Wave 1 integration (Issue #25): E.0's four plus the two module people kept as distinct least-privilege roles.
-const NEW_PERSONAS = ['lsp_sales_manager', 'lsp_project_manager', 'lsp_accounts', 'lsp_finance_controller', 'lsp_ledger_clerk', 'lsp_records_clerk'];
-/** The records clerk keeps one project's records only (E.13's project-limited document reader). */
-const SCOPE_OF: Record<string, 'all' | string[]> = { lsp_records_clerk: ['prj_heights'] };
+const NEW_PERSONAS = ['lsp_sales_manager', 'lsp_project_manager', 'lsp_accounts', 'lsp_finance_controller', 'lsp_ledger_clerk', 'lsp_records_clerk',
+  // Gate E.8 (integration candidate; E-06, provisional): the cost-centre-limited budget holder.
+  'lsp_budget_holder'];
+/** The records clerk keeps one project's records only (E.13's project-limited document reader); E.8's budget holder one site's. */
+const SCOPE_OF: Record<string, 'all' | string[]> = { lsp_records_clerk: ['prj_heights'], lsp_budget_holder: ['prj_heights'] };
+/** Gate E.8 (integration candidate; E-07, provisional): the payables maker-checker pairs, checked with E.0's own. */
+const E8_PAIRS = [
+  { subject: 'supplier_bill', maker: 'supplier.manage', checker: 'supplier_bill.approve' },
+  { subject: 'supplier_payment', maker: 'supplier.manage', checker: 'supplier_payment.approve' },
+  { subject: 'expense', maker: 'expense.create', checker: 'expense.approve' },
+  { subject: 'budget', maker: 'budget.manage', checker: 'budget.approve' },
+];
 const L = datasetFor('tnt_larkspur')!;
 const heightsLead = L.leads.find((l) => l.projectId === 'prj_heights')!;
 const NEVER_LEAD = 'led_never_issued_e0';
@@ -84,7 +93,7 @@ describe('permissions and personas (E-06, E-07)', () => {
   });
 
   it('every maker-checker pair is split: nobody holds both sides, and each side has a holder at Larkspur', () => {
-    for (const pair of table.pairs) {
+    for (const pair of [...table.pairs, ...E8_PAIRS]) {
       for (const p of ALL_PERSONAS) expect(p.permissions.includes(pair.maker as never) && p.permissions.includes(pair.checker as never), `${pair.subject} ${p.id}`).toBe(false);
       const larkspur = PERSONAS.filter((p) => p.tenantId === 'tnt_larkspur');
       expect(larkspur.some((p) => p.permissions.includes(pair.maker as never)), pair.subject).toBe(true);

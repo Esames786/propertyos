@@ -5,6 +5,9 @@ import { canAttachTo, canViewDocuments, current, docHref, summaryOf, visibleDocs
 import { CRM_RECORD_PROVIDERS } from '../crm/records';
 import { INVENTORY_RECORD_PROVIDERS } from '../inventory/records';
 import { LEDGER_RECORD_PROVIDERS } from '../ledger/records';
+// ---- Gate E.8 (integration candidate) ----
+import { PAYABLES_RECORD_PROVIDERS } from '../payables/records';
+// ---- end Gate E.8 ----
 import { CORE_PROVIDERS, otherSearch, resolveWith, type RecordProvider } from './records';
 import { isFavourite } from './store';
 
@@ -15,11 +18,13 @@ import { isFavourite } from './store';
  * shell's rule (GET /access/record) and now open E.2's live PRJ-002 and INV-002 screens. No two providers own
  * the same id prefix (registry.integration.test.ts), so order never decides anything.
  */
-export const PROVIDERS: readonly RecordProvider[] = [...DOCUMENT_PROVIDERS, ...CRM_RECORD_PROVIDERS, ...INVENTORY_RECORD_PROVIDERS, ...LEDGER_RECORD_PROVIDERS, ...CORE_PROVIDERS];
+// Gate E.8 (integration candidate): PAYABLES_RECORD_PROVIDERS (supplier, bill, payment instruction, expense, budget) before CORE_PROVIDERS.
+export const PROVIDERS: readonly RecordProvider[] = [...DOCUMENT_PROVIDERS, ...CRM_RECORD_PROVIDERS, ...INVENTORY_RECORD_PROVIDERS, ...LEDGER_RECORD_PROVIDERS, ...PAYABLES_RECORD_PROVIDERS, ...CORE_PROVIDERS];
 
 export const resolveRecord = (ctx: HandlerContext, id: string): RecordRef | null => resolveWith(PROVIDERS, ctx, id);
 
-const TYPE_ORDER: readonly WorkspaceRecordType[] = ['document', 'lead', 'opportunity', 'visit', 'party', 'unit', 'project', 'storage', 'invoice', 'account', 'journal', 'lease', 'template', 'request', 'maintenance', 'pass', 'vehicle', 'notice', 'tenant'];
+// Gate E.8 (integration candidate): supplier … budget, after the ledger's kinds.
+const TYPE_ORDER: readonly WorkspaceRecordType[] = ['document', 'lead', 'opportunity', 'visit', 'party', 'unit', 'project', 'storage', 'invoice', 'account', 'journal', 'supplier', 'supplier_bill', 'supplier_payment', 'expense', 'budget', 'lease', 'template', 'request', 'maintenance', 'pass', 'vehicle', 'notice', 'tenant'];
 const byTypeOrder = (a: WorkspaceRecordType, b: WorkspaceRecordType) => TYPE_ORDER.indexOf(a) - TYPE_ORDER.indexOf(b);
 
 export const PAGE_SIZE = 20;

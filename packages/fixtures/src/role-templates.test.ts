@@ -35,6 +35,8 @@ describe('tenant roles', () => {
       ['finance_controller', ['lsp_finance_controller']],
       ['ledger_clerk', ['lsp_ledger_clerk']],
       ['records_clerk', ['lsp_records_clerk']],
+      // Gate E.8 (integration candidate; owner decision E-06, provisional): the Larkspur Heights budget holder.
+      ['budget_holder', ['lsp_budget_holder']],
     ]);
     expect(rolesOf('tnt_alnoor', 'association').find((r) => r.id === 'accounts_officer')).toMatchObject({ starter: null, holders: ['alnoor_accounts'] });
     // Posting is finance's (owner decision, C.1 review): the building manager no longer holds it.

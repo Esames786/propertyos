@@ -36,3 +36,6 @@ export * from './documents';
 // Unit price history, payment-plan, policy, fee/discount, approval-rule and price-change drafts.
 export * from './pricing';
 // ---- end Gate E.3 ----
+// ---- Gate E.8 (integration candidate) ----
+export * from './payables'; // E.8: suppliers, payables and expenses
+// ---- end Gate E.8 ----

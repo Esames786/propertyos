@@ -37,6 +37,14 @@ export const WORKSPACE_RECORD_TYPES = [
   'storage',
   'account',
   'journal',
+  // ---- Gate E.8 (integration candidate) ----
+  // E.8's suppliers, supplier bills, payment instructions, expenses and budgets (developer/payables/records.ts).
+  'supplier',
+  'supplier_bill',
+  'supplier_payment',
+  'expense',
+  'budget',
+  // ---- end Gate E.8 ----
 ] as const;
 export type WorkspaceRecordType = (typeof WORKSPACE_RECORD_TYPES)[number];
 
@@ -105,7 +113,8 @@ export interface SavedListResponse<T> {
 // HOME-002 my tasks, HOME-004 work queue
 // ---------------------------------------------------------------------------------------------
 // Wave 1 integration (Issue #25): E.7's journals and E.2's project setups waiting for a second person.
-export const TASK_KINDS = ['follow_up', 'site_visit', 'hold_expiry', 'document_expiry', 'template_approval', 'template_returned', 'society_task', 'society_approval', 'journal_approval', 'project_activation'] as const;
+// Gate E.8 (integration candidate): the last four are E.8's approvals, for someone other than their maker (developer/payables/records.ts).
+export const TASK_KINDS = ['follow_up', 'site_visit', 'hold_expiry', 'document_expiry', 'template_approval', 'template_returned', 'society_task', 'society_approval', 'journal_approval', 'project_activation', 'bill_approval', 'payment_approval', 'expense_approval', 'budget_approval'] as const;
 export type TaskKind = (typeof TASK_KINDS)[number];
 
 export const TASK_URGENCIES = ['overdue', 'today', 'soon', 'later'] as const;
@@ -151,7 +160,7 @@ export interface WorkQueueResponse extends TasksResponse {
 export const ACTIVITY_RANGES = ['today', '7d', '30d'] as const;
 export type ActivityRange = (typeof ACTIVITY_RANGES)[number];
 
-export const ACTIVITY_GROUPS = ['crm', 'documents', 'templates'] as const;
+export const ACTIVITY_GROUPS = ['crm', 'documents', 'templates', 'payables' /* Gate E.8 (integration candidate) */] as const;
 export type ActivityGroup = (typeof ACTIVITY_GROUPS)[number];
 
 export interface ActivityItem {
